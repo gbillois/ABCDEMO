@@ -162,7 +162,7 @@
         <input id="slideNum" class="ctl" type="number" min="3" max="20" value="10">
         <label class="fld">Densité de photos : <span id="photoVal">50</span>%</label>
         <input id="photoDensity" type="range" min="0" max="100" step="10" value="50" style="width:100%">
-        <label class="fld" style="display:flex;align-items:center;gap:8px;margin-top:12px"><input type="checkbox" id="useThinking" checked style="width:auto"> Extended thinking (qualité max, plus lent)</label>
+        <label class="fld" style="display:flex;align-items:center;gap:8px;margin-top:12px"><input type="checkbox" id="useThinking" style="width:auto"> Extended thinking (qualité max — plus lent, peut être coupé par le navigateur)</label>
       </div>
       <div class="create-foot">
         <button class="btn primary" id="createBtn" style="width:100%; padding:12px">Create ✦</button>
@@ -542,31 +542,81 @@ function logMsg(kind,text){ const d=document.createElement('div'); d.className='
   const who=kind==='user'?'Vous':kind==='err'?'Erreur':'IA'; d.innerHTML='<div class="who">'+who+'</div><div class="body"></div>';
   d.querySelector('.body').textContent=text; const log=$('#createLog'); log.appendChild(d); log.scrollTop=log.scrollHeight; return d; }
 
+function genPlanSystem(th,n,photoPct){
+  const dens = photoPct<=20?'très peu de photos (compose en icônes/cartes/chiffres/dégradés)':photoPct>=80?'une grande photo sur presque chaque slide':('environ '+photoPct+'% des slides avec une grande photo');
+  const css = state.loadedCss?('\nRÉUTILISE en priorité les classes de ce CSS fourni:\n/*CSS*/\n'+state.loadedCss.slice(0,6000)+'\n/*FIN*/\n'):'';
+  return `Tu es directeur artistique. ÉTAPE 1/2 : prépare un deck de slides HTML 1280x720 de niveau agence (keynote premium).
+SORTIE STRICTE (aucun markdown), exactement dans cet ordre :
+1) UN bloc <style>...</style> = DESIGN SYSTEM complet et cohérent pour des slides 1280x720. Définis .slide{width:1280px;height:720px;position:relative;overflow:hidden} et de NOMBREUSES classes réutilisables (titres, eyebrow majuscule, sous-titre, .card avec liseré + ombre, grilles 2/3/4 colonnes, KPI gros chiffres 88-150px, pastille d'icône ronde, overlay photo en dégradé sombre, timeline, badges, blobs flous décoratifs, dégradés). Palette imposée ci-dessous.
+2) ENSUITE, pour CHAQUE slide, une entrée commençant EXACTEMENT par "===SLIDE===" suivie d'un brief de 1 à 3 phrases : titre + 2 à 4 points de contenu RÉELS et spécifiques au sujet + idée de mise en page + "photo: oui/non (+sujet)" + icônes suggérées (noms Iconify).
+Produis EXACTEMENT ${n} entrées ===SLIDE=== (contenu réel, pas de placeholder).
+${paletteText(th)}
+Densité photos : ${dens}. Varie fortement les mises en page d'une slide à l'autre. Slide 1 = titre (fond dégradé de la marque). Inclure : sommaire, sections de contenu, timeline si pertinent, grille (acteurs/risques) si pertinent, synthèse/reco finale.${css}
+Commence par <style> et termine par le dernier brief.`;
+}
+function genSlideSystem(th){
+  return `Tu génères ÉTAPE 2/2 : UNE seule slide HTML (canvas 1280x720) d'un deck premium, parfaitement cohérente avec le DESIGN SYSTEM fourni.
+SORTIE : UNIQUEMENT le HTML INTERNE de la slide (le contenu), SANS la balise <section>, SANS <style>, SANS <script>, SANS markdown.
+Réutilise EN PRIORITÉ les classes du CSS commun. Compose de façon riche et dense (rien de vide), rien ne déborde de 1280x720.
+Si le brief demande une photo : <img src="https://images.unsplash.com/photo-XXXXXXXXXXXXX-xxxxxxxxxxxx?w=1600&q=80" style="..."> (demi-page bord à bord ou plein fond) + un overlay en dégradé sombre (div position:absolute) + texte clair lisible.
+Mets des flat icons <iconify-icon icon="tabler:radar"></iconify-icon> (collections mdi/tabler/ph/solar/lucide), souvent dans une pastille ronde colorée.
+${paletteText(th)}`;
+}
+function parsePlan(text){
+  const t=stripFences(text);
+  const m=t.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+  const css=m?m[1].trim():'';
+  const rest=m? t.slice(m.index+m[0].length) : t;
+  const briefs=rest.split(/===\s*SLIDE\s*===/i).map(s=>s.replace(/^[\s:>|*-]+/,'').trim()).filter(s=>s.length>4);
+  return {css, briefs};
+}
+
 async function runCreate(){
   if(!state.settings.model){ toast('Choisissez un modèle dans Réglages.','error'); switchTab('settings'); return; }
   const prompt=$('#promptInput').value.trim(); if(!prompt){ toast('Saisissez un prompt initial.','error'); return; }
   const n=clamp(parseInt($('#slideNum').value)||10,1,24);
   const photoPct=clamp(parseInt($('#photoDensity').value),0,100);
   const th=curTheme();
-  const thinking=$('#useThinking').checked && state.settings.provider==='anthropic';
-  const sys=genHtmlSystem(th,n,photoPct);
+  const provider=state.settings.provider;
+  const thinking=$('#useThinking').checked && provider==='anthropic';
 
   logClear();
-  logMsg('user','PROMPT ('+state.settings.provider+' · '+state.settings.model+(thinking?' · thinking':'')+')\n\n'+prompt+'\n\n→ '+n+' slides · photos '+photoPct+'% · '+th.name);
-  let aiBox=logMsg('ai', thinking?'(réflexion en cours, cela peut prendre un moment…)':'');
-  setBusy('#createBusy','#createBusyTxt', true, 'Génération du HTML…');
+  logMsg('user','PROMPT ('+provider+' · '+state.settings.model+(thinking?' · thinking':'')+')\n\n'+prompt+'\n\n→ '+n+' slides · photos '+photoPct+'% · '+th.name);
+  setBusy('#createBusy','#createBusyTxt', true, 'Étape 1/2 — plan & design…');
   $('#createBtn').disabled=true;
   try{
-    const onTok=(p,all)=>{ aiBox.querySelector('.body').textContent = all.length>5000? all.slice(0,2500)+'\n…\n'+all.slice(-2000) : all; const log=$('#createLog'); log.scrollTop=log.scrollHeight; $('#createBusyTxt').textContent='Génération du HTML… ('+all.length+' car.)'; };
-    let full;
-    try{ full=await callLLM(sys,prompt,onTok,{stream:true,thinking,maxTokens:32000}); }
-    catch(e){ if(!e.streamAborted) throw e; logMsg('err','⚠ '+e.message+' Nouvel essai sans streaming…'); aiBox=logMsg('ai','(génération sans streaming…)'); $('#createBusyTxt').textContent='Génération (sans streaming)…'; full=await callLLM(sys,prompt,onTok,{stream:false,thinking,maxTokens:32000}); }
-    const parsed=parseDeckHtml(full);
-    state.deck={ themeName:$('#styleSelect').value, css:parsed.css, slides:parsed.slides, loadedCss:state.loadedCss };
-    state.cIndex=0; state.eIndex=0; persist(); refreshAll();
-    logMsg('ai','✓ '+parsed.slides.length+' slides HTML générées et rendues.');
-    toast(parsed.slides.length+' slides générées ✦','success');
-  }catch(e){ logMsg('err','✗ '+e.message); toast('Génération : '+e.message,'error'); }
+    // ---- Phase 1 : design system + plan ----
+    logMsg('ai','Étape 1/2 : conception du design system et du plan…');
+    const planTxt=await callLLM(genPlanSystem(th,n,photoPct), prompt, null, {stream:false,thinking,maxTokens:6000});
+    const plan=parsePlan(planTxt);
+    if(!plan.briefs.length) throw new Error('Plan illisible (aucune entrée ===SLIDE===).');
+    state.deck={ themeName:$('#styleSelect').value, css:plan.css, slides:[], loadedCss:state.loadedCss };
+    state.cIndex=0; state.eIndex=0; persist();
+    logMsg('ai','✓ Design system + '+plan.briefs.length+' slides planifiées. Génération slide par slide…');
+
+    // ---- Phase 2 : une slide par appel (court & fiable) ----
+    const slideSys=genSlideSystem(th);
+    const count=Math.min(plan.briefs.length, n);
+    for(let i=0;i<count;i++){
+      setBusy('#createBusy','#createBusyTxt', true, 'Étape 2/2 — slide '+(i+1)+' / '+count+'…');
+      try{
+        const txt=await callLLM(slideSys, '/* CSS commun du deck */\n'+plan.css+'\n\nSlide '+(i+1)+'/'+count+'. Brief :\n'+plan.briefs[i], null, {stream:false,thinking,maxTokens:5000});
+        const p=parseSlideHtml(txt); if(!p.inner) throw new Error('réponse vide');
+        if(p.css) state.deck.css+='\n'+p.css;
+        state.deck.slides.push(p.inner);
+        logMsg('ai','✓ Slide '+(i+1)+'/'+count);
+      }catch(se){ logMsg('err','✗ Slide '+(i+1)+' échouée ('+se.message+') — ignorée'); }
+      persist(); state.cIndex=Math.max(0,state.deck.slides.length-1); renderPreview(); updatePills();
+    }
+    if(!state.deck.slides.length) throw new Error('Aucune slide générée.');
+    state.cIndex=0; refreshAll();
+    logMsg('ai','✓ '+state.deck.slides.length+' slides générées.');
+    toast(state.deck.slides.length+' slides générées ✦','success');
+  }catch(e){
+    logMsg('err','✗ '+e.message);
+    if(/load failed|interrompu|HTTP 5|overload/i.test(e.message)) logMsg('err','Conseil : réessayez, réduisez le nombre de slides, ou désactivez « Extended thinking ».');
+    toast('Génération : '+e.message,'error');
+  }
   finally{ setBusy('#createBusy','#createBusyTxt',false); $('#createBtn').disabled=false; }
 }
 
@@ -643,7 +693,7 @@ async function retouchSlide(){
   const sys='Tu retouches UNE slide HTML d\'un deck existant (canvas 1280x720). On te donne le CSS commun du deck et le HTML interne de la slide. Applique la demande et renvoie UNIQUEMENT le nouveau HTML interne de la slide (le contenu, SANS la balise <section>, SANS markdown). Conserve la cohérence visuelle, réutilise les classes existantes, n\'introduis pas de <script>. Tu peux utiliser <img> Unsplash et <iconify-icon>.';
   const user='/* CSS commun du deck */\n'+deck().css+'\n\n/* HTML interne actuel de la slide */\n'+curEditSlide()+'\n\n/* Demande */\n'+instr;
   try{
-    const full=await callLLM(sys,user,null,{stream:false,thinking:state.settings.provider==='anthropic',maxTokens:8000});
+    const full=await callLLM(sys,user,null,{stream:false,thinking:$('#useThinking').checked && state.settings.provider==='anthropic',maxTokens:8000});
     const p=parseSlideHtml(full); if(!p.inner) throw new Error('Réponse vide.');
     if(p.css) deck().css += '\n'+p.css;
     deck().slides[state.eIndex]=p.inner; persist(); renderEditor(); renderFilmstrip();
@@ -660,7 +710,7 @@ async function addSlideAI(){
   const sys='Tu crées UNE slide HTML (canvas 1280x720) cohérente avec un deck existant. On te donne le CSS commun. Renvoie UNIQUEMENT le HTML interne de la slide (sans <section>, sans markdown, sans <script>). Réutilise les classes du CSS, mets des <iconify-icon> et éventuellement une <img> Unsplash, soigne la composition.';
   const user='/* CSS commun du deck */\n'+deck().css+'\n\n/* Brief de la slide à créer */\n'+brief;
   try{
-    const full=await callLLM(sys,user,null,{stream:false,thinking:state.settings.provider==='anthropic',maxTokens:8000});
+    const full=await callLLM(sys,user,null,{stream:false,thinking:$('#useThinking').checked && state.settings.provider==='anthropic',maxTokens:8000});
     const p=parseSlideHtml(full); if(!p.inner) throw new Error('Réponse vide.');
     if(p.css) deck().css+='\n'+p.css;
     const at=Math.min(state.eIndex+1, deck().slides.length);
