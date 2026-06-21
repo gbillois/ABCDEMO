@@ -162,7 +162,7 @@
         <input id="slideNum" class="ctl" type="number" min="3" max="20" value="10">
         <label class="fld">Densité de photos : <span id="photoVal">50</span>%</label>
         <input id="photoDensity" type="range" min="0" max="100" step="10" value="50" style="width:100%">
-        <label class="fld" style="display:flex;align-items:center;gap:8px;margin-top:12px"><input type="checkbox" id="useThinking" checked style="width:auto"> Extended thinking (qualité max, plus lent)</label>
+        <label class="fld" style="display:flex;align-items:center;gap:8px;margin-top:12px"><input type="checkbox" id="useThinking" style="width:auto"> Extended thinking (qualité max — plus lent, peut être coupé par le navigateur)</label>
       </div>
       <div class="create-foot">
         <button class="btn primary" id="createBtn" style="width:100%; padding:12px">Create ✦</button>
@@ -553,20 +553,23 @@ async function runCreate(){
 
   logClear();
   logMsg('user','PROMPT ('+state.settings.provider+' · '+state.settings.model+(thinking?' · thinking':'')+')\n\n'+prompt+'\n\n→ '+n+' slides · photos '+photoPct+'% · '+th.name);
-  let aiBox=logMsg('ai', thinking?'(réflexion en cours, cela peut prendre un moment…)':'');
-  setBusy('#createBusy','#createBusyTxt', true, 'Génération du HTML…');
+  let aiBox=logMsg('ai', thinking?'(réflexion + génération en cours, cela peut prendre un moment…)':'(génération en cours, un seul appel — patientez…)');
+  setBusy('#createBusy','#createBusyTxt', true, 'Génération du HTML (un seul appel, sans streaming)…');
   $('#createBtn').disabled=true;
   try{
-    const onTok=(p,all)=>{ aiBox.querySelector('.body').textContent = all.length>5000? all.slice(0,2500)+'\n…\n'+all.slice(-2000) : all; const log=$('#createLog'); log.scrollTop=log.scrollHeight; $('#createBusyTxt').textContent='Génération du HTML… ('+all.length+' car.)'; };
-    let full;
-    try{ full=await callLLM(sys,prompt,onTok,{stream:true,thinking,maxTokens:32000}); }
-    catch(e){ if(!e.streamAborted) throw e; logMsg('err','⚠ '+e.message+' Nouvel essai sans streaming…'); aiBox=logMsg('ai','(génération sans streaming…)'); $('#createBusyTxt').textContent='Génération (sans streaming)…'; full=await callLLM(sys,prompt,onTok,{stream:false,thinking,maxTokens:32000}); }
+    const onTok=(p,all)=>{ aiBox.querySelector('.body').textContent = all.length>5000? all.slice(0,2500)+'\n…\n'+all.slice(-2000) : all; const log=$('#createLog'); log.scrollTop=log.scrollHeight; };
+    const full=await callLLM(sys,prompt,onTok,{stream:false,thinking,maxTokens:16000});
     const parsed=parseDeckHtml(full);
     state.deck={ themeName:$('#styleSelect').value, css:parsed.css, slides:parsed.slides, loadedCss:state.loadedCss };
     state.cIndex=0; state.eIndex=0; persist(); refreshAll();
+    if(parsed.slides.length<n) logMsg('ai','ⓘ '+parsed.slides.length+'/'+n+' slides (réponse peut-être tronquée — réduisez le nombre de slides).');
     logMsg('ai','✓ '+parsed.slides.length+' slides HTML générées et rendues.');
     toast(parsed.slides.length+' slides générées ✦','success');
-  }catch(e){ logMsg('err','✗ '+e.message); toast('Génération : '+e.message,'error'); }
+  }catch(e){
+    logMsg('err','✗ '+e.message);
+    if(/load failed|interrompu|HTTP 5|overload/i.test(e.message)) logMsg('err','Conseil : réduisez le nombre de slides, désactivez « Extended thinking », ou réessayez (la connexion a probablement été coupée par le navigateur sur une requête trop longue).');
+    toast('Génération : '+e.message,'error');
+  }
   finally{ setBusy('#createBusy','#createBusyTxt',false); $('#createBtn').disabled=false; }
 }
 
@@ -643,7 +646,7 @@ async function retouchSlide(){
   const sys='Tu retouches UNE slide HTML d\'un deck existant (canvas 1280x720). On te donne le CSS commun du deck et le HTML interne de la slide. Applique la demande et renvoie UNIQUEMENT le nouveau HTML interne de la slide (le contenu, SANS la balise <section>, SANS markdown). Conserve la cohérence visuelle, réutilise les classes existantes, n\'introduis pas de <script>. Tu peux utiliser <img> Unsplash et <iconify-icon>.';
   const user='/* CSS commun du deck */\n'+deck().css+'\n\n/* HTML interne actuel de la slide */\n'+curEditSlide()+'\n\n/* Demande */\n'+instr;
   try{
-    const full=await callLLM(sys,user,null,{stream:false,thinking:state.settings.provider==='anthropic',maxTokens:8000});
+    const full=await callLLM(sys,user,null,{stream:false,thinking:$('#useThinking').checked && state.settings.provider==='anthropic',maxTokens:8000});
     const p=parseSlideHtml(full); if(!p.inner) throw new Error('Réponse vide.');
     if(p.css) deck().css += '\n'+p.css;
     deck().slides[state.eIndex]=p.inner; persist(); renderEditor(); renderFilmstrip();
@@ -660,7 +663,7 @@ async function addSlideAI(){
   const sys='Tu crées UNE slide HTML (canvas 1280x720) cohérente avec un deck existant. On te donne le CSS commun. Renvoie UNIQUEMENT le HTML interne de la slide (sans <section>, sans markdown, sans <script>). Réutilise les classes du CSS, mets des <iconify-icon> et éventuellement une <img> Unsplash, soigne la composition.';
   const user='/* CSS commun du deck */\n'+deck().css+'\n\n/* Brief de la slide à créer */\n'+brief;
   try{
-    const full=await callLLM(sys,user,null,{stream:false,thinking:state.settings.provider==='anthropic',maxTokens:8000});
+    const full=await callLLM(sys,user,null,{stream:false,thinking:$('#useThinking').checked && state.settings.provider==='anthropic',maxTokens:8000});
     const p=parseSlideHtml(full); if(!p.inner) throw new Error('Réponse vide.');
     if(p.css) deck().css+='\n'+p.css;
     const at=Math.min(state.eIndex+1, deck().slides.length);
