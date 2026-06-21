@@ -87,6 +87,16 @@
 
   .edit-host{flex:1; min-height:0; position:relative; display:grid; place-items:center; overflow:hidden; padding:18px}
   .edit-host .scaler.editing{outline:2px dashed var(--brand)}
+  .btn.on{background:var(--brand); border-color:var(--brand); color:#fff}
+  .vprops{width:268px; min-width:244px; background:var(--panel); border-left:1px solid var(--line); display:none; flex-direction:column; min-height:0; overflow:auto}
+  .vprops.show{display:flex}
+  .vprops .vtool{display:flex; flex-wrap:wrap; gap:6px}
+  .vprops .grid2{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .vprops .colorrow{display:flex; gap:8px; align-items:center}
+  .vprops input[type=color]{width:42px; height:32px; padding:2px; border:1px solid var(--line); border-radius:8px; background:var(--panel2)}
+  .vprops .seg{display:flex; gap:4px}
+  .vprops .seg button{flex:1; padding:7px 0; font-size:12px; border:1px solid var(--line); background:var(--panel2); color:var(--txt); border-radius:7px}
+  .vprops .seg button.on{background:var(--brand); border-color:var(--brand); color:#fff}
 
   /* settings */
   .settings-wrap{flex:1; overflow:auto; display:flex; justify-content:center; padding:30px}
@@ -205,7 +215,8 @@
         <button class="btn sm" id="moveUp" title="Monter">↑</button>
         <button class="btn sm" id="moveDown" title="Descendre">↓</button>
         <div class="spacer"></div>
-        <button class="btn sm" id="editTextBtn">✎ Éditer le texte</button>
+        <button class="btn sm" id="vEditBtn">✥ Édition visuelle</button>
+        <button class="btn sm" id="editTextBtn">✎ Texte</button>
         <button class="btn sm" id="editHtmlBtn">&lt;/&gt; HTML</button>
         <button class="btn sm" id="retouchBtn">✦ Retoucher (IA)</button>
         <button class="btn sm" id="retouchAllBtn">✦✦ Retoucher tout (IA)</button>
@@ -217,6 +228,19 @@
         <div class="empty" id="editEmpty">Aucune slide. Générez-en dans « Create » ou ajoutez-en une (＋).</div>
         <div class="scaler" id="eScaler" style="display:none"></div>
       </div>
+    </div>
+    <div class="vprops" id="vprops">
+      <div class="section">
+        <h3>Ajouter</h3>
+        <div class="vtool">
+          <button class="btn sm" data-add="text">＋ Texte</button>
+          <button class="btn sm" data-add="rect">＋ Rectangle</button>
+          <button class="btn sm" data-add="image">＋ Image</button>
+          <button class="btn sm" data-add="icon">＋ Icône</button>
+        </div>
+        <div class="hint">Cliquez une forme pour la sélectionner, glissez pour déplacer, poignées pour redimensionner. Double-clic = éditer le texte.</div>
+      </div>
+      <div class="section" id="vpBody"><div class="hint">Aucun élément sélectionné.</div></div>
     </div>
   </div>
 
@@ -768,8 +792,160 @@ function renderEditor(){
   if(!curEditSlide()){ $('#editEmpty').style.display='block'; scaler.style.display='none'; $('#eSlideNo').textContent='0 / 0'; return; }
   $('#editEmpty').style.display='none'; scaler.style.display='block'; state.editing=false; $('#editTextBtn').textContent='✎ Éditer le texte'; scaler.classList.remove('editing');
   scaler.innerHTML=''; const ifr=makeSlideIframe(deck().css, curEditSlide()); scaler.appendChild(ifr); state.editIframe=ifr;
+  state.sel=null;
+  ifr.addEventListener('load',()=>{ if(state.vedit) setupVisual(); });
   const sc=fitScale(host,1280,720,36); scaler.style.width='1280px'; scaler.style.height='720px'; scaler.style.transform='scale('+sc+')';
   $('#eSlideNo').textContent=(state.eIndex+1)+' / '+deck().slides.length;
+}
+
+/* ============================================================================
+   VISUAL EDITOR — select / move / resize / add / style on the live slide HTML
+   ============================================================================ */
+function eDoc(){ return state.editIframe && state.editIframe.contentDocument; }
+function eSlide(){ const d=eDoc(); return d && d.querySelector('.slide'); }
+function toggleVisual(){
+  if(!curEditSlide()){ toast('Aucune slide.','error'); return; }
+  state.vedit=!state.vedit;
+  $('#vEditBtn').classList.toggle('on',state.vedit);
+  $('#vprops').classList.toggle('show',state.vedit);
+  if(state.vedit){ commitEditing(); setupVisual(); } else { teardownVisual(); }
+}
+function setupVisual(){
+  const doc=eDoc(), slide=eSlide(); if(!doc||!slide) return;
+  let st=doc.getElementById('__ve'); if(!st){ st=doc.createElement('style'); st.id='__ve'; doc.head.appendChild(st); }
+  st.textContent='.__sel{outline:2px solid #6c5ce7 !important;outline-offset:0}#__ovl{position:absolute;inset:0;pointer-events:none;z-index:99998}.__h{position:absolute;width:12px;height:12px;background:#fff;border:2px solid #6c5ce7;pointer-events:auto;transform:translate(-50%,-50%);z-index:99999}';
+  let ov=doc.getElementById('__ovl'); if(!ov){ ov=doc.createElement('div'); ov.id='__ovl'; slide.appendChild(ov); }
+  state.vov=ov;
+  doc.addEventListener('pointerdown', onVDown, true);
+  doc.addEventListener('dblclick', onVDbl, true);
+  selectEl(state.sel && doc.contains(state.sel) ? state.sel : null);
+}
+function teardownVisual(){
+  const doc=eDoc(); if(doc){ doc.removeEventListener('pointerdown',onVDown,true); doc.removeEventListener('dblclick',onVDbl,true);
+    const ov=doc.getElementById('__ovl'); if(ov) ov.remove(); doc.querySelectorAll('.__sel').forEach(n=>n.classList.remove('__sel')); }
+  serializeSlide(); state.sel=null; renderVProps();
+}
+function serializeSlide(){
+  const slide=eSlide(); if(!slide) return;
+  const clone=slide.cloneNode(true);
+  clone.querySelectorAll('#__ovl, script').forEach(n=>n.remove());
+  clone.querySelectorAll('.__sel').forEach(n=>n.classList.remove('__sel'));
+  clone.querySelectorAll('[contenteditable]').forEach(n=>n.removeAttribute('contenteditable'));
+  deck().slides[state.eIndex]=clone.innerHTML; persist(); renderFilmstrip();
+}
+function onVDown(e){
+  const doc=eDoc(); let el=e.target;
+  if(el.classList && el.classList.contains('__h')){ startResize(e, el.getAttribute('data-dir')); return; }
+  if(!el || el.id==='__ovl' || el===eSlide()){ selectEl(null); return; }
+  if(el.closest && el.closest('#__ovl')) return;
+  selectEl(el); startDrag(e);
+}
+function onVDbl(e){
+  const el=state.sel; if(!el) return; e.preventDefault();
+  el.setAttribute('contenteditable','true'); el.focus();
+  const fin=()=>{ el.removeAttribute('contenteditable'); el.removeEventListener('blur',fin); serializeSlide(); };
+  el.addEventListener('blur',fin);
+}
+function selectEl(el){
+  const doc=eDoc(); if(!doc) return;
+  doc.querySelectorAll('.__sel').forEach(n=>n.classList.remove('__sel'));
+  state.sel=el;
+  if(el && el!==eSlide() && el.id!=='__ovl'){ el.classList.add('__sel'); positionOverlay(); }
+  else if(state.vov){ state.vov.innerHTML=''; }
+  renderVProps();
+}
+function positionOverlay(){
+  const ov=state.vov, el=state.sel, slide=eSlide(); if(!ov||!el||!slide) return;
+  const sr=slide.getBoundingClientRect(), er=el.getBoundingClientRect();
+  const x=er.left-sr.left, y=er.top-sr.top, w=er.width, h=er.height;
+  ov.innerHTML='';
+  [['nw',0,0],['n',.5,0],['ne',1,0],['e',1,.5],['se',1,1],['s',.5,1],['sw',0,1],['w',0,.5]].forEach(([dir,fx,fy])=>{
+    const hd=eDoc().createElement('div'); hd.className='__h'; hd.setAttribute('data-dir',dir);
+    hd.style.left=(x+w*fx)+'px'; hd.style.top=(y+h*fy)+'px';
+    hd.style.cursor=(dir==='n'||dir==='s')?'ns-resize':(dir==='e'||dir==='w')?'ew-resize':(dir==='nw'||dir==='se')?'nwse-resize':'nesw-resize';
+    ov.appendChild(hd);
+  });
+}
+function liftAbsolute(el){
+  const doc=eDoc(); const cs=doc.defaultView.getComputedStyle(el);
+  if(cs.position==='absolute'||cs.position==='fixed') return;
+  const prev=el.getBoundingClientRect();
+  const op=el.offsetParent||eSlide(); const opr=op.getBoundingClientRect();
+  el.style.position='absolute'; el.style.margin='0';
+  el.style.left=(prev.left-opr.left)+'px'; el.style.top=(prev.top-opr.top)+'px';
+  el.style.width=prev.width+'px'; el.style.height=prev.height+'px';
+}
+function startDrag(e){
+  const doc=eDoc(), el=state.sel; if(!el) return; liftAbsolute(el);
+  const sx=e.clientX, sy=e.clientY, ol=parseFloat(el.style.left)||0, ot=parseFloat(el.style.top)||0;
+  const move=(m)=>{ el.style.left=(ol+(m.clientX-sx))+'px'; el.style.top=(ot+(m.clientY-sy))+'px'; positionOverlay(); };
+  const up=()=>{ doc.removeEventListener('pointermove',move,true); doc.removeEventListener('pointerup',up,true); serializeSlide(); renderVProps(); };
+  doc.addEventListener('pointermove',move,true); doc.addEventListener('pointerup',up,true);
+}
+function startResize(e, dir){
+  e.preventDefault(); e.stopPropagation();
+  const doc=eDoc(), el=state.sel; if(!el) return; liftAbsolute(el);
+  const sx=e.clientX, sy=e.clientY, ol=parseFloat(el.style.left)||0, ot=parseFloat(el.style.top)||0, ow=el.offsetWidth, oh=el.offsetHeight;
+  const move=(m)=>{ const dx=m.clientX-sx, dy=m.clientY-sy; let l=ol,t=ot,w=ow,h=oh;
+    if(dir.includes('e')) w=Math.max(8,ow+dx);
+    if(dir.includes('s')) h=Math.max(8,oh+dy);
+    if(dir.includes('w')){ w=Math.max(8,ow-dx); l=ol+dx; }
+    if(dir.includes('n')){ h=Math.max(8,oh-dy); t=ot+dy; }
+    el.style.left=l+'px'; el.style.top=t+'px'; el.style.width=w+'px'; el.style.height=h+'px'; positionOverlay(); };
+  const up=()=>{ doc.removeEventListener('pointermove',move,true); doc.removeEventListener('pointerup',up,true); serializeSlide(); renderVProps(); };
+  doc.addEventListener('pointermove',move,true); doc.addEventListener('pointerup',up,true);
+}
+function addVEl(type){
+  const slide=eSlide(); if(!slide){ toast('Activez une slide.','error'); return; }
+  const doc=eDoc(); let el;
+  if(type==='text'){ el=doc.createElement('div'); el.textContent='Nouveau texte'; el.style.cssText='position:absolute;left:480px;top:320px;width:320px;font-size:28px;font-weight:600;color:#16121F;font-family:Inter,sans-serif'; }
+  else if(type==='rect'){ el=doc.createElement('div'); el.style.cssText='position:absolute;left:480px;top:300px;width:280px;height:160px;background:#5A2BE0'; }
+  else if(type==='image'){ const url=prompt('URL de l\'image :','https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200'); if(!url) return; el=doc.createElement('img'); el.src=url; el.style.cssText='position:absolute;left:440px;top:240px;width:400px;height:260px;object-fit:cover'; }
+  else if(type==='icon'){ const ic=prompt('Icône Iconify (ex tabler:shield) :','tabler:shield-lock'); if(!ic) return; el=doc.createElement('iconify-icon'); el.setAttribute('icon',ic); el.style.cssText='position:absolute;left:560px;top:320px;width:96px;height:96px;font-size:96px;color:#5A2BE0'; }
+  if(!el) return;
+  const ov=doc.getElementById('__ovl'); if(ov) slide.insertBefore(el,ov); else slide.appendChild(el);
+  selectEl(el); serializeSlide();
+}
+function toHexColor(c){ const p=parseRGB(c); return p?('#'+toHex2(p).toLowerCase()):'#000000'; }
+function renderVProps(){
+  const body=$('#vpBody'); const el=state.sel;
+  if(!state.vedit){ return; }
+  if(!el){ body.innerHTML='<div class="hint">Aucun élément sélectionné. Cliquez une forme dans la slide.</div>'; return; }
+  const cs=eDoc().defaultView.getComputedStyle(el);
+  const tag=el.tagName.toLowerCase();
+  const bg=toHexColor(cs.backgroundColor), col=toHexColor(cs.color), bc=toHexColor(cs.borderTopColor);
+  body.innerHTML=
+    '<div class="hint" style="margin-bottom:8px">'+tag+(el.className&&!/(__sel)/.test(el.className)?(' · '+String(el.className).replace('__sel','').trim()):'')+'</div>'
+    +'<label class="fld">Fond</label><div class="colorrow"><input type="color" data-k="background-color" value="'+bg+'"><button class="btn sm" data-clear="background-color">Aucun</button></div>'
+    +'<label class="fld">Texte (couleur)</label><div class="colorrow"><input type="color" data-k="color" value="'+col+'"></div>'
+    +'<div class="grid2"><div><label class="fld">Taille police</label><input class="ctl" type="number" data-k="font-size" data-unit="px" value="'+(parseFloat(cs.fontSize)||0)+'"></div>'
+    +'<div><label class="fld">Graisse</label><select class="ctl" data-k="font-weight">'+[400,500,600,700,800].map(w=>'<option value="'+w+'" '+(parseInt(cs.fontWeight)===w?'selected':'')+'>'+w+'</option>').join('')+'</select></div></div>'
+    +'<label class="fld">Alignement</label><div class="seg" data-seg="text-align">'+['left','center','right'].map(a=>'<button data-val="'+a+'" class="'+(cs.textAlign===a?'on':'')+'">'+(a==='left'?'⬅':a==='center'?'⬌':'➡')+'</button>').join('')+'</div>'
+    +'<div class="grid2"><div><label class="fld">Bordure (px)</label><input class="ctl" type="number" data-k="border-width" data-unit="px" data-extra="border-style:solid" value="'+(parseFloat(cs.borderTopWidth)||0)+'"></div>'
+    +'<div><label class="fld">Couleur bord</label><input type="color" data-k="border-color" value="'+bc+'" style="width:100%;height:38px"></div></div>'
+    +'<label class="fld">Opacité</label><input class="ctl" type="range" min="0" max="1" step="0.05" data-k="opacity" value="'+(cs.opacity||1)+'">'
+    +'<div class="row" style="margin-top:14px"><button class="btn sm" data-act="parent">Parent</button><button class="btn sm" data-act="front">Avant</button><button class="btn sm" data-act="back">Arrière</button></div>'
+    +'<div class="row" style="margin-top:8px"><button class="btn sm" data-act="dup">Dupliquer</button><button class="btn sm danger" data-act="del">Supprimer</button></div>';
+  $$('#vpBody [data-k]').forEach(inp=>{
+    const ev = (inp.type==='range'||inp.type==='color')?'input':'change';
+    inp.addEventListener(ev,()=>{
+      const k=inp.getAttribute('data-k'), unit=inp.getAttribute('data-unit')||'';
+      el.style.setProperty(k, inp.value+unit);
+      const ex=inp.getAttribute('data-extra'); if(ex){ const [p,v]=ex.split(':'); el.style.setProperty(p,v); }
+      positionOverlay(); serializeSlide();
+    });
+  });
+  $$('#vpBody [data-clear]').forEach(b=>b.addEventListener('click',()=>{ el.style.setProperty(b.getAttribute('data-clear'),'transparent'); serializeSlide(); renderVProps(); }));
+  $$('#vpBody [data-seg]').forEach(seg=>{ const k=seg.getAttribute('data-seg'); seg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ el.style.setProperty(k,b.getAttribute('data-val')); serializeSlide(); renderVProps(); })); });
+  $$('#vpBody [data-act]').forEach(b=>b.addEventListener('click',()=>{
+    const a=b.getAttribute('data-act');
+    if(a==='del'){ const p=el.parentNode; el.remove(); selectEl(null); }
+    else if(a==='dup'){ const c=el.cloneNode(true); c.classList.remove('__sel'); c.style.left=(parseFloat(el.style.left||0)+20)+'px'; c.style.top=(parseFloat(el.style.top||0)+20)+'px'; el.parentNode.insertBefore(c, el.nextSibling); selectEl(c); }
+    else if(a==='front'){ el.parentNode.insertBefore(el, eDoc().getElementById('__ovl')); }
+    else if(a==='back'){ el.parentNode.insertBefore(el, el.parentNode.firstChild); }
+    else if(a==='parent'){ const par=el.parentElement; if(par && par!==eSlide() && par.id!=='__ovl') selectEl(par); }
+    serializeSlide();
+  }));
 }
 function toggleTextEdit(){
   if(!curEditSlide()) return; const ifr=state.editIframe; if(!ifr) return;
@@ -1084,6 +1260,8 @@ function init(){
   $('#editHtmlBtn').addEventListener('click',openHtmlEdit);
   $('#retouchBtn').addEventListener('click',retouchSlide);
   $('#retouchAllBtn').addEventListener('click',retouchAll);
+  $('#vEditBtn').addEventListener('click',toggleVisual);
+  $$('#vprops [data-add]').forEach(b=>b.addEventListener('click',()=>addVEl(b.getAttribute('data-add'))));
   $('#addSlideBtn').addEventListener('click',addSlideAI);
   $('#dupSlideBtn').addEventListener('click',dupSlide);
   $('#delSlideBtn').addEventListener('click',delSlide);
