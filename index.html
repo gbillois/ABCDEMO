@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Rajdhani:wght@500;600;700&family=Orbitron:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
 <style>
   :root{
     --app-bg:#0c0f17; --panel:#141925; --panel2:#1b2230; --line:#283142;
@@ -189,6 +190,9 @@
         <textarea id="promptInput" class="ctl" style="min-height:140px" placeholder="Décrivez la présentation à générer…"></textarea>
         <label class="fld">Nombre de slides</label>
         <input id="slideNum" class="ctl" type="number" min="3" max="20" value="10">
+        <label class="fld">Densité de photos : <span id="photoVal">50</span>%</label>
+        <input id="photoDensity" type="range" min="0" max="100" step="10" value="50" style="width:100%">
+        <div class="hint">0% = tout en icônes plates &amp; formes · 100% = grandes photos partout. Des flat icons (Iconify) sont toujours utilisées.</div>
       </div>
       <div class="create-foot">
         <button class="btn primary" id="createBtn" style="width:100%; padding:12px">Create ✦</button>
@@ -472,6 +476,15 @@ function buildElEl(e, theme){
   var fill = resolveFill(e, theme);
   var color = resolveColor(e.color, theme) || theme.text;
   var stroke = resolveColor(e.stroke, theme);
+  if(e.type==='icon'){
+    node = document.createElement('iconify-icon');
+    node.setAttribute('icon', e.icon||'mdi:circle');
+    var isz = Math.min(e.w, e.h);
+    s += 'color:'+(resolveColor(e.color,theme)||theme.primary)+';';
+    s += 'font-size:'+isz+'px;display:flex;align-items:center;justify-content:center;line-height:1;';
+    node.style.cssText = s;
+    return node;
+  }
   if(e.type==='image'){
     node = document.createElement('img');
     node.src = e.src||'';
@@ -736,7 +749,8 @@ function availableModels(){
 /* ============================================================================
    GENERATION — build deck from prompt
    ============================================================================ */
-function genSystemPrompt(th, n){
+function genSystemPrompt(th, n, photoPct){
+  if(photoPct==null) photoPct=50;
   const pal = `PALETTE (utilise ces rôles OU des hex):
 primary ${th.primary} · accent ${th.accent} · secondary ${th.secondary}
 bg ${th.bg} · surface ${th.surface} · text ${th.text} · muted ${th.muted} · onBrand ${th.onBrand}
@@ -752,9 +766,11 @@ VOCABULAIRE D'ÉLÉMENTS (chaque élément: {type,x,y,w,h,z,...}) :
 - ellipse : repère/blob décoratif — {fill ou gradient, opacity}
 - line  : {fill|stroke, strokeWidth}
 - image : {src, radius, shadow, fit:cover}
+- icon  : FLAT ICON (Iconify) — {icon:"mdi:shield-lock", color}. Noms = collection:nom, collections : mdi:, tabler:, ph:, solar:, lucide:, carbon: (ex "tabler:radar","ph:car-fill","solar:bolt-bold","mdi:alert-decagram","lucide:lock").
 
 TECHNIQUES VISUELLES À UTILISER (c'est ce qui rend les slides BELLES) :
-1. PHOTOS : mets de grandes photos Unsplash réelles et pertinentes (URL forme https://images.unsplash.com/photo-XXXXXXXXXXXXX-xxxxxxxxxxxx?w=1400&q=80). Au moins 1 photo sur ~70% des slides : soit demi-page (640x720 bord à bord), soit pleine page en fond.
+1. PHOTOS : environ ${photoPct}% des slides comportent une GRANDE photo Unsplash réelle et pertinente (URL forme https://images.unsplash.com/photo-XXXXXXXXXXXXX-xxxxxxxxxxxx?w=1400&q=80), soit demi-page (≈600x720 bord à bord) soit pleine page en fond. ${photoPct<=20?'Comme la densité est FAIBLE, privilégie des compositions sans photo : icônes plates, cartes, gros chiffres, formes et dégradés.':photoPct>=80?'Densité ÉLEVÉE : presque chaque slide a une grande photo.':'Réserve les photos aux slides où elles apportent vraiment (titre, contexte, cas concret) ; ailleurs, compose avec icônes et cartes.'}
+1bis. FLAT ICONS : utilise des icônes plates (type "icon", noms Iconify) PARTOUT où c'est utile — une icône par carte, par puce, par KPI, par étape de timeline. Pose souvent l'icône dans une pastille ronde (ellipse fill surface/primary/accent, 56-72px) avec l'icône centrée par-dessus (z supérieur) pour un effet "app". Couleur d'icône contrastée avec la pastille.
 2. LISIBILITÉ SUR PHOTO : par-dessus une photo, pose un rect "overlay" (gradient sombre, ex gradient:{from:"#0008",to:"#000C",angle:90}, ou fill "#00000088", opacity 0.55) PUIS le texte en onBrand/blanc avec shadow:true.
 3. PROFONDEUR : ajoute 1-2 blobs décoratifs (ellipse en accent/primary, opacity 0.10-0.18, parfois hors-cadre partiel) en arrière-plan (z bas).
 4. CARTES : rect surface, radius 16-20, shadow:true, avec un accent:"accent" (liseré gauche) + un petit titre + un texte. Aligne des cartes en grille (2, 3 ou 4 colonnes, gouttières égales).
@@ -789,8 +805,10 @@ EXEMPLE (slide contenu photo + overlay + cartes) :
  {"type":"text","x":620,"y":128,"w":600,"h":90,"text":"Titre de section","fontFamily":"display","fontSize":46,"fontWeight":800,"color":"text","z":3},
  {"type":"line","x":620,"y":214,"w":200,"h":5,"fill":"accent","z":3},
  {"type":"rect","x":620,"y":252,"w":600,"h":120,"fill":"surface","radius":16,"shadow":true,"accent":"accent","z":2},
- {"type":"text","x":656,"y":272,"w":540,"h":36,"text":"Point clé 1","fontFamily":"display","fontSize":22,"fontWeight":700,"color":"text","z":3},
- {"type":"text","x":656,"y":312,"w":540,"h":52,"text":"Explication concise du point.","fontFamily":"body","fontSize":18,"color":"muted","z":3}
+ {"type":"ellipse","x":648,"y":280,"w":64,"h":64,"fill":"primary","z":3},
+ {"type":"icon","x":664,"y":296,"w":32,"h":32,"icon":"tabler:radar","color":"onBrand","z":4},
+ {"type":"text","x":740,"y":272,"w":456,"h":36,"text":"Point clé 1","fontFamily":"display","fontSize":22,"fontWeight":700,"color":"text","z":3},
+ {"type":"text","x":740,"y":314,"w":456,"h":50,"text":"Explication concise du point.","fontFamily":"body","fontSize":18,"color":"muted","z":3}
 ]}
 
 Réponds UNIQUEMENT avec le JSON (commence par { et finis par }). Pas de markdown, pas de commentaire.`;
@@ -826,8 +844,9 @@ async function runCreate(){
   const prompt = $('#promptInput').value.trim();
   if(!prompt){ toast('Saisissez un prompt initial.','error'); return; }
   const n = clamp(parseInt($('#slideNum').value)||10,1,24);
+  const photoPct = clamp(parseInt($('#photoDensity').value),0,100);
   const th = currentSelectedTheme();
-  const sys = genSystemPrompt(th, n);
+  const sys = genSystemPrompt(th, n, photoPct);
 
   logClear();
   logMsg('user', 'PROMPT ('+state.settings.provider+' · '+state.settings.model+')\n\n'+prompt+'\n\n→ '+n+' slides · thème '+th.name);
@@ -1377,6 +1396,28 @@ async function buildPptx(deck, theme, PptxGenJS, html2canvas){
     off.remove();
   }
 
+  // Pre-render flat icons (Iconify) to PNG via html2canvas
+  const iconCache={};
+  if(html2canvas && typeof customElements!=='undefined'){
+    const offi=document.createElement('div');
+    offi.style.cssText='position:fixed;left:-99999px;top:0;';
+    document.body.appendChild(offi);
+    const waitIcon=ic=>new Promise(res=>{ let t=0; const iv=setInterval(()=>{ t+=80; const sv=ic.shadowRoot&&ic.shadowRoot.querySelector('svg'); if(sv||t>3000){clearInterval(iv);res();} },80); });
+    for(const sl of deck.slides){ for(const e of (sl.elements||[])){
+      if(e.type==='icon'){
+        const ik=(e.icon||'')+'|'+(e.color||''); if(iconCache[ik]!==undefined) continue;
+        offi.innerHTML='';
+        const ic=document.createElement('iconify-icon'); ic.setAttribute('icon', e.icon||'mdi:circle');
+        const isz=Math.min(e.w,e.h);
+        ic.style.cssText='color:'+(resolveColor(e.color,theme)||theme.primary)+';font-size:'+isz+'px;width:'+e.w+'px;height:'+e.h+'px;display:flex;align-items:center;justify-content:center;';
+        offi.appendChild(ic);
+        try{ await waitIcon(ic); const cv=await html2canvas(offi,{backgroundColor:null,scale:2,width:e.w,height:e.h}); iconCache[ik]=cv.toDataURL('image/png'); }
+        catch(err){ iconCache[ik]=null; }
+      }
+    }}
+    offi.remove();
+  }
+
   deck.slides.forEach(sl=>{
     const s=pptx.addSlide();
     const bg=sl.background||{type:'color',value:'bg'};
@@ -1413,6 +1454,9 @@ async function buildPptx(deck, theme, PptxGenJS, html2canvas){
       } else if(e.type==='image' && e.src){
         if(imgCache[e.src]) s.addImage({ data:imgCache[e.src], x,y,w,h, rounding:!!e.radius });
         else s.addImage({ path:e.src, x,y,w,h });
+      } else if(e.type==='icon'){
+        const ik=(e.icon||'')+'|'+(e.color||'');
+        if(iconCache[ik]) s.addImage({ data:iconCache[ik], x,y,w,h });
       }
     });
   });
@@ -1479,6 +1523,7 @@ render();
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MagicSlider — Présentation</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono&family=Rajdhani:wght@500;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+<script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"><\/script>
 <style>
 *{box-sizing:border-box}html,body{margin:0;height:100%;background:#0a0c12;font-family:Inter,sans-serif;overflow:hidden}
 #stageWrap{position:fixed;inset:0 0 64px 0;display:grid;place-items:center;overflow:hidden}
@@ -1601,6 +1646,7 @@ function init(){
 
   // Create
   $('#createBtn').addEventListener('click',runCreate);
+  $('#photoDensity').addEventListener('input',e=>{ $('#photoVal').textContent=e.target.value; });
   $('#cPrev').addEventListener('click',()=>{ state.cIndex--; renderCreatePreview(); });
   $('#cNext').addEventListener('click',()=>{ state.cIndex++; renderCreatePreview(); });
   $('#genCharteBtn').addEventListener('click',genCharte);
