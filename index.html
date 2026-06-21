@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MagicSlider — AI HTML Slides → PPTX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Rajdhani:wght@500;600;700&family=Orbitron:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --app-bg:#0c0f17; --panel:#141925; --panel2:#1b2230; --line:#283142;
+    --txt:#e6ebf5; --muted:#8a96ad; --brand:#6c5ce7; --brand2:#00d2a8;
+    --danger:#ff5a6e; --ok:#2ecc71; --warn:#f7b731;
+    --radius:10px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--app-bg); color:var(--txt);
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    font-size:14px; overflow:hidden;
+  }
+  button{font-family:inherit; cursor:pointer}
+  input,select,textarea{font-family:inherit}
+  .app{display:flex; flex-direction:column; height:100vh}
+
+  /* Top bar */
+  .topbar{display:flex; align-items:center; gap:14px; padding:10px 16px; background:var(--panel); border-bottom:1px solid var(--line)}
+  .logo{display:flex; align-items:center; gap:10px; font-family:'Poppins'; font-weight:700; font-size:18px; letter-spacing:.2px}
+  .logo .mark{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:grid;place-items:center;font-size:15px}
+  .tabs{display:flex; gap:6px; margin-left:10px}
+  .tab{padding:8px 16px; border-radius:8px; background:transparent; border:1px solid transparent; color:var(--muted); font-weight:600}
+  .tab:hover{color:var(--txt); background:var(--panel2)}
+  .tab.active{color:#fff; background:var(--brand); border-color:var(--brand)}
+  .topbar .spacer{flex:1}
+  .pill{font-size:12px; color:var(--muted); padding:6px 10px; border:1px solid var(--line); border-radius:20px}
+  .pill b{color:var(--txt)}
+
+  .view{flex:1; min-height:0; display:none}
+  .view.active{display:flex}
+
+  /* Generic panels */
+  .col-left{width:340px; min-width:300px; background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; min-height:0}
+  .col-main{flex:1; min-width:0; display:flex; flex-direction:column; min-height:0; background:#0a0d14}
+  .section{padding:16px; border-bottom:1px solid var(--line)}
+  .section h3{margin:0 0 12px; font-size:12px; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); font-weight:700}
+  label.fld{display:block; margin:10px 0 5px; font-size:12px; color:var(--muted); font-weight:600}
+  .ctl{width:100%; padding:9px 11px; background:var(--panel2); border:1px solid var(--line); border-radius:8px; color:var(--txt); font-size:13px}
+  .ctl:focus{outline:none; border-color:var(--brand)}
+  textarea.ctl{resize:vertical; min-height:72px; line-height:1.45}
+  .row{display:flex; gap:8px}
+  .row > *{flex:1}
+  .btn{padding:9px 14px; border-radius:8px; border:1px solid var(--line); background:var(--panel2); color:var(--txt); font-weight:600; font-size:13px}
+  .btn:hover{border-color:var(--brand)}
+  .btn.primary{background:var(--brand); border-color:var(--brand); color:#fff}
+  .btn.primary:hover{filter:brightness(1.08)}
+  .btn.ghost{background:transparent}
+  .btn.danger{color:var(--danger); border-color:transparent}
+  .btn.danger:hover{border-color:var(--danger)}
+  .btn:disabled{opacity:.5; cursor:not-allowed}
+  .btn.sm{padding:6px 10px; font-size:12px}
+  .hint{font-size:11px; color:var(--muted); margin-top:6px; line-height:1.4}
+
+  /* Create */
+  .create-foot{padding:14px 16px; border-top:1px solid var(--line); margin-top:auto}
+  .log{flex:1; overflow:auto; padding:12px 14px; font-family:'IBM Plex Mono',monospace; font-size:11.5px; line-height:1.55; background:#070a10}
+  .log .lm{margin-bottom:10px; padding:8px 10px; border-radius:7px; background:#0e1320; border:1px solid var(--line); white-space:pre-wrap; word-break:break-word}
+  .log .lm.user{border-left:3px solid var(--brand)}
+  .log .lm.ai{border-left:3px solid var(--brand2)}
+  .log .lm.err{border-left:3px solid var(--danger); color:#ffb3bd}
+  .log .lm .who{font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:5px}
+
+  /* Stage / preview */
+  .stage-wrap{flex:1; min-height:0; display:flex; flex-direction:column}
+  .stage-bar{display:flex; align-items:center; gap:10px; padding:8px 14px; border-bottom:1px solid var(--line); background:var(--panel)}
+  .stage-bar .spacer{flex:1}
+  .stage-area{flex:1; min-height:0; position:relative; display:grid; place-items:center; overflow:hidden; padding:18px}
+  .scaler{position:relative; box-shadow:0 20px 60px rgba(0,0,0,.55); border-radius:4px; overflow:hidden}
+  .ms-slide{position:relative; width:1280px; height:720px; overflow:hidden}
+  .slideno{font-size:12px; color:var(--muted)}
+  .empty{color:var(--muted); text-align:center; max-width:420px; line-height:1.6}
+  .empty .big{font-size:40px; margin-bottom:8px}
+
+  /* Modify */
+  .editor-viewport{flex:1; min-height:0; position:relative; overflow:auto; display:grid; place-items:center; padding:24px; background:#0a0d14}
+  .editor-scaler{position:relative; box-shadow:0 18px 50px rgba(0,0,0,.55)}
+  .editor-stage{position:relative; width:1280px; height:720px; overflow:hidden; background:#fff}
+  .ovl-layer{position:absolute; inset:0; pointer-events:none}
+  .sel-box{position:absolute; border:1.5px solid var(--brand); pointer-events:none; box-shadow:0 0 0 1px rgba(255,255,255,.25) inset}
+  .handle{position:absolute; width:11px; height:11px; background:#fff; border:1.5px solid var(--brand); border-radius:2px; pointer-events:auto; transform:translate(-50%,-50%)}
+  .handle.nw{cursor:nwse-resize}.handle.ne{cursor:nesw-resize}.handle.sw{cursor:nesw-resize}.handle.se{cursor:nwse-resize}
+  .handle.n{cursor:ns-resize}.handle.s{cursor:ns-resize}.handle.e{cursor:ew-resize}.handle.w{cursor:ew-resize}
+  .el-node{cursor:grab}
+  .el-node.editing{cursor:text; outline:2px dashed var(--brand)}
+
+  /* Slides filmstrip */
+  .filmstrip{width:172px; background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; min-height:0}
+  .film-head{padding:10px 12px; border-bottom:1px solid var(--line); display:flex; gap:6px; align-items:center}
+  .film-head .spacer{flex:1}
+  .film-list{flex:1; overflow:auto; padding:10px}
+  .thumb{position:relative; margin-bottom:10px; border:2px solid transparent; border-radius:6px; overflow:hidden; cursor:pointer; background:#fff}
+  .thumb.active{border-color:var(--brand)}
+  .thumb .tn{position:relative; width:148px; height:83.25px; overflow:hidden}
+  .thumb .tn .ms-slide{transform:scale(0.115625); transform-origin:top left}
+  .thumb .idx{position:absolute; top:3px; left:5px; font-size:10px; color:#fff; background:rgba(0,0,0,.55); border-radius:4px; padding:1px 5px; z-index:5}
+
+  /* Properties panel */
+  .props{width:300px; min-width:280px; background:var(--panel); border-left:1px solid var(--line); display:flex; flex-direction:column; min-height:0; overflow:auto}
+  .props .grid2{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .colorrow{display:flex; gap:8px; align-items:center}
+  .colorrow input[type=color]{width:42px; height:34px; padding:2px; border-radius:8px; border:1px solid var(--line); background:var(--panel2)}
+  .seg{display:flex; gap:4px}
+  .seg button{flex:1; padding:7px 0; font-size:12px; border:1px solid var(--line); background:var(--panel2); color:var(--txt); border-radius:7px}
+  .seg button.on{background:var(--brand); border-color:var(--brand); color:#fff}
+  .toolbar{display:flex; flex-wrap:wrap; gap:6px}
+  .toolbar .btn{flex:0 0 auto}
+
+  /* Settings */
+  .settings-wrap{flex:1; overflow:auto; display:flex; justify-content:center; padding:30px}
+  .settings-card{width:100%; max-width:760px}
+  .settings-card h2{font-family:'Poppins'; font-weight:700; margin:0 0 4px}
+  .settings-card .sub{color:var(--muted); margin:0 0 22px}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px; margin-bottom:18px}
+  .card h3{margin:0 0 14px; font-size:13px; text-transform:uppercase; letter-spacing:.8px; color:var(--muted)}
+  .status{display:inline-flex; align-items:center; gap:7px; font-size:12px; padding:5px 11px; border-radius:20px; border:1px solid var(--line)}
+  .dot{width:8px;height:8px;border-radius:50%}
+  .dot.ok{background:#2ecc71}.dot.err{background:var(--danger)}.dot.idle{background:var(--muted)}.dot.load{background:var(--warn)}
+
+  /* Toasts */
+  .toasts{position:fixed; right:18px; bottom:18px; display:flex; flex-direction:column; gap:10px; z-index:9999}
+  .toast{min-width:260px; max-width:380px; padding:12px 14px; border-radius:10px; background:var(--panel2); border:1px solid var(--line); box-shadow:0 10px 30px rgba(0,0,0,.4); font-size:13px; animation:slidein .25s ease}
+  .toast.success{border-left:4px solid #2ecc71}
+  .toast.error{border-left:4px solid var(--danger)}
+  .toast.info{border-left:4px solid var(--brand)}
+  @keyframes slidein{from{opacity:0; transform:translateX(20px)}to{opacity:1; transform:none}}
+  .scrim{position:fixed; inset:0; background:rgba(4,6,12,.6); display:none; place-items:center; z-index:500}
+  .scrim.show{display:grid}
+  .modal{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px; width:560px; max-width:92vw; max-height:86vh; overflow:auto}
+  .modal h3{margin:0 0 14px}
+  .tplgrid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px}
+  .tpl{border:1px solid var(--line); border-radius:10px; padding:8px; cursor:pointer; background:var(--panel2)}
+  .tpl:hover{border-color:var(--brand)}
+  .tpl .mini{height:74px; border-radius:6px; overflow:hidden; background:#fff; position:relative; margin-bottom:6px}
+  .tpl .mini .ms-slide{transform:scale(0.085); transform-origin:top left}
+  .tpl .nm{font-size:12px; text-align:center; color:var(--muted)}
+  .busy{position:absolute; inset:0; background:rgba(8,11,18,.7); display:none; place-items:center; z-index:50; backdrop-filter:blur(2px)}
+  .busy.show{display:grid}
+  .spinner{width:42px;height:42px;border:4px solid var(--line); border-top-color:var(--brand); border-radius:50%; animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="logo"><span class="mark">✦</span> MagicSlider</div>
+    <div class="tabs">
+      <button class="tab active" data-tab="create">Create</button>
+      <button class="tab" data-tab="modify">Modify</button>
+      <button class="tab" data-tab="export">Export</button>
+      <button class="tab" data-tab="settings">Réglages</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="pill">Slides: <b id="slideCount">0</b></div>
+    <div class="pill" id="aiPill">IA: <b id="aiProviderLbl">—</b></div>
+  </div>
+
+  <!-- ============ CREATE ============ -->
+  <div class="view active" id="view-create">
+    <div class="col-left">
+      <div class="section">
+        <h3>Style graphique</h3>
+        <select id="styleSelect" class="ctl">
+          <option value="wavestone">Wavestone (par défaut)</option>
+          <option value="darkcyber">Dark Cyber</option>
+          <option value="custom">Charte personnalisée…</option>
+        </select>
+        <div class="row" style="margin-top:8px">
+          <button class="btn sm" id="loadCssBtn">Charger un CSS</button>
+          <input type="file" id="cssFile" accept=".css" style="display:none">
+        </div>
+        <label class="fld">Créer une charte par description (IA)</label>
+        <textarea id="charteDesc" class="ctl" placeholder="ex: identité luxueuse, fond crème, accents bordeaux, titres serif élégants"></textarea>
+        <button class="btn sm" id="genCharteBtn" style="margin-top:8px">Générer la charte ✦</button>
+      </div>
+      <div class="section">
+        <h3>Contenu</h3>
+        <label class="fld">Prompt initial</label>
+        <textarea id="promptInput" class="ctl" style="min-height:140px" placeholder="Décrivez la présentation à générer…"></textarea>
+        <label class="fld">Nombre de slides</label>
+        <input id="slideNum" class="ctl" type="number" min="3" max="20" value="10">
+      </div>
+      <div class="create-foot">
+        <button class="btn primary" id="createBtn" style="width:100%; padding:12px">Create ✦</button>
+        <div class="hint">L'IA configurée dans « Réglages » génère un jeu de slides éditables.</div>
+      </div>
+    </div>
+    <div class="col-main">
+      <div class="stage-wrap">
+        <div class="stage-bar">
+          <button class="btn sm" id="cPrev">‹</button>
+          <span class="slideno" id="cSlideNo">0 / 0</span>
+          <button class="btn sm" id="cNext">›</button>
+          <div class="spacer"></div>
+          <span class="hint" id="cThemeLbl"></span>
+        </div>
+        <div class="stage-area">
+          <div class="busy" id="createBusy"><div class="spinner"></div></div>
+          <div class="scaler" id="cScaler">
+            <div class="empty" id="cEmpty">
+              <div class="big">✦</div>
+              <div>Lancez « Create » pour générer votre présentation.<br>Configurez d'abord l'IA dans l'onglet Réglages.</div>
+            </div>
+          </div>
+        </div>
+        <div class="log" id="createLog"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MODIFY ============ -->
+  <div class="view" id="view-modify">
+    <div class="filmstrip">
+      <div class="film-head">
+        <strong style="font-size:12px">Slides</strong>
+        <div class="spacer"></div>
+        <button class="btn sm" id="addSlideBtn" title="Ajouter">＋</button>
+      </div>
+      <div class="film-list" id="filmList"></div>
+    </div>
+    <div class="col-main">
+      <div class="stage-bar toolbar" id="editToolbar">
+        <button class="btn sm" data-add="text">＋ Texte</button>
+        <button class="btn sm" data-add="rect">＋ Rect</button>
+        <button class="btn sm" data-add="ellipse">＋ Ellipse</button>
+        <button class="btn sm" data-add="line">＋ Ligne</button>
+        <button class="btn sm" data-add="image">＋ Image (URL)</button>
+        <button class="btn sm" data-add="badge">＋ Badge</button>
+        <div class="spacer"></div>
+        <button class="btn sm" id="dupSlideBtn">Dupliquer slide</button>
+        <button class="btn sm danger" id="delSlideBtn">Supprimer slide</button>
+      </div>
+      <div class="editor-viewport" id="editorViewport">
+        <div class="empty" id="editEmpty">Aucune slide. Générez-en dans « Create » ou ajoutez-en une (＋).</div>
+        <div class="editor-scaler" id="editorScaler" style="display:none">
+          <div class="editor-stage" id="editorStage"></div>
+          <div class="ovl-layer" id="ovlLayer"></div>
+        </div>
+      </div>
+    </div>
+    <div class="props" id="propsPanel">
+      <div class="section"><h3>Propriétés</h3>
+        <div id="propsBody"><div class="hint">Sélectionnez un ou plusieurs éléments pour les éditer. Maj+clic = multi-sélection. Double-clic sur un texte = édition.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ EXPORT ============ -->
+  <div class="view" id="view-export">
+    <div class="settings-wrap">
+      <div class="settings-card">
+        <h2>Export</h2>
+        <p class="sub">Exportez votre présentation en PowerPoint haute qualité ou en HTML autonome.</p>
+        <div class="card">
+          <h3>PowerPoint (.pptx)</h3>
+          <p class="hint" style="margin-top:0">Génère un fichier PPTX éditable : formes et textes natifs, images rastérisées via capture (comme CTI.html).</p>
+          <button class="btn primary" id="exportPptxBtn">Exporter en PPTX</button>
+        </div>
+        <div class="card">
+          <h3>HTML autonome</h3>
+          <p class="hint" style="margin-top:0">Fichier HTML unique exécutable en local : navigation clavier, miniatures, plein écran et bouton d'export PPTX intégré.</p>
+          <button class="btn primary" id="exportHtmlBtn">Exporter en HTML</button>
+        </div>
+        <div class="card">
+          <h3>Projet (.json)</h3>
+          <p class="hint" style="margin-top:0">Sauvegardez / rechargez le modèle de présentation.</p>
+          <div class="row" style="max-width:320px">
+            <button class="btn" id="saveJsonBtn">Sauvegarder</button>
+            <button class="btn" id="loadJsonBtn">Charger</button>
+            <input type="file" id="jsonFile" accept=".json" style="display:none">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS ============ -->
+  <div class="view" id="view-settings">
+    <div class="settings-wrap">
+      <div class="settings-card">
+        <h2>Réglages de l'IA</h2>
+        <p class="sub">Configurez le fournisseur LLM utilisé pour générer et modifier vos slides. Les clés restent dans votre navigateur (localStorage).</p>
+        <div class="card">
+          <h3>Fournisseur</h3>
+          <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div>
+              <label class="fld">Fournisseur</label>
+              <select id="setProvider" class="ctl">
+                <option value="anthropic">Anthropic (Claude)</option>
+                <option value="openai">OpenAI</option>
+                <option value="google">Google Gemini</option>
+                <option value="mistral">Mistral</option>
+                <option value="azure">Azure OpenAI</option>
+              </select>
+            </div>
+            <div>
+              <label class="fld">Modèle</label>
+              <div style="display:flex; gap:8px">
+                <select id="setModel" class="ctl" style="flex:1"></select>
+                <button class="btn sm" id="refreshModels" title="Rafraîchir la liste">⟳</button>
+              </div>
+            </div>
+          </div>
+          <div id="keyFields"></div>
+          <div style="margin-top:14px; display:flex; gap:10px; align-items:center">
+            <button class="btn primary" id="saveSettings">Enregistrer</button>
+            <button class="btn" id="testConn">Tester la connexion</button>
+            <span class="status" id="catStatus"><span class="dot idle"></span><span id="catStatusTxt">Inactif</span></span>
+          </div>
+          <div class="hint" id="setHint" style="margin-top:12px"></div>
+        </div>
+        <div class="card">
+          <h3>À propos</h3>
+          <p class="hint" style="margin-top:0">MagicSlider est une application 100% locale (single-file HTML). Aucune donnée n'est envoyée ailleurs que vers le fournisseur LLM choisi. Modèle de slides : scène structurée (textes, formes, images) rendue en 1280×720, exportable en PPTX ou HTML.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<!-- Add-slide template chooser -->
+<div class="scrim" id="tplScrim">
+  <div class="modal">
+    <h3>Choisir un modèle de slide</h3>
+    <div class="tplgrid" id="tplGrid"></div>
+    <div style="margin-top:16px; text-align:right"><button class="btn" id="tplCancel">Annuler</button></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+   MagicSlider — single-file local app
+   - Tabs (Create / Modify / Export / Réglages)
+   - Multi-provider LLM config (Anthropic, OpenAI, Google, Mistral, Azure)
+   - Structured slide scene model rendered at 1280x720
+   - PowerPoint-like editor + PPTX / standalone HTML export
+   ============================================================================ */
+(function(){
+'use strict';
+
+/* ---------- tiny DOM helpers ---------- */
+const $ = (s,r)=> (r||document).querySelector(s);
+const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
+const uid = ()=> Math.random().toString(36).slice(2,9);
+const clamp = (v,a,b)=> Math.max(a, Math.min(b, v));
+
+/* ============================================================================
+   THEMES
+   ============================================================================ */
+const THEMES = {
+  wavestone: {
+    name:'Wavestone', bg:'#ffffff', surface:'#F5F4F9',
+    primary:'#5A2BE0', accent:'#04F06A', secondary:'#228D95',
+    text:'#16121F', muted:'#6b6680', onBrand:'#ffffff',
+    brandGradient:'radial-gradient(120% 120% at 25% 15%, #5226E0 0%, #451DC7 38%, #2D1380 100%)',
+    fontDisplay:"'Poppins',sans-serif", fontBody:"'Inter',sans-serif", fontMono:"'IBM Plex Mono',monospace"
+  },
+  darkcyber: {
+    name:'Dark Cyber', bg:'#0a0e17', surface:'#121a2b',
+    primary:'#00e5ff', accent:'#ff2e63', secondary:'#7c4dff',
+    text:'#e6f1ff', muted:'#8a9bb8', onBrand:'#02121a',
+    brandGradient:'linear-gradient(135deg, #06121f 0%, #0a1830 55%, #131a3a 100%)',
+    fontDisplay:"'Orbitron',sans-serif", fontBody:"'Rajdhani',sans-serif", fontMono:"'IBM Plex Mono',monospace"
+  }
+};
+
+/* ============================================================================
+   STATE
+   ============================================================================ */
+const LS = {
+  provider:'ms_provider', apiKey:'ms_api_key', azKey:'ms_azure_key',
+  azEndpoint:'ms_azure_endpoint', azDeploy:'ms_azure_deploy', model:'ms_model',
+  deck:'ms_deck'
+};
+const DEFAULT_MODELS = {
+  anthropic:['claude-opus-4-8','claude-sonnet-4-6','claude-haiku-4-5'],
+  openai:['gpt-5.1','gpt-5','gpt-4.1','gpt-4o','gpt-4o-mini','o4-mini'],
+  google:['gemini-2.5-pro','gemini-2.5-flash','gemini-2.0-flash'],
+  mistral:['mistral-large-latest','mistral-medium-latest','mistral-small-latest'],
+  azure:['gpt-4o','gpt-4.1','gpt-4o-mini']
+};
+
+const state = {
+  settings:{
+    provider: localStorage.getItem(LS.provider) || 'anthropic',
+    apiKey: localStorage.getItem(LS.apiKey) || '',
+    azureKey: localStorage.getItem(LS.azKey) || '',
+    azureEndpoint: localStorage.getItem(LS.azEndpoint) || '',
+    azureDeployment: localStorage.getItem(LS.azDeploy) || '',
+    model: localStorage.getItem(LS.model) || ''
+  },
+  modelCatalog: { status:'idle', models:[] },
+  deck: null,          // { theme:{...}, slides:[ {id, background, elements:[]} ] }
+  cIndex:0,            // preview index in Create
+  eIndex:0,            // active slide in Modify
+  selected:new Set(),  // selected element ids in editor
+  customTheme:null
+};
+
+function loadDeck(){
+  try{ const d = JSON.parse(localStorage.getItem(LS.deck)||'null'); if(d && d.slides) state.deck=d; }catch(e){}
+}
+function persistDeck(){ try{ localStorage.setItem(LS.deck, JSON.stringify(state.deck)); }catch(e){} }
+
+/* ============================================================================
+   TOASTS
+   ============================================================================ */
+function toast(msg, type){
+  type = type||'info';
+  const t = document.createElement('div');
+  t.className = 'toast '+type; t.textContent = msg;
+  $('#toasts').appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(20px)'; setTimeout(()=>t.remove(),250); }, 4200);
+}
+
+/* ============================================================================
+   PURE RENDER RUNTIME (shared in-app + standalone export)
+   These functions must stay self-contained (no app globals) so they can be
+   serialized via .toString() into the exported HTML.
+   ============================================================================ */
+function resolveColor(c, theme){
+  if(c===undefined||c===null||c==='') return '';
+  if(typeof c==='string' && theme && theme[c]) return theme[c];
+  return c;
+}
+function slideBg(bg, theme){
+  if(!bg) return resolveColor('bg', theme);
+  if(bg.type==='gradient'){
+    if(bg.value==='brand') return theme.brandGradient;
+    return bg.value || theme.brandGradient;
+  }
+  if(bg.type==='image' && bg.value){
+    var ov = bg.overlay || 'linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35))';
+    return ov+", url('"+bg.value+"') center/cover no-repeat";
+  }
+  return resolveColor(bg.value||'bg', theme);
+}
+function elBaseStyle(e){
+  var s = 'position:absolute;left:'+e.x+'px;top:'+e.y+'px;width:'+e.w+'px;height:'+e.h+'px;';
+  s += 'opacity:'+(e.opacity==null?1:e.opacity)+';';
+  if(e.rotation) s += 'transform:rotate('+e.rotation+'deg);';
+  s += 'z-index:'+(e.z||1)+';';
+  return s;
+}
+function buildElEl(e, theme){
+  var node, s = elBaseStyle(e);
+  var fill = resolveColor(e.fill, theme);
+  var color = resolveColor(e.color, theme) || theme.text;
+  var stroke = resolveColor(e.stroke, theme);
+  if(e.type==='image'){
+    node = document.createElement('img');
+    node.src = e.src||'';
+    node.crossOrigin = 'anonymous';
+    s += 'object-fit:'+(e.fit||'cover')+';';
+    if(e.radius) s += 'border-radius:'+e.radius+'px;';
+    if(stroke) s += 'border:'+(e.strokeWidth||2)+'px solid '+stroke+';';
+    node.style.cssText = s;
+    return node;
+  }
+  node = document.createElement('div');
+  if(e.type==='text'||e.type==='badge'){
+    s += 'display:flex;';
+    s += 'justify-content:'+(e.align==='center'?'center':e.align==='right'?'flex-end':'flex-start')+';';
+    s += 'align-items:'+(e.valign==='middle'?'center':e.valign==='bottom'?'flex-end':'flex-start')+';';
+    s += 'font-family:'+(e.fontFamily==='display'?theme.fontDisplay:e.fontFamily==='mono'?theme.fontMono:e.fontFamily||theme.fontBody)+';';
+    s += 'font-size:'+(e.fontSize||28)+'px;';
+    s += 'font-weight:'+(e.fontWeight||400)+';';
+    s += 'line-height:'+(e.lineHeight||1.25)+';';
+    s += 'letter-spacing:'+(e.letterSpacing||0)+'px;';
+    s += 'color:'+color+';';
+    s += 'text-align:'+(e.align||'left')+';';
+    s += 'white-space:pre-wrap;word-break:break-word;overflow:hidden;';
+    if(e.type==='badge'){
+      s += 'background:'+(fill||theme.primary)+';';
+      s += 'border-radius:'+(e.radius==null?999:e.radius)+'px;';
+      s += 'padding:0 16px;text-transform:'+(e.uppercase?'uppercase':'none')+';';
+    } else {
+      if(fill){ s += 'background:'+fill+';'; }
+      if(e.padding) s += 'padding:'+e.padding+'px;';
+      if(e.radius) s += 'border-radius:'+e.radius+'px;';
+    }
+    node.style.cssText = s;
+    node.textContent = e.text||'';
+    return node;
+  }
+  if(e.type==='line'){
+    s += 'height:'+(e.strokeWidth||3)+'px;';
+    s += 'background:'+(stroke||theme.primary)+';';
+    s += 'border-radius:'+((e.strokeWidth||3)/2)+'px;';
+    node.style.cssText = s;
+    return node;
+  }
+  // rect / ellipse
+  if(fill) s += 'background:'+fill+';';
+  if(stroke) s += 'border:'+(e.strokeWidth||2)+'px solid '+stroke+';';
+  if(e.type==='ellipse') s += 'border-radius:50%;';
+  else s += 'border-radius:'+(e.radius||0)+'px;';
+  if(e.shadow) s += 'box-shadow:0 14px 40px rgba(0,0,0,.18);';
+  node.style.cssText = s;
+  return node;
+}
+function buildSlideEl(slide, theme){
+  var stage = document.createElement('div');
+  stage.className = 'ms-slide';
+  stage.style.background = slideBg(slide.background, theme);
+  var els = (slide.elements||[]).slice().sort(function(a,b){return (a.z||1)-(b.z||1);});
+  els.forEach(function(e){
+    var n = buildElEl(e, theme);
+    n.setAttribute('data-id', e.id);
+    stage.appendChild(n);
+  });
+  return stage;
+}
+
+/* ============================================================================
+   PREVIEW (Create tab) + scaling helper
+   ============================================================================ */
+function fitScale(container, w, h, pad){
+  pad = pad||0;
+  const cw = container.clientWidth - pad, ch = container.clientHeight - pad;
+  return Math.max(0.05, Math.min(cw/w, ch/h));
+}
+function theme(){ return (state.deck && state.deck.theme) || THEMES.wavestone; }
+
+function renderCreatePreview(){
+  const scaler = $('#cScaler'), area = scaler.parentElement;
+  if(!state.deck || !state.deck.slides.length){
+    scaler.style.transform=''; scaler.style.width=''; scaler.style.height='';
+    scaler.innerHTML = '<div class="empty" id="cEmpty"><div class="big">✦</div><div>Lancez « Create » pour générer votre présentation.</div></div>';
+    $('#cSlideNo').textContent='0 / 0'; $('#cThemeLbl').textContent='';
+    return;
+  }
+  state.cIndex = clamp(state.cIndex, 0, state.deck.slides.length-1);
+  const sl = state.deck.slides[state.cIndex];
+  scaler.innerHTML='';
+  const slideEl = buildSlideEl(sl, theme());
+  scaler.appendChild(slideEl);
+  const sc = fitScale(area, 1280, 720, 36);
+  scaler.style.width='1280px'; scaler.style.height='720px';
+  scaler.style.transform = 'scale('+sc+')';
+  scaler.style.transformOrigin='center center';
+  $('#cSlideNo').textContent = (state.cIndex+1)+' / '+state.deck.slides.length;
+  $('#cThemeLbl').textContent = 'Thème : '+theme().name;
+}
+
+/* ============================================================================
+   LLM MODULE — multi-provider, streaming, error handling
+   ============================================================================ */
+function endpointInfo(){
+  const s = state.settings;
+  return s;
+}
+async function streamLLM(system, user, onToken){
+  const s = state.settings;
+  const provider = s.provider;
+  let url, headers={'Content-Type':'application/json'}, body;
+  const maxTok = 16000;
+
+  if(provider==='anthropic'){
+    if(!s.apiKey.trim()) throw new Error('Clé API Anthropic manquante (Réglages).');
+    url='https://api.anthropic.com/v1/messages';
+    headers['x-api-key']=s.apiKey;
+    headers['anthropic-version']='2023-06-01';
+    headers['anthropic-dangerous-direct-browser-access']='true';
+    body={ model:s.model, max_tokens:maxTok, system:system, stream:true,
+           messages:[{role:'user', content:user}] };
+  } else if(provider==='openai'){
+    if(!s.apiKey.trim()) throw new Error('Clé API OpenAI manquante (Réglages).');
+    url='https://api.openai.com/v1/chat/completions';
+    headers['Authorization']='Bearer '+s.apiKey;
+    body={ model:s.model, max_completion_tokens:maxTok, stream:true,
+           messages:[{role:'system',content:system},{role:'user',content:user}] };
+  } else if(provider==='mistral'){
+    if(!s.apiKey.trim()) throw new Error('Clé API Mistral manquante (Réglages).');
+    url='https://api.mistral.ai/v1/chat/completions';
+    headers['Authorization']='Bearer '+s.apiKey;
+    body={ model:s.model, max_tokens:maxTok, stream:true,
+           messages:[{role:'system',content:system},{role:'user',content:user}] };
+  } else if(provider==='azure'){
+    if(!s.azureKey.trim()) throw new Error('Clé API Azure manquante (Réglages).');
+    if(!s.azureEndpoint.trim()) throw new Error('Endpoint Azure manquant (Réglages).');
+    let ep=s.azureEndpoint.replace(/\/+$/,'');
+    if(!/^https:/.test(ep)) throw new Error('L\'endpoint Azure doit être en HTTPS.');
+    url=ep+'/openai/deployments/'+encodeURIComponent(s.azureDeployment||s.model)+'/chat/completions?api-version=2024-06-01';
+    headers['api-key']=s.azureKey;
+    body={ max_tokens:maxTok, stream:true,
+           messages:[{role:'system',content:system},{role:'user',content:user}] };
+  } else if(provider==='google'){
+    if(!s.apiKey.trim()) throw new Error('Clé API Google manquante (Réglages).');
+    url='https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(s.model)+':streamGenerateContent?alt=sse&key='+encodeURIComponent(s.apiKey);
+    body={ systemInstruction:{parts:[{text:system}]},
+           contents:[{role:'user',parts:[{text:user}]}],
+           generationConfig:{maxOutputTokens:maxTok} };
+  } else {
+    throw new Error('Fournisseur inconnu.');
+  }
+
+  let resp;
+  try{
+    resp = await fetch(url,{method:'POST',headers,body:JSON.stringify(body)});
+  }catch(netErr){
+    throw new Error('Échec réseau : '+netErr.message+' (CORS/clé/connexion).');
+  }
+  if(!resp.ok){
+    let detail='';
+    try{ const j=await resp.json(); detail = (j.error&&(j.error.message||j.error.code))||JSON.stringify(j); }
+    catch(e){ try{ detail=await resp.text(); }catch(_){} }
+    throw new Error('HTTP '+resp.status+' — '+(detail||resp.statusText));
+  }
+
+  // SSE stream parse
+  const reader = resp.body.getReader();
+  const dec = new TextDecoder();
+  let buf='', full='';
+  while(true){
+    const {done,value} = await reader.read();
+    if(done) break;
+    buf += dec.decode(value,{stream:true});
+    let idx;
+    while((idx=buf.indexOf('\n'))>=0){
+      let line = buf.slice(0,idx).trim();
+      buf = buf.slice(idx+1);
+      if(!line || !line.startsWith('data:')) continue;
+      const data = line.slice(5).trim();
+      if(data==='[DONE]') continue;
+      let ev; try{ ev=JSON.parse(data); }catch(e){ continue; }
+      let piece='';
+      if(provider==='anthropic'){
+        if(ev.type==='content_block_delta' && ev.delta && ev.delta.type==='text_delta') piece=ev.delta.text||'';
+      } else if(provider==='google'){
+        piece = (ev.candidates&&ev.candidates[0]&&ev.candidates[0].content&&ev.candidates[0].content.parts&&ev.candidates[0].content.parts.map(p=>p.text||'').join(''))||'';
+      } else { // openai / mistral / azure
+        piece = (ev.choices&&ev.choices[0]&&ev.choices[0].delta&&ev.choices[0].delta.content)||'';
+      }
+      if(piece){ full+=piece; if(onToken) onToken(piece, full); }
+    }
+  }
+  if(!full.trim()) throw new Error('Réponse vide du modèle.');
+  return full;
+}
+
+/* ---- model catalog ---- */
+async function fetchModels(){
+  const s = state.settings;
+  setCatStatus('load','Chargement des modèles…');
+  try{
+    let url, headers={}, key='';
+    if(s.provider==='anthropic'){
+      if(!s.apiKey) throw new Error('clé manquante');
+      url='https://api.anthropic.com/v1/models';
+      headers={'x-api-key':s.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'};
+    } else if(s.provider==='openai'){
+      if(!s.apiKey) throw new Error('clé manquante');
+      url='https://api.openai.com/v1/models'; headers={'Authorization':'Bearer '+s.apiKey};
+    } else if(s.provider==='mistral'){
+      if(!s.apiKey) throw new Error('clé manquante');
+      url='https://api.mistral.ai/v1/models'; headers={'Authorization':'Bearer '+s.apiKey};
+    } else if(s.provider==='google'){
+      if(!s.apiKey) throw new Error('clé manquante');
+      url='https://generativelanguage.googleapis.com/v1beta/models?key='+encodeURIComponent(s.apiKey);
+    } else { // azure : pas de listing simple
+      state.modelCatalog={status:'success',models:DEFAULT_MODELS.azure};
+      setCatStatus('ok','Modèles par défaut (Azure)'); fillModelSelect(); return;
+    }
+    const r = await fetch(url,{headers});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j = await r.json();
+    let ids=[];
+    if(s.provider==='google'){
+      ids=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent'))
+        .map(m=>(m.name||'').replace(/^models\//,''));
+    } else {
+      ids=(j.data||[]).map(m=>m.id);
+    }
+    if(s.provider==='openai'){
+      ids=ids.filter(id=>/^(gpt-|o\d|chatgpt)/i.test(id) && !/(audio|realtime|embedding|moderation|image|tts|whisper|transcribe|search)/i.test(id));
+    }
+    if(s.provider==='mistral'){
+      ids=ids.filter(id=>!/(embed|ocr|moderation)/i.test(id));
+    }
+    ids = Array.from(new Set(ids)).sort();
+    if(!ids.length) ids = DEFAULT_MODELS[s.provider]||[];
+    state.modelCatalog={status:'success',models:ids};
+    setCatStatus('ok',ids.length+' modèles');
+    fillModelSelect();
+  }catch(e){
+    state.modelCatalog={status:'error',models:DEFAULT_MODELS[s.provider]||[]};
+    setCatStatus('err','Liste indisponible — défauts utilisés');
+    fillModelSelect();
+  }
+}
+function availableModels(){
+  const def = DEFAULT_MODELS[state.settings.provider]||[];
+  const cat = state.modelCatalog.models||[];
+  const set = new Set([...(state.settings.model?[state.settings.model]:[]), ...cat.length?cat:def]);
+  return Array.from(set);
+}
+
+/* ============================================================================
+   GENERATION — build deck from prompt
+   ============================================================================ */
+function genSystemPrompt(th, n){
+  const pal = `Palette (utilisez ces rôles OU les hex):
+- primary ${th.primary}, accent ${th.accent}, secondary ${th.secondary}
+- bg ${th.bg}, surface ${th.surface}, text ${th.text}, muted ${th.muted}, onBrand ${th.onBrand}
+Polices: "display" (titres), "body" (texte), "mono" (code/chiffres).`;
+  return `Tu es un designer de présentations. Génère un deck de slides au format JSON STRICT (aucun texte hors JSON).
+Canvas fixe: 1280 x 720 px. Coordonnées absolues en px (x,y = coin haut-gauche). Garde tout dans les limites.
+${pal}
+
+Schéma JSON:
+{
+ "slides":[
+   {
+     "background": {"type":"color","value":"bg"}  // ou {"type":"gradient","value":"brand"} ou {"type":"color","value":"#hex"}
+     "elements":[
+        {"type":"text","x":80,"y":80,"w":1120,"h":120,"text":"Titre","fontFamily":"display","fontSize":58,"fontWeight":800,"color":"text","align":"left","valign":"top"},
+        {"type":"badge","x":80,"y":60,"w":220,"h":34,"text":"CHAPITRE","fill":"primary","color":"onBrand","fontSize":15,"fontWeight":700,"uppercase":true},
+        {"type":"rect","x":80,"y":300,"w":340,"h":200,"fill":"surface","radius":16,"shadow":true},
+        {"type":"ellipse","x":900,"y":120,"w":120,"h":120,"fill":"accent"},
+        {"type":"line","x":80,"y":210,"w":300,"h":4,"stroke":"accent","strokeWidth":4},
+        {"type":"image","x":700,"y":120,"w":480,"h":480,"src":"https://images.unsplash.com/...","radius":12}
+     ]
+   }
+ ]
+}
+
+Règles:
+- Produis EXACTEMENT ${n} slides cohérentes et bien composées (titre, sommaire, sections, timeline si pertinent, synthèse).
+- Compose des mises en page riches type "slide PowerPoint" : titres, sous-titres, cartes (rect+text), puces, chiffres clés, timeline (rects+lignes+labels), encadrés.
+- Pour une timeline: utilise une "line" horizontale + des "ellipse" repères + des "text" dates/labels.
+- Slide de titre: fond gradient "brand" et textes en "onBrand".
+- Textes lisibles (titres 44-64px, corps 18-26px). N'empile pas les éléments hors cadre.
+- Pour les images, utilise des URLs Unsplash plausibles (https://images.unsplash.com/photo-...?w=1200) en lien avec le sujet.
+- Réponds UNIQUEMENT avec le JSON (commence par { et finis par }).`;
+}
+function extractJSON(txt){
+  let t = txt.trim();
+  t = t.replace(/^```(json)?/i,'').replace(/```$/,'').trim();
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if(a<0||b<0) throw new Error('Pas de JSON détecté dans la réponse.');
+  return JSON.parse(t.slice(a,b+1));
+}
+function normalizeDeck(raw, th){
+  const slides = (raw.slides||[]).map(sl=>({
+    id: uid(),
+    background: sl.background || {type:'color',value:'bg'},
+    elements: (sl.elements||[]).map((e,i)=>normalizeEl(e,i))
+  }));
+  return { theme: th, slides };
+}
+function normalizeEl(e,i){
+  const o = Object.assign({}, e);
+  o.id = o.id || uid();
+  o.x = num(o.x,40); o.y = num(o.y,40);
+  o.w = num(o.w,300); o.h = num(o.h, o.type==='line'?(o.strokeWidth||4):120);
+  o.z = o.z || (i+1);
+  o.type = o.type || 'text';
+  return o;
+}
+function num(v,d){ v=parseFloat(v); return isNaN(v)?d:v; }
+
+async function runCreate(){
+  if(!state.settings.model){ toast('Choisissez un modèle dans Réglages.','error'); switchTab('settings'); return; }
+  const prompt = $('#promptInput').value.trim();
+  if(!prompt){ toast('Saisissez un prompt initial.','error'); return; }
+  const n = clamp(parseInt($('#slideNum').value)||10,1,24);
+  const th = currentSelectedTheme();
+  const sys = genSystemPrompt(th, n);
+
+  logClear();
+  logMsg('user', 'PROMPT ('+state.settings.provider+' · '+state.settings.model+')\n\n'+prompt+'\n\n→ '+n+' slides · thème '+th.name);
+  const aiBox = logMsg('ai','');
+  $('#createBusy').classList.add('show');
+  $('#createBtn').disabled=true;
+
+  try{
+    const full = await streamLLM(sys, prompt, (piece, all)=>{
+      aiBox.querySelector('.body').textContent = all.length>4000? all.slice(0,2000)+'\n…\n'+all.slice(-1500) : all;
+      const log=$('#createLog'); log.scrollTop=log.scrollHeight;
+    });
+    const raw = extractJSON(full);
+    const deck = normalizeDeck(raw, th);
+    if(!deck.slides.length) throw new Error('Aucune slide générée.');
+    state.deck = deck; state.cIndex=0; state.eIndex=0; persistDeck();
+    refreshAll();
+    logMsg('ai','✓ '+deck.slides.length+' slides générées et rendues.');
+    toast(deck.slides.length+' slides générées ✦','success');
+  }catch(e){
+    logMsg('err','✗ '+e.message);
+    toast('Erreur de génération : '+e.message,'error');
+  }finally{
+    $('#createBusy').classList.remove('show');
+    $('#createBtn').disabled=false;
+  }
+}
+
+/* charte graphique via IA */
+async function genCharte(){
+  if(!state.settings.model){ toast('Configurez l\'IA dans Réglages.','error'); return; }
+  const desc = $('#charteDesc').value.trim();
+  if(!desc){ toast('Décrivez la charte souhaitée.','error'); return; }
+  const sys = `Tu génères une charte graphique. Réponds en JSON STRICT uniquement:
+{"name":"...","bg":"#hex","surface":"#hex","primary":"#hex","accent":"#hex","secondary":"#hex","text":"#hex","muted":"#hex","onBrand":"#hex","fontDisplay":"'Poppins',sans-serif","fontBody":"'Inter',sans-serif"}
+Cohérence et contraste lisible obligatoires.`;
+  $('#genCharteBtn').disabled=true;
+  try{
+    const full = await streamLLM(sys, desc, null);
+    const t = extractJSON(full);
+    t.fontMono = t.fontMono || "'IBM Plex Mono',monospace";
+    t.brandGradient = t.brandGradient || ('linear-gradient(135deg,'+(t.primary||'#5A2BE0')+','+(t.secondary||t.accent||'#2D1380')+')');
+    state.customTheme = t;
+    $('#styleSelect').value='custom';
+    if(state.deck){ state.deck.theme=t; persistDeck(); refreshAll(); }
+    toast('Charte « '+(t.name||'custom')+' » appliquée.','success');
+  }catch(e){ toast('Charte: '+e.message,'error'); }
+  finally{ $('#genCharteBtn').disabled=false; }
+}
+
+/* CSS file → custom theme (extract :root variables) */
+function applyCssFile(text){
+  const vars={};
+  const re=/--([\w-]+)\s*:\s*([^;}]+)[;}]/g; let m;
+  while((m=re.exec(text))){ vars[m[1].toLowerCase()]=m[2].trim(); }
+  const pick=(...keys)=>{ for(const k of keys){ for(const v in vars){ if(v.includes(k)) return vars[v]; } } return null; };
+  const t = {
+    name:'CSS importé',
+    bg: pick('bg','background','base','white') || '#ffffff',
+    surface: pick('surface','muted-bg','card') || '#f3f3f6',
+    primary: pick('primary','brand','indigo','accent-1') || '#5A2BE0',
+    accent: pick('accent','green','success') || '#04F06A',
+    secondary: pick('secondary','teal','blue') || '#228D95',
+    text: pick('text','ink','foreground','fg') || '#16121F',
+    muted: pick('muted','gray','grey') || '#6b6680',
+    onBrand: '#ffffff',
+    fontDisplay:"'Poppins',sans-serif", fontBody:"'Inter',sans-serif", fontMono:"'IBM Plex Mono',monospace"
+  };
+  t.brandGradient = 'linear-gradient(135deg,'+t.primary+','+t.secondary+')';
+  state.customTheme = t;
+  $('#styleSelect').value='custom';
+  if(state.deck){ state.deck.theme=t; persistDeck(); refreshAll(); }
+  toast('Thème importé depuis le CSS ('+Object.keys(vars).length+' variables).','success');
+}
+
+function currentSelectedTheme(){
+  const v=$('#styleSelect').value;
+  if(v==='custom' && state.customTheme) return state.customTheme;
+  if(v==='darkcyber') return THEMES.darkcyber;
+  return THEMES.wavestone;
+}
+
+/* ============================================================================
+   LOG
+   ============================================================================ */
+function logClear(){ $('#createLog').innerHTML=''; }
+function logMsg(kind, text){
+  const d=document.createElement('div');
+  d.className='lm '+(kind==='user'?'user':kind==='err'?'err':'ai');
+  const who = kind==='user'?'Vous':kind==='err'?'Erreur':'IA';
+  d.innerHTML='<div class="who">'+who+'</div><div class="body"></div>';
+  d.querySelector('.body').textContent=text;
+  $('#createLog').appendChild(d);
+  const log=$('#createLog'); log.scrollTop=log.scrollHeight;
+  return d;
+}
+
+/* ============================================================================
+   MODIFY — editor
+   ============================================================================ */
+let editorScale=1;
+function currentSlide(){ return state.deck && state.deck.slides[state.eIndex]; }
+
+function renderFilmstrip(){
+  const list=$('#filmList'); list.innerHTML='';
+  if(!state.deck) return;
+  state.deck.slides.forEach((sl,i)=>{
+    const t=document.createElement('div');
+    t.className='thumb'+(i===state.eIndex?' active':'');
+    const tn=document.createElement('div'); tn.className='tn';
+    tn.appendChild(buildSlideEl(sl, theme()));
+    t.innerHTML='<div class="idx">'+(i+1)+'</div>';
+    t.appendChild(tn);
+    t.addEventListener('click',()=>{ state.eIndex=i; state.selected.clear(); renderFilmstrip(); renderEditor(); renderProps(); });
+    list.appendChild(t);
+  });
+}
+
+function renderEditor(){
+  const sl=currentSlide();
+  const scaler=$('#editorScaler'), stage=$('#editorStage'), ovl=$('#ovlLayer'), vp=$('#editorViewport');
+  if(!sl){ $('#editEmpty').style.display='block'; scaler.style.display='none'; return; }
+  $('#editEmpty').style.display='none'; scaler.style.display='block';
+  stage.innerHTML=''; ovl.innerHTML='';
+  stage.style.background = slideBg(sl.background, theme());
+
+  const els = sl.elements.slice().sort((a,b)=>(a.z||1)-(b.z||1));
+  els.forEach(e=>{
+    const node = buildElEl(e, theme());
+    node.classList.add('el-node');
+    node.setAttribute('data-id', e.id);
+    attachElInteraction(node, e);
+    stage.appendChild(node);
+  });
+
+  const sc = fitScale(vp, 1280, 720, 56);
+  editorScale = sc;
+  scaler.style.transform='scale('+sc+')';
+  scaler.style.transformOrigin='center center';
+  drawOverlay();
+}
+
+function drawOverlay(){
+  const ovl=$('#ovlLayer'); ovl.innerHTML='';
+  const sl=currentSlide(); if(!sl) return;
+  state.selected.forEach(id=>{
+    const e = sl.elements.find(x=>x.id===id); if(!e) return;
+    const box=document.createElement('div'); box.className='sel-box';
+    box.style.left=e.x+'px'; box.style.top=e.y+'px';
+    box.style.width=e.w+'px'; box.style.height=e.h+'px';
+    if(e.rotation) box.style.transform='rotate('+e.rotation+'deg)';
+    ovl.appendChild(box);
+    if(state.selected.size===1){
+      [['nw',0,0],['n',.5,0],['ne',1,0],['e',1,.5],['se',1,1],['s',.5,1],['sw',0,1],['w',0,.5]].forEach(([dir,fx,fy])=>{
+        const h=document.createElement('div'); h.className='handle '+dir;
+        h.style.left=(e.x+e.w*fx)+'px'; h.style.top=(e.y+e.h*fy)+'px';
+        h.addEventListener('pointerdown',ev=>startResize(ev,e,dir));
+        ovl.appendChild(h);
+      });
+    }
+  });
+}
+
+function selectEl(id, additive){
+  if(additive){ state.selected.has(id)?state.selected.delete(id):state.selected.add(id); }
+  else { state.selected.clear(); state.selected.add(id); }
+  drawOverlay(); renderProps();
+}
+
+function attachElInteraction(node, e){
+  node.addEventListener('pointerdown', ev=>{
+    if(node.classList.contains('editing')) return;
+    ev.preventDefault();
+    if(!state.selected.has(e.id)) selectEl(e.id, ev.shiftKey);
+    else if(ev.shiftKey){ selectEl(e.id, true); return; }
+    startDrag(ev);
+  });
+  if(e.type==='text'||e.type==='badge'){
+    node.addEventListener('dblclick',()=>{
+      node.classList.add('editing');
+      node.setAttribute('contenteditable','true');
+      node.focus();
+      const range=document.createRange(); range.selectNodeContents(node);
+      const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      const finish=()=>{
+        node.removeAttribute('contenteditable'); node.classList.remove('editing');
+        e.text=node.textContent; persistDeck(); renderFilmstrip(); renderProps();
+        node.removeEventListener('blur',finish);
+      };
+      node.addEventListener('blur',finish);
+    });
+  }
+}
+
+function startDrag(ev){
+  const sl=currentSlide();
+  const start={x:ev.clientX,y:ev.clientY};
+  const moving = Array.from(state.selected).map(id=>{ const e=sl.elements.find(x=>x.id===id); return {e, ox:e.x, oy:e.y}; });
+  const move=(m)=>{
+    const dx=(m.clientX-start.x)/editorScale, dy=(m.clientY-start.y)/editorScale;
+    moving.forEach(({e,ox,oy})=>{ e.x=Math.round(ox+dx); e.y=Math.round(oy+dy); updateElDom(e); });
+    drawOverlay();
+  };
+  const up=()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); persistDeck(); renderFilmstrip(); renderProps(); };
+  window.addEventListener('pointermove',move); window.addEventListener('pointerup',up);
+}
+function startResize(ev,e,dir){
+  ev.preventDefault(); ev.stopPropagation();
+  const start={x:ev.clientX,y:ev.clientY,ex:e.x,ey:e.y,ew:e.w,eh:e.h};
+  const move=(m)=>{
+    const dx=(m.clientX-start.x)/editorScale, dy=(m.clientY-start.y)/editorScale;
+    let {ex,ey,ew,eh}=start;
+    if(dir.includes('e')) ew=Math.max(8,start.ew+dx);
+    if(dir.includes('s')) eh=Math.max(8,start.eh+dy);
+    if(dir.includes('w')){ ew=Math.max(8,start.ew-dx); ex=start.ex+dx; }
+    if(dir.includes('n')){ eh=Math.max(8,start.eh-dy); ey=start.ey+dy; }
+    e.x=Math.round(ex); e.y=Math.round(ey); e.w=Math.round(ew); e.h=Math.round(eh);
+    updateElDom(e); drawOverlay();
+  };
+  const up=()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); persistDeck(); renderFilmstrip(); renderProps(); };
+  window.addEventListener('pointermove',move); window.addEventListener('pointerup',up);
+}
+function updateElDom(e){
+  const node=$('#editorStage [data-id="'+e.id+'"]');
+  if(!node) return;
+  node.style.left=e.x+'px'; node.style.top=e.y+'px';
+  node.style.width=e.w+'px'; node.style.height=e.h+'px';
+}
+
+/* deselect on empty stage click */
+function bindStageDeselect(){
+  $('#editorStage').addEventListener('pointerdown', ev=>{
+    if(ev.target.id==='editorStage'){ state.selected.clear(); drawOverlay(); renderProps(); }
+  });
+}
+
+/* ----- element add ----- */
+function addElement(type){
+  const sl=currentSlide(); if(!sl){ toast('Aucune slide active.','error'); return; }
+  const z = (sl.elements.reduce((m,e)=>Math.max(m,e.z||1),0))+1;
+  let e={id:uid(), type, x:480, y:300, w:320, h:120, z};
+  if(type==='text'){ Object.assign(e,{text:'Nouveau texte',fontFamily:'body',fontSize:28,fontWeight:600,color:'text',align:'left',valign:'top'}); }
+  if(type==='badge'){ Object.assign(e,{text:'BADGE',w:180,h:36,fill:'primary',color:'onBrand',fontSize:15,fontWeight:700,uppercase:true,align:'center',valign:'middle'}); }
+  if(type==='rect'){ Object.assign(e,{fill:'surface',radius:14,h:180}); }
+  if(type==='ellipse'){ Object.assign(e,{fill:'accent',w:140,h:140}); }
+  if(type==='line'){ Object.assign(e,{stroke:'primary',strokeWidth:4,h:4,w:360}); }
+  if(type==='image'){
+    const url=prompt('URL de l\'image :','https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200');
+    if(!url) return; Object.assign(e,{src:url,w:420,h:280,radius:12});
+  }
+  sl.elements.push(e); persistDeck();
+  state.selected=new Set([e.id]);
+  renderEditor(); renderFilmstrip(); renderProps();
+}
+
+/* ----- properties panel ----- */
+function renderProps(){
+  const body=$('#propsBody'); const sl=currentSlide();
+  if(!sl || !state.selected.size){
+    body.innerHTML='<div class="hint">Sélectionnez un ou plusieurs éléments. Maj+clic = multi-sélection. Double-clic sur un texte = édition. Suppr = supprimer.</div>'+
+      (sl?slideBgControls():'');
+    bindSlideBgControls();
+    return;
+  }
+  const ids=Array.from(state.selected);
+  const els=ids.map(id=>sl.elements.find(e=>e.id===id)).filter(Boolean);
+  const e=els[0];
+  const single=els.length===1;
+  let html='';
+  html+='<div class="hint" style="margin-bottom:10px">'+els.length+' élément(s) — '+e.type+'</div>';
+  html+= geomControls(e, single);
+  if(e.type==='text'||e.type==='badge') html+=textControls(e);
+  if(e.type==='image') html+=imageControls(e);
+  if(['rect','ellipse','badge','text'].includes(e.type)) html+=fillControls(e);
+  if(['rect','ellipse','line','image'].includes(e.type)) html+=strokeControls(e);
+  html+= `<div class="row" style="margin-top:14px">
+    <button class="btn sm" data-act="front">Avant</button>
+    <button class="btn sm" data-act="back">Arrière</button>
+    <button class="btn sm" data-act="dup">Dupliquer</button>
+  </div>
+  <button class="btn sm danger" data-act="del" style="width:100%;margin-top:8px">Supprimer</button>`;
+  body.innerHTML=html;
+  bindPropInputs(els);
+}
+function field(label,key,val,type,step){
+  type=type||'text';
+  return `<label class="fld">${label}</label><input class="ctl" data-key="${key}" type="${type}" ${step?'step="'+step+'"':''} value="${val==null?'':String(val).replace(/"/g,'&quot;')}">`;
+}
+function geomControls(e,single){
+  return `<div class="grid2">
+    ${field('X','x',e.x,'number')}
+    ${field('Y','y',e.y,'number')}
+    ${field('Largeur','w',e.w,'number')}
+    ${field('Hauteur','h',e.h,'number')}
+  </div>
+  <div class="grid2">
+    ${field('Rotation°','rotation',e.rotation||0,'number')}
+    ${field('Opacité','opacity',e.opacity==null?1:e.opacity,'number','0.05')}
+  </div>`;
+}
+function textControls(e){
+  return `<label class="fld">Texte</label><textarea class="ctl" data-key="text">${(e.text||'').replace(/</g,'&lt;')}</textarea>
+  <div class="grid2">
+    <div><label class="fld">Police</label>
+      <select class="ctl" data-key="fontFamily">
+        ${['body','display','mono'].map(f=>`<option value="${f}" ${e.fontFamily===f?'selected':''}>${f}</option>`).join('')}
+      </select></div>
+    ${field('Taille','fontSize',e.fontSize||28,'number')}
+  </div>
+  <div class="grid2">
+    <div><label class="fld">Graisse</label>
+      <select class="ctl" data-key="fontWeight">
+        ${[400,500,600,700,800].map(w=>`<option value="${w}" ${(e.fontWeight||400)==w?'selected':''}>${w}</option>`).join('')}
+      </select></div>
+    <div><label class="fld">Interligne</label><input class="ctl" data-key="lineHeight" type="number" step="0.05" value="${e.lineHeight||1.25}"></div>
+  </div>
+  <label class="fld">Alignement</label>
+  <div class="seg" data-seg="align">
+    ${['left','center','right'].map(a=>`<button data-val="${a}" class="${(e.align||'left')===a?'on':''}">${a==='left'?'⬅':a==='center'?'⬌':'➡'}</button>`).join('')}
+  </div>
+  <label class="fld">Couleur du texte</label>
+  ${colorControl('color', e.color, 'text')}`;
+}
+function imageControls(e){
+  return `<label class="fld">URL image</label><input class="ctl" data-key="src" value="${(e.src||'').replace(/"/g,'&quot;')}">
+  ${field('Rayon','radius',e.radius||0,'number')}`;
+}
+function fillControls(e){
+  return `<label class="fld">Remplissage</label>${colorControl('fill', e.fill, e.type==='badge'?'primary':'surface')}
+  ${e.type!=='badge'?field('Rayon','radius',e.radius||0,'number'):''}`;
+}
+function strokeControls(e){
+  return `<label class="fld">Bordure</label>${colorControl('stroke', e.stroke, '')}
+  ${field('Épaisseur','strokeWidth',e.strokeWidth||0,'number')}`;
+}
+function colorControl(key,val,fallbackRole){
+  const th=theme();
+  const hex = toHex(resolveColor(val, th) || resolveColor(fallbackRole,th) || '#888888');
+  return `<div class="colorrow">
+    <input type="color" data-colorkey="${key}" value="${hex}">
+    <input class="ctl" data-key="${key}" value="${val==null?'':String(val).replace(/"/g,'&quot;')}" placeholder="role ou #hex">
+  </div>`;
+}
+function slideBgControls(){
+  const sl=currentSlide(); const bg=sl.background||{type:'color',value:'bg'};
+  return `<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">
+    <label class="fld">Fond de la slide</label>
+    <select class="ctl" id="bgType">
+      <option value="color" ${bg.type==='color'?'selected':''}>Couleur</option>
+      <option value="gradient" ${bg.type==='gradient'?'selected':''}>Dégradé brand</option>
+      <option value="image" ${bg.type==='image'?'selected':''}>Image</option>
+    </select>
+    <input class="ctl" id="bgValue" style="margin-top:8px" placeholder="role / #hex / URL" value="${(bg.value||'').replace(/"/g,'&quot;')}">
+  </div>`;
+}
+function bindSlideBgControls(){
+  const t=$('#bgType'), v=$('#bgValue'); if(!t) return;
+  const apply=()=>{ const sl=currentSlide(); sl.background={type:t.value, value: t.value==='gradient'?'brand':(v.value||'bg')}; persistDeck(); renderEditor(); renderFilmstrip(); };
+  t.addEventListener('change',apply); v.addEventListener('change',apply);
+}
+function bindPropInputs(els){
+  $$('#propsBody [data-key]').forEach(inp=>{
+    const handler=()=>{
+      const key=inp.getAttribute('data-key');
+      let val=inp.value;
+      if(['x','y','w','h','fontSize','fontWeight','radius','strokeWidth','rotation','opacity','lineHeight'].includes(key)) val=parseFloat(val);
+      els.forEach(e=>{ e[key]=val; });
+      persistDeck(); renderEditor(); renderFilmstrip();
+    };
+    inp.addEventListener('change',handler);
+    if(inp.tagName==='TEXTAREA'||inp.type==='text') inp.addEventListener('input',()=>{
+      const key=inp.getAttribute('data-key'); els.forEach(e=>e[key]=inp.value); persistDeck();
+    });
+  });
+  $$('#propsBody [data-colorkey]').forEach(c=>{
+    c.addEventListener('input',()=>{
+      const key=c.getAttribute('data-colorkey');
+      els.forEach(e=>e[key]=c.value);
+      const txt=$('#propsBody [data-key="'+key+'"]'); if(txt) txt.value=c.value;
+      persistDeck(); renderEditor(); renderFilmstrip();
+    });
+  });
+  $$('#propsBody [data-seg]').forEach(seg=>{
+    const key=seg.getAttribute('data-seg');
+    seg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+      els.forEach(e=>e[key]=b.getAttribute('data-val'));
+      persistDeck(); renderEditor(); renderFilmstrip(); renderProps();
+    }));
+  });
+  $$('#propsBody [data-act]').forEach(b=>b.addEventListener('click',()=>{
+    const act=b.getAttribute('data-act'); const sl=currentSlide();
+    if(act==='del'){ sl.elements=sl.elements.filter(e=>!state.selected.has(e.id)); state.selected.clear(); }
+    if(act==='dup'){ const copies=els.map(e=>{ const c=Object.assign({},e); c.id=uid(); c.x+=20; c.y+=20; c.z=(sl.elements.reduce((m,x)=>Math.max(m,x.z||1),0))+1; return c; }); copies.forEach(c=>sl.elements.push(c)); state.selected=new Set(copies.map(c=>c.id)); }
+    if(act==='front'){ const mz=sl.elements.reduce((m,x)=>Math.max(m,x.z||1),0); els.forEach((e,i)=>e.z=mz+1+i); }
+    if(act==='back'){ const mn=sl.elements.reduce((m,x)=>Math.min(m,x.z||1),99); els.forEach((e,i)=>e.z=mn-1-i); }
+    persistDeck(); renderEditor(); renderFilmstrip(); renderProps();
+  }));
+}
+
+/* slide ops */
+function addSlide(template){
+  if(!state.deck){ state.deck={theme:currentSelectedTheme(), slides:[]}; }
+  const sl = template(uid(), state.deck.theme);
+  state.deck.slides.splice(state.eIndex+1,0,sl);
+  state.eIndex++; state.selected.clear(); persistDeck(); refreshAll();
+}
+function delSlide(){
+  if(!state.deck||!state.deck.slides.length) return;
+  if(!confirm('Supprimer cette slide ?')) return;
+  state.deck.slides.splice(state.eIndex,1);
+  state.eIndex=clamp(state.eIndex,0,Math.max(0,state.deck.slides.length-1));
+  state.selected.clear(); persistDeck(); refreshAll();
+}
+function dupSlide(){
+  if(!currentSlide()) return;
+  const c=JSON.parse(JSON.stringify(currentSlide())); c.id=uid();
+  c.elements.forEach(e=>e.id=uid());
+  state.deck.slides.splice(state.eIndex+1,0,c); state.eIndex++; persistDeck(); refreshAll();
+}
+
+/* ============================================================================
+   SLIDE TEMPLATES
+   ============================================================================ */
+const TEMPLATES = {
+  'Titre': (id,t)=>({id, background:{type:'gradient',value:'brand'}, elements:[
+    {id:uid(),type:'badge',x:96,y:120,w:240,h:38,text:'PRÉSENTATION',fill:'accent',color:'onBrand',fontSize:15,fontWeight:700,uppercase:true,align:'center',valign:'middle',z:2},
+    {id:uid(),type:'text',x:96,y:190,w:1000,h:200,text:'Titre principal',fontFamily:'display',fontSize:74,fontWeight:800,color:'onBrand',align:'left',valign:'top',z:3},
+    {id:uid(),type:'text',x:96,y:420,w:900,h:80,text:'Sous-titre descriptif de la présentation',fontFamily:'body',fontSize:26,fontWeight:400,color:'onBrand',align:'left',z:3},
+    {id:uid(),type:'line',x:96,y:392,w:240,h:5,stroke:'accent',strokeWidth:5,z:3}
+  ]}),
+  'Titre + contenu': (id,t)=>({id, background:{type:'color',value:'bg'}, elements:[
+    {id:uid(),type:'text',x:96,y:80,w:1088,h:90,text:'Titre de section',fontFamily:'display',fontSize:48,fontWeight:700,color:'text',z:2},
+    {id:uid(),type:'line',x:96,y:172,w:200,h:4,stroke:'primary',strokeWidth:4,z:2},
+    {id:uid(),type:'text',x:96,y:210,w:1000,h:420,text:'• Premier point clé\n• Deuxième point clé\n• Troisième point clé',fontFamily:'body',fontSize:26,fontWeight:400,color:'text',lineHeight:1.8,z:2}
+  ]}),
+  'Deux colonnes': (id,t)=>({id, background:{type:'color',value:'bg'}, elements:[
+    {id:uid(),type:'text',x:96,y:80,w:1088,h:80,text:'Titre',fontFamily:'display',fontSize:46,fontWeight:700,color:'text',z:2},
+    {id:uid(),type:'rect',x:96,y:200,w:512,h:400,fill:'surface',radius:16,shadow:true,z:1},
+    {id:uid(),type:'text',x:128,y:230,w:448,h:340,text:'Colonne A',fontFamily:'body',fontSize:24,color:'text',z:2},
+    {id:uid(),type:'rect',x:672,y:200,w:512,h:400,fill:'surface',radius:16,shadow:true,z:1},
+    {id:uid(),type:'text',x:704,y:230,w:448,h:340,text:'Colonne B',fontFamily:'body',fontSize:24,color:'text',z:2}
+  ]}),
+  'En-tête de section': (id,t)=>({id, background:{type:'gradient',value:'brand'}, elements:[
+    {id:uid(),type:'text',x:120,y:300,w:1040,h:140,text:'02 — Nouvelle section',fontFamily:'display',fontSize:62,fontWeight:800,color:'onBrand',valign:'middle',z:2}
+  ]}),
+  'Image + légende': (id,t)=>({id, background:{type:'color',value:'bg'}, elements:[
+    {id:uid(),type:'image',x:0,y:0,w:720,h:720,src:'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200',z:1},
+    {id:uid(),type:'text',x:780,y:200,w:420,h:120,text:'Titre image',fontFamily:'display',fontSize:40,fontWeight:700,color:'text',z:2},
+    {id:uid(),type:'text',x:780,y:330,w:420,h:240,text:'Légende ou description de l\'image présentée.',fontFamily:'body',fontSize:22,color:'muted',lineHeight:1.6,z:2}
+  ]}),
+  'Vierge': (id,t)=>({id, background:{type:'color',value:'bg'}, elements:[]})
+};
+
+function openTemplateChooser(){
+  const grid=$('#tplGrid'); grid.innerHTML='';
+  Object.keys(TEMPLATES).forEach(name=>{
+    const sample=TEMPLATES[name](uid(), state.deck?state.deck.theme:currentSelectedTheme());
+    const card=document.createElement('div'); card.className='tpl';
+    const mini=document.createElement('div'); mini.className='mini';
+    mini.appendChild(buildSlideEl(sample, state.deck?state.deck.theme:currentSelectedTheme()));
+    card.appendChild(mini);
+    card.insertAdjacentHTML('beforeend','<div class="nm">'+name+'</div>');
+    card.addEventListener('click',()=>{ addSlide(TEMPLATES[name]); $('#tplScrim').classList.remove('show'); switchTab('modify'); });
+    grid.appendChild(card);
+  });
+  $('#tplScrim').classList.add('show');
+}
+
+/* ============================================================================
+   EXPORT — PPTX + standalone HTML
+   ============================================================================ */
+function loadScriptDyn(src){
+  return new Promise((res,rej)=>{
+    const sc=document.createElement('script'); sc.src=src;
+    sc.onload=res; sc.onerror=()=>rej(new Error('Échec chargement '+src));
+    document.head.appendChild(sc);
+  });
+}
+function toHex(c){
+  if(!c) return '#888888';
+  c=String(c).trim();
+  if(/^#([0-9a-f]{6})$/i.test(c)) return c;
+  if(/^#([0-9a-f]{3})$/i.test(c)) return '#'+c.slice(1).split('').map(x=>x+x).join('');
+  // named css via canvas
+  try{ const d=document.createElement('div'); d.style.color=c; document.body.appendChild(d);
+    const rgb=getComputedStyle(d).color; d.remove();
+    const m=rgb.match(/\d+/g); if(m) return '#'+m.slice(0,3).map(n=>(+n).toString(16).padStart(2,'0')).join(''); }catch(e){}
+  return '#888888';
+}
+function pHex(c,theme){ return toHex(resolveColor(c,theme)).replace('#',''); }
+
+async function buildPptx(deck, theme, PptxGenJS, html2canvas){
+  const I = px=> px/96;        // 1280px = 13.333in @96dpi
+  const PT = px=> px*0.75;     // px -> pt
+  const pptx = new PptxGenJS();
+  pptx.defineLayout({name:'MS', width:13.333, height:7.5});
+  pptx.layout='MS';
+
+  // Pre-render images via html2canvas (screenshot trick for CORS-safe rasterization)
+  const imgCache={};
+  if(html2canvas){
+    const off=document.createElement('div');
+    off.style.cssText='position:fixed;left:-99999px;top:0;width:1280px;height:720px;';
+    document.body.appendChild(off);
+    for(const sl of deck.slides){
+      for(const e of (sl.elements||[])){
+        if(e.type==='image' && e.src && !imgCache[e.src]){
+          off.innerHTML='';
+          const im=document.createElement('img');
+          im.crossOrigin='anonymous'; im.src=e.src;
+          im.style.cssText='width:'+e.w+'px;height:'+e.h+'px;object-fit:'+(e.fit||'cover')+';';
+          off.appendChild(im);
+          try{ await new Promise((r,j)=>{ im.onload=r; im.onerror=j; setTimeout(j,6000); });
+               const cv=await html2canvas(off,{useCORS:true,backgroundColor:null,width:e.w,height:e.h,scale:2});
+               imgCache[e.src]=cv.toDataURL('image/png'); }
+          catch(err){ imgCache[e.src]=null; }
+        }
+      }
+    }
+    off.remove();
+  }
+
+  deck.slides.forEach(sl=>{
+    const s=pptx.addSlide();
+    const bg=sl.background||{type:'color',value:'bg'};
+    if(bg.type==='image' && imgCache[bg.value]) s.background={data:imgCache[bg.value]};
+    else if(bg.type==='gradient') s.background={color:pHex('primary',theme)};
+    else s.background={color:pHex(bg.value||'bg',theme)};
+
+    (sl.elements||[]).slice().sort((a,b)=>(a.z||1)-(b.z||1)).forEach(e=>{
+      const x=I(e.x),y=I(e.y),w=I(e.w),h=I(e.h);
+      const rot=e.rotation||0, op=(e.opacity==null?1:e.opacity);
+      const trans=Math.round((1-op)*100);
+      if(e.type==='text'||e.type==='badge'){
+        const opts={ x,y,w,h, fontSize:PT(e.fontSize||28),
+          color:pHex(e.color||'text',theme),
+          bold:(e.fontWeight||400)>=600,
+          align:e.align||'left', valign:e.valign==='middle'?'middle':e.valign==='bottom'?'bottom':'top',
+          fontFace:(e.fontFamily==='mono'?'Consolas':(e.fontFamily==='display'?'Poppins':'Inter')),
+          rotate:rot, margin:e.type==='badge'?4:2, wrap:true };
+        if(e.fill){ opts.fill={color:pHex(e.fill,theme), transparency:trans}; }
+        if(e.type==='badge'){ opts.fill={color:pHex(e.fill||'primary',theme)}; opts.rectRadius=0.1; opts.align='center'; opts.valign='middle'; }
+        s.addText(String(e.text||''), opts);
+      } else if(e.type==='rect'||e.type==='ellipse'){
+        const shp = e.type==='ellipse'?pptx.ShapeType.ellipse:pptx.ShapeType.rect;
+        const opts={ x,y,w,h, rotate:rot,
+          fill: e.fill?{color:pHex(e.fill,theme), transparency:trans}:{type:'none'},
+          line: e.stroke?{color:pHex(e.stroke,theme), width:e.strokeWidth||1}:{type:'none'} };
+        if(e.type==='rect' && e.radius){ opts.rectRadius=Math.min(0.5, I(e.radius)); }
+        s.addShape(shp, opts);
+      } else if(e.type==='line'){
+        s.addShape(pptx.ShapeType.line, { x,y,w,h:0, rotate:rot, line:{color:pHex(e.stroke||'primary',theme), width:e.strokeWidth||3} });
+      } else if(e.type==='image' && e.src){
+        if(imgCache[e.src]) s.addImage({ data:imgCache[e.src], x,y,w,h, rounding:!!e.radius });
+        else s.addImage({ path:e.src, x,y,w,h });
+      }
+    });
+  });
+  return pptx;
+}
+
+async function exportPptx(){
+  if(!state.deck||!state.deck.slides.length){ toast('Aucune slide à exporter.','error'); return; }
+  toast('Préparation du PPTX…','info');
+  try{
+    if(typeof PptxGenJS==='undefined') await loadScriptDyn('https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js');
+    if(typeof html2canvas==='undefined') await loadScriptDyn('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
+    const pptx = await buildPptx(state.deck, theme(), window.PptxGenJS, window.html2canvas);
+    await pptx.writeFile({fileName:'MagicSlider.pptx'});
+    toast('PPTX exporté ✦','success');
+  }catch(e){ toast('Export PPTX: '+e.message,'error'); }
+}
+
+/* ----- standalone HTML export ----- */
+function buildStandaloneHtml(){
+  const fns=[resolveColor, slideBg, elBaseStyle, buildElEl, buildSlideEl, toHex, buildPptx].map(f=>f.toString()).join('\n');
+  const deckJSON = JSON.stringify(state.deck);
+  const runtime = `
+const DECK = ${deckJSON};
+const THEME = DECK.theme;
+let cur = 0;
+const stageWrap = document.getElementById('stageWrap');
+const stage = document.getElementById('stage');
+function render(){
+  stage.innerHTML='';
+  stage.appendChild(buildSlideEl(DECK.slides[cur], THEME));
+  fit();
+  document.getElementById('pageno').textContent=(cur+1)+' / '+DECK.slides.length;
+  document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('on',i===cur));
+}
+function fit(){
+  const sc=Math.min((stageWrap.clientWidth-40)/1280,(stageWrap.clientHeight-40)/720);
+  stage.style.transform='scale('+sc+')';
+}
+function go(n){ cur=Math.max(0,Math.min(DECK.slides.length-1,n)); render(); }
+window.addEventListener('resize', fit);
+document.addEventListener('keydown',e=>{
+  if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();go(cur+1);}
+  if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();go(cur-1);}
+  if(e.key==='Home')go(0); if(e.key==='End')go(DECK.slides.length-1);
+  if(e.key==='f'||e.key==='F'){ if(!document.fullscreenElement)document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+});
+document.getElementById('prev').onclick=()=>go(cur-1);
+document.getElementById('next').onclick=()=>go(cur+1);
+document.getElementById('fs').onclick=()=>{ if(!document.fullscreenElement)document.documentElement.requestFullscreen(); else document.exitFullscreen(); };
+const dotsEl=document.getElementById('dots');
+DECK.slides.forEach((s,i)=>{ const d=document.createElement('button'); d.className='dot'; d.onclick=()=>go(i); dotsEl.appendChild(d); });
+function loadScriptDyn(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('load'));document.head.appendChild(s);});}
+document.getElementById('pptx').onclick=async()=>{
+  try{
+    if(typeof PptxGenJS==='undefined') await loadScriptDyn('https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js');
+    if(typeof html2canvas==='undefined') await loadScriptDyn('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
+    const p=await buildPptx(DECK, THEME, window.PptxGenJS, window.html2canvas);
+    await p.writeFile({fileName:'MagicSlider.pptx'});
+  }catch(e){ alert('Export PPTX: '+e.message); }
+};
+render();
+`;
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MagicSlider — Présentation</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono&family=Rajdhani:wght@500;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#0a0c12;font-family:Inter,sans-serif;overflow:hidden}
+#stageWrap{position:fixed;inset:0 0 64px 0;display:grid;place-items:center;overflow:hidden}
+#stage{width:1280px;height:720px;transform-origin:center;box-shadow:0 20px 60px rgba(0,0,0,.6);background:#fff}
+.ms-slide{position:relative;width:1280px;height:720px;overflow:hidden}
+#bar{position:fixed;left:0;right:0;bottom:0;height:64px;background:#11141d;border-top:1px solid #222b3c;display:flex;align-items:center;gap:14px;padding:0 18px;color:#cfd8ea}
+#bar button{background:#1b2230;border:1px solid #2a3346;color:#dbe3f2;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600}
+#bar button:hover{border-color:#6c5ce7}
+#dots{display:flex;gap:6px;flex:1;justify-content:center;flex-wrap:wrap}
+.dot{width:10px;height:10px;border-radius:50%;background:#2a3346;border:none;padding:0;cursor:pointer}
+.dot.on{background:#6c5ce7}
+#pageno{font-size:13px;color:#8a96ad;min-width:64px}
+</style></head><body>
+<div id="stageWrap"><div id="stage"></div></div>
+<div id="bar">
+  <button id="prev">‹</button><span id="pageno"></span><button id="next">›</button>
+  <div id="dots"></div>
+  <button id="fs">⛶ Plein écran</button>
+  <button id="pptx">Export PPTX</button>
+</div>
+<script>${fns}\n${runtime}<\/script>
+</body></html>`;
+}
+function exportHtml(){
+  if(!state.deck||!state.deck.slides.length){ toast('Aucune slide à exporter.','error'); return; }
+  const html=buildStandaloneHtml();
+  downloadBlob(html,'MagicSlider.html','text/html');
+  toast('HTML autonome exporté ✦','success');
+}
+function downloadBlob(content,name,type){
+  const blob=new Blob([content],{type:type||'application/octet-stream'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+/* ============================================================================
+   SETTINGS UI
+   ============================================================================ */
+function renderKeyFields(){
+  const p=state.settings.provider; const box=$('#keyFields'); let h='';
+  if(p==='azure'){
+    h=`<label class="fld">Clé API Azure</label><input class="ctl" id="fKey" type="password" value="${esc(state.settings.azureKey)}" placeholder="azure key">
+       <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+         <div><label class="fld">Endpoint</label><input class="ctl" id="fAzEp" value="${esc(state.settings.azureEndpoint)}" placeholder="https://xxx.openai.azure.com"></div>
+         <div><label class="fld">Déploiement</label><input class="ctl" id="fAzDep" value="${esc(state.settings.azureDeployment)}" placeholder="nom-deploiement"></div>
+       </div>`;
+  } else {
+    const lbl={anthropic:'Clé API Anthropic',openai:'Clé API OpenAI',google:'Clé API Google',mistral:'Clé API Mistral'}[p];
+    h=`<label class="fld">${lbl}</label><input class="ctl" id="fKey" type="password" value="${esc(state.settings.apiKey)}" placeholder="${p}-...">`;
+  }
+  box.innerHTML=h;
+}
+function esc(s){ return (s||'').replace(/"/g,'&quot;'); }
+function fillModelSelect(){
+  const sel=$('#setModel'); const models=availableModels(); sel.innerHTML='';
+  models.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; sel.appendChild(o); });
+  if(state.settings.model && models.includes(state.settings.model)) sel.value=state.settings.model;
+  else if(models.length){ state.settings.model=models[0]; sel.value=models[0]; }
+  updatePills();
+}
+function setCatStatus(kind,txt){
+  const d=$('#catStatus .dot'); d.className='dot '+(kind==='ok'?'ok':kind==='err'?'err':kind==='load'?'load':'idle');
+  $('#catStatusTxt').textContent=txt;
+}
+function saveSettings(){
+  state.settings.provider=$('#setProvider').value;
+  if(state.settings.provider==='azure'){
+    state.settings.azureKey=($('#fKey')||{}).value||'';
+    state.settings.azureEndpoint=($('#fAzEp')||{}).value||'';
+    state.settings.azureDeployment=($('#fAzDep')||{}).value||'';
+  } else {
+    state.settings.apiKey=($('#fKey')||{}).value||'';
+  }
+  state.settings.model=$('#setModel').value;
+  localStorage.setItem(LS.provider,state.settings.provider);
+  localStorage.setItem(LS.apiKey,state.settings.apiKey);
+  localStorage.setItem(LS.azKey,state.settings.azureKey);
+  localStorage.setItem(LS.azEndpoint,state.settings.azureEndpoint);
+  localStorage.setItem(LS.azDeploy,state.settings.azureDeployment);
+  localStorage.setItem(LS.model,state.settings.model);
+  updatePills();
+  toast('Réglages enregistrés.','success');
+}
+async function testConn(){
+  saveSettings();
+  setCatStatus('load','Test en cours…');
+  try{
+    const r = await streamLLM('Réponds uniquement par OK.','ping', null);
+    setCatStatus('ok','Connexion OK');
+    toast('Connexion réussie ✓','success');
+  }catch(e){ setCatStatus('err','Échec'); toast('Test: '+e.message,'error'); }
+}
+function updatePills(){
+  $('#aiProviderLbl').textContent = state.settings.provider+(state.settings.model?(' · '+state.settings.model):'');
+  $('#slideCount').textContent = state.deck?state.deck.slides.length:0;
+}
+
+/* ============================================================================
+   TABS + refresh
+   ============================================================================ */
+function switchTab(name){
+  $$('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
+  $$('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+name));
+  if(name==='create') renderCreatePreview();
+  if(name==='modify'){ renderFilmstrip(); renderEditor(); renderProps(); }
+}
+function refreshAll(){
+  updatePills();
+  renderCreatePreview();
+  renderFilmstrip(); renderEditor(); renderProps();
+}
+
+/* ============================================================================
+   INIT / EVENT WIRING
+   ============================================================================ */
+function init(){
+  loadDeck();
+
+  $$('.tab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
+
+  // Create
+  $('#createBtn').addEventListener('click',runCreate);
+  $('#cPrev').addEventListener('click',()=>{ state.cIndex--; renderCreatePreview(); });
+  $('#cNext').addEventListener('click',()=>{ state.cIndex++; renderCreatePreview(); });
+  $('#genCharteBtn').addEventListener('click',genCharte);
+  $('#loadCssBtn').addEventListener('click',()=>$('#cssFile').click());
+  $('#cssFile').addEventListener('change',e=>{ const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>applyCssFile(r.result); r.readAsText(f); e.target.value=''; });
+  $('#styleSelect').addEventListener('change',()=>{
+    if(state.deck){ state.deck.theme=currentSelectedTheme(); persistDeck(); refreshAll(); }
+  });
+
+  // Modify
+  $('#editToolbar').addEventListener('click',e=>{ const b=e.target.closest('[data-add]'); if(b) addElement(b.dataset.add); });
+  $('#addSlideBtn').addEventListener('click',openTemplateChooser);
+  $('#delSlideBtn').addEventListener('click',delSlide);
+  $('#dupSlideBtn').addEventListener('click',dupSlide);
+  $('#tplCancel').addEventListener('click',()=>$('#tplScrim').classList.remove('show'));
+  bindStageDeselect();
+  document.addEventListener('keydown',e=>{
+    if($('#view-modify').classList.contains('active') && (e.key==='Delete'||e.key==='Backspace')){
+      if(document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
+      if(state.selected.size){ e.preventDefault(); const sl=currentSlide(); sl.elements=sl.elements.filter(x=>!state.selected.has(x.id)); state.selected.clear(); persistDeck(); renderEditor(); renderFilmstrip(); renderProps(); }
+    }
+  });
+
+  // Export
+  $('#exportPptxBtn').addEventListener('click',exportPptx);
+  $('#exportHtmlBtn').addEventListener('click',exportHtml);
+  $('#saveJsonBtn').addEventListener('click',()=>{ if(!state.deck){toast('Rien à sauvegarder.','error');return;} downloadBlob(JSON.stringify(state.deck,null,2),'magicslider-projet.json','application/json'); });
+  $('#loadJsonBtn').addEventListener('click',()=>$('#jsonFile').click());
+  $('#jsonFile').addEventListener('change',e=>{ const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); if(!d.slides)throw new Error('format'); state.deck=d; state.eIndex=0;state.cIndex=0; persistDeck(); refreshAll(); toast('Projet chargé.','success'); }catch(err){ toast('Fichier invalide.','error'); } }; r.readAsText(f); e.target.value=''; });
+
+  // Settings
+  $('#setProvider').value=state.settings.provider;
+  $('#setProvider').addEventListener('change',()=>{ state.settings.provider=$('#setProvider').value; renderKeyFields(); state.modelCatalog={status:'idle',models:[]}; fillModelSelect(); setCatStatus('idle','Inactif'); });
+  $('#setModel').addEventListener('change',()=>{ state.settings.model=$('#setModel').value; updatePills(); });
+  $('#refreshModels').addEventListener('click',()=>{ saveSettings(); fetchModels(); });
+  $('#saveSettings').addEventListener('click',saveSettings);
+  $('#testConn').addEventListener('click',testConn);
+  renderKeyFields(); fillModelSelect();
+
+  // initial render
+  refreshAll();
+  window.addEventListener('resize',()=>{ if($('#view-create').classList.contains('active')) renderCreatePreview(); if($('#view-modify').classList.contains('active')) renderEditor(); });
+
+  if(!state.settings.apiKey && !state.settings.azureKey){
+    setTimeout(()=>toast('Configurez votre clé IA dans « Réglages » pour commencer.','info'),600);
+  }
+}
+document.addEventListener('DOMContentLoaded',init);
+})();
+</script>
+</body>
+</html>
