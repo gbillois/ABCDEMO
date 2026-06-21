@@ -208,6 +208,7 @@
         <button class="btn sm" id="editTextBtn">✎ Éditer le texte</button>
         <button class="btn sm" id="editHtmlBtn">&lt;/&gt; HTML</button>
         <button class="btn sm" id="retouchBtn">✦ Retoucher (IA)</button>
+        <button class="btn sm" id="retouchAllBtn">✦✦ Retoucher tout (IA)</button>
         <button class="btn sm" id="dupSlideBtn">Dupliquer</button>
         <button class="btn sm danger" id="delSlideBtn">Supprimer</button>
       </div>
@@ -227,8 +228,10 @@
         <p class="sub">Exportez votre présentation en PowerPoint haute qualité ou en HTML autonome.</p>
         <div class="card">
           <h3>PowerPoint (.pptx)</h3>
-          <p class="hint" style="margin-top:0">Chaque slide est capturée en image haute résolution (icônes converties en SVG) — fidèle au pixel, fonctionne même sur des slides très complexes.</p>
-          <button class="btn primary" id="exportPptxBtn">Exporter en PPTX</button>
+          <p class="hint" style="margin-top:0"><b>Éditable (formes natives)</b> — reprend la technique de CTI.html : chaque slide est reconstruite forme par forme (rectangles, textes en objets PowerPoint éditables) et les photos/icônes sont capturées en image (astuce screenshot). Idéal pour retoucher dans PowerPoint.</p>
+          <button class="btn primary" id="exportPptxBtn">Exporter en PPTX (éditable)</button>
+          <p class="hint">Variante <b>image fidèle</b> : 1 capture pleine page par slide (rendu au pixel près, non éditable).</p>
+          <button class="btn" id="exportPptxImgBtn">Exporter en PPTX (image)</button>
         </div>
         <div class="card">
           <h3>HTML autonome</h3>
@@ -361,26 +364,27 @@ const H2C='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.j
 /* ---------- built-in premium slide design systems (the beauty driver) ---------- */
 const THEME_CSS = {
   wavestone: `
-:root{--indigo:#5A2BE0;--indigo-d:#2D1380;--green:#04F06A;--green-d:#06893f;--teal:#228D95;--ink:#16121F;--muted:#6b6680;--paper:#fff;--surface:#F5F4F9;--line:#e9e6f2;--brand-grad:radial-gradient(130% 130% at 18% 8%,#7b46ff 0%,#4a1fc4 44%,#2a1178 100%);--shadow:0 20px 55px rgba(24,14,48,.16)}
+:root{--indigo:#5A2BE0;--indigo-d:#2D1380;--green:#04F06A;--green-d:#06893f;--teal:#228D95;--ink:#16121F;--muted:#6b6680;--paper:#fff;--surface:#F5F4F9;--line:#e9e6f2;--brand-grad:radial-gradient(130% 130% at 18% 8%,#7b46ff 0%,#4a1fc4 44%,#2a1178 100%);--shadow:0 20px 55px rgba(24,14,48,.14)}
+*{border-radius:0 !important}
 .slide{width:1280px;height:720px;position:relative;overflow:hidden;background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;font-size:18px}
 .pad{position:absolute;inset:0;padding:72px 80px;display:flex;flex-direction:column}
 .eyebrow{font-weight:700;font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--indigo)}
-.title{font-family:'Poppins';font-weight:800;font-size:54px;line-height:1.04;letter-spacing:-.01em;margin:12px 0 0}
+.title{font-family:'Poppins';font-weight:800;font-size:54px;line-height:1.04;letter-spacing:-.01em;margin:14px 0 0}
 .title.xl{font-size:74px}
 .title em{font-style:normal;background:var(--brand-grad);-webkit-background-clip:text;background-clip:text;color:transparent}
-.subtitle{font-size:23px;line-height:1.45;color:var(--muted);max-width:880px;margin-top:14px}
-.accent-bar{width:88px;height:6px;border-radius:3px;background:var(--green);margin:20px 0}
+.subtitle{font-size:23px;line-height:1.45;color:var(--muted);max-width:880px;margin-top:16px}
 .lead{font-size:20px;line-height:1.6}
-.card{background:var(--paper);border:1px solid var(--line);border-left:5px solid var(--green);border-radius:18px;padding:24px 26px;box-shadow:var(--shadow)}
+.card{background:var(--paper);border:1px solid var(--line);padding:24px 26px;box-shadow:var(--shadow)}
 .card.flat{box-shadow:none}
+.card.surf{background:var(--surface);border-color:transparent;box-shadow:none}
 .card h3{font-family:'Poppins';font-weight:700;font-size:21px;margin:0 0 8px}
 .card p{margin:0;color:var(--muted);font-size:16px;line-height:1.5}
 .grid{display:grid;gap:22px}.grid-2{grid-template-columns:1fr 1fr}.grid-3{grid-template-columns:repeat(3,1fr)}.grid-4{grid-template-columns:repeat(4,1fr)}
 .kpi{font-family:'Poppins';font-weight:800;font-size:104px;line-height:.9;background:var(--brand-grad);-webkit-background-clip:text;background-clip:text;color:transparent}
 .kpi-label{font-size:16px;color:var(--muted);margin-top:8px}
-.chip{display:inline-flex;align-items:center;justify-content:center;width:58px;height:58px;border-radius:50%;background:rgba(90,43,224,.12);color:var(--indigo);font-size:28px}
+.chip{display:inline-flex;align-items:center;justify-content:center;width:58px;height:58px;background:rgba(90,43,224,.12);color:var(--indigo);font-size:28px}
 .chip.green{background:rgba(4,240,106,.18);color:var(--green-d)}.chip.teal{background:rgba(34,141,149,.16);color:var(--teal)}
-.badge{display:inline-flex;align-items:center;gap:8px;padding:7px 15px;border-radius:999px;background:var(--surface);color:var(--ink);font-weight:600;font-size:14px}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:7px 15px;background:var(--surface);color:var(--ink);font-weight:600;font-size:14px}
 .badge.brand{background:var(--indigo);color:#fff}.badge.green{background:var(--green);color:#06311a}
 .photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .photo-mask{position:absolute;inset:0}
@@ -391,33 +395,33 @@ const THEME_CSS = {
 .on-dark,.hero .title,.hero .eyebrow,.hero .subtitle{color:#fff}
 .hero .subtitle{opacity:.92}
 .dark{background:var(--ink);color:#fff}
-.timeline{position:relative;height:4px;background:#e3def0;border-radius:2px;margin:40px 0}
-.node{position:absolute;top:50%;width:20px;height:20px;border-radius:50%;background:var(--indigo);transform:translate(-50%,-50%);box-shadow:0 0 0 6px rgba(90,43,224,.14)}
-.node.green{background:var(--green-d);box-shadow:0 0 0 6px rgba(6,137,63,.14)}
+.timeline{position:relative;height:4px;background:#e3def0;margin:40px 0}
+.node{position:absolute;top:50%;width:18px;height:18px;background:var(--indigo);transform:translate(-50%,-50%)}
+.node.green{background:var(--green-d)}
 .row{display:flex}.col{display:flex;flex-direction:column}.between{justify-content:space-between}.center{align-items:center}.mta{margin-top:auto}
-.blob{position:absolute;border-radius:50%;filter:blur(10px);opacity:.16}
+.blob{position:absolute;filter:blur(40px);opacity:.16}
 .muted{color:var(--muted)}.green{color:var(--green-d)}.indigo{color:var(--indigo)}
 .list{list-style:none;padding:0;margin:0}.list li{display:flex;gap:14px;align-items:flex-start;margin:14px 0;font-size:18px;line-height:1.45}
 `,
   darkcyber: `
 :root{--cy:#00e5ff;--mg:#ff2e63;--vi:#7c4dff;--bg:#0a0e17;--surface:#121a2b;--ink:#e6f1ff;--muted:#8a9bb8;--line:#1e2a40;--grad:linear-gradient(120deg,#00e5ff,#7c4dff);--glow:0 0 40px rgba(0,229,255,.18)}
+*{border-radius:0 !important}
 .slide{width:1280px;height:720px;position:relative;overflow:hidden;background:var(--bg);color:var(--ink);font-family:'Rajdhani',sans-serif;font-size:19px}
 .pad{position:absolute;inset:0;padding:70px 80px;display:flex;flex-direction:column}
 .eyebrow{font-weight:700;font-size:14px;letter-spacing:.22em;text-transform:uppercase;color:var(--cy)}
-.title{font-family:'Orbitron';font-weight:800;font-size:48px;line-height:1.08;margin:12px 0 0}
+.title{font-family:'Orbitron';font-weight:800;font-size:48px;line-height:1.08;margin:14px 0 0}
 .title.xl{font-size:66px}
 .title em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
-.subtitle{font-size:22px;line-height:1.45;color:var(--muted);max-width:880px;margin-top:14px}
-.accent-bar{width:90px;height:4px;border-radius:2px;background:var(--grad);margin:20px 0;box-shadow:var(--glow)}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px 26px;box-shadow:var(--glow)}
+.subtitle{font-size:22px;line-height:1.45;color:var(--muted);max-width:880px;margin-top:16px}
+.card{background:var(--surface);border:1px solid var(--line);padding:24px 26px;box-shadow:var(--glow)}
 .card h3{font-family:'Orbitron';font-weight:700;font-size:19px;margin:0 0 8px;color:#fff}
 .card p{margin:0;color:var(--muted);font-size:16px;line-height:1.5}
 .grid{display:grid;gap:22px}.grid-2{grid-template-columns:1fr 1fr}.grid-3{grid-template-columns:repeat(3,1fr)}.grid-4{grid-template-columns:repeat(4,1fr)}
 .kpi{font-family:'Orbitron';font-weight:800;font-size:96px;line-height:.9;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
 .kpi-label{font-size:16px;color:var(--muted);margin-top:8px}
-.chip{display:inline-flex;align-items:center;justify-content:center;width:58px;height:58px;border-radius:14px;background:rgba(0,229,255,.12);color:var(--cy);font-size:28px;border:1px solid rgba(0,229,255,.3)}
+.chip{display:inline-flex;align-items:center;justify-content:center;width:58px;height:58px;background:rgba(0,229,255,.12);color:var(--cy);font-size:28px;border:1px solid rgba(0,229,255,.3)}
 .chip.mg{background:rgba(255,46,99,.12);color:var(--mg);border-color:rgba(255,46,99,.3)}
-.badge{display:inline-flex;align-items:center;gap:8px;padding:7px 15px;border-radius:8px;background:rgba(0,229,255,.1);color:var(--cy);font-weight:700;font-size:14px;border:1px solid rgba(0,229,255,.3)}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:7px 15px;background:rgba(0,229,255,.1);color:var(--cy);font-weight:700;font-size:14px;border:1px solid rgba(0,229,255,.3)}
 .photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.1)}
 .photo-mask{position:absolute;inset:0}
 .photo-mask.l{background:linear-gradient(90deg,rgba(10,14,23,.94) 0%,rgba(10,14,23,.55) 45%,rgba(10,14,23,.1) 80%)}
@@ -425,10 +429,10 @@ const THEME_CSS = {
 .photo-mask.full{background:linear-gradient(120deg,rgba(10,14,23,.86),rgba(20,10,40,.6))}
 .hero{position:absolute;inset:0;background:radial-gradient(120% 120% at 80% 10%,#10243f 0%,#0a0e17 55%)}
 .dark{background:#070a12}
-.timeline{position:relative;height:3px;background:var(--line);border-radius:2px;margin:40px 0}
-.node{position:absolute;top:50%;width:18px;height:18px;border-radius:50%;background:var(--cy);transform:translate(-50%,-50%);box-shadow:0 0 0 5px rgba(0,229,255,.18)}
+.timeline{position:relative;height:3px;background:var(--line);margin:40px 0}
+.node{position:absolute;top:50%;width:16px;height:16px;background:var(--cy);transform:translate(-50%,-50%)}
 .row{display:flex}.col{display:flex;flex-direction:column}.between{justify-content:space-between}.center{align-items:center}.mta{margin-top:auto}
-.blob{position:absolute;border-radius:50%;filter:blur(20px);opacity:.5}
+.blob{position:absolute;filter:blur(50px);opacity:.5}
 .muted{color:var(--muted)}.list{list-style:none;padding:0;margin:0}.list li{display:flex;gap:14px;align-items:flex-start;margin:14px 0;font-size:18px}
 `
 };
@@ -623,7 +627,8 @@ function genPlanSystem(th,n,photoPct,baseCss){
   const dens = photoPct<=20?'très peu de photos (compose en icônes/cartes/chiffres/dégradés)':photoPct>=80?'une grande photo sur presque chaque slide':('environ '+photoPct+'% des slides avec une grande photo');
   return `Tu es directeur artistique senior. ÉTAPE 1/2 : prépare un deck de ${n} slides HTML 1280x720 de niveau agence, pour un COMITÉ EXÉCUTIF (board). Qualité visuelle exigeante.
 
-UN DESIGN SYSTEM CSS PROFESSIONNEL EST DÉJÀ FOURNI (ci-dessous). Tu DOIS bâtir les slides avec SES classes (.pad, .eyebrow, .title, .title.xl, .title em, .subtitle, .accent-bar, .card, .grid .grid-2/3/4, .kpi, .kpi-label, .chip, .badge, .photo, .photo-mask.l/.b/.full, .hero, .on-dark, .dark, .timeline, .node, .blob, .list, .row/.col/.between/.center/.mta). Ne réécris PAS ce système.
+UN DESIGN SYSTEM CSS PROFESSIONNEL EST DÉJÀ FOURNI (ci-dessous). Tu DOIS bâtir les slides avec SES classes (.pad, .eyebrow, .title, .title.xl, .title em, .subtitle, .card, .grid .grid-2/3/4, .kpi, .kpi-label, .chip, .badge, .photo, .photo-mask.l/.b/.full, .hero, .on-dark, .dark, .timeline, .node, .blob, .list, .row/.col/.between/.center/.mta). Ne réécris PAS ce système.
+STYLE IMPOSÉ : coins parfaitement CARRÉS partout (aucun border-radius, aucune forme arrondie). N'ajoute JAMAIS de barre ou filet coloré en haut ou à gauche d'un bloc de texte ou d'une carte. Pour séparer un titre, utilise de l'espace, pas une barre colorée.
 
 SORTIE STRICTE (aucun markdown), dans cet ordre :
 1) UN bloc <style>...</style> = UNIQUEMENT le CSS COMPLÉMENTAIRE spécifique (mises en page particulières, variantes) qui n'existe pas déjà dans le système fourni. Reste court si le système suffit.
@@ -643,7 +648,8 @@ function genSlideSystem(th,baseCss){
   return `Tu génères ÉTAPE 2/2 : UNE seule slide HTML (canvas 1280x720) d'un deck premium pour un board, SUPERBE et dense.
 SORTIE : UNIQUEMENT le HTML INTERNE de la slide (le contenu), SANS <section>, SANS <style>, SANS <script>, SANS markdown.
 
-Tu DOIS réutiliser EN PRIORITÉ les classes du DESIGN SYSTEM (fourni dans le message) : enveloppe le contenu dans <div class="pad"> (sauf slides à photo/hero plein cadre), utilise .eyebrow/.title/.subtitle/.accent-bar pour les en-têtes, .card (+grilles) pour les blocs, .kpi pour les chiffres, .chip + <iconify-icon> pour les icônes, .photo + .photo-mask pour les images, .hero/.dark pour les fonds, .timeline/.node pour les frises.
+Tu DOIS réutiliser EN PRIORITÉ les classes du DESIGN SYSTEM (fourni dans le message) : enveloppe le contenu dans <div class="pad"> (sauf slides à photo/hero plein cadre), utilise .eyebrow/.title/.subtitle pour les en-têtes, .card (+grilles) pour les blocs, .kpi pour les chiffres, .chip + <iconify-icon> pour les icônes, .photo + .photo-mask pour les images, .hero/.dark pour les fonds, .timeline/.node pour les frises.
+STYLE IMPOSÉ : coins CARRÉS partout (aucun arrondi). N'ajoute AUCUNE barre/filet coloré en haut ou à gauche des blocs de texte ou des cartes.
 Compose RICHE et soigné, aligné sur une grille, rien de vide, RIEN ne déborde de 1280x720. Respecte la mise en page demandée dans le brief.
 Photos : <img class="photo" src="https://images.unsplash.com/photo-XXXXXXXXXXXXX-xxxxxxxxxxxx?w=1600&q=80"> dans un conteneur position:absolute + un <div class="photo-mask l/b/full"></div> par-dessus, puis le texte au-dessus (z-index). Choisis des photos Unsplash réalistes et pertinentes au sujet.
 Icônes : <iconify-icon icon="tabler:..."></iconify-icon> (mdi/tabler/ph/solar/lucide), souvent dans une .chip.
@@ -779,6 +785,14 @@ function commitEditing(){
 function openHtmlEdit(){ if(!curEditSlide()) return; $('#htmlEditArea').value=curEditSlide(); $('#htmlScrim').classList.add('show'); }
 function saveHtmlEdit(){ deck().slides[state.eIndex]=$('#htmlEditArea').value; persist(); $('#htmlScrim').classList.remove('show'); renderEditor(); renderFilmstrip(); toast('Slide mise à jour.','success'); }
 
+async function aiRetouchOne(i, instr){
+  const sys='Tu retouches UNE slide HTML d\'un deck existant (canvas 1280x720). On te donne le DESIGN SYSTEM, le CSS complémentaire et le HTML interne de la slide. Applique la demande et renvoie UNIQUEMENT le nouveau HTML interne de la slide (le contenu, SANS <section>, SANS markdown, SANS <script>). Réutilise les classes existantes, garde la cohérence visuelle, coins carrés, pas de barre colorée sur les bords des blocs. Tu peux utiliser <img> Unsplash et <iconify-icon>.';
+  const user='/* DESIGN SYSTEM (classes réutilisables) */\n'+((deck().baseCss)||'')+'\n\n/* CSS complémentaire du deck */\n'+deck().css+'\n\n/* HTML interne actuel de la slide */\n'+deck().slides[i]+'\n\n/* Demande */\n'+instr;
+  const full=await callLLM(sys,user,null,{stream:false,thinking:$('#useThinking').checked && state.settings.provider==='anthropic',maxTokens:8000});
+  const p=parseSlideHtml(full); if(!p.inner) throw new Error('réponse vide');
+  if(p.css) deck().css+='\n'+p.css;
+  deck().slides[i]=p.inner;
+}
 async function retouchSlide(){
   if(!curEditSlide()){ toast('Aucune slide.','error'); return; }
   if(!state.settings.model){ toast('Configurez l\'IA (Réglages).','error'); return; }
@@ -786,16 +800,26 @@ async function retouchSlide(){
   const instr=prompt('Que modifier sur cette slide ?\n(ex: « rends-la plus épurée », « ajoute une photo de voiture », « change le titre en … », « palette plus sombre »)');
   if(!instr) return;
   setBusy('#editBusy','#editBusyTxt',true,'Retouche en cours…');
-  const sys='Tu retouches UNE slide HTML d\'un deck existant (canvas 1280x720). On te donne le CSS commun du deck et le HTML interne de la slide. Applique la demande et renvoie UNIQUEMENT le nouveau HTML interne de la slide (le contenu, SANS la balise <section>, SANS markdown). Conserve la cohérence visuelle, réutilise les classes existantes, n\'introduis pas de <script>. Tu peux utiliser <img> Unsplash et <iconify-icon>.';
-  const user='/* DESIGN SYSTEM (classes réutilisables) */\n'+((deck().baseCss)||'')+'\n\n/* CSS complémentaire du deck */\n'+deck().css+'\n\n/* HTML interne actuel de la slide */\n'+curEditSlide()+'\n\n/* Demande */\n'+instr;
-  try{
-    const full=await callLLM(sys,user,null,{stream:false,thinking:$('#useThinking').checked && state.settings.provider==='anthropic',maxTokens:8000});
-    const p=parseSlideHtml(full); if(!p.inner) throw new Error('Réponse vide.');
-    if(p.css) deck().css += '\n'+p.css;
-    deck().slides[state.eIndex]=p.inner; persist(); renderEditor(); renderFilmstrip();
-    toast('Slide retouchée ✦','success');
-  }catch(e){ toast('Retouche : '+e.message,'error'); }
+  try{ await aiRetouchOne(state.eIndex, instr); persist(); renderEditor(); renderFilmstrip(); toast('Slide retouchée ✦','success'); }
+  catch(e){ toast('Retouche : '+e.message,'error'); }
   finally{ setBusy('#editBusy','#editBusyTxt',false); }
+}
+async function retouchAll(){
+  if(!deck()||!deck().slides.length){ toast('Aucune slide.','error'); return; }
+  if(!state.settings.model){ toast('Configurez l\'IA (Réglages).','error'); return; }
+  commitEditing();
+  const instr=prompt('Retoucher TOUTES les slides — quelle modification appliquer partout ?\n(ex: « passe en palette plus sombre », « agrandis les titres », « ajoute une icône à chaque carte », « enlève les ombres »)');
+  if(!instr) return;
+  if(!confirm('Appliquer « '+instr+' » sur les '+deck().slides.length+' slides ? ('+deck().slides.length+' appels IA)')) return;
+  setBusy('#editBusy','#editBusyTxt',true,'Retouche globale…');
+  let ok=0;
+  for(let i=0;i<deck().slides.length;i++){
+    $('#editBusyTxt').textContent='Retouche slide '+(i+1)+' / '+deck().slides.length+'…';
+    try{ await aiRetouchOne(i, instr); ok++; }catch(e){}
+    persist(); state.eIndex=i; renderEditor(); updatePills();
+  }
+  state.eIndex=0; refreshAll(); setBusy('#editBusy','#editBusyTxt',false);
+  toast(ok+'/'+deck().slides.length+' slides retouchées ✦', ok?'success':'error');
 }
 async function addSlideAI(){
   if(!state.settings.model){ toast('Configurez l\'IA (Réglages).','error'); return; }
@@ -856,7 +880,94 @@ async function exportPptx(){
     }
     $('#createBusyTxt').textContent='Écriture du fichier…';
     await pptx.writeFile({fileName:'MagicSlider.pptx'});
-    toast('PPTX exporté ✦','success');
+    toast('PPTX (image) exporté ✦','success');
+  }catch(e){ toast('Export PPTX : '+e.message,'error'); }
+  finally{ setBusy('#createBusy','#createBusyTxt',false); }
+}
+
+/* ---- form-by-form NATIVE PPTX (technique CTI.html : formes + screenshot images) ---- */
+function openSlideFrame(css, inner){
+  return new Promise((resolve,reject)=>{
+    const ifr=document.createElement('iframe');
+    ifr.style.cssText='position:fixed;left:-99999px;top:0;width:1280px;height:720px;border:0;background:#fff';
+    ifr.onload=async ()=>{
+      try{ const win=ifr.contentWindow; let t=0;
+        while(!(win.__msReady===true && typeof win.html2canvas==='function')){ await new Promise(r=>setTimeout(r,120)); t+=120; if(t>12000) throw new Error('délai de rendu dépassé'); }
+        resolve(ifr);
+      }catch(e){ ifr.remove(); reject(e); }
+    };
+    ifr.srcdoc=slideDoc(css, inner, true);
+    document.body.appendChild(ifr);
+  });
+}
+function parseRGB(str){ if(!str) return null; if(str==='transparent') return {r:0,g:0,b:0,a:0};
+  let m=str.match(/rgba?\(([^)]+)\)/i); if(m){ const p=m[1].split(',').map(x=>parseFloat(x)); return {r:p[0],g:p[1],b:p[2],a:p[3]==null?1:p[3]}; }
+  m=str.match(/#([0-9a-f]{3,8})/i); if(m){ let x=m[1]; if(x.length===3) x=x.split('').map(c=>c+c).join(''); return {r:parseInt(x.slice(0,2),16),g:parseInt(x.slice(2,4),16),b:parseInt(x.slice(4,6),16),a:1}; }
+  return null; }
+function toHex2(c){ if(!c) return null; const f=n=>('0'+Math.round(clamp(n,0,255)).toString(16)).slice(-2); return (f(c.r)+f(c.g)+f(c.b)).toUpperCase(); }
+function firstGradColor(bg){ const m=bg.match(/rgba?\([^)]+\)|#[0-9a-f]{3,8}/i); return m?toHex2(parseRGB(m[0])):null; }
+function fontFaceOf(ff){ ff=(ff||'').toLowerCase(); if(ff.includes('poppins'))return'Poppins'; if(ff.includes('orbitron'))return'Orbitron'; if(ff.includes('rajdhani'))return'Rajdhani'; if(ff.includes('fraunces'))return'Fraunces'; if(ff.includes('playfair'))return'Playfair Display'; if(ff.includes('mono')||ff.includes('plex'))return'Consolas'; if(ff.includes('inter'))return'Inter'; return'Arial'; }
+function directText(el){ let t=''; el.childNodes.forEach(n=>{ if(n.nodeType===3) t+=n.textContent; }); return t.replace(/\s+/g,' ').trim(); }
+
+async function slideToPptxNative(pptx, ifr){
+  const win=ifr.contentWindow, doc=ifr.contentDocument;
+  const slide=doc.querySelector('.slide'); const base=slide.getBoundingClientRect();
+  const I=px=>px/96, PT=px=>px*0.75;
+  const s=pptx.addSlide();
+  const cs0=win.getComputedStyle(slide); const bg0=parseRGB(cs0.backgroundColor);
+  s.background={ color:(bg0&&bg0.a>0)?toHex2(bg0):'FFFFFF' };
+  async function shot(el,x,y,w,h,jpeg){ try{ const cv=await win.html2canvas(el,{backgroundColor:null,scale:2,useCORS:true,logging:false,width:Math.round(w),height:Math.round(h)}); s.addImage({data:cv.toDataURL(jpeg?'image/jpeg':'image/png',0.92),x:I(x),y:I(y),w:I(w),h:I(h)}); }catch(e){} }
+  async function walk(el){ const ch=Array.prototype.slice.call(el.children); for(let i=0;i<ch.length;i++){ await emit(ch[i]); } }
+  async function emit(el){
+    const cs=win.getComputedStyle(el);
+    if(cs.display==='none'||cs.visibility==='hidden'||parseFloat(cs.opacity)===0) return;
+    const r=el.getBoundingClientRect(); const x=r.left-base.left, y=r.top-base.top, w=r.width, h=r.height;
+    if(w<=0.5||h<=0.5){ await walk(el); return; }
+    const tag=el.tagName.toLowerCase();
+    if(tag==='img'||tag==='svg'||tag==='canvas'||tag==='iconify-icon'){ await shot(el,x,y,w,h,tag==='img'); return; }
+    const bgImg=cs.backgroundImage||'none';
+    if(/url\(/i.test(bgImg)){ await shot(el,x,y,w,h,true); return; }
+    const hasGrad=/gradient/i.test(bgImg);
+    const fill=parseRGB(cs.backgroundColor);
+    const bw=parseFloat(cs.borderTopWidth)||0, bc=parseRGB(cs.borderTopColor);
+    const hasBorder=bw>0.4 && bc && bc.a>0.05;
+    if(hasGrad || (fill&&fill.a>0.03) || hasBorder){
+      const opts={x:I(x),y:I(y),w:I(w),h:I(h)};
+      if(hasGrad) opts.fill={color:firstGradColor(bgImg)||'CCCCCC'};
+      else if(fill&&fill.a>0.03) opts.fill={color:toHex2(fill),transparency:Math.round((1-fill.a)*100)};
+      else opts.fill={type:'none'};
+      opts.line=hasBorder?{color:toHex2(bc),width:Math.max(0.5,bw*0.75)}:{type:'none'};
+      try{ s.addShape(pptx.ShapeType.rect,opts); }catch(e){}
+    }
+    const txt=directText(el);
+    if(txt){
+      let colHex; const clip=(cs.webkitBackgroundClip||cs.backgroundClip||''); const tf=parseRGB(cs.webkitTextFillColor||cs.color);
+      if(/text/i.test(clip)||(tf&&tf.a===0)){ colHex=firstGradColor(bgImg)||(parseRGB(cs.color)?toHex2(parseRGB(cs.color)):'333333'); }
+      else { const c=parseRGB(cs.color); colHex=c?toHex2(c):'333333'; }
+      const al=cs.textAlign==='center'?'center':cs.textAlign==='right'?'right':(cs.textAlign==='justify'?'justify':'left');
+      const fs=parseFloat(cs.fontSize)||18, lh=parseFloat(cs.lineHeight)||fs*1.2;
+      try{ s.addText(txt,{x:I(x),y:I(y),w:I(w),h:I(h),fontSize:PT(fs),bold:parseInt(cs.fontWeight)>=600,italic:cs.fontStyle==='italic',color:colHex,align:al,valign:'top',fontFace:fontFaceOf(cs.fontFamily),margin:0,lineSpacingMultiple:Math.max(.8,Math.min(2,lh/fs))}); }catch(e){}
+    }
+    await walk(el);
+  }
+  await walk(slide);
+}
+async function exportPptxNative(){
+  if(!deck()||!deck().slides.length){ toast('Aucune slide à exporter.','error'); return; }
+  setBusy('#createBusy','#createBusyTxt',true,'Préparation…'); switchTab('create');
+  try{
+    if(typeof PptxGenJS==='undefined') await loadScriptDyn('https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js');
+    const pptx=new PptxGenJS(); pptx.defineLayout({name:'MS',width:13.333,height:7.5}); pptx.layout='MS';
+    for(let i=0;i<deck().slides.length;i++){
+      $('#createBusyTxt').textContent='Slide '+(i+1)+' / '+deck().slides.length+' (formes natives)…';
+      let ifr;
+      try{ ifr=await openSlideFrame(deck().css, deck().slides[i]); await slideToPptxNative(pptx, ifr); }
+      catch(e){ logMsg('err','Slide '+(i+1)+' : '+e.message); }
+      finally{ if(ifr) ifr.remove(); }
+    }
+    $('#createBusyTxt').textContent='Écriture du fichier…';
+    await pptx.writeFile({fileName:'MagicSlider.pptx'});
+    toast('PPTX (éditable) exporté ✦','success');
   }catch(e){ toast('Export PPTX : '+e.message,'error'); }
   finally{ setBusy('#createBusy','#createBusyTxt',false); }
 }
@@ -972,6 +1083,7 @@ function init(){
   $('#editTextBtn').addEventListener('click',toggleTextEdit);
   $('#editHtmlBtn').addEventListener('click',openHtmlEdit);
   $('#retouchBtn').addEventListener('click',retouchSlide);
+  $('#retouchAllBtn').addEventListener('click',retouchAll);
   $('#addSlideBtn').addEventListener('click',addSlideAI);
   $('#dupSlideBtn').addEventListener('click',dupSlide);
   $('#delSlideBtn').addEventListener('click',delSlide);
@@ -979,7 +1091,8 @@ function init(){
   $('#htmlSave').addEventListener('click',saveHtmlEdit);
 
   // export
-  $('#exportPptxBtn').addEventListener('click',exportPptx);
+  $('#exportPptxBtn').addEventListener('click',exportPptxNative);
+  $('#exportPptxImgBtn').addEventListener('click',exportPptx);
   $('#exportHtmlBtn').addEventListener('click',exportHtml);
   $('#saveJsonBtn').addEventListener('click',()=>{ if(!deck()){ toast('Rien à sauvegarder.','error'); return; } downloadBlob(JSON.stringify(deck(),null,2),'magicslider-projet.json','application/json'); });
   $('#loadJsonBtn').addEventListener('click',()=>$('#jsonFile').click());
