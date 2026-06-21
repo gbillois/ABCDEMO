@@ -254,8 +254,10 @@
           <h3>PowerPoint (.pptx)</h3>
           <p class="hint" style="margin-top:0"><b>Rendu fidèle</b> — chaque slide est capturée en image haute résolution (2×), avec correction des titres/KPI en dégradé et conversion des icônes en SVG. Identique à l'écran, fonctionne sur n'importe quelle slide.</p>
           <button class="btn primary" id="exportPptxBtn">Exporter en PPTX</button>
-          <p class="hint">Variante <b>formes éditables</b> (expérimental) : reconstruction forme par forme façon CTI.html. Éditable dans PowerPoint mais imparfait sur des mises en page complexes.</p>
-          <button class="btn" id="exportPptxNativeBtn">PPTX éditable (expérimental)</button>
+          <p class="hint"><b>Éditable (formes natives)</b> — reconstruction forme par forme façon CTI.html : textes et rectangles deviennent des objets PowerPoint éditables, photos/icônes en image. Imparfait sur les mises en page complexes (métriques de police PowerPoint).</p>
+          <button class="btn" id="exportPptxNativeBtn">PPTX éditable</button>
+          <p class="hint"><b>Éditable haute fidélité (IA)</b> — comme ci-dessus, mais un LLM nettoie la reconstruction (supprime les conteneurs redondants, recale les textes) pour un rendu plus propre. 1 appel IA par slide.</p>
+          <button class="btn" id="exportPptxAiBtn">PPTX éditable IA (haute fidélité)</button>
         </div>
         <div class="card">
           <h3>HTML autonome</h3>
@@ -1086,15 +1088,13 @@ function firstGradColor(bg){ const m=bg.match(/rgba?\([^)]+\)|#[0-9a-f]{3,8}/i);
 function fontFaceOf(ff){ ff=(ff||'').toLowerCase(); if(ff.includes('poppins'))return'Poppins'; if(ff.includes('orbitron'))return'Orbitron'; if(ff.includes('rajdhani'))return'Rajdhani'; if(ff.includes('fraunces'))return'Fraunces'; if(ff.includes('playfair'))return'Playfair Display'; if(ff.includes('mono')||ff.includes('plex'))return'Consolas'; if(ff.includes('inter'))return'Inter'; return'Arial'; }
 function directText(el){ let t=''; el.childNodes.forEach(n=>{ if(n.nodeType===3) t+=n.textContent; }); return t.replace(/\s+/g,' ').trim(); }
 
-async function slideToPptxNative(pptx, ifr){
+async function collectEls(ifr){
   const win=ifr.contentWindow, doc=ifr.contentDocument;
   const slide=doc.querySelector('.slide'); const base=slide.getBoundingClientRect();
-  const I=px=>px/96, PT=px=>px*0.75;
-  const s=pptx.addSlide();
   const cs0=win.getComputedStyle(slide); const bg0=parseRGB(cs0.backgroundColor);
-  s.background={ color:(bg0&&bg0.a>0)?toHex2(bg0):'FFFFFF' };
-  async function shot(el,x,y,w,h,jpeg){ try{ const cv=await win.html2canvas(el,{backgroundColor:null,scale:2,useCORS:true,logging:false,width:Math.round(w),height:Math.round(h)}); s.addImage({data:cv.toDataURL(jpeg?'image/jpeg':'image/png',0.92),x:I(x),y:I(y),w:I(w),h:I(h)}); }catch(e){} }
-  async function walk(el){ const ch=Array.prototype.slice.call(el.children); for(let i=0;i<ch.length;i++){ await emit(ch[i]); } }
+  const data={ bg:(bg0&&bg0.a>0)?toHex2(bg0):'FFFFFF', els:[], images:[] };
+  async function shot(el,x,y,w,h,jpeg){ try{ const cv=await win.html2canvas(el,{backgroundColor:null,scale:2,useCORS:true,logging:false,width:Math.round(w),height:Math.round(h)}); const id=data.images.length; data.images.push(cv.toDataURL(jpeg?'image/jpeg':'image/png',0.95)); data.els.push({t:'img',img:id,x:Math.round(x),y:Math.round(y),w:Math.round(w),h:Math.round(h)}); }catch(e){} }
+  async function walk(el){ const ch=Array.prototype.slice.call(el.children); for(let i=0;i<ch.length;i++) await emit(ch[i]); }
   async function emit(el){
     const cs=win.getComputedStyle(el);
     if(cs.display==='none'||cs.visibility==='hidden'||parseFloat(cs.opacity)===0) return;
@@ -1109,44 +1109,72 @@ async function slideToPptxNative(pptx, ifr){
     const bw=parseFloat(cs.borderTopWidth)||0, bc=parseRGB(cs.borderTopColor);
     const hasBorder=bw>0.4 && bc && bc.a>0.05;
     if(hasGrad || (fill&&fill.a>0.03) || hasBorder){
-      const opts={x:I(x),y:I(y),w:I(w),h:I(h)};
-      if(hasGrad) opts.fill={color:firstGradColor(bgImg)||'CCCCCC'};
-      else if(fill&&fill.a>0.03) opts.fill={color:toHex2(fill),transparency:Math.round((1-fill.a)*100)};
-      else opts.fill={type:'none'};
-      opts.line=hasBorder?{color:toHex2(bc),width:Math.max(0.5,bw*0.75)}:{type:'none'};
-      try{ s.addShape(pptx.ShapeType.rect,opts); }catch(e){}
+      const o={t:'rect',x:Math.round(x),y:Math.round(y),w:Math.round(w),h:Math.round(h)};
+      if(hasGrad) o.fill=firstGradColor(bgImg)||'CCCCCC';
+      else if(fill&&fill.a>0.03){ o.fill=toHex2(fill); if(fill.a<0.97) o.alpha=Math.round((1-fill.a)*100); }
+      if(hasBorder){ o.line=toHex2(bc); o.lw=Math.max(0.5,bw*0.75); }
+      data.els.push(o);
     }
     const txt=directText(el);
     if(txt){
       let colHex; const clip=(cs.webkitBackgroundClip||cs.backgroundClip||''); const tf=parseRGB(cs.webkitTextFillColor||cs.color);
       if(/text/i.test(clip)||(tf&&tf.a===0)){ colHex=firstGradColor(bgImg)||(parseRGB(cs.color)?toHex2(parseRGB(cs.color)):'333333'); }
       else { const c=parseRGB(cs.color); colHex=c?toHex2(c):'333333'; }
-      const al=cs.textAlign==='center'?'center':cs.textAlign==='right'?'right':(cs.textAlign==='justify'?'justify':'left');
-      const fs=parseFloat(cs.fontSize)||18, lh=parseFloat(cs.lineHeight)||fs*1.2;
-      try{ s.addText(txt,{x:I(x),y:I(y),w:I(w),h:I(h),fontSize:PT(fs),bold:parseInt(cs.fontWeight)>=600,italic:cs.fontStyle==='italic',color:colHex,align:al,valign:'top',fontFace:fontFaceOf(cs.fontFamily),margin:0,lineSpacingMultiple:Math.max(.8,Math.min(2,lh/fs))}); }catch(e){}
+      const al=cs.textAlign==='center'?'center':cs.textAlign==='right'?'right':'left';
+      data.els.push({t:'text',x:Math.round(x),y:Math.round(y),w:Math.round(w),h:Math.round(h),s:txt,fz:Math.round(parseFloat(cs.fontSize)||18),b:parseInt(cs.fontWeight)>=600,it:cs.fontStyle==='italic',col:colHex,al:al,ff:fontFaceOf(cs.fontFamily)});
     }
     await walk(el);
   }
   await walk(slide);
+  return data;
 }
-async function exportPptxNative(){
+function paintEls(pptx, data){
+  const I=px=>px/96, PT=px=>px*0.75; const s=pptx.addSlide(); s.background={color:data.bg||'FFFFFF'};
+  (data.els||[]).forEach(e=>{
+    try{
+      if(e.t==='img'){ if(data.images[e.img]) s.addImage({data:data.images[e.img],x:I(e.x),y:I(e.y),w:I(e.w),h:I(e.h)}); }
+      else if(e.t==='rect'){ s.addShape(pptx.ShapeType.rect,{x:I(e.x),y:I(e.y),w:I(e.w),h:I(e.h),fill:e.fill?{color:e.fill,transparency:e.alpha||0}:{type:'none'},line:e.line?{color:e.line,width:e.lw||1}:{type:'none'}}); }
+      else if(e.t==='text'){ s.addText(String(e.s),{x:I(e.x),y:I(e.y),w:I(e.w),h:I(e.h),fontSize:PT(e.fz||18),bold:!!e.b,italic:!!e.it,color:e.col||'333333',align:e.al||'left',valign:'top',fontFace:e.ff||'Arial',margin:0,fit:'shrink'}); }
+    }catch(x){}
+  });
+  return s;
+}
+async function buildNativePptx(useAI){
   if(!deck()||!deck().slides.length){ toast('Aucune slide à exporter.','error'); return; }
   setBusy('#createBusy','#createBusyTxt',true,'Préparation…'); switchTab('create');
   try{
     if(typeof PptxGenJS==='undefined') await loadScriptDyn('https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js');
     const pptx=new PptxGenJS(); pptx.defineLayout({name:'MS',width:13.333,height:7.5}); pptx.layout='MS';
     for(let i=0;i<deck().slides.length;i++){
-      $('#createBusyTxt').textContent='Slide '+(i+1)+' / '+deck().slides.length+' (formes natives)…';
+      $('#createBusyTxt').textContent='Slide '+(i+1)+' / '+deck().slides.length+(useAI?' (analyse IA)':' (formes)')+'…';
       let ifr;
-      try{ ifr=await openSlideFrame(deck().css, deck().slides[i]); await slideToPptxNative(pptx, ifr); }
+      try{
+        ifr=await openSlideFrame(deck().css, deck().slides[i]);
+        const data=await collectEls(ifr); ifr.remove(); ifr=null;
+        if(useAI){ try{ data.els=await aiCleanEls(data.els); }catch(ae){ logMsg('err','IA slide '+(i+1)+' : '+ae.message+' (brut conservé)'); } }
+        paintEls(pptx, data);
+      }
       catch(e){ logMsg('err','Slide '+(i+1)+' : '+e.message); }
       finally{ if(ifr) ifr.remove(); }
     }
     $('#createBusyTxt').textContent='Écriture du fichier…';
     await pptx.writeFile({fileName:'MagicSlider.pptx'});
-    toast('PPTX (éditable) exporté ✦','success');
+    toast('PPTX'+(useAI?' éditable IA':' éditable')+' exporté ✦','success');
   }catch(e){ toast('Export PPTX : '+e.message,'error'); }
   finally{ setBusy('#createBusy','#createBusyTxt',false); }
+}
+function exportPptxNative(){ return buildNativePptx(false); }
+function exportPptxAI(){
+  if(!state.settings.model){ toast('Configurez l\'IA (Réglages) pour le mode haute fidélité.','error'); switchTab('settings'); return; }
+  return buildNativePptx(true);
+}
+async function aiCleanEls(els){
+  const sys='Tu nettoies les éléments d\'UNE slide PowerPoint (canvas 1280x720 px, origine en haut-gauche). On te donne un tableau JSON d\'éléments extraits du rendu (coordonnées EXACTES en px). Objectif : un rendu PowerPoint propre et fidèle, ÉDITABLE.\nRègles :\n- Conserve TOUS les textes (t:"text") et TOUTES les images (t:"img", garde le champ "img" inchangé).\n- Supprime les rectangles (t:"rect") purement conteneurs/redondants qui n\'apportent pas de fond visible distinct (doublons, wrappers transparents).\n- Garde les coordonnées TRÈS proches de l\'original (tu peux ajuster légèrement x/y/w/h pour éviter qu\'un texte soit coupé, mais ne réinvente pas la mise en page).\n- Ne change PAS les couleurs des images. Conserve le schéma des champs (t,x,y,w,h,s,fz,b,it,col,al,ff,fill,alpha,line,lw,img).\nRéponds en JSON STRICT : {"els":[...]} uniquement.';
+  const full=await callLLM(sys, JSON.stringify({els:els}), null, {stream:false,maxTokens:8000});
+  const a=full.indexOf('{'), b=full.lastIndexOf('}'); if(a<0||b<0) throw new Error('JSON manquant');
+  const obj=JSON.parse(full.slice(a,b+1));
+  if(!obj.els||!Array.isArray(obj.els)||!obj.els.length) throw new Error('els vide');
+  return obj.els;
 }
 
 /* standalone HTML export */
@@ -1273,6 +1301,7 @@ function init(){
   // export
   $('#exportPptxBtn').addEventListener('click',exportPptx);
   $('#exportPptxNativeBtn').addEventListener('click',exportPptxNative);
+  $('#exportPptxAiBtn').addEventListener('click',exportPptxAI);
   $('#exportHtmlBtn').addEventListener('click',exportHtml);
   $('#saveJsonBtn').addEventListener('click',()=>{ if(!deck()){ toast('Rien à sauvegarder.','error'); return; } downloadBlob(JSON.stringify(deck(),null,2),'magicslider-projet.json','application/json'); });
   $('#loadJsonBtn').addEventListener('click',()=>$('#jsonFile').click());
