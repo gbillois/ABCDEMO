@@ -600,7 +600,9 @@ function endpointInfo(){
   const s = state.settings;
   return s;
 }
-async function streamLLM(system, user, onToken){
+async function callLLM(system, user, onToken, opts){
+  opts = opts||{};
+  const stream = opts.stream!==false;
   const s = state.settings;
   const provider = s.provider;
   let url, headers={'Content-Type':'application/json'}, body;
@@ -612,19 +614,19 @@ async function streamLLM(system, user, onToken){
     headers['x-api-key']=s.apiKey;
     headers['anthropic-version']='2023-06-01';
     headers['anthropic-dangerous-direct-browser-access']='true';
-    body={ model:s.model, max_tokens:maxTok, system:system, stream:true,
+    body={ model:s.model, max_tokens:maxTok, system:system, stream:stream,
            messages:[{role:'user', content:user}] };
   } else if(provider==='openai'){
     if(!s.apiKey.trim()) throw new Error('Clé API OpenAI manquante (Réglages).');
     url='https://api.openai.com/v1/chat/completions';
     headers['Authorization']='Bearer '+s.apiKey;
-    body={ model:s.model, max_completion_tokens:maxTok, stream:true,
+    body={ model:s.model, max_completion_tokens:maxTok, stream:stream,
            messages:[{role:'system',content:system},{role:'user',content:user}] };
   } else if(provider==='mistral'){
     if(!s.apiKey.trim()) throw new Error('Clé API Mistral manquante (Réglages).');
     url='https://api.mistral.ai/v1/chat/completions';
     headers['Authorization']='Bearer '+s.apiKey;
-    body={ model:s.model, max_tokens:maxTok, stream:true,
+    body={ model:s.model, max_tokens:maxTok, stream:stream,
            messages:[{role:'system',content:system},{role:'user',content:user}] };
   } else if(provider==='azure'){
     if(!s.azureKey.trim()) throw new Error('Clé API Azure manquante (Réglages).');
@@ -633,11 +635,12 @@ async function streamLLM(system, user, onToken){
     if(!/^https:/.test(ep)) throw new Error('L\'endpoint Azure doit être en HTTPS.');
     url=ep+'/openai/deployments/'+encodeURIComponent(s.azureDeployment||s.model)+'/chat/completions?api-version=2024-06-01';
     headers['api-key']=s.azureKey;
-    body={ max_tokens:maxTok, stream:true,
+    body={ max_tokens:maxTok, stream:stream,
            messages:[{role:'system',content:system},{role:'user',content:user}] };
   } else if(provider==='google'){
     if(!s.apiKey.trim()) throw new Error('Clé API Google manquante (Réglages).');
-    url='https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(s.model)+':streamGenerateContent?alt=sse&key='+encodeURIComponent(s.apiKey);
+    const method = stream ? 'streamGenerateContent?alt=sse&' : 'generateContent?';
+    url='https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(s.model)+':'+method+'key='+encodeURIComponent(s.apiKey);
     body={ systemInstruction:{parts:[{text:system}]},
            contents:[{role:'user',parts:[{text:user}]}],
            generationConfig:{maxOutputTokens:maxTok} };
@@ -649,7 +652,9 @@ async function streamLLM(system, user, onToken){
   try{
     resp = await fetch(url,{method:'POST',headers,body:JSON.stringify(body)});
   }catch(netErr){
-    throw new Error('Échec réseau : '+netErr.message+' (CORS/clé/connexion).');
+    throw new Error('Connexion au fournisseur « '+provider+' » impossible (' + (netErr.message||'load failed') + '). '
+      + 'Causes fréquentes : restriction CORS du navigateur, clé/endpoint invalide, ou réseau bloqué. '
+      + 'Astuce : Anthropic et OpenAI autorisent les appels directs depuis le navigateur ; Mistral et certains endpoints Azure bloquent le CORS — dans ce cas, changez de fournisseur dans Réglages.');
   }
   if(!resp.ok){
     let detail='';
@@ -658,34 +663,55 @@ async function streamLLM(system, user, onToken){
     throw new Error('HTTP '+resp.status+' — '+(detail||resp.statusText));
   }
 
-  // SSE stream parse
-  const reader = resp.body.getReader();
-  const dec = new TextDecoder();
-  let buf='', full='';
-  while(true){
-    const {done,value} = await reader.read();
-    if(done) break;
-    buf += dec.decode(value,{stream:true});
-    let idx;
-    while((idx=buf.indexOf('\n'))>=0){
-      let line = buf.slice(0,idx).trim();
-      buf = buf.slice(idx+1);
-      if(!line || !line.startsWith('data:')) continue;
-      const data = line.slice(5).trim();
-      if(data==='[DONE]') continue;
-      let ev; try{ ev=JSON.parse(data); }catch(e){ continue; }
-      let piece='';
-      if(provider==='anthropic'){
-        if(ev.type==='content_block_delta' && ev.delta && ev.delta.type==='text_delta') piece=ev.delta.text||'';
-      } else if(provider==='google'){
-        piece = (ev.candidates&&ev.candidates[0]&&ev.candidates[0].content&&ev.candidates[0].content.parts&&ev.candidates[0].content.parts.map(p=>p.text||'').join(''))||'';
-      } else { // openai / mistral / azure
-        piece = (ev.choices&&ev.choices[0]&&ev.choices[0].delta&&ev.choices[0].delta.content)||'';
-      }
-      if(piece){ full+=piece; if(onToken) onToken(piece, full); }
-    }
+  // ---- non-streaming: parse the full JSON body in one shot ----
+  if(!stream){
+    let j;
+    try{ j = await resp.json(); }
+    catch(e){ throw new Error('Réponse illisible du fournisseur ('+(e.message||'parse')+').'); }
+    let text='';
+    if(provider==='anthropic') text=(j.content||[]).map(b=>b.text||'').join('');
+    else if(provider==='google') text=(((j.candidates||[])[0]||{}).content||{}).parts ? j.candidates[0].content.parts.map(p=>p.text||'').join('') : '';
+    else text=(((j.choices||[])[0]||{}).message||{}).content||'';
+    if(!text.trim()) throw new Error('Réponse vide du modèle.');
+    if(onToken) onToken(text, text);
+    return text;
   }
-  if(!full.trim()) throw new Error('Réponse vide du modèle.');
+
+  // ---- streaming (SSE) ----
+  let full='';
+  try{
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let buf='';
+    while(true){
+      const {done,value} = await reader.read();
+      if(done) break;
+      buf += dec.decode(value,{stream:true});
+      let idx;
+      while((idx=buf.indexOf('\n'))>=0){
+        let line = buf.slice(0,idx).trim();
+        buf = buf.slice(idx+1);
+        if(!line || !line.startsWith('data:')) continue;
+        const data = line.slice(5).trim();
+        if(data==='[DONE]') continue;
+        let ev; try{ ev=JSON.parse(data); }catch(e){ continue; }
+        let piece='';
+        if(provider==='anthropic'){
+          if(ev.type==='content_block_delta' && ev.delta && ev.delta.type==='text_delta') piece=ev.delta.text||'';
+        } else if(provider==='google'){
+          piece = (ev.candidates&&ev.candidates[0]&&ev.candidates[0].content&&ev.candidates[0].content.parts&&ev.candidates[0].content.parts.map(p=>p.text||'').join(''))||'';
+        } else { // openai / mistral / azure
+          piece = (ev.choices&&ev.choices[0]&&ev.choices[0].delta&&ev.choices[0].delta.content)||'';
+        }
+        if(piece){ full+=piece; if(onToken) onToken(piece, full); }
+      }
+    }
+  }catch(streamErr){
+    // Flux interrompu (fréquent sur Safari/WebKit). Signaler pour repli non-streaming.
+    const err = new Error('Flux interrompu pendant la réception ('+(streamErr.message||'load failed')+').');
+    err.streamAborted = true; throw err;
+  }
+  if(!full.trim()){ const e=new Error('Réponse vide (flux interrompu).'); e.streamAborted=true; throw e; }
   return full;
 }
 
@@ -850,15 +876,24 @@ async function runCreate(){
 
   logClear();
   logMsg('user', 'PROMPT ('+state.settings.provider+' · '+state.settings.model+')\n\n'+prompt+'\n\n→ '+n+' slides · thème '+th.name);
-  const aiBox = logMsg('ai','');
+  let aiBox = logMsg('ai','');
   $('#createBusy').classList.add('show');
   $('#createBtn').disabled=true;
 
   try{
-    const full = await streamLLM(sys, prompt, (piece, all)=>{
+    const onTok = (piece, all)=>{
       aiBox.querySelector('.body').textContent = all.length>4000? all.slice(0,2000)+'\n…\n'+all.slice(-1500) : all;
       const log=$('#createLog'); log.scrollTop=log.scrollHeight;
-    });
+    };
+    let full;
+    try{
+      full = await callLLM(sys, prompt, onTok, {stream:true});
+    }catch(streamErr){
+      if(!streamErr.streamAborted) throw streamErr;
+      logMsg('err','⚠ '+streamErr.message+' Nouvel essai sans streaming…');
+      aiBox = logMsg('ai','(génération sans streaming, patientez…)');
+      full = await callLLM(sys, prompt, onTok, {stream:false});
+    }
     const raw = extractJSON(full);
     const deck = normalizeDeck(raw, th);
     if(!deck.slides.length) throw new Error('Aucune slide générée.');
@@ -885,7 +920,7 @@ async function genCharte(){
 Cohérence et contraste lisible obligatoires.`;
   $('#genCharteBtn').disabled=true;
   try{
-    const full = await streamLLM(sys, desc, null);
+    const full = await callLLM(sys, desc, null, {stream:false});
     const t = extractJSON(full);
     t.fontMono = t.fontMono || "'IBM Plex Mono',monospace";
     t.brandGradient = t.brandGradient || ('linear-gradient(135deg,'+(t.primary||'#5A2BE0')+','+(t.secondary||t.accent||'#2D1380')+')');
@@ -1611,7 +1646,7 @@ async function testConn(){
   saveSettings();
   setCatStatus('load','Test en cours…');
   try{
-    const r = await streamLLM('Réponds uniquement par OK.','ping', null);
+    const r = await callLLM('Réponds uniquement par OK.','ping', null, {stream:false});
     setCatStatus('ok','Connexion OK');
     toast('Connexion réussie ✓','success');
   }catch(e){ setCatStatus('err','Échec'); toast('Test: '+e.message,'error'); }
