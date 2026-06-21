@@ -252,10 +252,10 @@
         <p class="sub">Exportez votre présentation en PowerPoint haute qualité ou en HTML autonome.</p>
         <div class="card">
           <h3>PowerPoint (.pptx)</h3>
-          <p class="hint" style="margin-top:0"><b>Éditable (formes natives)</b> — reprend la technique de CTI.html : chaque slide est reconstruite forme par forme (rectangles, textes en objets PowerPoint éditables) et les photos/icônes sont capturées en image (astuce screenshot). Idéal pour retoucher dans PowerPoint.</p>
-          <button class="btn primary" id="exportPptxBtn">Exporter en PPTX (éditable)</button>
-          <p class="hint">Variante <b>image fidèle</b> : 1 capture pleine page par slide (rendu au pixel près, non éditable).</p>
-          <button class="btn" id="exportPptxImgBtn">Exporter en PPTX (image)</button>
+          <p class="hint" style="margin-top:0"><b>Rendu fidèle</b> — chaque slide est capturée en image haute résolution (2×), avec correction des titres/KPI en dégradé et conversion des icônes en SVG. Identique à l'écran, fonctionne sur n'importe quelle slide.</p>
+          <button class="btn primary" id="exportPptxBtn">Exporter en PPTX</button>
+          <p class="hint">Variante <b>formes éditables</b> (expérimental) : reconstruction forme par forme façon CTI.html. Éditable dans PowerPoint mais imparfait sur des mises en page complexes.</p>
+          <button class="btn" id="exportPptxNativeBtn">PPTX éditable (expérimental)</button>
         </div>
         <div class="card">
           <h3>HTML autonome</h3>
@@ -474,7 +474,8 @@ function slideDoc(css, inner, forCapture){
     + 'function conv(){var ic=document.querySelectorAll("iconify-icon");for(var i=0;i<ic.length;i++){var e=ic[i];var sv=e.shadowRoot&&e.shadowRoot.querySelector("svg");if(sv){var c=sv.cloneNode(true);var cs=getComputedStyle(e);var w=parseInt(cs.width)||e.clientWidth||24,h=parseInt(cs.height)||e.clientHeight||24;c.setAttribute("width",w);c.setAttribute("height",h);c.style.width=w+"px";c.style.height=h+"px";c.style.color=cs.color;c.style.verticalAlign="middle";e.parentNode.replaceChild(c,e);}}}'
     + 'function imgs(){var a=Array.prototype.slice.call(document.images);return Promise.all(a.map(function(i){return i.complete?1:new Promise(function(r){i.onload=i.onerror=r;});}));}'
     + 'function icons(){return new Promise(function(r){var t=0;var iv=setInterval(function(){t+=100;var ic=document.querySelectorAll("iconify-icon");var ok=true;for(var i=0;i<ic.length;i++){var e=ic[i];if(!(e.shadowRoot&&e.shadowRoot.querySelector("svg"))){ok=false;break;}}if(ok||t>4500){clearInterval(iv);r();}},100);});}'
-    + '(async function(){try{if(document.fonts&&document.fonts.ready)await document.fonts.ready;}catch(e){}await imgs();await icons();conv();setTimeout(done,60);})();})();<\/script>') : '';
+    + 'function fixgrad(){var all=document.querySelectorAll("*");for(var i=0;i<all.length;i++){var e=all[i];var cs=getComputedStyle(e);var clip=(cs.webkitBackgroundClip||cs.backgroundClip||"");var tf=(cs.webkitTextFillColor||"");if(clip.indexOf("text")>=0||tf==="rgba(0, 0, 0, 0)"||tf==="transparent"){var bg=cs.backgroundImage||"";var m=bg.match(/rgba?\\([^)]+\\)|#[0-9a-fA-F]{3,8}/);var col=m?m[0]:(cs.color&&cs.color!=="rgba(0, 0, 0, 0)"?cs.color:"#333333");e.style.setProperty("background-image","none","important");e.style.setProperty("-webkit-background-clip","border-box","important");e.style.setProperty("background-clip","border-box","important");e.style.setProperty("-webkit-text-fill-color",col,"important");e.style.setProperty("color",col,"important");}}}'
+    + '(async function(){try{if(document.fonts&&document.fonts.ready)await document.fonts.ready;}catch(e){}await imgs();await icons();conv();fixgrad();setTimeout(done,80);})();})();<\/script>') : '';
   return '<!DOCTYPE html><html><head><meta charset="utf-8">'+FONTS_LINK
     + '<script src="'+ICONIFY+'"><\/script>'
     + (forCapture?('<script src="'+H2C+'"><\/script>'):'')
@@ -1033,7 +1034,7 @@ function captureSlide(css, inner, scale){
         while(!(win.__msReady===true && typeof win.html2canvas==='function')){ await new Promise(r=>setTimeout(r,120)); t+=120; if(t>12000) throw new Error('délai de rendu dépassé'); }
         const target=ifr.contentDocument.querySelector('.slide')||ifr.contentDocument.body;
         const canvas=await win.html2canvas(target,{scale:scale||2,useCORS:true,backgroundColor:'#ffffff',width:1280,height:720,windowWidth:1280,windowHeight:720,logging:false});
-        const data=canvas.toDataURL('image/jpeg',0.92); ifr.remove(); resolve(data);
+        const data=canvas.toDataURL('image/jpeg',0.95); ifr.remove(); resolve(data);
       }catch(e){ ifr.remove(); reject(e); }
     };
     ifr.srcdoc=slideDoc(css, inner, true);
@@ -1175,6 +1176,7 @@ document.getElementById('pptx').onclick=async()=>{
       try{ if(document.fonts&&document.fonts.ready) await document.fonts.ready; }catch(e){}
       await new Promise(r=>setTimeout(r,250));
       document.querySelectorAll('#stage .slide')[i].querySelectorAll('iconify-icon').forEach(e=>{ const sv=e.shadowRoot&&e.shadowRoot.querySelector('svg'); if(sv){ const c=sv.cloneNode(true); const cs=getComputedStyle(e); const w=parseInt(cs.width)||24,h=parseInt(cs.height)||24; c.setAttribute('width',w); c.setAttribute('height',h); c.style.color=cs.color; e.parentNode.replaceChild(c,e); } });
+      slides[i].querySelectorAll('*').forEach(e=>{ const cs=getComputedStyle(e); const clip=(cs.webkitBackgroundClip||cs.backgroundClip||''); const tf=(cs.webkitTextFillColor||''); if(clip.indexOf('text')>=0||tf==='rgba(0, 0, 0, 0)'){ const bg=cs.backgroundImage||''; const m=bg.match(/rgba?\\([^)]+\\)|#[0-9a-fA-F]{3,8}/); const col=m?m[0]:(cs.color||'#333'); e.style.setProperty('background-image','none','important'); e.style.setProperty('-webkit-background-clip','border-box','important'); e.style.setProperty('background-clip','border-box','important'); e.style.setProperty('-webkit-text-fill-color',col,'important'); e.style.setProperty('color',col,'important'); } });
       const cv=await html2canvas(slides[i],{scale:2,useCORS:true,backgroundColor:'#fff',width:1280,height:720});
       p.addSlide().addImage({data:cv.toDataURL('image/jpeg',0.92),x:0,y:0,w:13.333,h:7.5});
     }
@@ -1269,8 +1271,8 @@ function init(){
   $('#htmlSave').addEventListener('click',saveHtmlEdit);
 
   // export
-  $('#exportPptxBtn').addEventListener('click',exportPptxNative);
-  $('#exportPptxImgBtn').addEventListener('click',exportPptx);
+  $('#exportPptxBtn').addEventListener('click',exportPptx);
+  $('#exportPptxNativeBtn').addEventListener('click',exportPptxNative);
   $('#exportHtmlBtn').addEventListener('click',exportHtml);
   $('#saveJsonBtn').addEventListener('click',()=>{ if(!deck()){ toast('Rien à sauvegarder.','error'); return; } downloadBlob(JSON.stringify(deck(),null,2),'magicslider-projet.json','application/json'); });
   $('#loadJsonBtn').addEventListener('click',()=>$('#jsonFile').click());
