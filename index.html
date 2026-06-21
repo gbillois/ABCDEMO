@@ -435,11 +435,24 @@ function resolveColor(c, theme){
   if(typeof c==='string' && theme && theme[c]) return theme[c];
   return c;
 }
+function gradStr(g, theme){
+  if(!g) return '';
+  if(typeof g==='string'){ if(g==='brand') return theme.brandGradient; return resolveColor(g,theme); }
+  if(g.from) return 'linear-gradient('+(g.angle==null?135:g.angle)+'deg, '+resolveColor(g.from,theme)+', '+resolveColor(g.to||g.from,theme)+')';
+  return '';
+}
+function resolveFill(e, theme){
+  if(e.gradient) return gradStr(e.gradient, theme);
+  if(e.fill==='brand') return theme.brandGradient;
+  if(e.fill) return resolveColor(e.fill, theme);
+  return '';
+}
 function slideBg(bg, theme){
   if(!bg) return resolveColor('bg', theme);
   if(bg.type==='gradient'){
+    if(bg.from) return gradStr(bg, theme);
     if(bg.value==='brand') return theme.brandGradient;
-    return bg.value || theme.brandGradient;
+    return resolveColor(bg.value, theme) || theme.brandGradient;
   }
   if(bg.type==='image' && bg.value){
     var ov = bg.overlay || 'linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35))';
@@ -456,7 +469,7 @@ function elBaseStyle(e){
 }
 function buildElEl(e, theme){
   var node, s = elBaseStyle(e);
-  var fill = resolveColor(e.fill, theme);
+  var fill = resolveFill(e, theme);
   var color = resolveColor(e.color, theme) || theme.text;
   var stroke = resolveColor(e.stroke, theme);
   if(e.type==='image'){
@@ -466,6 +479,7 @@ function buildElEl(e, theme){
     s += 'object-fit:'+(e.fit||'cover')+';';
     if(e.radius) s += 'border-radius:'+e.radius+'px;';
     if(stroke) s += 'border:'+(e.strokeWidth||2)+'px solid '+stroke+';';
+    if(e.shadow) s += 'box-shadow:0 18px 50px rgba(0,0,0,.30);';
     node.style.cssText = s;
     return node;
   }
@@ -479,35 +493,46 @@ function buildElEl(e, theme){
     s += 'font-weight:'+(e.fontWeight||400)+';';
     s += 'line-height:'+(e.lineHeight||1.25)+';';
     s += 'letter-spacing:'+(e.letterSpacing||0)+'px;';
-    s += 'color:'+color+';';
     s += 'text-align:'+(e.align||'left')+';';
     s += 'white-space:pre-wrap;word-break:break-word;overflow:hidden;';
-    if(e.type==='badge'){
-      s += 'background:'+(fill||theme.primary)+';';
-      s += 'border-radius:'+(e.radius==null?999:e.radius)+'px;';
-      s += 'padding:0 16px;text-transform:'+(e.uppercase?'uppercase':'none')+';';
+    if(e.textGradient){
+      s += 'background:'+gradStr(e.textGradient,theme)+';-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;';
     } else {
-      if(fill){ s += 'background:'+fill+';'; }
+      s += 'color:'+color+';';
+    }
+    if(e.type==='badge'){
+      if(!e.textGradient) s += 'background:'+(fill||theme.primary)+';';
+      s += 'border-radius:'+(e.radius==null?999:e.radius)+'px;';
+      s += 'padding:0 18px;text-transform:'+(e.uppercase?'uppercase':'none')+';';
+    } else {
+      if(fill && !e.textGradient){ s += 'background:'+fill+';'; }
       if(e.padding) s += 'padding:'+e.padding+'px;';
       if(e.radius) s += 'border-radius:'+e.radius+'px;';
+      if(e.accent) s += 'border-left:'+(e.accentWidth||5)+'px solid '+resolveColor(e.accent,theme)+';';
     }
+    if(e.shadow) s += 'text-shadow:0 2px 14px rgba(0,0,0,.35);';
     node.style.cssText = s;
     node.textContent = e.text||'';
     return node;
   }
   if(e.type==='line'){
     s += 'height:'+(e.strokeWidth||3)+'px;';
-    s += 'background:'+(stroke||theme.primary)+';';
+    s += 'background:'+(fill||stroke||theme.primary)+';';
     s += 'border-radius:'+((e.strokeWidth||3)/2)+'px;';
     node.style.cssText = s;
     return node;
   }
-  // rect / ellipse
-  if(fill) s += 'background:'+fill+';';
+  // rect / ellipse (cards, blobs, overlays)
+  if(e.glass){
+    s += 'background:'+(fill||'rgba(255,255,255,0.08)')+';';
+    s += 'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);';
+    if(!stroke) s += 'border:1px solid rgba(255,255,255,0.18);';
+  } else if(fill){ s += 'background:'+fill+';'; }
   if(stroke) s += 'border:'+(e.strokeWidth||2)+'px solid '+stroke+';';
+  if(e.accent) s += 'border-left:'+(e.accentWidth||6)+'px solid '+resolveColor(e.accent,theme)+';';
   if(e.type==='ellipse') s += 'border-radius:50%;';
   else s += 'border-radius:'+(e.radius||0)+'px;';
-  if(e.shadow) s += 'box-shadow:0 14px 40px rgba(0,0,0,.18);';
+  if(e.shadow) s += 'box-shadow:0 16px 44px rgba(0,0,0,.18);';
   node.style.cssText = s;
   return node;
 }
@@ -712,39 +737,63 @@ function availableModels(){
    GENERATION — build deck from prompt
    ============================================================================ */
 function genSystemPrompt(th, n){
-  const pal = `Palette (utilisez ces rôles OU les hex):
-- primary ${th.primary}, accent ${th.accent}, secondary ${th.secondary}
-- bg ${th.bg}, surface ${th.surface}, text ${th.text}, muted ${th.muted}, onBrand ${th.onBrand}
-Polices: "display" (titres), "body" (texte), "mono" (code/chiffres).`;
-  return `Tu es un designer de présentations. Génère un deck de slides au format JSON STRICT (aucun texte hors JSON).
-Canvas fixe: 1280 x 720 px. Coordonnées absolues en px (x,y = coin haut-gauche). Garde tout dans les limites.
+  const pal = `PALETTE (utilise ces rôles OU des hex):
+primary ${th.primary} · accent ${th.accent} · secondary ${th.secondary}
+bg ${th.bg} · surface ${th.surface} · text ${th.text} · muted ${th.muted} · onBrand ${th.onBrand}
+Polices: "display"=titres, "body"=texte, "mono"=chiffres/code.`;
+  return `Tu es un DIRECTEUR ARTISTIQUE qui conçoit des slides de qualité magazine/agence (niveau "keynote pro"), pas un simple PowerPoint. Génère un deck au format JSON STRICT (aucun texte hors JSON).
+Canvas fixe 1280x720 px. Coordonnées absolues en px (x,y = coin haut-gauche). Tout doit rester DANS le cadre. Marge de sécurité ~72px.
 ${pal}
 
-Schéma JSON:
-{
- "slides":[
-   {
-     "background": {"type":"color","value":"bg"}  // ou {"type":"gradient","value":"brand"} ou {"type":"color","value":"#hex"}
-     "elements":[
-        {"type":"text","x":80,"y":80,"w":1120,"h":120,"text":"Titre","fontFamily":"display","fontSize":58,"fontWeight":800,"color":"text","align":"left","valign":"top"},
-        {"type":"badge","x":80,"y":60,"w":220,"h":34,"text":"CHAPITRE","fill":"primary","color":"onBrand","fontSize":15,"fontWeight":700,"uppercase":true},
-        {"type":"rect","x":80,"y":300,"w":340,"h":200,"fill":"surface","radius":16,"shadow":true},
-        {"type":"ellipse","x":900,"y":120,"w":120,"h":120,"fill":"accent"},
-        {"type":"line","x":80,"y":210,"w":300,"h":4,"stroke":"accent","strokeWidth":4},
-        {"type":"image","x":700,"y":120,"w":480,"h":480,"src":"https://images.unsplash.com/...","radius":12}
-     ]
-   }
- ]
-}
+VOCABULAIRE D'ÉLÉMENTS (chaque élément: {type,x,y,w,h,z,...}) :
+- text  : {text, fontFamily, fontSize, fontWeight(400-800), color, align:left|center|right, valign:top|middle|bottom, lineHeight, accent:"<couleur>"(liseré gauche), textGradient:"brand"|{from,to,angle}, shadow:true}
+- badge : pastille — {text, fill, color, uppercase:true, fontSize}
+- rect  : carte/bandeau/overlay — {fill, gradient:{from,to,angle} ou "brand", radius, shadow:true, accent:"<couleur>"(liseré gauche), accentWidth, glass:true, stroke, strokeWidth, opacity}
+- ellipse : repère/blob décoratif — {fill ou gradient, opacity}
+- line  : {fill|stroke, strokeWidth}
+- image : {src, radius, shadow, fit:cover}
 
-Règles:
-- Produis EXACTEMENT ${n} slides cohérentes et bien composées (titre, sommaire, sections, timeline si pertinent, synthèse).
-- Compose des mises en page riches type "slide PowerPoint" : titres, sous-titres, cartes (rect+text), puces, chiffres clés, timeline (rects+lignes+labels), encadrés.
-- Pour une timeline: utilise une "line" horizontale + des "ellipse" repères + des "text" dates/labels.
-- Slide de titre: fond gradient "brand" et textes en "onBrand".
-- Textes lisibles (titres 44-64px, corps 18-26px). N'empile pas les éléments hors cadre.
-- Pour les images, utilise des URLs Unsplash plausibles (https://images.unsplash.com/photo-...?w=1200) en lien avec le sujet.
-- Réponds UNIQUEMENT avec le JSON (commence par { et finis par }).`;
+TECHNIQUES VISUELLES À UTILISER (c'est ce qui rend les slides BELLES) :
+1. PHOTOS : mets de grandes photos Unsplash réelles et pertinentes (URL forme https://images.unsplash.com/photo-XXXXXXXXXXXXX-xxxxxxxxxxxx?w=1400&q=80). Au moins 1 photo sur ~70% des slides : soit demi-page (640x720 bord à bord), soit pleine page en fond.
+2. LISIBILITÉ SUR PHOTO : par-dessus une photo, pose un rect "overlay" (gradient sombre, ex gradient:{from:"#0008",to:"#000C",angle:90}, ou fill "#00000088", opacity 0.55) PUIS le texte en onBrand/blanc avec shadow:true.
+3. PROFONDEUR : ajoute 1-2 blobs décoratifs (ellipse en accent/primary, opacity 0.10-0.18, parfois hors-cadre partiel) en arrière-plan (z bas).
+4. CARTES : rect surface, radius 16-20, shadow:true, avec un accent:"accent" (liseré gauche) + un petit titre + un texte. Aligne des cartes en grille (2, 3 ou 4 colonnes, gouttières égales).
+5. TYPO HIÉRARCHIE : eyebrow badge (13-15px majuscules) → titre display gros (52-76px, 700-800) → sous-titre 22-28px → corps 18-22px. Mets parfois un mot-clé du titre en textGradient:"brand".
+6. CHIFFRES CLÉS : gros nombres 88-150px en primary/accent (fontFamily mono ou display 800) + label dessous.
+7. TIMELINE : une line horizontale + ellipses repères régulièrement espacées + au-dessus/dessous des mini-cartes (rect+text) avec dates en mono.
+8. Une line accent (w 200-320, h 4-6) sous les titres comme signature.
+
+COMPOSITION :
+- Produis EXACTEMENT ${n} slides, chacune RICHE (12 à 28 éléments). Évite le vide : remplis élégamment.
+- VARIE les mises en page d'une slide à l'autre (photo-gauche / photo-droite / pleine photo / grille de cartes / gros chiffres / split couleur). Ne répète pas le même gabarit.
+- Slide 1 (titre) : fond gradient "brand" (ou photo pleine + overlay), eyebrow badge, énorme titre display en onBrand, sous-titre, line accent, 1-2 blobs déco.
+- Inclure : sommaire/agenda, des sections de contenu, une timeline si pertinent, une slide de synthèse/recommandations, et si le sujet s'y prête une slide "acteurs/menaces" en grille de cartes.
+- Respecte une grille cohérente, marges régulières, rien qui déborde de 1280x720, pas de chevauchement involontaire de textes.
+
+EXEMPLE (slide titre, à imiter en qualité — adapte au sujet) :
+{"background":{"type":"gradient","value":"brand"},"elements":[
+ {"type":"ellipse","x":840,"y":-120,"w":520,"h":520,"fill":"accent","opacity":0.16,"z":1},
+ {"type":"ellipse","x":-80,"y":420,"w":360,"h":360,"gradient":{"from":"secondary","to":"primary","angle":45},"opacity":0.22,"z":1},
+ {"type":"badge","x":80,"y":120,"w":260,"h":38,"text":"CYBER THREAT INTEL","fill":"accent","color":"onBrand","fontSize":14,"fontWeight":700,"uppercase":true,"z":3},
+ {"type":"text","x":80,"y":188,"w":1040,"h":210,"text":"Titre principal percutant","fontFamily":"display","fontSize":72,"fontWeight":800,"color":"onBrand","valign":"top","z":3},
+ {"type":"line","x":80,"y":410,"w":260,"h":6,"fill":"accent","z":3},
+ {"type":"text","x":80,"y":444,"w":820,"h":90,"text":"Sous-titre descriptif clair sur deux lignes maximum.","fontFamily":"body","fontSize":26,"color":"onBrand","opacity":0.92,"z":3}
+]}
+
+EXEMPLE (slide contenu photo + overlay + cartes) :
+{"background":{"type":"color","value":"bg"},"elements":[
+ {"type":"image","x":0,"y":0,"w":560,"h":720,"src":"https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1400&q=80","z":1},
+ {"type":"rect","x":0,"y":0,"w":560,"h":720,"gradient":{"from":"#0000","to":"#0009","angle":90},"z":2},
+ {"type":"text","x":48,"y":560,"w":480,"h":110,"text":"Légende sur la photo","fontFamily":"display","fontSize":30,"fontWeight":700,"color":"onBrand","shadow":true,"z":3},
+ {"type":"badge","x":620,"y":80,"w":210,"h":34,"text":"CONTEXTE","fill":"primary","color":"onBrand","fontSize":13,"uppercase":true,"z":3},
+ {"type":"text","x":620,"y":128,"w":600,"h":90,"text":"Titre de section","fontFamily":"display","fontSize":46,"fontWeight":800,"color":"text","z":3},
+ {"type":"line","x":620,"y":214,"w":200,"h":5,"fill":"accent","z":3},
+ {"type":"rect","x":620,"y":252,"w":600,"h":120,"fill":"surface","radius":16,"shadow":true,"accent":"accent","z":2},
+ {"type":"text","x":656,"y":272,"w":540,"h":36,"text":"Point clé 1","fontFamily":"display","fontSize":22,"fontWeight":700,"color":"text","z":3},
+ {"type":"text","x":656,"y":312,"w":540,"h":52,"text":"Explication concise du point.","fontFamily":"body","fontSize":18,"color":"muted","z":3}
+]}
+
+Réponds UNIQUEMENT avec le JSON (commence par { et finis par }). Pas de markdown, pas de commentaire.`;
 }
 function extractJSON(txt){
   let t = txt.trim();
@@ -1054,6 +1103,7 @@ function renderProps(){
   if(e.type==='image') html+=imageControls(e);
   if(['rect','ellipse','badge','text'].includes(e.type)) html+=fillControls(e);
   if(['rect','ellipse','line','image'].includes(e.type)) html+=strokeControls(e);
+  html+= advControls(e);
   html+= `<div class="row" style="margin-top:14px">
     <button class="btn sm" data-act="front">Avant</button>
     <button class="btn sm" data-act="back">Arrière</button>
@@ -1114,6 +1164,18 @@ function strokeControls(e){
   return `<label class="fld">Bordure</label>${colorControl('stroke', e.stroke, '')}
   ${field('Épaisseur','strokeWidth',e.strokeWidth||0,'number')}`;
 }
+function advControls(e){
+  if(!['rect','ellipse','text','badge','image','line'].includes(e.type)) return '';
+  let h='<label class="fld">Style avancé</label><div class="toolbar" style="display:flex;gap:6px;flex-wrap:wrap">';
+  if(['rect','ellipse','badge','line'].includes(e.type)) h+='<button class="btn sm" data-quick="brand">Dégradé brand</button>';
+  if(['rect','text'].includes(e.type)) h+='<button class="btn sm" data-quick="accent">Liseré accent</button>';
+  if(e.type==='rect') h+='<button class="btn sm" data-quick="glass">Glass</button>';
+  if(e.type==='text') h+='<button class="btn sm" data-quick="tgrad">Texte dégradé</button>';
+  h+='<button class="btn sm" data-quick="shadow">Ombre</button>';
+  h+='<button class="btn sm" data-quick="clear">Réinit.</button>';
+  h+='</div>';
+  return h;
+}
 function colorControl(key,val,fallbackRole){
   const th=theme();
   const hex = toHex(resolveColor(val, th) || resolveColor(fallbackRole,th) || '#888888');
@@ -1168,6 +1230,18 @@ function bindPropInputs(els){
       persistDeck(); renderEditor(); renderFilmstrip(); renderProps();
     }));
   });
+  $$('#propsBody [data-quick]').forEach(b=>b.addEventListener('click',()=>{
+    const q=b.getAttribute('data-quick');
+    els.forEach(e=>{
+      if(q==='brand'){ e.fill='brand'; delete e.gradient; }
+      if(q==='accent'){ e.accent='accent'; e.accentWidth=e.type==='text'?5:6; }
+      if(q==='glass'){ e.glass=!e.glass; }
+      if(q==='tgrad'){ e.textGradient = e.textGradient?undefined:'brand'; }
+      if(q==='shadow'){ e.shadow=!e.shadow; }
+      if(q==='clear'){ delete e.gradient; delete e.accent; delete e.glass; delete e.textGradient; e.shadow=false; }
+    });
+    persistDeck(); renderEditor(); renderFilmstrip(); renderProps();
+  }));
   $$('#propsBody [data-act]').forEach(b=>b.addEventListener('click',()=>{
     const act=b.getAttribute('data-act'); const sl=currentSlide();
     if(act==='del'){ sl.elements=sl.elements.filter(e=>!state.selected.has(e.id)); state.selected.clear(); }
@@ -1273,6 +1347,8 @@ function pHex(c,theme){ return toHex(resolveColor(c,theme)).replace('#',''); }
 async function buildPptx(deck, theme, PptxGenJS, html2canvas){
   const I = px=> px/96;        // 1280px = 13.333in @96dpi
   const PT = px=> px*0.75;     // px -> pt
+  const solidOf = e2=>{ if(e2.gradient) return pHex(e2.gradient.from||'primary',theme); if(e2.fill==='brand') return pHex('primary',theme); if(e2.fill) return pHex(e2.fill,theme); return null; };
+  const tgColor = g=>{ if(typeof g==='string') return pHex(g==='brand'?'primary':g,theme); return pHex((g&&g.from)||'primary',theme); };
   const pptx = new PptxGenJS();
   pptx.defineLayout({name:'MS', width:13.333, height:7.5});
   pptx.layout='MS';
@@ -1313,22 +1389,25 @@ async function buildPptx(deck, theme, PptxGenJS, html2canvas){
       const rot=e.rotation||0, op=(e.opacity==null?1:e.opacity);
       const trans=Math.round((1-op)*100);
       if(e.type==='text'||e.type==='badge'){
+        const solid = solidOf(e);
         const opts={ x,y,w,h, fontSize:PT(e.fontSize||28),
-          color:pHex(e.color||'text',theme),
+          color: e.textGradient ? tgColor(e.textGradient) : pHex(e.color||'text',theme),
           bold:(e.fontWeight||400)>=600,
           align:e.align||'left', valign:e.valign==='middle'?'middle':e.valign==='bottom'?'bottom':'top',
           fontFace:(e.fontFamily==='mono'?'Consolas':(e.fontFamily==='display'?'Poppins':'Inter')),
           rotate:rot, margin:e.type==='badge'?4:2, wrap:true };
-        if(e.fill){ opts.fill={color:pHex(e.fill,theme), transparency:trans}; }
-        if(e.type==='badge'){ opts.fill={color:pHex(e.fill||'primary',theme)}; opts.rectRadius=0.1; opts.align='center'; opts.valign='middle'; }
+        if(solid && e.type!=='badge'){ opts.fill={color:solid, transparency:trans}; }
+        if(e.type==='badge'){ opts.fill={color: solid||pHex('primary',theme)}; opts.rectRadius=0.1; opts.align='center'; opts.valign='middle'; }
         s.addText(String(e.text||''), opts);
       } else if(e.type==='rect'||e.type==='ellipse'){
         const shp = e.type==='ellipse'?pptx.ShapeType.ellipse:pptx.ShapeType.rect;
+        const solid = e.glass ? pHex('surface',theme) : solidOf(e);
         const opts={ x,y,w,h, rotate:rot,
-          fill: e.fill?{color:pHex(e.fill,theme), transparency:trans}:{type:'none'},
+          fill: solid?{color:solid, transparency: e.glass?70:trans}:{type:'none'},
           line: e.stroke?{color:pHex(e.stroke,theme), width:e.strokeWidth||1}:{type:'none'} };
         if(e.type==='rect' && e.radius){ opts.rectRadius=Math.min(0.5, I(e.radius)); }
         s.addShape(shp, opts);
+        if(e.accent){ s.addShape(pptx.ShapeType.rect,{ x, y, w:I(e.accentWidth||6), h, fill:{color:pHex(e.accent,theme)}, line:{type:'none'} }); }
       } else if(e.type==='line'){
         s.addShape(pptx.ShapeType.line, { x,y,w,h:0, rotate:rot, line:{color:pHex(e.stroke||'primary',theme), width:e.strokeWidth||3} });
       } else if(e.type==='image' && e.src){
@@ -1354,7 +1433,7 @@ async function exportPptx(){
 
 /* ----- standalone HTML export ----- */
 function buildStandaloneHtml(){
-  const fns=[resolveColor, slideBg, elBaseStyle, buildElEl, buildSlideEl, toHex, buildPptx].map(f=>f.toString()).join('\n');
+  const fns=[resolveColor, gradStr, resolveFill, slideBg, elBaseStyle, buildElEl, buildSlideEl, toHex, pHex, buildPptx].map(f=>f.toString()).join('\n');
   const deckJSON = JSON.stringify(state.deck);
   const runtime = `
 const DECK = ${deckJSON};
