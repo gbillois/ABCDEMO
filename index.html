@@ -6,7 +6,7 @@
 <title>MagicSlider — AI HTML Slides → PPTX</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Rajdhani:wght@500;600;700&family=Orbitron:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Carlito:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&family=Rajdhani:wght@500;600;700&family=Orbitron:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
     --app-bg:#0c0f17; --panel:#141925; --panel2:#1b2230; --line:#283142;
@@ -151,6 +151,7 @@
         <h3>Style graphique</h3>
         <select id="styleSelect" class="ctl">
           <option value="wavestone">Wavestone (par défaut)</option>
+          <option value="wavestone2">Wavestone2</option>
           <option value="darkcyber">Dark Cyber</option>
           <option value="custom">Charte personnalisée…</option>
         </select>
@@ -342,6 +343,9 @@ const THEMES = {
   wavestone:{ name:'Wavestone', primary:'#5A2BE0', accent:'#04F06A', secondary:'#228D95',
     bg:'#ffffff', surface:'#F5F4F9', text:'#16121F', muted:'#6b6680', onBrand:'#ffffff',
     fontDisplay:'Poppins', fontBody:'Inter', mood:'corporate cyber premium, indigo profond + vert vif, beaucoup de blanc, cartes nettes' },
+  wavestone2:{ name:'Wavestone2', primary:'#451DC7', accent:'#04F06A', secondary:'#228D95',
+    bg:'#ffffff', surface:'#F1EEFB', text:'#16121F', muted:'#6B6580', onBrand:'#ffffff',
+    fontDisplay:'Carlito', fontBody:'Carlito', mood:'style extrait du deck PPTX de reference : briefing conseil compact, photo plein cadre adaptee au theme, overlay indigo, micro-chrome uppercase, grands numeros fantomes, regles vert acide, cartes analytiques denses' },
   darkcyber:{ name:'Dark Cyber', primary:'#00e5ff', accent:'#ff2e63', secondary:'#7c4dff',
     bg:'#0a0e17', surface:'#121a2b', text:'#e6f1ff', muted:'#8a9bb8', onBrand:'#02121a',
     fontDisplay:'Orbitron', fontBody:'Rajdhani', mood:'dark futuriste, néons cyan/magenta sur fond sombre, lueurs, grilles tech' }
@@ -383,7 +387,7 @@ function toast(msg,type){ type=type||'info'; const t=document.createElement('div
 /* ============================================================================
    SLIDE DOC (iframe srcdoc) — shared render unit
    ============================================================================ */
-const FONTS_LINK='<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Rajdhani:wght@500;600;700&family=Orbitron:wght@600;700;800&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">';
+const FONTS_LINK='<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Carlito:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&family=Rajdhani:wght@500;600;700&family=Orbitron:wght@600;700;800&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">';
 const ICONIFY='https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js';
 const H2C='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
 
@@ -426,9 +430,52 @@ const THEME_CSS = {
 .node.green{background:var(--green-d)}
 .row{display:flex}.col{display:flex;flex-direction:column}.between{justify-content:space-between}.center{align-items:center}.mta{margin-top:auto}
 .blob{position:absolute;filter:blur(40px);opacity:.16}
-.muted{color:var(--muted)}.green{color:var(--green-d)}.indigo{color:var(--indigo)}
-.list{list-style:none;padding:0;margin:0}.list li{display:flex;gap:14px;align-items:flex-start;margin:14px 0;font-size:18px;line-height:1.45}
-`,
+	.muted{color:var(--muted)}.green{color:var(--green-d)}.indigo{color:var(--indigo)}
+	.list{list-style:none;padding:0;margin:0}.list li{display:flex;gap:14px;align-items:flex-start;margin:14px 0;font-size:18px;line-height:1.45}
+	`,
+  wavestone2: `
+	:root{--ws2-indigo:#451DC7;--ws2-indigo-d:#2D1380;--ws2-purple:#5226E0;--ws2-green:#04F06A;--ws2-green-d:#088A42;--ws2-teal:#228D95;--ws2-ink:#16121F;--ws2-deep:#3A3550;--ws2-muted:#6B6580;--ws2-soft:#817C95;--ws2-paper:#FFFFFF;--ws2-lav:#F1EEFB;--ws2-line:#E6E4EE;--ws2-red:#D8412F;--ws2-amber:#C8861A;--ws2-shadow:0 16px 36px rgba(22,18,31,.12)}
+	.slide{width:1280px;height:720px;position:relative;overflow:hidden;background:var(--ws2-paper);color:var(--ws2-ink);font-family:'Carlito','Calibri','Inter',sans-serif;font-size:16px}
+	.pad{position:absolute;inset:0;padding:58px 64px;display:flex;flex-direction:column}
+	.eyebrow{font-family:'Carlito','Inter',sans-serif;font-weight:700;font-size:14px;letter-spacing:.11em;text-transform:uppercase;color:var(--ws2-ink)}
+	.rule{width:112px;height:3px;background:var(--ws2-green);margin:0 0 22px}
+	.title{font-family:'Carlito','Calibri','Inter',sans-serif;font-weight:700;font-size:48px;line-height:1.02;margin:12px 0 0;color:var(--ws2-indigo)}
+	.title.xl{font-size:78px;line-height:.98;color:#fff}
+	.title em{font-style:normal;color:var(--ws2-green)}
+	.subtitle{font-size:21px;line-height:1.34;color:var(--ws2-muted);max-width:860px;margin-top:14px}
+	.meta{font-family:'Arial Narrow','Liberation Sans Narrow','Carlito',sans-serif;font-size:14px;letter-spacing:.07em;text-transform:uppercase;color:var(--ws2-soft)}
+	.ghost-num{position:absolute;font-family:'Arial Narrow','Liberation Sans Narrow','Carlito',sans-serif;font-weight:700;font-size:220px;line-height:.8;color:var(--ws2-lav);z-index:0;pointer-events:none}
+	.footer{position:absolute;left:64px;right:64px;bottom:38px;display:flex;align-items:center;gap:12px;font-family:'Arial Narrow','Liberation Sans Narrow','Carlito',sans-serif;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--ws2-soft)}
+	.footer:before{content:"";width:7px;height:7px;background:var(--ws2-green);border-radius:50%}
+	.card{background:var(--ws2-paper);border:1px solid var(--ws2-line);border-radius:8px;padding:18px 20px;box-shadow:var(--ws2-shadow)}
+	.card.compact{padding:14px 16px;box-shadow:none}
+	.card.surf{background:var(--ws2-lav);border-color:transparent;box-shadow:none}
+	.card.rail{border-left:5px solid var(--ws2-indigo)}
+	.card.rail.green{border-left-color:var(--ws2-green-d)}.card.rail.red{border-left-color:var(--ws2-red)}.card.rail.amber{border-left-color:var(--ws2-amber)}.card.rail.teal{border-left-color:var(--ws2-teal)}
+	.card h3{font-family:'Carlito','Inter',sans-serif;font-weight:700;font-size:19px;margin:0 0 7px;color:var(--ws2-ink)}
+	.card p{margin:0;color:var(--ws2-muted);font-size:14px;line-height:1.42}
+	.grid{display:grid;gap:18px}.grid-2{grid-template-columns:1fr 1fr}.grid-3{grid-template-columns:repeat(3,1fr)}.grid-4{grid-template-columns:repeat(4,1fr)}
+	.kpi{font-family:'Arial Narrow','Liberation Sans Narrow','Carlito',sans-serif;font-weight:700;font-size:58px;line-height:.95;color:var(--ws2-green-d)}
+	.kpi-label{font-size:14px;color:var(--ws2-muted);margin-top:6px}
+	.chip{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:8px;background:var(--ws2-lav);color:var(--ws2-indigo);font-size:23px}
+	.badge{display:inline-flex;align-items:center;gap:7px;padding:5px 10px;border-radius:6px;background:var(--ws2-lav);color:var(--ws2-indigo);font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+	.badge.green{background:#E1FDED;color:var(--ws2-green-d)}.badge.red{background:#FBE7E4;color:var(--ws2-red)}.badge.amber{background:#FBEDD9;color:var(--ws2-amber)}
+	.photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+	.photo-mask{position:absolute;inset:0}
+	.photo-mask.l{background:linear-gradient(90deg,rgba(45,19,128,.94) 0%,rgba(69,29,199,.68) 42%,rgba(69,29,199,.08) 78%)}
+	.photo-mask.b{background:linear-gradient(0deg,rgba(22,18,31,.95) 0%,rgba(45,19,128,.52) 52%,rgba(45,19,128,0) 86%)}
+	.photo-mask.full{background:linear-gradient(120deg,rgba(45,19,128,.88),rgba(69,29,199,.58))}
+	.hero{position:absolute;inset:0;background:linear-gradient(120deg,var(--ws2-indigo),var(--ws2-indigo-d));color:#fff}
+	.hero .title,.hero .eyebrow,.hero .subtitle,.dark .title,.dark .eyebrow,.dark .subtitle{color:#fff}
+	.hero .subtitle,.dark .subtitle{color:rgba(255,255,255,.84)}
+	.dark{background:var(--ws2-ink);color:#fff}
+	.timeline{position:relative;height:3px;background:var(--ws2-line);margin:34px 0}
+	.node{position:absolute;top:50%;width:16px;height:16px;border-radius:50%;background:var(--ws2-indigo);transform:translate(-50%,-50%)}
+	.node.green{background:var(--ws2-green)}
+	.row{display:flex}.col{display:flex;flex-direction:column}.between{justify-content:space-between}.center{align-items:center}.mta{margin-top:auto}
+	.muted{color:var(--ws2-muted)}.green{color:var(--ws2-green)}.indigo{color:var(--ws2-indigo)}
+	.list{list-style:none;padding:0;margin:0}.list li{display:flex;gap:12px;align-items:flex-start;margin:10px 0;font-size:16px;line-height:1.36}
+	`,
   darkcyber: `
 :root{--cy:#00e5ff;--mg:#ff2e63;--vi:#7c4dff;--bg:#0a0e17;--surface:#121a2b;--ink:#e6f1ff;--muted:#8a9bb8;--line:#1e2a40;--grad:linear-gradient(120deg,#00e5ff,#7c4dff);--glow:0 0 40px rgba(0,229,255,.18)}
 *{border-radius:0 !important}
@@ -585,11 +632,15 @@ function availableModels(){ const def=DEFAULT_MODELS[state.settings.provider]||[
 /* ============================================================================
    PROMPTS
    ============================================================================ */
-function curTheme(){ const v=$('#styleSelect').value; if(v==='custom'&&state.customTheme) return state.customTheme; if(v==='darkcyber') return THEMES.darkcyber; return THEMES.wavestone; }
+function curTheme(){ const v=$('#styleSelect').value; if(v==='custom'&&state.customTheme) return state.customTheme; if(v==='wavestone2') return THEMES.wavestone2; if(v==='darkcyber') return THEMES.darkcyber; return THEMES.wavestone; }
 function paletteText(th){
   return 'Ambiance: '+(th.mood||'premium')+'.\n'
     +'Couleurs — primary '+th.primary+' · accent '+th.accent+' · secondary '+th.secondary+' · fond '+th.bg+' · surface '+th.surface+' · texte '+th.text+' · texte sourd '+th.muted+' · sur-fond-coloré '+th.onBrand+'.\n'
-    +'Polices — titres "'+th.fontDisplay+'", texte "'+th.fontBody+'" (déjà chargées : Poppins, Inter, IBM Plex Mono, Rajdhani, Orbitron, Fraunces, Playfair Display).';
+    +'Polices — titres "'+th.fontDisplay+'", texte "'+th.fontBody+'" (déjà chargées : Poppins, Inter, Carlito, IBM Plex Mono, Rajdhani, Orbitron, Fraunces, Playfair Display).';
+}
+function styleRules(th){
+  if(th.name==='Wavestone2') return 'STYLE WAVESTONE2 : conserve le langage du deck PPTX de reference. Autorise des cartes compactes legerement arrondies (6-8px), de fines regles vert acide, de petits badges, des rails de severite, des grands numeros fantomes et un chrome de pied de page discret. Images : le LLM doit choisir autonomement de belles photos reelles, precises et adaptees au theme du deck cree, slide par slide, sans banque fixe ni images generiques par defaut ; utilise des URLs HTTPS directes et valides, avec overlay indigo/noir lisible.';
+  return 'STYLE IMPOSE : coins parfaitement CARRES partout (aucun border-radius, aucune forme arrondie). N ajoute JAMAIS de barre ou filet colore en haut ou a gauche d un bloc de texte ou d une carte. Pour separer un titre, utilise de l espace, pas une barre coloree.';
 }
 function genHtmlSystem(th, n, photoPct){
   const dens = photoPct<=20 ? 'TRÈS PEU de photos : compose surtout avec icônes plates, cartes, gros chiffres, dégradés et formes.'
@@ -612,7 +663,7 @@ RÈGLES SLIDE :
 ${paletteText(th)}
 
 DIRECTION ARTISTIQUE (c'est ce qui fait la beauté) :
-- PHOTOS : ${dens} Utilise de vraies images Unsplash pertinentes : <img src="https://images.unsplash.com/photo-XXXXXXXXXXXXX-xxxxxxxxxxxx?w=1600&q=80" style="..."> (demi-page bord à bord, ou plein fond). Sur une photo, pose TOUJOURS un overlay dégradé sombre (un div en position:absolute, ou un ::before) puis du texte clair lisible.
+- PHOTOS : ${dens} Tu dois trouver et inclure autonomement de belles photos reelles adaptees au theme exact du deck et au contenu de chaque slide. N'utilise pas de bibliotheque fixe, pas d'image generique, pas de placeholder. Selectionne des images avec un sujet visuel precis tire du brief (lieu, secteur, metier, produit, scene, preuve, contexte) et insere des URLs HTTPS directes et valides (Unsplash, Wikimedia Commons, pages media officielles, ou autre source publique stable). Sur chaque photo, pose TOUJOURS un overlay degrade sombre (un div en position:absolute, ou un ::before) puis du texte clair lisible.
 - FLAT ICONS partout : <iconify-icon icon="tabler:radar"></iconify-icon> (collections mdi/tabler/ph/solar/lucide). Mets-les dans les cartes, les puces, les KPI, les étapes de timeline — souvent dans une pastille ronde colorée.
 - Dégradés riches, cartes à liseré/ombre, GROS chiffres (88-150px), timelines (ligne + jalons), hiérarchie typo (eyebrow majuscule → titre 56-80px → sous-titre → corps), filets accent sous les titres, blobs décoratifs flous en fond.
 - VARIE fortement les mises en page d'une slide à l'autre (photo gauche / photo droite / plein fond / grille de cartes / split couleur / gros chiffres).
@@ -655,15 +706,15 @@ function genPlanSystem(th,n,photoPct,baseCss){
   return `Tu es directeur artistique senior. ÉTAPE 1/2 : prépare un deck de ${n} slides HTML 1280x720 de niveau agence, pour un COMITÉ EXÉCUTIF (board). Qualité visuelle exigeante.
 
 UN DESIGN SYSTEM CSS PROFESSIONNEL EST DÉJÀ FOURNI (ci-dessous). Tu DOIS bâtir les slides avec SES classes (.pad, .eyebrow, .title, .title.xl, .title em, .subtitle, .card, .grid .grid-2/3/4, .kpi, .kpi-label, .chip, .badge, .photo, .photo-mask.l/.b/.full, .hero, .on-dark, .dark, .timeline, .node, .blob, .list, .row/.col/.between/.center/.mta). Ne réécris PAS ce système.
-STYLE IMPOSÉ : coins parfaitement CARRÉS partout (aucun border-radius, aucune forme arrondie). N'ajoute JAMAIS de barre ou filet coloré en haut ou à gauche d'un bloc de texte ou d'une carte. Pour séparer un titre, utilise de l'espace, pas une barre colorée.
+${styleRules(th)}
 
 SORTIE STRICTE (aucun markdown), dans cet ordre :
 1) UN bloc <style>...</style> = UNIQUEMENT le CSS COMPLÉMENTAIRE spécifique (mises en page particulières, variantes) qui n'existe pas déjà dans le système fourni. Reste court si le système suffit.
-2) ENSUITE, pour CHAQUE slide, une entrée commençant EXACTEMENT par "===SLIDE===" puis un brief PRÉCIS de 2 à 4 phrases : titre exact + 2 à 5 points de contenu RÉELS et spécifiques au sujet (chiffres, noms, dates) + mise en page concrète (ex: "photo plein fond gauche + 3 cartes à droite", "hero dégradé + 4 KPI", "timeline horizontale 5 jalons") + "photo: oui/non (+sujet précis pour Unsplash)" + 2-3 icônes Iconify suggérées.
+2) ENSUITE, pour CHAQUE slide, une entrée commençant EXACTEMENT par "===SLIDE===" puis un brief PRÉCIS de 2 à 4 phrases : titre exact + 2 à 5 points de contenu RÉELS et spécifiques au sujet (chiffres, noms, dates) + mise en page concrète (ex: "photo plein fond gauche + 3 cartes à droite", "hero dégradé + 4 KPI", "timeline horizontale 5 jalons") + "photo: oui/non" et, si oui, un sujet photo tres precis a trouver autonomement selon le theme du deck + 2-3 icônes Iconify suggérées.
 
 Produis EXACTEMENT ${n} entrées ===SLIDE===. Contenu réel et substantiel (c'est pour un board), jamais de placeholder.
 ${paletteText(th)}
-Densité photos : ${dens}. VARIE fortement les mises en page slide à slide (titre hero, photo demi-page gauche, photo demi-page droite, photo plein fond, grille de cartes, gros KPI, timeline, split couleur, slide .dark). Slide 1 = titre (.hero). Prévois : sommaire, sections de fond, une timeline détaillée si pertinent, une grille (acteurs/risques), une synthèse/recommandations finale.
+Densité photos : ${dens}. Les slides marquees "photo: oui" devront recevoir en etape 2 une vraie image choisie par toi, belle et coherente avec le theme du deck. VARIE fortement les mises en page slide à slide (titre hero, photo demi-page gauche, photo demi-page droite, photo plein fond, grille de cartes, gros KPI, timeline, split couleur, slide .dark). Slide 1 = titre (.hero). Prévois : sommaire, sections de fond, une timeline détaillée si pertinent, une grille (acteurs/risques), une synthèse/recommandations finale.
 
 /* DESIGN SYSTEM FOURNI (réutilise ses classes) */
 ${(baseCss||'').slice(0,5200)}
@@ -676,9 +727,9 @@ function genSlideSystem(th,baseCss){
 SORTIE : UNIQUEMENT le HTML INTERNE de la slide (le contenu), SANS <section>, SANS <style>, SANS <script>, SANS markdown.
 
 Tu DOIS réutiliser EN PRIORITÉ les classes du DESIGN SYSTEM (fourni dans le message) : enveloppe le contenu dans <div class="pad"> (sauf slides à photo/hero plein cadre), utilise .eyebrow/.title/.subtitle pour les en-têtes, .card (+grilles) pour les blocs, .kpi pour les chiffres, .chip + <iconify-icon> pour les icônes, .photo + .photo-mask pour les images, .hero/.dark pour les fonds, .timeline/.node pour les frises.
-STYLE IMPOSÉ : coins CARRÉS partout (aucun arrondi). N'ajoute AUCUNE barre/filet coloré en haut ou à gauche des blocs de texte ou des cartes.
+${styleRules(th)}
 Compose RICHE et soigné, aligné sur une grille, rien de vide, RIEN ne déborde de 1280x720. Respecte la mise en page demandée dans le brief.
-Photos : <img class="photo" src="https://images.unsplash.com/photo-XXXXXXXXXXXXX-xxxxxxxxxxxx?w=1600&q=80"> dans un conteneur position:absolute + un <div class="photo-mask l/b/full"></div> par-dessus, puis le texte au-dessus (z-index). Choisis des photos Unsplash réalistes et pertinentes au sujet.
+Photos : si le brief demande une photo, tu dois choisir autonomement une belle image reelle adaptee au theme du deck et a cette slide precise, puis utiliser une URL HTTPS directe et valide dans <img class="photo" src="...">. La photo doit ameliorer le sens et l'esthetique de la slide, pas seulement decorer. Place l'image dans un conteneur position:absolute + un <div class="photo-mask l/b/full"></div> par-dessus, puis le texte au-dessus (z-index). Ne reutilise pas une bibliotheque fixe, n'utilise pas d'image generique et n'invente pas d'URL factice.
 Icônes : <iconify-icon icon="tabler:..."></iconify-icon> (mdi/tabler/ph/solar/lucide), souvent dans une .chip.
 Harmonise-toi avec la slide précédente fournie (même langage visuel), SANS recopier son contenu.
 ${paletteText(th)}`;
