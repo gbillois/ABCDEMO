@@ -389,7 +389,10 @@ function toast(msg,type){ type=type||'info'; const t=document.createElement('div
    ============================================================================ */
 const FONTS_LINK='<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Carlito:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&family=Rajdhani:wght@500;600;700&family=Orbitron:wght@600;700;800&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">';
 const ICONIFY='https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js';
-const H2C='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+const PPTX_LOCAL='assets/pptxgen.bundle.js';
+const PPTX_CDN='https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js';
+const H2C_LOCAL='assets/html2canvas.min.js';
+const H2C_CDN='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
 
 /* ---------- built-in premium slide design systems (the beauty driver) ---------- */
 const THEME_CSS = {
@@ -520,14 +523,14 @@ function baseSlideCss(){
 }
 function slideDoc(css, inner, forCapture){
   const ready = forCapture ? ('<script>(function(){function done(){window.__msReady=true;}'
+    + 'function loadH2C(){return new Promise(function(res,rej){if(window.html2canvas){res();return;}function one(src,next){var s=document.createElement("script");s.src=src;s.onload=res;s.onerror=next;document.head.appendChild(s);}one("'+H2C_LOCAL+'",function(){one("'+H2C_CDN+'",function(){rej(new Error("html2canvas unavailable"));});});});}'
     + 'function conv(){var ic=document.querySelectorAll("iconify-icon");for(var i=0;i<ic.length;i++){var e=ic[i];var sv=e.shadowRoot&&e.shadowRoot.querySelector("svg");if(sv){var c=sv.cloneNode(true);var cs=getComputedStyle(e);var w=parseInt(cs.width)||e.clientWidth||24,h=parseInt(cs.height)||e.clientHeight||24;c.setAttribute("width",w);c.setAttribute("height",h);c.style.width=w+"px";c.style.height=h+"px";c.style.color=cs.color;c.style.verticalAlign="middle";e.parentNode.replaceChild(c,e);}}}'
     + 'function imgs(){var a=Array.prototype.slice.call(document.images);return Promise.all(a.map(function(i){return i.complete?1:new Promise(function(r){i.onload=i.onerror=r;});}));}'
     + 'function icons(){return new Promise(function(r){var t=0;var iv=setInterval(function(){t+=100;var ic=document.querySelectorAll("iconify-icon");var ok=true;for(var i=0;i<ic.length;i++){var e=ic[i];if(!(e.shadowRoot&&e.shadowRoot.querySelector("svg"))){ok=false;break;}}if(ok||t>4500){clearInterval(iv);r();}},100);});}'
     + 'function fixgrad(){var all=document.querySelectorAll("*");for(var i=0;i<all.length;i++){var e=all[i];var cs=getComputedStyle(e);var clip=(cs.webkitBackgroundClip||cs.backgroundClip||"");var tf=(cs.webkitTextFillColor||"");if(clip.indexOf("text")>=0||tf==="rgba(0, 0, 0, 0)"||tf==="transparent"){var bg=cs.backgroundImage||"";var m=bg.match(/rgba?\\([^)]+\\)|#[0-9a-fA-F]{3,8}/);var col=m?m[0]:(cs.color&&cs.color!=="rgba(0, 0, 0, 0)"?cs.color:"#333333");e.style.setProperty("background-image","none","important");e.style.setProperty("-webkit-background-clip","border-box","important");e.style.setProperty("background-clip","border-box","important");e.style.setProperty("-webkit-text-fill-color",col,"important");e.style.setProperty("color",col,"important");}}}'
-    + '(async function(){try{if(document.fonts&&document.fonts.ready)await document.fonts.ready;}catch(e){}await imgs();await icons();conv();fixgrad();setTimeout(done,80);})();})();<\/script>') : '';
+    + '(async function(){try{if(document.fonts&&document.fonts.ready)await document.fonts.ready;}catch(e){}await loadH2C();await imgs();await icons();conv();fixgrad();setTimeout(done,80);})();})();<\/script>') : '';
   return '<!DOCTYPE html><html><head><meta charset="utf-8">'+FONTS_LINK
     + '<script src="'+ICONIFY+'"><\/script>'
-    + (forCapture?('<script src="'+H2C+'"><\/script>'):'')
     + '<style>'+ baseSlideCss().replace('__DECKCSS__', '\n'+(css||'')+'\n') +'</style>'
     + ready
     + '</head><body><section class="slide">'+ (inner||'') +'</section></body></html>';
@@ -1094,13 +1097,24 @@ function captureSlide(css, inner, scale){
     document.body.appendChild(ifr);
   });
 }
-function loadScriptDyn(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('Échec chargement '+src)); document.head.appendChild(s); }); }
+function loadScriptDyn(src){ return new Promise((res,rej)=>{
+  const old=document.querySelector('script[data-src="'+src+'"],script[src="'+src+'"]');
+  if(old){ res(); return; }
+  const s=document.createElement('script'); s.src=src; s.setAttribute('data-src',src);
+  s.onload=res; s.onerror=()=>rej(new Error('Échec chargement '+src)); document.head.appendChild(s);
+}); }
+async function ensurePptxGen(){
+  if(typeof PptxGenJS!=='undefined') return;
+  try{ await loadScriptDyn(PPTX_LOCAL); }
+  catch(e){ await loadScriptDyn(PPTX_CDN); }
+  if(typeof PptxGenJS==='undefined') throw new Error('PptxGenJS indisponible');
+}
 
 async function exportPptx(){
   if(!deck()||!deck().slides.length){ toast('Aucune slide à exporter.','error'); return; }
   setBusy('#createBusy','#createBusyTxt',true,'Préparation…'); switchTab('create');
   try{
-    if(typeof PptxGenJS==='undefined') await loadScriptDyn('https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js');
+    await ensurePptxGen();
     const pptx=new PptxGenJS(); pptx.defineLayout({name:'MS',width:13.333,height:7.5}); pptx.layout='MS';
     for(let i=0;i<deck().slides.length;i++){
       $('#createBusyTxt').textContent='Capture slide '+(i+1)+' / '+deck().slides.length+'…';
@@ -1144,7 +1158,33 @@ async function collectEls(ifr){
   const slide=doc.querySelector('.slide'); const base=slide.getBoundingClientRect();
   const cs0=win.getComputedStyle(slide); const bg0=parseRGB(cs0.backgroundColor);
   const data={ bg:(bg0&&bg0.a>0)?toHex2(bg0):'FFFFFF', els:[], images:[] };
-  async function shot(el,x,y,w,h,jpeg){ try{ const cv=await win.html2canvas(el,{backgroundColor:null,scale:2,useCORS:true,logging:false,width:Math.round(w),height:Math.round(h)}); const id=data.images.length; data.images.push(cv.toDataURL(jpeg?'image/jpeg':'image/png',0.95)); data.els.push({t:'img',img:id,x:Math.round(x),y:Math.round(y),w:Math.round(w),h:Math.round(h)}); }catch(e){} }
+  async function shot(el,x,y,w,h,jpeg,hideChildren){
+    const hidden=[]; let ownTextStyle=null;
+    if(hideChildren) Array.prototype.slice.call(el.children).forEach(c=>{ hidden.push([c,c.style.visibility]); c.style.visibility='hidden'; });
+    if(hideChildren&&directText(el)){
+      ownTextStyle=[el.style.color,el.style.webkitTextFillColor,el.style.textShadow];
+      el.style.setProperty('color','transparent','important');
+      el.style.setProperty('-webkit-text-fill-color','transparent','important');
+      el.style.setProperty('text-shadow','none','important');
+    }
+    try{
+      const cv=await win.html2canvas(el,{backgroundColor:null,scale:2,useCORS:true,allowTaint:false,logging:false,width:Math.round(w),height:Math.round(h),windowWidth:1280,windowHeight:720});
+      const id=data.images.length; data.images.push(cv.toDataURL(jpeg?'image/jpeg':'image/png',0.95));
+      data.els.push({t:'img',img:id,x:Math.round(x),y:Math.round(y),w:Math.round(w),h:Math.round(h)});
+    }catch(e){}
+    finally{
+      if(ownTextStyle){ el.style.color=ownTextStyle[0]; el.style.webkitTextFillColor=ownTextStyle[1]; el.style.textShadow=ownTextStyle[2]; }
+      hidden.forEach(p=>{ p[0].style.visibility=p[1]; });
+    }
+  }
+  function emitText(el,cs,x,y,w,h){
+    const txt=directText(el); if(!txt) return;
+    let colHex; const clip=(cs.webkitBackgroundClip||cs.backgroundClip||''); const tf=parseRGB(cs.webkitTextFillColor||cs.color);
+    if(/text/i.test(clip)||(tf&&tf.a===0)){ colHex=firstGradColor(cs.backgroundImage||'')||(parseRGB(cs.color)?toHex2(parseRGB(cs.color)):'333333'); }
+    else { const c=parseRGB(cs.color); colHex=c?toHex2(c):'333333'; }
+    const al=cs.textAlign==='center'?'center':cs.textAlign==='right'?'right':'left';
+    data.els.push({t:'text',x:Math.round(x),y:Math.round(y),w:Math.round(w),h:Math.round(h),s:txt,fz:Math.round(parseFloat(cs.fontSize)||18),b:parseInt(cs.fontWeight)>=600,it:cs.fontStyle==='italic',col:colHex,al:al,ff:fontFaceOf(cs.fontFamily)});
+  }
   async function walk(el){ const ch=Array.prototype.slice.call(el.children); for(let i=0;i<ch.length;i++) await emit(ch[i]); }
   async function emit(el){
     const cs=win.getComputedStyle(el);
@@ -1154,26 +1194,24 @@ async function collectEls(ifr){
     const tag=el.tagName.toLowerCase();
     if(tag==='img'||tag==='svg'||tag==='canvas'||tag==='iconify-icon'){ await shot(el,x,y,w,h,tag==='img'); return; }
     const bgImg=cs.backgroundImage||'none';
-    if(/url\(/i.test(bgImg)){ await shot(el,x,y,w,h,true); return; }
+    const hasUrl=/url\(/i.test(bgImg);
     const hasGrad=/gradient/i.test(bgImg);
+    if(hasUrl || hasGrad){
+      await shot(el,x,y,w,h,hasUrl,true);
+      emitText(el,cs,x,y,w,h);
+      await walk(el);
+      return;
+    }
     const fill=parseRGB(cs.backgroundColor);
     const bw=parseFloat(cs.borderTopWidth)||0, bc=parseRGB(cs.borderTopColor);
     const hasBorder=bw>0.4 && bc && bc.a>0.05;
-    if(hasGrad || (fill&&fill.a>0.03) || hasBorder){
+    if((fill&&fill.a>0.03) || hasBorder){
       const o={t:'rect',x:Math.round(x),y:Math.round(y),w:Math.round(w),h:Math.round(h)};
-      if(hasGrad) o.fill=firstGradColor(bgImg)||'CCCCCC';
-      else if(fill&&fill.a>0.03){ o.fill=toHex2(fill); if(fill.a<0.97) o.alpha=Math.round((1-fill.a)*100); }
+      if(fill&&fill.a>0.03){ o.fill=toHex2(fill); if(fill.a<0.97) o.alpha=Math.round((1-fill.a)*100); }
       if(hasBorder){ o.line=toHex2(bc); o.lw=Math.max(0.5,bw*0.75); }
       data.els.push(o);
     }
-    const txt=directText(el);
-    if(txt){
-      let colHex; const clip=(cs.webkitBackgroundClip||cs.backgroundClip||''); const tf=parseRGB(cs.webkitTextFillColor||cs.color);
-      if(/text/i.test(clip)||(tf&&tf.a===0)){ colHex=firstGradColor(bgImg)||(parseRGB(cs.color)?toHex2(parseRGB(cs.color)):'333333'); }
-      else { const c=parseRGB(cs.color); colHex=c?toHex2(c):'333333'; }
-      const al=cs.textAlign==='center'?'center':cs.textAlign==='right'?'right':'left';
-      data.els.push({t:'text',x:Math.round(x),y:Math.round(y),w:Math.round(w),h:Math.round(h),s:txt,fz:Math.round(parseFloat(cs.fontSize)||18),b:parseInt(cs.fontWeight)>=600,it:cs.fontStyle==='italic',col:colHex,al:al,ff:fontFaceOf(cs.fontFamily)});
-    }
+    emitText(el,cs,x,y,w,h);
     await walk(el);
   }
   await walk(slide);
@@ -1194,8 +1232,9 @@ async function buildNativePptx(useAI){
   if(!deck()||!deck().slides.length){ toast('Aucune slide à exporter.','error'); return; }
   setBusy('#createBusy','#createBusyTxt',true,'Préparation…'); switchTab('create');
   try{
-    if(typeof PptxGenJS==='undefined') await loadScriptDyn('https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js');
+    await ensurePptxGen();
     const pptx=new PptxGenJS(); pptx.defineLayout({name:'MS',width:13.333,height:7.5}); pptx.layout='MS';
+    pptx.author='MagicSlider'; pptx.company='MagicSlider'; pptx.subject='HTML slides to editable PowerPoint';
     for(let i=0;i<deck().slides.length;i++){
       $('#createBusyTxt').textContent='Slide '+(i+1)+' / '+deck().slides.length+(useAI?' (analyse IA)':' (formes)')+'…';
       let ifr;
@@ -1205,7 +1244,13 @@ async function buildNativePptx(useAI){
         if(useAI){ try{ data.els=await aiCleanEls(data.els); }catch(ae){ logMsg('err','IA slide '+(i+1)+' : '+ae.message+' (brut conservé)'); } }
         paintEls(pptx, data);
       }
-      catch(e){ logMsg('err','Slide '+(i+1)+' : '+e.message); }
+      catch(e){
+        logMsg('err','Slide '+(i+1)+' : '+e.message+' — fallback image');
+        try{
+          const data=await captureSlide(deck().css, deck().slides[i], 2);
+          const s=pptx.addSlide(); s.background={color:'FFFFFF'}; s.addImage({data,x:0,y:0,w:13.333,h:7.5});
+        }catch(fe){ logMsg('err','Slide '+(i+1)+' fallback impossible : '+fe.message); }
+      }
       finally{ if(ifr) ifr.remove(); }
     }
     $('#createBusyTxt').textContent='Écriture du fichier…';
@@ -1220,7 +1265,7 @@ function exportPptxAI(){
   return buildNativePptx(true);
 }
 async function aiCleanEls(els){
-  const sys='Tu nettoies les éléments d\'UNE slide PowerPoint (canvas 1280x720 px, origine en haut-gauche). On te donne un tableau JSON d\'éléments extraits du rendu (coordonnées EXACTES en px). Objectif : un rendu PowerPoint propre et fidèle, ÉDITABLE.\nRègles :\n- Conserve TOUS les textes (t:"text") et TOUTES les images (t:"img", garde le champ "img" inchangé).\n- Supprime les rectangles (t:"rect") purement conteneurs/redondants qui n\'apportent pas de fond visible distinct (doublons, wrappers transparents).\n- Garde les coordonnées TRÈS proches de l\'original (tu peux ajuster légèrement x/y/w/h pour éviter qu\'un texte soit coupé, mais ne réinvente pas la mise en page).\n- Ne change PAS les couleurs des images. Conserve le schéma des champs (t,x,y,w,h,s,fz,b,it,col,al,ff,fill,alpha,line,lw,img).\nRéponds en JSON STRICT : {"els":[...]} uniquement.';
+  const sys='Tu nettoies les éléments d\'UNE slide PowerPoint (canvas 1280x720 px, origine en haut-gauche). On te donne un tableau JSON d\'éléments extraits du rendu (coordonnées EXACTES en px, ordre = ordre de calque arrière -> avant). Objectif : un rendu PowerPoint propre, fidèle et ÉDITABLE.\nRègles :\n- Conserve TOUS les textes (t:"text") et TOUTES les images (t:"img", garde le champ "img" inchangé).\n- Préserve l\'ordre général des calques. Ne déplace jamais une image de fond au-dessus du texte.\n- Supprime uniquement les rectangles (t:"rect") purement conteneurs/redondants qui n\'apportent pas de fond, bordure ou séparation visible distincte.\n- Garde les coordonnées TRÈS proches de l\'original. Ajustements autorisés seulement pour éviter clipping ou wrapping PowerPoint évident: +2 à +16 px sur w/h, ou petits décalages.\n- Ne change PAS les couleurs des images. Ne réécris PAS le texte. Conserve le schéma des champs (t,x,y,w,h,s,fz,b,it,col,al,ff,fill,alpha,line,lw,img).\nRéponds en JSON STRICT : {"els":[...]} uniquement.';
   const full=await callLLM(sys, JSON.stringify({els:els}), null, {stream:false,maxTokens:8000});
   const a=full.indexOf('{'), b=full.lastIndexOf('}'); if(a<0||b<0) throw new Error('JSON manquant');
   const obj=JSON.parse(full.slice(a,b+1));
@@ -1247,8 +1292,8 @@ function loadS(src){return new Promise((res,rej)=>{const s=document.createElemen
 document.getElementById('pptx').onclick=async()=>{
   const btn=document.getElementById('pptx'); btn.disabled=true; btn.textContent='Export…';
   try{
-    if(typeof PptxGenJS==='undefined') await loadS('https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js');
-    if(typeof html2canvas==='undefined') await loadS('${H2C}');
+    if(typeof PptxGenJS==='undefined') await loadS('${PPTX_CDN}');
+    if(typeof html2canvas==='undefined') await loadS('${H2C_CDN}');
     const p=new PptxGenJS(); p.defineLayout({name:'MS',width:13.333,height:7.5}); p.layout='MS';
     const prevIdx=cur;
     for(let i=0;i<total;i++){ slides.forEach((s,j)=>s.style.display=j===i?'block':'none'); stage.style.transform='scale(1)';
