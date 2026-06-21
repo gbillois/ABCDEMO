@@ -251,13 +251,13 @@
         <h2>Export</h2>
         <p class="sub">Exportez votre présentation en PowerPoint haute qualité ou en HTML autonome.</p>
         <div class="card">
-          <h3>PowerPoint (.pptx)</h3>
-          <p class="hint" style="margin-top:0"><b>Rendu fidèle</b> — chaque slide est capturée en image haute résolution (2×), avec correction des titres/KPI en dégradé et conversion des icônes en SVG. Identique à l'écran, fonctionne sur n'importe quelle slide.</p>
-          <button class="btn primary" id="exportPptxBtn">Exporter en PPTX</button>
-          <p class="hint"><b>Éditable (formes natives)</b> — reconstruction forme par forme façon CTI.html : textes et rectangles deviennent des objets PowerPoint éditables, photos/icônes en image. Imparfait sur les mises en page complexes (métriques de police PowerPoint).</p>
-          <button class="btn" id="exportPptxNativeBtn">PPTX éditable</button>
-          <p class="hint"><b>Éditable haute fidélité (IA)</b> — comme ci-dessus, mais un LLM nettoie la reconstruction (supprime les conteneurs redondants, recale les textes) pour un rendu plus propre. 1 appel IA par slide.</p>
-          <button class="btn" id="exportPptxAiBtn">PPTX éditable IA (haute fidélité)</button>
+          <h3>PowerPoint (.pptx) — éditable</h3>
+          <p class="hint" style="margin-top:0"><b>Éditable haute fidélité (IA)</b> — reconstruction forme par forme (technique CTI.html) nettoyée par un LLM : titres, textes et formes deviennent de vrais objets PowerPoint <b>éditables</b> ; photos et icônes sont intégrées en image. 1 appel IA par slide. <b>Recommandé.</b></p>
+          <button class="btn primary" id="exportPptxAiBtn">Exporter en PPTX éditable (IA)</button>
+          <p class="hint"><b>Éditable rapide (sans IA)</b> — même reconstruction en objets éditables, sans passe IA. Plus rapide, un peu plus brut.</p>
+          <button class="btn" id="exportPptxNativeBtn">PPTX éditable (rapide)</button>
+          <p class="hint"><b>Image (rendu figé)</b> — 1 capture par slide, fidèle au pixel mais <b>non éditable</b>. Pour archivage / aperçu seulement.</p>
+          <button class="btn" id="exportPptxBtn">PPTX image (non éditable)</button>
         </div>
         <div class="card">
           <h3>HTML autonome</h3>
