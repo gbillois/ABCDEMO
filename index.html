@@ -403,6 +403,24 @@ const H2C_CDN='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.m
 const DOMPPTX_LOCAL='assets/dom-to-pptx.bundle.js';
 const DOMPPTX_CDN='https://cdn.jsdelivr.net/npm/dom-to-pptx@2.0.1/dist/dom-to-pptx.bundle.js';
 const H2P_BROWSER_LOCAL='assets/html2pptx-browser.js';
+const FRAME_READY_TIMEOUT_MS=45000;
+const DOM_FRAME_READY_TIMEOUT_MS=60000;
+const HTML2CANVAS_TIMEOUT_MS=30000;
+const DOM_TO_PPTX_TIMEOUT_MS=120000;
+const SCRIPT_LOAD_TIMEOUT_MS=20000;
+
+function withTimeout(promise, ms, label){
+  let timer;
+  return Promise.race([
+    Promise.resolve(promise).finally(()=>clearTimeout(timer)),
+    new Promise((_,reject)=>{
+      timer=setTimeout(()=>reject(new Error(label+' (timeout '+Math.round(ms/1000)+'s)')),ms);
+    })
+  ]);
+}
+function frameWarningText(warnings){
+  return (warnings&&warnings.length)?'\nAvertissements rendu : '+warnings.join(' | '):'';
+}
 
 /* ---------- built-in premium slide design systems (the beauty driver) ---------- */
 const THEME_CSS = {
@@ -532,13 +550,16 @@ function baseSlideCss(){
     + '\n.slide{width:1280px;height:720px;overflow:hidden;position:relative}';
 }
 function slideDoc(css, inner, forCapture){
-  const ready = forCapture ? ('<script>(function(){function done(){window.__msReady=true;}'
-    + 'function loadH2C(){return new Promise(function(res,rej){if(window.html2canvas){res();return;}function one(src,next){var s=document.createElement("script");s.src=src;s.onload=res;s.onerror=next;document.head.appendChild(s);}one("'+H2C_LOCAL+'",function(){one("'+H2C_CDN+'",function(){rej(new Error("html2canvas unavailable"));});});});}'
+  const ready = forCapture ? ('<script>(function(){var WARN=[];function done(e){if(e)window.__msErr=(e&&e.message)||String(e);window.__msWarnings=WARN;window.__msReady=true;}'
+    + 'function wait(p,ms,label,critical){return new Promise(function(res,rej){var ended=false;var tm=setTimeout(function(){if(ended)return;ended=true;var err=new Error(label+" timeout "+Math.round(ms/1000)+"s");if(critical)rej(err);else{WARN.push(err.message);res();}},ms);Promise.resolve(p).then(function(v){if(ended)return;ended=true;clearTimeout(tm);res(v);},function(e){if(ended)return;ended=true;clearTimeout(tm);if(critical)rej(e);else{WARN.push(label+": "+((e&&e.message)||e));res();}});});}'
+    + 'function loadScript(src){return wait(new Promise(function(res,rej){var s=document.createElement("script");s.src=src;s.onload=res;s.onerror=function(){rej(new Error("chargement script impossible: "+src));};document.head.appendChild(s);}),'+SCRIPT_LOAD_TIMEOUT_MS+',"script "+src,true);}'
+    + 'async function loadH2C(){if(window.html2canvas)return;try{await loadScript("'+H2C_LOCAL+'");}catch(e){WARN.push("html2canvas local: "+((e&&e.message)||e));}if(window.html2canvas)return;try{await loadScript("'+H2C_CDN+'");}catch(e){throw new Error("html2canvas non disponible: "+((e&&e.message)||e));}if(!window.html2canvas)throw new Error("html2canvas non disponible après chargement");}'
     + 'function conv(){var ic=document.querySelectorAll("iconify-icon");for(var i=0;i<ic.length;i++){var e=ic[i];var sv=e.shadowRoot&&e.shadowRoot.querySelector("svg");if(sv){var c=sv.cloneNode(true);var cs=getComputedStyle(e);var w=parseInt(cs.width)||e.clientWidth||24,h=parseInt(cs.height)||e.clientHeight||24;c.setAttribute("width",w);c.setAttribute("height",h);c.style.width=w+"px";c.style.height=h+"px";c.style.color=cs.color;c.style.verticalAlign="middle";e.parentNode.replaceChild(c,e);}}}'
-    + 'function imgs(){var a=Array.prototype.slice.call(document.images);return Promise.all(a.map(function(i){return i.complete?1:new Promise(function(r){i.onload=i.onerror=r;});}));}'
-    + 'function icons(){return new Promise(function(r){var t=0;var iv=setInterval(function(){t+=100;var ic=document.querySelectorAll("iconify-icon");var ok=true;for(var i=0;i<ic.length;i++){var e=ic[i];if(!(e.shadowRoot&&e.shadowRoot.querySelector("svg"))){ok=false;break;}}if(ok||t>4500){clearInterval(iv);r();}},100);});}'
+    + 'function imgs(){var a=Array.prototype.slice.call(document.images);return Promise.all(a.map(function(i){if(i.complete)return Promise.resolve();return wait(new Promise(function(r){i.onload=i.onerror=r;}),10000,"image "+(i.currentSrc||i.src||""),false);}));}'
+    + 'function icons(){return wait(new Promise(function(r){var iv=setInterval(function(){var ic=document.querySelectorAll("iconify-icon");var ok=true;for(var i=0;i<ic.length;i++){var e=ic[i];if(!(e.shadowRoot&&e.shadowRoot.querySelector("svg"))){ok=false;break;}}if(ok){clearInterval(iv);r();}},100);}),12000,"icônes Iconify",false);}'
+    + 'function fonts(){return document.fonts&&document.fonts.ready?wait(document.fonts.ready,8000,"polices web",false):Promise.resolve();}'
     + 'function fixgrad(){var all=document.querySelectorAll("*");for(var i=0;i<all.length;i++){var e=all[i];var cs=getComputedStyle(e);var clip=(cs.webkitBackgroundClip||cs.backgroundClip||"");var tf=(cs.webkitTextFillColor||"");if(clip.indexOf("text")>=0||tf==="rgba(0, 0, 0, 0)"||tf==="transparent"){var bg=cs.backgroundImage||"";var m=bg.match(/rgba?\\([^)]+\\)|#[0-9a-fA-F]{3,8}/);var col=m?m[0]:(cs.color&&cs.color!=="rgba(0, 0, 0, 0)"?cs.color:"#333333");e.style.setProperty("background-image","none","important");e.style.setProperty("-webkit-background-clip","border-box","important");e.style.setProperty("background-clip","border-box","important");e.style.setProperty("-webkit-text-fill-color",col,"important");e.style.setProperty("color",col,"important");}}}'
-    + '(async function(){try{if(document.fonts&&document.fonts.ready)await document.fonts.ready;}catch(e){}await loadH2C();await imgs();await icons();conv();fixgrad();setTimeout(done,80);})();})();<\/script>') : '';
+    + '(async function(){try{await loadH2C();await fonts();await imgs();await icons();conv();fixgrad();setTimeout(function(){done();},120);}catch(e){done(e);}})();})();<\/script>') : '';
   return '<!DOCTYPE html><html><head><meta charset="utf-8">'+FONTS_LINK
     + '<script src="'+ICONIFY+'"><\/script>'
     + '<style>'+ baseSlideCss().replace('__DECKCSS__', '\n'+(css||'')+'\n') +'</style>'
@@ -1095,7 +1116,7 @@ function explainExportError(engine, err){
   const low=msg.toLowerCase();
   let help='';
   if(low.includes('délai')||low.includes('timeout')||low.includes('timed out')){
-    help='Timeout pendant le rendu. Causes fréquentes : image externe trop lente ou bloquée CORS, police distante lente, icône Iconify non chargée, slide trop lourde. Réessayez, retirez les images distantes lentes, ou utilisez l’ancien export image comme fallback.';
+    help='Timeout pendant le rendu. Causes fréquentes : image externe trop lente ou bloquée CORS, police distante lente, icône Iconify non chargée, bundle bloqué, ou slide trop lourde. Les ressources non critiques sont ignorées après délai, mais une capture/conversion trop lourde peut encore expirer.';
   }else if(low.includes('cors')||low.includes('taint')||low.includes('unable to read media')){
     help='Ressource externe bloquée par le navigateur. Utilisez une image avec CORS autorisé, une image en data URL, ou remplacez la ressource distante.';
   }else if(low.includes('pptxgen')||low.includes('indisponible')||low.includes('non chargé')){
@@ -1112,9 +1133,11 @@ function captureSlide(css, inner, scale){
     ifr.onload=async ()=>{
       try{
         const win=ifr.contentWindow; let t=0;
-        while(!(win.__msReady===true && typeof win.html2canvas==='function')){ await new Promise(r=>setTimeout(r,120)); t+=120; if(t>12000) throw new Error('délai de rendu dépassé : la slide n’a pas signalé que les images, icônes et html2canvas étaient prêts en 12s'); }
+        while(win.__msReady!==true){ await new Promise(r=>setTimeout(r,120)); t+=120; if(t>FRAME_READY_TIMEOUT_MS) throw new Error('délai de préparation dépassé : la frame de rendu n’a pas répondu en '+Math.round(FRAME_READY_TIMEOUT_MS/1000)+'s'); }
+        if(win.__msErr) throw new Error(win.__msErr+frameWarningText(win.__msWarnings));
+        if(typeof win.html2canvas!=='function') throw new Error('html2canvas non chargé dans la frame de rendu'+frameWarningText(win.__msWarnings));
         const target=ifr.contentDocument.querySelector('.slide')||ifr.contentDocument.body;
-        const canvas=await win.html2canvas(target,{scale:scale||2,useCORS:true,backgroundColor:'#ffffff',width:1280,height:720,windowWidth:1280,windowHeight:720,logging:false});
+        const canvas=await withTimeout(win.html2canvas(target,{scale:scale||2,useCORS:true,backgroundColor:'#ffffff',width:1280,height:720,windowWidth:1280,windowHeight:720,logging:false}),HTML2CANVAS_TIMEOUT_MS,'capture html2canvas trop lente');
         const data=canvas.toDataURL('image/jpeg',0.95); ifr.remove(); resolve(data);
       }catch(e){ ifr.remove(); reject(e); }
     };
@@ -1122,12 +1145,12 @@ function captureSlide(css, inner, scale){
     document.body.appendChild(ifr);
   });
 }
-function loadScriptDyn(src){ return new Promise((res,rej)=>{
+function loadScriptDyn(src){ return withTimeout(new Promise((res,rej)=>{
   const old=document.querySelector('script[data-src="'+src+'"],script[src="'+src+'"]');
   if(old){ res(); return; }
   const s=document.createElement('script'); s.src=src; s.setAttribute('data-src',src);
   s.onload=res; s.onerror=()=>rej(new Error('Échec chargement '+src)); document.head.appendChild(s);
-}); }
+}),SCRIPT_LOAD_TIMEOUT_MS,'chargement script '+src); }
 async function ensurePptxGen(){
   if(typeof PptxGenJS!=='undefined') return;
   try{ await loadScriptDyn(PPTX_LOCAL); }
@@ -1145,12 +1168,15 @@ function buildDomToPptxDoc(){
   const sections = deck().slides.map(s=>'<section class="slide">'+s+'</section>').join('\n');
   const local = new URL(DOMPPTX_LOCAL, location.href).href;
   const ready = '<script>(function(){'
-    + 'function done(e){if(e)window.__domPptxErr=(e&&e.message)||String(e);window.__domPptxReady=true;}'
-    + 'function loadDom(){return new Promise(function(res,rej){if(window.domToPptx&&window.domToPptx.exportToPptx){res();return;}function one(src,next){var s=document.createElement("script");s.src=src;s.onload=function(){res();};s.onerror=next;document.head.appendChild(s);}one("'+local+'",function(){one("'+DOMPPTX_CDN+'",function(){rej(new Error("dom-to-pptx indisponible"));});});});}'
-    + 'function imgs(){var a=Array.prototype.slice.call(document.images);return Promise.all(a.map(function(i){return i.complete?1:new Promise(function(r){i.onload=i.onerror=r;});}));}'
-    + 'function icons(){return new Promise(function(r){var t=0;var iv=setInterval(function(){t+=100;var ic=document.querySelectorAll("iconify-icon");var ok=true;for(var i=0;i<ic.length;i++){var e=ic[i];if(!(e.shadowRoot&&e.shadowRoot.querySelector("svg"))){ok=false;break;}}if(ok||t>4500){clearInterval(iv);r();}},100);});}'
+    + 'var WARN=[];function done(e){if(e)window.__domPptxErr=(e&&e.message)||String(e);window.__domPptxWarnings=WARN;window.__domPptxReady=true;}'
+    + 'function wait(p,ms,label,critical){return new Promise(function(res,rej){var ended=false;var tm=setTimeout(function(){if(ended)return;ended=true;var err=new Error(label+" timeout "+Math.round(ms/1000)+"s");if(critical)rej(err);else{WARN.push(err.message);res();}},ms);Promise.resolve(p).then(function(v){if(ended)return;ended=true;clearTimeout(tm);res(v);},function(e){if(ended)return;ended=true;clearTimeout(tm);if(critical)rej(e);else{WARN.push(label+": "+((e&&e.message)||e));res();}});});}'
+    + 'function loadScript(src){return wait(new Promise(function(res,rej){var s=document.createElement("script");s.src=src;s.onload=res;s.onerror=function(){rej(new Error("chargement script impossible: "+src));};document.head.appendChild(s);}),'+SCRIPT_LOAD_TIMEOUT_MS+',"script "+src,true);}'
+    + 'async function loadDom(){if(window.domToPptx&&window.domToPptx.exportToPptx)return;try{await loadScript("'+local+'");}catch(e){WARN.push("dom-to-pptx local: "+((e&&e.message)||e));}if(window.domToPptx&&window.domToPptx.exportToPptx)return;try{await loadScript("'+DOMPPTX_CDN+'");}catch(e){throw new Error("dom-to-pptx indisponible: "+((e&&e.message)||e));}if(!(window.domToPptx&&window.domToPptx.exportToPptx))throw new Error("dom-to-pptx chargé mais exportToPptx absent");}'
+    + 'function imgs(){var a=Array.prototype.slice.call(document.images);return Promise.all(a.map(function(i){if(i.complete)return Promise.resolve();return wait(new Promise(function(r){i.onload=i.onerror=r;}),10000,"image "+(i.currentSrc||i.src||""),false);}));}'
+    + 'function icons(){return wait(new Promise(function(r){var iv=setInterval(function(){var ic=document.querySelectorAll("iconify-icon");var ok=true;for(var i=0;i<ic.length;i++){var e=ic[i];if(!(e.shadowRoot&&e.shadowRoot.querySelector("svg"))){ok=false;break;}}if(ok){clearInterval(iv);r();}},100);}),12000,"icônes Iconify",false);}'
+    + 'function fonts(){return document.fonts&&document.fonts.ready?wait(document.fonts.ready,8000,"polices web",false):Promise.resolve();}'
     + 'function conv(){var ic=document.querySelectorAll("iconify-icon");for(var i=0;i<ic.length;i++){var e=ic[i];var sv=e.shadowRoot&&e.shadowRoot.querySelector("svg");if(sv){var c=sv.cloneNode(true);var cs=getComputedStyle(e);var w=parseInt(cs.width)||e.clientWidth||24,h=parseInt(cs.height)||e.clientHeight||24;c.setAttribute("width",w);c.setAttribute("height",h);c.style.width=w+"px";c.style.height=h+"px";c.style.color=cs.color;c.style.verticalAlign="middle";e.parentNode.replaceChild(c,e);}}}'
-    + '(async function(){try{if(document.fonts&&document.fonts.ready)await document.fonts.ready;await imgs();await icons();conv();await loadDom();setTimeout(done,80);}catch(e){done(e);}})();'
+    + '(async function(){try{await loadDom();await fonts();await imgs();await icons();conv();setTimeout(function(){done();},120);}catch(e){done(e);}})();'
     + '})();<\/script>';
   return '<!DOCTYPE html><html><head><meta charset="utf-8">'+FONTS_LINK
     + '<script src="'+ICONIFY+'"><\/script>'
@@ -1165,9 +1191,9 @@ function openDomToPptxFrame(){
     ifr.onload=async ()=>{
       try{
         const win=ifr.contentWindow; let t=0;
-        while(!win.__domPptxReady){ await new Promise(r=>setTimeout(r,120)); t+=120; if(t>18000) throw new Error('délai dom-to-pptx dépassé : la frame n’a pas fini de charger images, icônes ou bundle dom-to-pptx en 18s'); }
-        if(win.__domPptxErr) throw new Error(win.__domPptxErr);
-        if(!win.domToPptx||typeof win.domToPptx.exportToPptx!=='function') throw new Error('dom-to-pptx non chargé : assets/dom-to-pptx.bundle.js est absent ou bloqué');
+        while(!win.__domPptxReady){ await new Promise(r=>setTimeout(r,120)); t+=120; if(t>DOM_FRAME_READY_TIMEOUT_MS) throw new Error('délai dom-to-pptx dépassé : la frame n’a pas fini de préparer le rendu en '+Math.round(DOM_FRAME_READY_TIMEOUT_MS/1000)+'s'); }
+        if(win.__domPptxErr) throw new Error(win.__domPptxErr+frameWarningText(win.__domPptxWarnings));
+        if(!win.domToPptx||typeof win.domToPptx.exportToPptx!=='function') throw new Error('dom-to-pptx non chargé : assets/dom-to-pptx.bundle.js est absent ou bloqué'+frameWarningText(win.__domPptxWarnings));
         resolve(ifr);
       }catch(e){ ifr.remove(); reject(e); }
     };
@@ -1183,17 +1209,18 @@ async function exportPptxDom(){
   try{
     ifr=await openDomToPptxFrame();
     const win=ifr.contentWindow;
+    (win.__domPptxWarnings||[]).forEach(w=>logMsg('err','Export DOM - avertissement rendu : '+w));
     const slides=Array.from(ifr.contentDocument.querySelectorAll('.slide'));
     if(!slides.length) throw new Error('aucune slide trouvée');
     $('#createBusyTxt').textContent='Conversion dom-to-pptx ('+slides.length+' slides)…';
-    const blob=await win.domToPptx.exportToPptx(slides,{
+    const blob=await withTimeout(win.domToPptx.exportToPptx(slides,{
       fileName:'MagicSlider-dom-to-pptx.pptx',
       width:13.333,
       height:7.5,
       skipDownload:true,
       autoEmbedFonts:false,
       svgAsVector:true
-    });
+    }),DOM_TO_PPTX_TIMEOUT_MS,'conversion dom-to-pptx trop lente');
     if(!blob) throw new Error('fichier PPTX non généré');
     downloadBlob(blob,'MagicSlider-dom-to-pptx.pptx','application/vnd.openxmlformats-officedocument.presentationml.presentation');
     toast('PPTX dom-to-pptx exporté ✦','success');
@@ -1215,8 +1242,9 @@ async function exportPptxBrowser(){
       let ifr;
       try{
         ifr=await openSlideFrame(deck().css, deck().slides[i]);
+        (ifr.contentWindow.__msWarnings||[]).forEach(w=>logMsg('err','Export local JS - slide '+(i+1)+' avertissement rendu : '+w));
         const root=ifr.contentDocument.querySelector('.slide');
-        const result=await window.html2pptxBrowser.convertSlide(root,pptx,{PptxGenJS,width:13.333,height:7.5});
+        const result=await withTimeout(window.html2pptxBrowser.convertSlide(root,pptx,{PptxGenJS,width:13.333,height:7.5}),FRAME_READY_TIMEOUT_MS,'conversion html2pptx locale trop lente slide '+(i+1));
         (result.warnings||[]).forEach(w=>logMsg('err','Export local JS - slide '+(i+1)+' : '+w));
         exported++;
       }catch(e){
@@ -1267,7 +1295,9 @@ function openSlideFrame(css, inner){
     ifr.style.cssText='position:fixed;left:-99999px;top:0;width:1280px;height:720px;border:0;background:#fff';
     ifr.onload=async ()=>{
       try{ const win=ifr.contentWindow; let t=0;
-        while(!(win.__msReady===true && typeof win.html2canvas==='function')){ await new Promise(r=>setTimeout(r,120)); t+=120; if(t>12000) throw new Error('délai de rendu dépassé'); }
+        while(win.__msReady!==true){ await new Promise(r=>setTimeout(r,120)); t+=120; if(t>FRAME_READY_TIMEOUT_MS) throw new Error('délai de préparation dépassé : la frame de rendu n’a pas répondu en '+Math.round(FRAME_READY_TIMEOUT_MS/1000)+'s'); }
+        if(win.__msErr) throw new Error(win.__msErr+frameWarningText(win.__msWarnings));
+        if(typeof win.html2canvas!=='function') throw new Error('html2canvas non chargé dans la frame de rendu'+frameWarningText(win.__msWarnings));
         resolve(ifr);
       }catch(e){ ifr.remove(); reject(e); }
     };
@@ -1329,7 +1359,7 @@ async function collectEls(ifr){
       el.style.setProperty('text-shadow','none','important');
     }
     try{
-      const cv=await win.html2canvas(el,{backgroundColor:null,scale:2,useCORS:true,allowTaint:false,logging:false,width:Math.max(1,Math.round(w)),height:Math.max(1,Math.round(h)),windowWidth:1280,windowHeight:720});
+      const cv=await withTimeout(win.html2canvas(el,{backgroundColor:null,scale:2,useCORS:true,allowTaint:false,logging:false,width:Math.max(1,Math.round(w)),height:Math.max(1,Math.round(h)),windowWidth:1280,windowHeight:720}),HTML2CANVAS_TIMEOUT_MS,'capture élément html2canvas trop lente');
       const id=data.images.length; data.images.push(cv.toDataURL(jpeg?'image/jpeg':'image/png',0.95));
       const rot=rotationOf(win.getComputedStyle(el));
       const o=normExportBox({t:'img',img:id,x,y,w,h}); if(o){ if(rot) o.rot=rot; data.els.push(o); }
@@ -1427,6 +1457,7 @@ async function buildNativePptx(useAI){
       let ifr;
       try{
         ifr=await openSlideFrame(deck().css, deck().slides[i]);
+        (ifr.contentWindow.__msWarnings||[]).forEach(w=>logMsg('err','Ancien export éditable - slide '+(i+1)+' avertissement rendu : '+w));
         const data=await collectEls(ifr); ifr.remove(); ifr=null;
         if(useAI){ try{ data.els=await aiCleanEls(data.els); }catch(ae){ logMsg('err','IA slide '+(i+1)+' : '+ae.message+' (brut conservé)'); } }
         paintEls(pptx, data);

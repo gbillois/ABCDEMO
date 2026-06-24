@@ -5,12 +5,22 @@
   const PT_PER_PX = 0.75;
   const SLIDE_W = 1280;
   const SLIDE_H = 720;
+  const DEFAULT_CAPTURE_TIMEOUT_MS = 30000;
 
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const clamp = (n,min,max) => Math.max(min, Math.min(max, n));
   const inch = px => px / PX_PER_IN;
   const pt = px => px * PT_PER_PX;
   const cleanText = s => String(s || '').replace(/[ \t\r\f]+/g, ' ').replace(/\n\s+/g, '\n').replace(/\s+\n/g, '\n').trim();
+  function withTimeout(promise, ms, label){
+    let timer;
+    return Promise.race([
+      Promise.resolve(promise).finally(() => clearTimeout(timer)),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(label + ' (timeout ' + Math.round(ms / 1000) + 's)')), ms);
+      })
+    ]);
+  }
 
   function parseColor(str, win){
     if(!str || str === 'transparent' || str === 'none') return null;
@@ -153,7 +163,7 @@
     }
     try{
       if(typeof win.html2canvas !== 'function') throw new Error('html2canvas is not available in export frame');
-      const canvas = await win.html2canvas(el, {
+      const canvas = await withTimeout(win.html2canvas(el, {
         backgroundColor: null,
         scale: opts.scale || 2,
         useCORS: true,
@@ -163,7 +173,7 @@
         height: Math.max(1, Math.round(b.h)),
         windowWidth: SLIDE_W,
         windowHeight: SLIDE_H
-      });
+      }), opts.captureTimeoutMs || DEFAULT_CAPTURE_TIMEOUT_MS, 'html2canvas capture too slow');
       const id = images.length;
       images.push(canvas.toDataURL(opts.jpeg ? 'image/jpeg' : 'image/png', 0.95));
       return id;
@@ -433,4 +443,3 @@
 
   global.html2pptxBrowser = { exportSlides, convertSlide, _extract:extract };
 })(typeof window !== 'undefined' ? window : globalThis);
-
