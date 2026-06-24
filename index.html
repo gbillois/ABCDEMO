@@ -257,6 +257,8 @@
           <button class="btn primary" id="exportPptxBrowserBtn">1. Export local JS</button>
           <p class="hint"><b>2. Export DOM</b> — utilise le bundle de la repo <code>dom-to-pptx</code>. Bon moteur de comparaison pour gradients, ombres, arrondis et SVG.</p>
           <button class="btn" id="exportPptxDomBtn">2. Export DOM</button>
+          <p class="hint"><b>3. Export PPTX Converter v4</b> — moteur complet repris de <code>Documents/PPTXConverter</code>, avec meilleure couverture tables, liens, SVG, images et validations de mise en page.</p>
+          <button class="btn" id="exportPptxFullBrowserBtn">3. Export PPTX Converter v4</button>
         </div>
         <div class="card">
           <h3>Anciens exports</h3>
@@ -403,10 +405,12 @@ const H2C_CDN='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.m
 const DOMPPTX_LOCAL='assets/dom-to-pptx.bundle.js';
 const DOMPPTX_CDN='https://cdn.jsdelivr.net/npm/dom-to-pptx@2.0.1/dist/dom-to-pptx.bundle.js';
 const H2P_BROWSER_LOCAL='assets/html2pptx-browser.js';
+const H2P_FULL_BROWSER_LOCAL='assets/html2pptx-full-browser.js';
 const FRAME_READY_TIMEOUT_MS=45000;
 const DOM_FRAME_READY_TIMEOUT_MS=60000;
 const HTML2CANVAS_TIMEOUT_MS=30000;
 const DOM_TO_PPTX_TIMEOUT_MS=120000;
+const FULL_HTML2PPTX_TIMEOUT_MS=180000;
 const SCRIPT_LOAD_TIMEOUT_MS=20000;
 
 function withTimeout(promise, ms, label){
@@ -1162,6 +1166,20 @@ async function ensureHtml2PptxBrowser(){
   await loadScriptDyn(H2P_BROWSER_LOCAL);
   if(!window.html2pptxBrowser||typeof window.html2pptxBrowser.convertSlide!=='function') throw new Error('html2pptx browser indisponible : assets/html2pptx-browser.js est absent ou bloqué');
 }
+async function ensureHtml2PptxFullBrowser(){
+  if(window.html2pptxFullBrowser&&typeof window.html2pptxFullBrowser.convertDeck==='function') return;
+  await loadScriptDyn(H2P_FULL_BROWSER_LOCAL);
+  if(!window.html2pptxFullBrowser||typeof window.html2pptxFullBrowser.convertDeck!=='function') throw new Error('html2pptx v4 indisponible : assets/html2pptx-full-browser.js est absent ou bloqué');
+}
+
+function buildFullHtml2PptxDoc(){
+  const css = baseSlideCss().replace('__DECKCSS__','\n'+(deck().css||'')+'\n');
+  const sections = deck().slides.map(s=>'<section class="slide">'+s+'</section>').join('\n');
+  return '<!DOCTYPE html><html><head><meta charset="utf-8">'+FONTS_LINK
+    + '<script src="'+ICONIFY+'"><\/script>'
+    + '<style>'+css+'\nbody{margin:0;padding:0;background:#fff;overflow:visible}.slide{display:block;margin:0}</style>'
+    + '</head><body>'+sections+'</body></html>';
+}
 
 function buildDomToPptxDoc(){
   const css = baseSlideCss().replace('__DECKCSS__','\n'+(deck().css||'')+'\n');
@@ -1263,6 +1281,29 @@ async function exportPptxBrowser(){
     await pptx.writeFile({fileName:'MagicSlider-html2pptx-local.pptx'});
     toast('PPTX html2pptx local exporté' + (exported<deck().slides.length?' ('+exported+'/'+deck().slides.length+')':'') + ' ✦','success');
   }catch(e){ toastExportError('Export local JS',e); }
+  finally{ setBusy('#createBusy','#createBusyTxt',false); }
+}
+
+async function exportPptxFullBrowser(){
+  if(!deck()||!deck().slides.length){ toast('Aucune slide à exporter.','error'); return; }
+  setBusy('#createBusy','#createBusyTxt',true,'Export PPTX Converter v4…'); switchTab('create');
+  try{
+    await ensurePptxGen();
+    await ensureHtml2PptxFullBrowser();
+    const fileName='MagicSlider-pptx-converter-v4.pptx';
+    const result=await withTimeout(window.html2pptxFullBrowser.convertDeck(buildFullHtml2PptxDoc(),{
+      fileName,
+      title:'MagicSlider PPTX Converter v4',
+      onProgress:p=>{
+        if(p.phase==='slide') $('#createBusyTxt').textContent='PPTX Converter v4 slide '+(p.index+1)+' / '+p.total+'…';
+        else if(p.phase==='finalize') $('#createBusyTxt').textContent='Écriture du fichier PPTX Converter v4…';
+      }
+    }),FULL_HTML2PPTX_TIMEOUT_MS,'conversion PPTX Converter v4 trop lente');
+    const warnings=(result&&result.warnings)||[];
+    warnings.forEach(w=>logMsg(/ERROR|CRITICAL|MUST FIX/.test(w.message)?'err':'info','Export PPTX Converter v4 - slide '+w.slide+' : '+w.message));
+    const critical=warnings.filter(w=>/ERROR|CRITICAL|MUST FIX/.test(w.message)).length;
+    toast('PPTX Converter v4 exporté' + (critical?' ('+critical+' avertissement(s) critique(s))':'') + ' ✦', critical?'info':'success');
+  }catch(e){ toastExportError('Export PPTX Converter v4',e); }
   finally{ setBusy('#createBusy','#createBusyTxt',false); }
 }
 
@@ -1619,6 +1660,7 @@ function init(){
   $('#exportPptxBtn').addEventListener('click',exportPptx);
   $('#exportPptxDomBtn').addEventListener('click',exportPptxDom);
   $('#exportPptxBrowserBtn').addEventListener('click',exportPptxBrowser);
+  $('#exportPptxFullBrowserBtn').addEventListener('click',exportPptxFullBrowser);
   $('#exportPptxNativeBtn').addEventListener('click',exportPptxNative);
   $('#exportPptxAiBtn').addEventListener('click',exportPptxAI);
   $('#exportHtmlBtn').addEventListener('click',exportHtml);
