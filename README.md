@@ -5,6 +5,13 @@ Application **autonome HTML** (single-file `index.html`) pour créer des présen
 ## Lancer
 Ouvrez `index.html` dans un navigateur (double-clic). Aucune installation, aucun serveur. Les clés API restent dans `localStorage`.
 
+## Tester
+Les tests navigateur utilisent Playwright :
+
+```bash
+npm test
+```
+
 ## Principe
 L'IA génère un **deck HTML/CSS libre** (comme un prompt direct dans l'app Claude) — pas un modèle de boîtes contraint. Chaque slide est un `<section class="slide">` de **1280×720**, rendu dans une **iframe isolée**. C'est ce qui permet d'atteindre un rendu « keynote premium » (dégradés, photos avec overlays, flat icons, timelines, typo fine).
 
@@ -22,7 +29,9 @@ L'IA génère un **deck HTML/CSS libre** (comme un prompt direct dans l'app Clau
 - **Retoucher (IA)** : décrivez une modification (« plus épuré », « ajoute une photo », « palette plus sombre »…), l'IA réécrit la slide en conservant la cohérence.
 
 ### 3. Export
-- **PPTX** : chaque slide est **capturée en image haute résolution** (icônes Iconify converties en SVG avant capture) via une iframe isolée + html2canvas → 1 image plein cadre par slide. Fonctionne même sur des slides très complexes.
+- **PPTX éditable (IA / rapide)** : reconstruction en objets PowerPoint via PptxGenJS, avec option de nettoyage IA.
+- **PPTX éditable (dom-to-pptx)** : nouveau moteur DOM/CSS dédié, chargé depuis `assets/dom-to-pptx.bundle.js`, utile pour comparer les rendus sur gradients, ombres, arrondis et SVG.
+- **PPTX image** : chaque slide est **capturée en image haute résolution** (icônes Iconify converties en SVG avant capture) via une iframe isolée + html2canvas → 1 image plein cadre par slide. Fonctionne même sur des slides très complexes.
 - **HTML autonome** : fichier unique — navigation clavier (←/→, espace, Home/End, F), miniatures (dots), plein écran, et **export PPTX intégré**.
 - **Projet `.json`** : sauvegarde / rechargement (thème, CSS, slides).
 

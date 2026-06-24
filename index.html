@@ -255,6 +255,8 @@
           <h3>PowerPoint (.pptx) — éditable</h3>
           <p class="hint" style="margin-top:0"><b>Éditable haute fidélité (IA)</b> — reconstruction forme par forme (technique CTI.html) nettoyée par un LLM : titres, textes et formes deviennent de vrais objets PowerPoint <b>éditables</b> ; photos et icônes sont intégrées en image. 1 appel IA par slide. <b>Recommandé.</b></p>
           <button class="btn primary" id="exportPptxAiBtn">Exporter en PPTX éditable (IA)</button>
+          <p class="hint"><b>Éditable dom-to-pptx</b> — moteur DOM/CSS dédié : meilleur support potentiel des gradients, ombres, arrondis et SVG. Nouveau chemin d'export, à comparer selon les decks.</p>
+          <button class="btn" id="exportPptxDomBtn">PPTX éditable (dom-to-pptx)</button>
           <p class="hint"><b>Éditable rapide (sans IA)</b> — même reconstruction en objets éditables, sans passe IA. Plus rapide, un peu plus brut.</p>
           <button class="btn" id="exportPptxNativeBtn">PPTX éditable (rapide)</button>
           <p class="hint"><b>Image (rendu figé)</b> — 1 capture par slide, fidèle au pixel mais <b>non éditable</b>. Pour archivage / aperçu seulement.</p>
@@ -393,6 +395,8 @@ const PPTX_LOCAL='assets/pptxgen.bundle.js';
 const PPTX_CDN='https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js';
 const H2C_LOCAL='assets/html2canvas.min.js';
 const H2C_CDN='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+const DOMPPTX_LOCAL='assets/dom-to-pptx.bundle.js';
+const DOMPPTX_CDN='https://cdn.jsdelivr.net/npm/dom-to-pptx@2.0.1/dist/dom-to-pptx.bundle.js';
 
 /* ---------- built-in premium slide design systems (the beauty driver) ---------- */
 const THEME_CSS = {
@@ -1110,21 +1114,85 @@ async function ensurePptxGen(){
   if(typeof PptxGenJS==='undefined') throw new Error('PptxGenJS indisponible');
 }
 
+function buildDomToPptxDoc(){
+  const css = baseSlideCss().replace('__DECKCSS__','\n'+(deck().css||'')+'\n');
+  const sections = deck().slides.map(s=>'<section class="slide">'+s+'</section>').join('\n');
+  const local = new URL(DOMPPTX_LOCAL, location.href).href;
+  const ready = '<script>(function(){'
+    + 'function done(e){if(e)window.__domPptxErr=(e&&e.message)||String(e);window.__domPptxReady=true;}'
+    + 'function loadDom(){return new Promise(function(res,rej){if(window.domToPptx&&window.domToPptx.exportToPptx){res();return;}function one(src,next){var s=document.createElement("script");s.src=src;s.onload=function(){res();};s.onerror=next;document.head.appendChild(s);}one("'+local+'",function(){one("'+DOMPPTX_CDN+'",function(){rej(new Error("dom-to-pptx indisponible"));});});});}'
+    + 'function imgs(){var a=Array.prototype.slice.call(document.images);return Promise.all(a.map(function(i){return i.complete?1:new Promise(function(r){i.onload=i.onerror=r;});}));}'
+    + 'function icons(){return new Promise(function(r){var t=0;var iv=setInterval(function(){t+=100;var ic=document.querySelectorAll("iconify-icon");var ok=true;for(var i=0;i<ic.length;i++){var e=ic[i];if(!(e.shadowRoot&&e.shadowRoot.querySelector("svg"))){ok=false;break;}}if(ok||t>4500){clearInterval(iv);r();}},100);});}'
+    + 'function conv(){var ic=document.querySelectorAll("iconify-icon");for(var i=0;i<ic.length;i++){var e=ic[i];var sv=e.shadowRoot&&e.shadowRoot.querySelector("svg");if(sv){var c=sv.cloneNode(true);var cs=getComputedStyle(e);var w=parseInt(cs.width)||e.clientWidth||24,h=parseInt(cs.height)||e.clientHeight||24;c.setAttribute("width",w);c.setAttribute("height",h);c.style.width=w+"px";c.style.height=h+"px";c.style.color=cs.color;c.style.verticalAlign="middle";e.parentNode.replaceChild(c,e);}}}'
+    + '(async function(){try{if(document.fonts&&document.fonts.ready)await document.fonts.ready;await imgs();await icons();conv();await loadDom();setTimeout(done,80);}catch(e){done(e);}})();'
+    + '})();<\/script>';
+  return '<!DOCTYPE html><html><head><meta charset="utf-8">'+FONTS_LINK
+    + '<script src="'+ICONIFY+'"><\/script>'
+    + '<style>'+css+'\nbody{overflow:visible}.slide{display:block;margin:0}</style>'
+    + ready
+    + '</head><body>'+sections+'</body></html>';
+}
+function openDomToPptxFrame(){
+  return new Promise((resolve,reject)=>{
+    const ifr=document.createElement('iframe');
+    ifr.style.cssText='position:fixed;left:-99999px;top:0;width:1280px;height:720px;border:0;background:#fff';
+    ifr.onload=async ()=>{
+      try{
+        const win=ifr.contentWindow; let t=0;
+        while(!win.__domPptxReady){ await new Promise(r=>setTimeout(r,120)); t+=120; if(t>18000) throw new Error('délai dom-to-pptx dépassé'); }
+        if(win.__domPptxErr) throw new Error(win.__domPptxErr);
+        if(!win.domToPptx||typeof win.domToPptx.exportToPptx!=='function') throw new Error('dom-to-pptx non chargé');
+        resolve(ifr);
+      }catch(e){ ifr.remove(); reject(e); }
+    };
+    ifr.srcdoc=buildDomToPptxDoc();
+    document.body.appendChild(ifr);
+  });
+}
+
+async function exportPptxDom(){
+  if(!deck()||!deck().slides.length){ toast('Aucune slide à exporter.','error'); return; }
+  setBusy('#createBusy','#createBusyTxt',true,'Export dom-to-pptx…'); switchTab('create');
+  let ifr;
+  try{
+    ifr=await openDomToPptxFrame();
+    const win=ifr.contentWindow;
+    const slides=Array.from(ifr.contentDocument.querySelectorAll('.slide'));
+    if(!slides.length) throw new Error('aucune slide trouvée');
+    $('#createBusyTxt').textContent='Conversion dom-to-pptx ('+slides.length+' slides)…';
+    const blob=await win.domToPptx.exportToPptx(slides,{
+      fileName:'MagicSlider-dom-to-pptx.pptx',
+      width:13.333,
+      height:7.5,
+      skipDownload:true,
+      autoEmbedFonts:false,
+      svgAsVector:true
+    });
+    if(!blob) throw new Error('fichier PPTX non généré');
+    downloadBlob(blob,'MagicSlider-dom-to-pptx.pptx','application/vnd.openxmlformats-officedocument.presentationml.presentation');
+    toast('PPTX dom-to-pptx exporté ✦','success');
+  }catch(e){ toast('Export dom-to-pptx : '+e.message,'error'); }
+  finally{ if(ifr) ifr.remove(); setBusy('#createBusy','#createBusyTxt',false); }
+}
+
 async function exportPptx(){
   if(!deck()||!deck().slides.length){ toast('Aucune slide à exporter.','error'); return; }
   setBusy('#createBusy','#createBusyTxt',true,'Préparation…'); switchTab('create');
   try{
     await ensurePptxGen();
     const pptx=new PptxGenJS(); pptx.defineLayout({name:'MS',width:13.333,height:7.5}); pptx.layout='MS';
+    let exported=0;
     for(let i=0;i<deck().slides.length;i++){
       $('#createBusyTxt').textContent='Capture slide '+(i+1)+' / '+deck().slides.length+'…';
       let data; try{ data=await captureSlide(deck().css, deck().slides[i], 2); }
       catch(e){ logMsg('err','Slide '+(i+1)+' non capturée : '+e.message); continue; }
       const s=pptx.addSlide(); s.background={color:'FFFFFF'}; s.addImage({data, x:0,y:0,w:13.333,h:7.5});
+      exported++;
     }
+    if(!exported) throw new Error('aucune slide exportée');
     $('#createBusyTxt').textContent='Écriture du fichier…';
     await pptx.writeFile({fileName:'MagicSlider.pptx'});
-    toast('PPTX (image) exporté ✦','success');
+    toast('PPTX (image) exporté' + (exported<deck().slides.length?' ('+exported+'/'+deck().slides.length+')':'') + ' ✦','success');
   }catch(e){ toast('Export PPTX : '+e.message,'error'); }
   finally{ setBusy('#createBusy','#createBusyTxt',false); }
 }
@@ -1151,7 +1219,37 @@ function parseRGB(str){ if(!str) return null; if(str==='transparent') return {r:
 function toHex2(c){ if(!c) return null; const f=n=>('0'+Math.round(clamp(n,0,255)).toString(16)).slice(-2); return (f(c.r)+f(c.g)+f(c.b)).toUpperCase(); }
 function firstGradColor(bg){ const m=bg.match(/rgba?\([^)]+\)|#[0-9a-f]{3,8}/i); return m?toHex2(parseRGB(m[0])):null; }
 function fontFaceOf(ff){ ff=(ff||'').toLowerCase(); if(ff.includes('poppins'))return'Poppins'; if(ff.includes('orbitron'))return'Orbitron'; if(ff.includes('rajdhani'))return'Rajdhani'; if(ff.includes('fraunces'))return'Fraunces'; if(ff.includes('playfair'))return'Playfair Display'; if(ff.includes('mono')||ff.includes('plex'))return'Consolas'; if(ff.includes('inter'))return'Inter'; return'Arial'; }
-function directText(el){ let t=''; el.childNodes.forEach(n=>{ if(n.nodeType===3) t+=n.textContent; }); return t.replace(/\s+/g,' ').trim(); }
+function directText(el){
+  let t='';
+  el.childNodes.forEach(n=>{ if(n.nodeType===3) t+=n.textContent; else if(n.nodeName==='BR') t+='\n'; });
+  return t.replace(/[ \t\r\f]+/g,' ').replace(/\n\s+/g,'\n').replace(/\s+\n/g,'\n').trim();
+}
+function exportText(el){
+  const tag=(el.tagName||'').toLowerCase();
+  let t=directText(el), full=false;
+  if(tag==='li' && !t){ t=(el.innerText||el.textContent||'').replace(/\s+/g,' ').trim(); full=!!t; }
+  return {text:t, full};
+}
+function pxVal(v){ const n=parseFloat(v); return Number.isFinite(n)?n:0; }
+function radiusOf(cs){
+  return Math.max(pxVal(cs.borderTopLeftRadius),pxVal(cs.borderTopRightRadius),pxVal(cs.borderBottomRightRadius),pxVal(cs.borderBottomLeftRadius));
+}
+function rotationOf(cs){
+  const tr=cs.transform||cs.webkitTransform||'none';
+  if(!tr||tr==='none') return 0;
+  const m=tr.match(/matrix\(([^)]+)\)/);
+  if(m){ const p=m[1].split(',').map(parseFloat); if(p.length>=2) return Math.round(Math.atan2(p[1],p[0])*180/Math.PI); }
+  const m3=tr.match(/matrix3d\(([^)]+)\)/);
+  if(m3){ const p=m3[1].split(',').map(parseFloat); if(p.length>=2) return Math.round(Math.atan2(p[1],p[0])*180/Math.PI); }
+  const r=tr.match(/rotate\((-?[\d.]+)deg\)/i);
+  return r?Math.round(parseFloat(r[1])):0;
+}
+function normExportBox(e){
+  e.x=Math.round(Number(e.x)||0); e.y=Math.round(Number(e.y)||0);
+  e.w=Math.max(1,Math.round(Number(e.w)||1)); e.h=Math.max(1,Math.round(Number(e.h)||1));
+  if(e.x>1279||e.y>719||e.x+e.w<1||e.y+e.h<1) return null;
+  return e;
+}
 
 async function collectEls(ifr){
   const win=ifr.contentWindow, doc=ifr.contentDocument;
@@ -1168,9 +1266,10 @@ async function collectEls(ifr){
       el.style.setProperty('text-shadow','none','important');
     }
     try{
-      const cv=await win.html2canvas(el,{backgroundColor:null,scale:2,useCORS:true,allowTaint:false,logging:false,width:Math.round(w),height:Math.round(h),windowWidth:1280,windowHeight:720});
+      const cv=await win.html2canvas(el,{backgroundColor:null,scale:2,useCORS:true,allowTaint:false,logging:false,width:Math.max(1,Math.round(w)),height:Math.max(1,Math.round(h)),windowWidth:1280,windowHeight:720});
       const id=data.images.length; data.images.push(cv.toDataURL(jpeg?'image/jpeg':'image/png',0.95));
-      data.els.push({t:'img',img:id,x:Math.round(x),y:Math.round(y),w:Math.round(w),h:Math.round(h)});
+      const rot=rotationOf(win.getComputedStyle(el));
+      const o=normExportBox({t:'img',img:id,x,y,w,h}); if(o){ if(rot) o.rot=rot; data.els.push(o); }
     }catch(e){}
     finally{
       if(ownTextStyle){ el.style.color=ownTextStyle[0]; el.style.webkitTextFillColor=ownTextStyle[1]; el.style.textShadow=ownTextStyle[2]; }
@@ -1178,14 +1277,24 @@ async function collectEls(ifr){
     }
   }
   function emitText(el,cs,x,y,w,h){
-    const txt=directText(el); if(!txt) return;
+    const tx=exportText(el), txt=tx.text; if(!txt) return false;
     let colHex; const clip=(cs.webkitBackgroundClip||cs.backgroundClip||''); const tf=parseRGB(cs.webkitTextFillColor||cs.color);
     if(/text/i.test(clip)||(tf&&tf.a===0)){ colHex=firstGradColor(cs.backgroundImage||'')||(parseRGB(cs.color)?toHex2(parseRGB(cs.color)):'333333'); }
     else { const c=parseRGB(cs.color); colHex=c?toHex2(c):'333333'; }
     const al=cs.textAlign==='center'?'center':cs.textAlign==='right'?'right':'left';
-    data.els.push({t:'text',x:Math.round(x),y:Math.round(y),w:Math.round(w),h:Math.round(h),s:txt,fz:Math.round(parseFloat(cs.fontSize)||18),b:parseInt(cs.fontWeight)>=600,it:cs.fontStyle==='italic',col:colHex,al:al,ff:fontFaceOf(cs.fontFamily)});
+    const rot=rotationOf(cs);
+    const o=normExportBox({t:'text',x,y,w,h,s:txt,fz:Math.round(parseFloat(cs.fontSize)||18),b:parseInt(cs.fontWeight)>=600,it:cs.fontStyle==='italic',col:colHex,al:al,ff:fontFaceOf(cs.fontFamily)});
+    if(!o) return false;
+    if(rot) o.rot=rot;
+    if(el.tagName&&el.tagName.toLowerCase()==='li') o.bullet=true;
+    data.els.push(o);
+    return tx.full;
   }
   async function walk(el){ const ch=Array.prototype.slice.call(el.children); for(let i=0;i<ch.length;i++) await emit(ch[i]); }
+  const slideBg=cs0.backgroundImage||'none';
+  if(slideBg!=='none' && (/gradient/i.test(slideBg)||/url\(/i.test(slideBg))){
+    await shot(slide,0,0,1280,720,/url\(/i.test(slideBg),true);
+  }
   async function emit(el){
     const cs=win.getComputedStyle(el);
     if(cs.display==='none'||cs.visibility==='hidden'||parseFloat(cs.opacity)===0) return;
@@ -1196,23 +1305,29 @@ async function collectEls(ifr){
     const bgImg=cs.backgroundImage||'none';
     const hasUrl=/url\(/i.test(bgImg);
     const hasGrad=/gradient/i.test(bgImg);
-    if(hasUrl || hasGrad){
+    const hasShadow=cs.boxShadow&&cs.boxShadow!=='none';
+    if(hasUrl || hasGrad || hasShadow){
       await shot(el,x,y,w,h,hasUrl,true);
-      emitText(el,cs,x,y,w,h);
-      await walk(el);
+      const full=emitText(el,cs,x,y,w,h);
+      if(!full) await walk(el);
       return;
     }
     const fill=parseRGB(cs.backgroundColor);
-    const bw=parseFloat(cs.borderTopWidth)||0, bc=parseRGB(cs.borderTopColor);
-    const hasBorder=bw>0.4 && bc && bc.a>0.05;
+    const bws=['Top','Right','Bottom','Left'].map(s=>pxVal(cs['border'+s+'Width']));
+    const bcs=['Top','Right','Bottom','Left'].map(s=>parseRGB(cs['border'+s+'Color']));
+    const maxBw=Math.max.apply(null,bws), firstBc=bcs.find(c=>c&&c.a>0.05);
+    const hasBorder=maxBw>0.4 && firstBc;
     if((fill&&fill.a>0.03) || hasBorder){
-      const o={t:'rect',x:Math.round(x),y:Math.round(y),w:Math.round(w),h:Math.round(h)};
+      const o=normExportBox({t:'rect',x,y,w,h});
+      if(!o){ await walk(el); return; }
       if(fill&&fill.a>0.03){ o.fill=toHex2(fill); if(fill.a<0.97) o.alpha=Math.round((1-fill.a)*100); }
-      if(hasBorder){ o.line=toHex2(bc); o.lw=Math.max(0.5,bw*0.75); }
+      if(hasBorder){ o.line=toHex2(firstBc); o.lw=Math.max(0.5,maxBw*0.75); }
+      const rad=radiusOf(cs); if(rad>2) o.r=Math.round(rad);
+      const rot=rotationOf(cs); if(rot) o.rot=rot;
       data.els.push(o);
     }
-    emitText(el,cs,x,y,w,h);
-    await walk(el);
+    const full=emitText(el,cs,x,y,w,h);
+    if(!full) await walk(el);
   }
   await walk(slide);
   return data;
@@ -1221,9 +1336,17 @@ function paintEls(pptx, data){
   const I=px=>px/96, PT=px=>px*0.75; const s=pptx.addSlide(); s.background={color:data.bg||'FFFFFF'};
   (data.els||[]).forEach(e=>{
     try{
-      if(e.t==='img'){ if(data.images[e.img]) s.addImage({data:data.images[e.img],x:I(e.x),y:I(e.y),w:I(e.w),h:I(e.h)}); }
-      else if(e.t==='rect'){ s.addShape(pptx.ShapeType.rect,{x:I(e.x),y:I(e.y),w:I(e.w),h:I(e.h),fill:e.fill?{color:e.fill,transparency:e.alpha||0}:{type:'none'},line:e.line?{color:e.line,width:e.lw||1}:{type:'none'}}); }
-      else if(e.t==='text'){ s.addText(String(e.s),{x:I(e.x),y:I(e.y),w:I(e.w),h:I(e.h),fontSize:PT(e.fz||18),bold:!!e.b,italic:!!e.it,color:e.col||'333333',align:e.al||'left',valign:'top',fontFace:e.ff||'Arial',margin:0,fit:'shrink'}); }
+      const box={x:I(e.x),y:I(e.y),w:Math.max(0.01,I(e.w)),h:Math.max(0.01,I(e.h))}; if(e.rot) box.rotate=e.rot;
+      if(e.t==='img'){ if(data.images[e.img]) s.addImage({...box,data:data.images[e.img]}); }
+      else if(e.t==='rect'){
+        const shape=(e.r&&pptx.ShapeType.roundRect)?pptx.ShapeType.roundRect:pptx.ShapeType.rect;
+        s.addShape(shape,{...box,fill:e.fill?{color:e.fill,transparency:e.alpha||0}:{type:'none'},line:e.line?{color:e.line,width:e.lw||1}:{type:'none'}});
+      }
+      else if(e.t==='text'){
+        const opts={...box,fontSize:PT(e.fz||18),bold:!!e.b,italic:!!e.it,color:e.col||'333333',align:e.al||'left',valign:'top',fontFace:e.ff||'Arial',margin:0,fit:'shrink'};
+        if(e.bullet) opts.bullet={type:'ul'};
+        s.addText(String(e.s),opts);
+      }
     }catch(x){}
   });
   return s;
@@ -1235,6 +1358,7 @@ async function buildNativePptx(useAI){
     await ensurePptxGen();
     const pptx=new PptxGenJS(); pptx.defineLayout({name:'MS',width:13.333,height:7.5}); pptx.layout='MS';
     pptx.author='MagicSlider'; pptx.company='MagicSlider'; pptx.subject='HTML slides to editable PowerPoint';
+    let exported=0;
     for(let i=0;i<deck().slides.length;i++){
       $('#createBusyTxt').textContent='Slide '+(i+1)+' / '+deck().slides.length+(useAI?' (analyse IA)':' (formes)')+'…';
       let ifr;
@@ -1243,19 +1367,22 @@ async function buildNativePptx(useAI){
         const data=await collectEls(ifr); ifr.remove(); ifr=null;
         if(useAI){ try{ data.els=await aiCleanEls(data.els); }catch(ae){ logMsg('err','IA slide '+(i+1)+' : '+ae.message+' (brut conservé)'); } }
         paintEls(pptx, data);
+        exported++;
       }
       catch(e){
         logMsg('err','Slide '+(i+1)+' : '+e.message+' — fallback image');
         try{
           const data=await captureSlide(deck().css, deck().slides[i], 2);
           const s=pptx.addSlide(); s.background={color:'FFFFFF'}; s.addImage({data,x:0,y:0,w:13.333,h:7.5});
+          exported++;
         }catch(fe){ logMsg('err','Slide '+(i+1)+' fallback impossible : '+fe.message); }
       }
       finally{ if(ifr) ifr.remove(); }
     }
+    if(!exported) throw new Error('aucune slide exportée');
     $('#createBusyTxt').textContent='Écriture du fichier…';
     await pptx.writeFile({fileName:'MagicSlider.pptx'});
-    toast('PPTX'+(useAI?' éditable IA':' éditable')+' exporté ✦','success');
+    toast('PPTX'+(useAI?' éditable IA':' éditable')+' exporté' + (exported<deck().slides.length?' ('+exported+'/'+deck().slides.length+')':'') + ' ✦','success');
   }catch(e){ toast('Export PPTX : '+e.message,'error'); }
   finally{ setBusy('#createBusy','#createBusyTxt',false); }
 }
@@ -1265,7 +1392,7 @@ function exportPptxAI(){
   return buildNativePptx(true);
 }
 async function aiCleanEls(els){
-  const sys='Tu nettoies les éléments d\'UNE slide PowerPoint (canvas 1280x720 px, origine en haut-gauche). On te donne un tableau JSON d\'éléments extraits du rendu (coordonnées EXACTES en px, ordre = ordre de calque arrière -> avant). Objectif : un rendu PowerPoint propre, fidèle et ÉDITABLE.\nRègles :\n- Conserve TOUS les textes (t:"text") et TOUTES les images (t:"img", garde le champ "img" inchangé).\n- Préserve l\'ordre général des calques. Ne déplace jamais une image de fond au-dessus du texte.\n- Supprime uniquement les rectangles (t:"rect") purement conteneurs/redondants qui n\'apportent pas de fond, bordure ou séparation visible distincte.\n- Garde les coordonnées TRÈS proches de l\'original. Ajustements autorisés seulement pour éviter clipping ou wrapping PowerPoint évident: +2 à +16 px sur w/h, ou petits décalages.\n- Ne change PAS les couleurs des images. Ne réécris PAS le texte. Conserve le schéma des champs (t,x,y,w,h,s,fz,b,it,col,al,ff,fill,alpha,line,lw,img).\nRéponds en JSON STRICT : {"els":[...]} uniquement.';
+  const sys='Tu nettoies les éléments d\'UNE slide PowerPoint (canvas 1280x720 px, origine en haut-gauche). On te donne un tableau JSON d\'éléments extraits du rendu (coordonnées EXACTES en px, ordre = ordre de calque arrière -> avant). Objectif : un rendu PowerPoint propre, fidèle et ÉDITABLE.\nRègles :\n- Conserve TOUS les textes (t:"text") et TOUTES les images (t:"img", garde le champ "img" inchangé).\n- Préserve l\'ordre général des calques. Ne déplace jamais une image de fond au-dessus du texte.\n- Supprime uniquement les rectangles (t:"rect") purement conteneurs/redondants qui n\'apportent pas de fond, bordure ou séparation visible distincte.\n- Garde les coordonnées TRÈS proches de l\'original. Ajustements autorisés seulement pour éviter clipping ou wrapping PowerPoint évident: +2 à +16 px sur w/h, ou petits décalages.\n- Ne change PAS les couleurs des images. Ne réécris PAS le texte. Conserve le schéma des champs (t,x,y,w,h,s,fz,b,it,col,al,ff,fill,alpha,line,lw,img,rot,r,bullet).\nRéponds en JSON STRICT : {"els":[...]} uniquement.';
   const full=await callLLM(sys, JSON.stringify({els:els}), null, {stream:false,maxTokens:8000});
   const a=full.indexOf('{'), b=full.lastIndexOf('}'); if(a<0||b<0) throw new Error('JSON manquant');
   const obj=JSON.parse(full.slice(a,b+1));
@@ -1325,7 +1452,7 @@ go(0);`;
     +'<script>'+runtime+'<\/script></body></html>';
 }
 function exportHtml(){ if(!deck()||!deck().slides.length){ toast('Aucune slide.','error'); return; } downloadBlob(buildStandalone(),'MagicSlider.html','text/html'); toast('HTML autonome exporté ✦','success'); }
-function downloadBlob(content,name,type){ const blob=new Blob([content],{type:type||'application/octet-stream'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
+function downloadBlob(content,name,type){ const blob=content instanceof Blob?content:new Blob([content],{type:type||'application/octet-stream'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
 
 /* ============================================================================
    SETTINGS UI
@@ -1396,6 +1523,7 @@ function init(){
 
   // export
   $('#exportPptxBtn').addEventListener('click',exportPptx);
+  $('#exportPptxDomBtn').addEventListener('click',exportPptxDom);
   $('#exportPptxNativeBtn').addEventListener('click',exportPptxNative);
   $('#exportPptxAiBtn').addEventListener('click',exportPptxAI);
   $('#exportHtmlBtn').addEventListener('click',exportHtml);

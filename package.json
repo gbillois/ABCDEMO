@@ -1,0 +1,14 @@
+{
+  "name": "abcdemo",
+  "version": "1.0.0",
+  "description": "MagicSlider static HTML app test harness.",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:export": "playwright test tests/export-dom-to-pptx.spec.js"
+  },
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
+  }
+}
