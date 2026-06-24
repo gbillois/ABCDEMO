@@ -29,9 +29,9 @@ L'IA génère un **deck HTML/CSS libre** (comme un prompt direct dans l'app Clau
 - **Retoucher (IA)** : décrivez une modification (« plus épuré », « ajoute une photo », « palette plus sombre »…), l'IA réécrit la slide en conservant la cohérence.
 
 ### 3. Export
+- **Export local JS** : moteur navigateur local inspiré de l'ancien script Node, chargé depuis `assets/html2pptx-browser.js`. Produit un PPTX éditable directement depuis la page HTML locale, sans serveur ni exécution Node.
+- **Export DOM** : moteur `dom-to-pptx`, chargé depuis `assets/dom-to-pptx.bundle.js`, utile pour comparer les rendus sur gradients, ombres, arrondis et SVG.
 - **PPTX éditable (IA / rapide)** : reconstruction en objets PowerPoint via PptxGenJS, avec option de nettoyage IA.
-- **PPTX éditable (dom-to-pptx)** : nouveau moteur DOM/CSS dédié, chargé depuis `assets/dom-to-pptx.bundle.js`, utile pour comparer les rendus sur gradients, ombres, arrondis et SVG.
-- **PPTX éditable (html2pptx local)** : moteur navigateur chargé depuis `assets/html2pptx-browser.js`, qui exporte directement depuis le HTML local sans serveur ni exécution Node.
 - **PPTX image** : chaque slide est **capturée en image haute résolution** (icônes Iconify converties en SVG avant capture) via une iframe isolée + html2canvas → 1 image plein cadre par slide. Fonctionne même sur des slides très complexes.
 - **HTML autonome** : fichier unique — navigation clavier (←/→, espace, Home/End, F), miniatures (dots), plein écran, et **export PPTX intégré**.
 - **Projet `.json`** : sauvegarde / rechargement (thème, CSS, slides).

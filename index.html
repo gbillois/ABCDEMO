@@ -250,19 +250,22 @@
     <div class="settings-wrap">
       <div class="settings-card">
         <h2>Export</h2>
-        <p class="sub">Exportez votre présentation en PowerPoint haute qualité ou en HTML autonome.</p>
+        <p class="sub">Choisissez d'abord un moteur PPTX éditable. Les anciens exports restent disponibles plus bas.</p>
         <div class="card">
-          <h3>PowerPoint (.pptx) — éditable</h3>
-          <p class="hint" style="margin-top:0"><b>Éditable haute fidélité (IA)</b> — reconstruction forme par forme (technique CTI.html) nettoyée par un LLM : titres, textes et formes deviennent de vrais objets PowerPoint <b>éditables</b> ; photos et icônes sont intégrées en image. 1 appel IA par slide. <b>Recommandé.</b></p>
-          <button class="btn primary" id="exportPptxAiBtn">Exporter en PPTX éditable (IA)</button>
-          <p class="hint"><b>Éditable dom-to-pptx</b> — moteur DOM/CSS dédié : meilleur support potentiel des gradients, ombres, arrondis et SVG. Nouveau chemin d'export, à comparer selon les decks.</p>
-          <button class="btn" id="exportPptxDomBtn">PPTX éditable (dom-to-pptx)</button>
-          <p class="hint"><b>Éditable local html2pptx</b> — port navigateur du convertisseur Node : tables, listes, liens, images, formes, gradients/ombres en couches visuelles, sans serveur ni exécution Node.</p>
-          <button class="btn" id="exportPptxBrowserBtn">PPTX éditable (html2pptx local)</button>
-          <p class="hint"><b>Éditable rapide (sans IA)</b> — même reconstruction en objets éditables, sans passe IA. Plus rapide, un peu plus brut.</p>
-          <button class="btn" id="exportPptxNativeBtn">PPTX éditable (rapide)</button>
-          <p class="hint"><b>Image (rendu figé)</b> — 1 capture par slide, fidèle au pixel mais <b>non éditable</b>. Pour archivage / aperçu seulement.</p>
-          <button class="btn" id="exportPptxBtn">PPTX image (non éditable)</button>
+          <h3>Nouveaux exports PPTX éditables</h3>
+          <p class="hint" style="margin-top:0"><b>1. Export local JS</b> — moteur local inspiré de l'ancien script Node, réécrit pour fonctionner directement dans cette page HTML. Aucun serveur, aucun Node à lancer.</p>
+          <button class="btn primary" id="exportPptxBrowserBtn">1. Export local JS</button>
+          <p class="hint"><b>2. Export DOM</b> — utilise le bundle de la repo <code>dom-to-pptx</code>. Bon moteur de comparaison pour gradients, ombres, arrondis et SVG.</p>
+          <button class="btn" id="exportPptxDomBtn">2. Export DOM</button>
+        </div>
+        <div class="card">
+          <h3>Anciens exports</h3>
+          <p class="hint" style="margin-top:0"><b>Éditable IA</b> — reconstruction forme par forme nettoyée par un LLM. 1 appel IA par slide.</p>
+          <button class="btn" id="exportPptxAiBtn">Ancien export éditable IA</button>
+          <p class="hint"><b>Éditable rapide</b> — reconstruction en objets PowerPoint sans IA. Plus rapide, moins propre.</p>
+          <button class="btn" id="exportPptxNativeBtn">Ancien export éditable rapide</button>
+          <p class="hint"><b>Image</b> — 1 capture par slide, fidèle au pixel mais non éditable. À garder comme fallback robuste.</p>
+          <button class="btn" id="exportPptxBtn">Ancien export image</button>
         </div>
         <div class="card">
           <h3>HTML autonome</h3>
@@ -1087,6 +1090,21 @@ function moveSlide(dir){ if(!deck()) return; const j=state.eIndex+dir; if(j<0||j
 /* ============================================================================
    CAPTURE (offscreen iframe + html2canvas inside it)
    ============================================================================ */
+function explainExportError(engine, err){
+  const msg=(err&&err.message)||String(err||'Erreur inconnue');
+  const low=msg.toLowerCase();
+  let help='';
+  if(low.includes('délai')||low.includes('timeout')||low.includes('timed out')){
+    help='Timeout pendant le rendu. Causes fréquentes : image externe trop lente ou bloquée CORS, police distante lente, icône Iconify non chargée, slide trop lourde. Réessayez, retirez les images distantes lentes, ou utilisez l’ancien export image comme fallback.';
+  }else if(low.includes('cors')||low.includes('taint')||low.includes('unable to read media')){
+    help='Ressource externe bloquée par le navigateur. Utilisez une image avec CORS autorisé, une image en data URL, ou remplacez la ressource distante.';
+  }else if(low.includes('pptxgen')||low.includes('indisponible')||low.includes('non chargé')){
+    help='Bibliothèque d’export non chargée. Vérifiez que les fichiers du dossier assets sont présents et que la page n’est pas bloquée par le navigateur.';
+  }
+  return engine+' : '+msg+(help?'\n'+help:'');
+}
+function toastExportError(engine, err){ const text=explainExportError(engine,err); logMsg('err',text); toast(text,'error'); }
+
 function captureSlide(css, inner, scale){
   return new Promise((resolve,reject)=>{
     const ifr=document.createElement('iframe');
@@ -1094,7 +1112,7 @@ function captureSlide(css, inner, scale){
     ifr.onload=async ()=>{
       try{
         const win=ifr.contentWindow; let t=0;
-        while(!(win.__msReady===true && typeof win.html2canvas==='function')){ await new Promise(r=>setTimeout(r,120)); t+=120; if(t>12000) throw new Error('délai de rendu dépassé'); }
+        while(!(win.__msReady===true && typeof win.html2canvas==='function')){ await new Promise(r=>setTimeout(r,120)); t+=120; if(t>12000) throw new Error('délai de rendu dépassé : la slide n’a pas signalé que les images, icônes et html2canvas étaient prêts en 12s'); }
         const target=ifr.contentDocument.querySelector('.slide')||ifr.contentDocument.body;
         const canvas=await win.html2canvas(target,{scale:scale||2,useCORS:true,backgroundColor:'#ffffff',width:1280,height:720,windowWidth:1280,windowHeight:720,logging:false});
         const data=canvas.toDataURL('image/jpeg',0.95); ifr.remove(); resolve(data);
@@ -1114,12 +1132,12 @@ async function ensurePptxGen(){
   if(typeof PptxGenJS!=='undefined') return;
   try{ await loadScriptDyn(PPTX_LOCAL); }
   catch(e){ await loadScriptDyn(PPTX_CDN); }
-  if(typeof PptxGenJS==='undefined') throw new Error('PptxGenJS indisponible');
+  if(typeof PptxGenJS==='undefined') throw new Error('PptxGenJS indisponible : impossible de charger assets/pptxgen.bundle.js ni le CDN');
 }
 async function ensureHtml2PptxBrowser(){
   if(window.html2pptxBrowser&&typeof window.html2pptxBrowser.convertSlide==='function') return;
   await loadScriptDyn(H2P_BROWSER_LOCAL);
-  if(!window.html2pptxBrowser||typeof window.html2pptxBrowser.convertSlide!=='function') throw new Error('html2pptx browser indisponible');
+  if(!window.html2pptxBrowser||typeof window.html2pptxBrowser.convertSlide!=='function') throw new Error('html2pptx browser indisponible : assets/html2pptx-browser.js est absent ou bloqué');
 }
 
 function buildDomToPptxDoc(){
@@ -1147,9 +1165,9 @@ function openDomToPptxFrame(){
     ifr.onload=async ()=>{
       try{
         const win=ifr.contentWindow; let t=0;
-        while(!win.__domPptxReady){ await new Promise(r=>setTimeout(r,120)); t+=120; if(t>18000) throw new Error('délai dom-to-pptx dépassé'); }
+        while(!win.__domPptxReady){ await new Promise(r=>setTimeout(r,120)); t+=120; if(t>18000) throw new Error('délai dom-to-pptx dépassé : la frame n’a pas fini de charger images, icônes ou bundle dom-to-pptx en 18s'); }
         if(win.__domPptxErr) throw new Error(win.__domPptxErr);
-        if(!win.domToPptx||typeof win.domToPptx.exportToPptx!=='function') throw new Error('dom-to-pptx non chargé');
+        if(!win.domToPptx||typeof win.domToPptx.exportToPptx!=='function') throw new Error('dom-to-pptx non chargé : assets/dom-to-pptx.bundle.js est absent ou bloqué');
         resolve(ifr);
       }catch(e){ ifr.remove(); reject(e); }
     };
@@ -1179,7 +1197,7 @@ async function exportPptxDom(){
     if(!blob) throw new Error('fichier PPTX non généré');
     downloadBlob(blob,'MagicSlider-dom-to-pptx.pptx','application/vnd.openxmlformats-officedocument.presentationml.presentation');
     toast('PPTX dom-to-pptx exporté ✦','success');
-  }catch(e){ toast('Export dom-to-pptx : '+e.message,'error'); }
+  }catch(e){ toastExportError('Export DOM',e); }
   finally{ if(ifr) ifr.remove(); setBusy('#createBusy','#createBusyTxt',false); }
 }
 
@@ -1199,15 +1217,15 @@ async function exportPptxBrowser(){
         ifr=await openSlideFrame(deck().css, deck().slides[i]);
         const root=ifr.contentDocument.querySelector('.slide');
         const result=await window.html2pptxBrowser.convertSlide(root,pptx,{PptxGenJS,width:13.333,height:7.5});
-        (result.warnings||[]).forEach(w=>logMsg('err','html2pptx slide '+(i+1)+' : '+w));
+        (result.warnings||[]).forEach(w=>logMsg('err','Export local JS - slide '+(i+1)+' : '+w));
         exported++;
       }catch(e){
-        logMsg('err','html2pptx slide '+(i+1)+' : '+e.message+' — fallback image');
+        logMsg('err',explainExportError('Export local JS - slide '+(i+1),e)+'\nFallback image tenté pour cette slide.');
         try{
           const data=await captureSlide(deck().css, deck().slides[i], 2);
           const s=pptx.addSlide(); s.background={color:'FFFFFF'}; s.addImage({data,x:0,y:0,w:13.333,h:7.5});
           exported++;
-        }catch(fe){ logMsg('err','Slide '+(i+1)+' fallback impossible : '+fe.message); }
+        }catch(fe){ logMsg('err',explainExportError('Fallback image - slide '+(i+1),fe)); }
       }finally{
         if(ifr) ifr.remove();
       }
@@ -1216,7 +1234,7 @@ async function exportPptxBrowser(){
     $('#createBusyTxt').textContent='Écriture du fichier…';
     await pptx.writeFile({fileName:'MagicSlider-html2pptx-local.pptx'});
     toast('PPTX html2pptx local exporté' + (exported<deck().slides.length?' ('+exported+'/'+deck().slides.length+')':'') + ' ✦','success');
-  }catch(e){ toast('Export html2pptx local : '+e.message,'error'); }
+  }catch(e){ toastExportError('Export local JS',e); }
   finally{ setBusy('#createBusy','#createBusyTxt',false); }
 }
 
@@ -1238,7 +1256,7 @@ async function exportPptx(){
     $('#createBusyTxt').textContent='Écriture du fichier…';
     await pptx.writeFile({fileName:'MagicSlider.pptx'});
     toast('PPTX (image) exporté' + (exported<deck().slides.length?' ('+exported+'/'+deck().slides.length+')':'') + ' ✦','success');
-  }catch(e){ toast('Export PPTX : '+e.message,'error'); }
+  }catch(e){ toastExportError('Ancien export image',e); }
   finally{ setBusy('#createBusy','#createBusyTxt',false); }
 }
 
@@ -1415,12 +1433,12 @@ async function buildNativePptx(useAI){
         exported++;
       }
       catch(e){
-        logMsg('err','Slide '+(i+1)+' : '+e.message+' — fallback image');
+        logMsg('err',explainExportError('Ancien export éditable - slide '+(i+1),e)+'\nFallback image tenté pour cette slide.');
         try{
           const data=await captureSlide(deck().css, deck().slides[i], 2);
           const s=pptx.addSlide(); s.background={color:'FFFFFF'}; s.addImage({data,x:0,y:0,w:13.333,h:7.5});
           exported++;
-        }catch(fe){ logMsg('err','Slide '+(i+1)+' fallback impossible : '+fe.message); }
+        }catch(fe){ logMsg('err',explainExportError('Fallback image - slide '+(i+1),fe)); }
       }
       finally{ if(ifr) ifr.remove(); }
     }
@@ -1428,7 +1446,7 @@ async function buildNativePptx(useAI){
     $('#createBusyTxt').textContent='Écriture du fichier…';
     await pptx.writeFile({fileName:'MagicSlider.pptx'});
     toast('PPTX'+(useAI?' éditable IA':' éditable')+' exporté' + (exported<deck().slides.length?' ('+exported+'/'+deck().slides.length+')':'') + ' ✦','success');
-  }catch(e){ toast('Export PPTX : '+e.message,'error'); }
+  }catch(e){ toastExportError(useAI?'Ancien export éditable IA':'Ancien export éditable rapide',e); }
   finally{ setBusy('#createBusy','#createBusyTxt',false); }
 }
 function exportPptxNative(){ return buildNativePptx(false); }
