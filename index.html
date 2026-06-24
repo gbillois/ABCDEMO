@@ -257,6 +257,8 @@
           <button class="btn primary" id="exportPptxAiBtn">Exporter en PPTX éditable (IA)</button>
           <p class="hint"><b>Éditable dom-to-pptx</b> — moteur DOM/CSS dédié : meilleur support potentiel des gradients, ombres, arrondis et SVG. Nouveau chemin d'export, à comparer selon les decks.</p>
           <button class="btn" id="exportPptxDomBtn">PPTX éditable (dom-to-pptx)</button>
+          <p class="hint"><b>Éditable local html2pptx</b> — port navigateur du convertisseur Node : tables, listes, liens, images, formes, gradients/ombres en couches visuelles, sans serveur ni exécution Node.</p>
+          <button class="btn" id="exportPptxBrowserBtn">PPTX éditable (html2pptx local)</button>
           <p class="hint"><b>Éditable rapide (sans IA)</b> — même reconstruction en objets éditables, sans passe IA. Plus rapide, un peu plus brut.</p>
           <button class="btn" id="exportPptxNativeBtn">PPTX éditable (rapide)</button>
           <p class="hint"><b>Image (rendu figé)</b> — 1 capture par slide, fidèle au pixel mais <b>non éditable</b>. Pour archivage / aperçu seulement.</p>
@@ -397,6 +399,7 @@ const H2C_LOCAL='assets/html2canvas.min.js';
 const H2C_CDN='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
 const DOMPPTX_LOCAL='assets/dom-to-pptx.bundle.js';
 const DOMPPTX_CDN='https://cdn.jsdelivr.net/npm/dom-to-pptx@2.0.1/dist/dom-to-pptx.bundle.js';
+const H2P_BROWSER_LOCAL='assets/html2pptx-browser.js';
 
 /* ---------- built-in premium slide design systems (the beauty driver) ---------- */
 const THEME_CSS = {
@@ -1113,6 +1116,11 @@ async function ensurePptxGen(){
   catch(e){ await loadScriptDyn(PPTX_CDN); }
   if(typeof PptxGenJS==='undefined') throw new Error('PptxGenJS indisponible');
 }
+async function ensureHtml2PptxBrowser(){
+  if(window.html2pptxBrowser&&typeof window.html2pptxBrowser.convertSlide==='function') return;
+  await loadScriptDyn(H2P_BROWSER_LOCAL);
+  if(!window.html2pptxBrowser||typeof window.html2pptxBrowser.convertSlide!=='function') throw new Error('html2pptx browser indisponible');
+}
 
 function buildDomToPptxDoc(){
   const css = baseSlideCss().replace('__DECKCSS__','\n'+(deck().css||'')+'\n');
@@ -1173,6 +1181,43 @@ async function exportPptxDom(){
     toast('PPTX dom-to-pptx exporté ✦','success');
   }catch(e){ toast('Export dom-to-pptx : '+e.message,'error'); }
   finally{ if(ifr) ifr.remove(); setBusy('#createBusy','#createBusyTxt',false); }
+}
+
+async function exportPptxBrowser(){
+  if(!deck()||!deck().slides.length){ toast('Aucune slide à exporter.','error'); return; }
+  setBusy('#createBusy','#createBusyTxt',true,'Export html2pptx local…'); switchTab('create');
+  try{
+    await ensurePptxGen();
+    await ensureHtml2PptxBrowser();
+    const pptx=new PptxGenJS(); pptx.defineLayout({name:'MS',width:13.333,height:7.5}); pptx.layout='MS';
+    pptx.author='MagicSlider'; pptx.company='MagicSlider'; pptx.subject='Browser HTML to editable PowerPoint';
+    let exported=0;
+    for(let i=0;i<deck().slides.length;i++){
+      $('#createBusyTxt').textContent='html2pptx local slide '+(i+1)+' / '+deck().slides.length+'…';
+      let ifr;
+      try{
+        ifr=await openSlideFrame(deck().css, deck().slides[i]);
+        const root=ifr.contentDocument.querySelector('.slide');
+        const result=await window.html2pptxBrowser.convertSlide(root,pptx,{PptxGenJS,width:13.333,height:7.5});
+        (result.warnings||[]).forEach(w=>logMsg('err','html2pptx slide '+(i+1)+' : '+w));
+        exported++;
+      }catch(e){
+        logMsg('err','html2pptx slide '+(i+1)+' : '+e.message+' — fallback image');
+        try{
+          const data=await captureSlide(deck().css, deck().slides[i], 2);
+          const s=pptx.addSlide(); s.background={color:'FFFFFF'}; s.addImage({data,x:0,y:0,w:13.333,h:7.5});
+          exported++;
+        }catch(fe){ logMsg('err','Slide '+(i+1)+' fallback impossible : '+fe.message); }
+      }finally{
+        if(ifr) ifr.remove();
+      }
+    }
+    if(!exported) throw new Error('aucune slide exportée');
+    $('#createBusyTxt').textContent='Écriture du fichier…';
+    await pptx.writeFile({fileName:'MagicSlider-html2pptx-local.pptx'});
+    toast('PPTX html2pptx local exporté' + (exported<deck().slides.length?' ('+exported+'/'+deck().slides.length+')':'') + ' ✦','success');
+  }catch(e){ toast('Export html2pptx local : '+e.message,'error'); }
+  finally{ setBusy('#createBusy','#createBusyTxt',false); }
 }
 
 async function exportPptx(){
@@ -1524,6 +1569,7 @@ function init(){
   // export
   $('#exportPptxBtn').addEventListener('click',exportPptx);
   $('#exportPptxDomBtn').addEventListener('click',exportPptxDom);
+  $('#exportPptxBrowserBtn').addEventListener('click',exportPptxBrowser);
   $('#exportPptxNativeBtn').addEventListener('click',exportPptxNative);
   $('#exportPptxAiBtn').addEventListener('click',exportPptxAI);
   $('#exportHtmlBtn').addEventListener('click',exportHtml);

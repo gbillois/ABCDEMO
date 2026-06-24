@@ -1,5 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
+const path = require('path');
 
 test('exports a deck with dom-to-pptx', async ({ page }, testInfo) => {
   const errors = [];
@@ -47,3 +48,85 @@ test('exports a deck with dom-to-pptx', async ({ page }, testInfo) => {
   expect(errors).toEqual([]);
 });
 
+test('exports a deck with the local browser html2pptx port', async ({ page }, testInfo) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+
+  const deck = {
+    themeName: 'test',
+    baseCss: `
+.slide{width:1280px;height:720px;position:relative;overflow:hidden;background:#ffffff;color:#172033;font-family:Arial,sans-serif}
+.box{position:absolute;left:90px;top:80px;width:1100px;height:560px;background:#f4f7ff;border:2px solid #451DC7;border-radius:20px;padding:64px}
+h1{font-size:58px;margin:0 0 24px;color:#451DC7}
+p{font-size:28px;line-height:1.35;width:760px;margin:0}
+.tag{position:absolute;right:70px;bottom:60px;background:#04F06A;color:#06311a;padding:16px 24px;border-radius:8px;font-size:22px;font-weight:700}
+table{position:absolute;left:154px;bottom:90px;border-collapse:collapse;font-size:18px}
+td,th{border:1px solid #451DC7;padding:8px 14px}
+th{background:#451DC7;color:white}
+`,
+    css: '',
+    slides: [
+      '<div class="box"><h1>Local html2pptx export</h1><p>This slide is converted directly in the browser from rendered HTML.</p><div class="tag">browser port</div><table><tr><th>Mode</th><th>Status</th></tr><tr><td>local HTML</td><td>ready</td></tr></table></div>',
+    ],
+    loadedCss: '',
+  };
+
+  await page.addInitScript(sampleDeck => {
+    localStorage.setItem('ms_deck2', JSON.stringify(sampleDeck));
+  }, deck);
+
+  await page.goto('/');
+  await page.locator('[data-tab="export"]').click();
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download', { timeout: 90000 }),
+    page.locator('#exportPptxBrowserBtn').click(),
+  ]);
+
+  const pptxPath = testInfo.outputPath('MagicSlider-html2pptx-local.pptx');
+  await download.saveAs(pptxPath);
+
+  const stat = fs.statSync(pptxPath);
+  expect(stat.size).toBeGreaterThan(10000);
+  expect(fs.readFileSync(pptxPath).subarray(0, 2).toString('utf8')).toBe('PK');
+  expect(errors).toEqual([]);
+});
+
+test('exports with the local browser html2pptx port from file protocol', async ({ page }, testInfo) => {
+  const deck = {
+    themeName: 'file-test',
+    baseCss: `
+.slide{width:1280px;height:720px;position:relative;overflow:hidden;background:#ffffff;color:#172033;font-family:Arial,sans-serif}
+.box{position:absolute;left:100px;top:100px;width:1000px;height:500px;background:#eef3ff;border:2px solid #451DC7;padding:60px}
+h1{font-size:56px;margin:0 0 24px;color:#451DC7}
+p{font-size:28px;line-height:1.35;margin:0}
+`,
+    css: '',
+    slides: [
+      '<div class="box"><h1>file local export</h1><p>Runs directly from a local HTML file.</p></div>',
+    ],
+    loadedCss: '',
+  };
+
+  await page.addInitScript(sampleDeck => {
+    localStorage.setItem('ms_deck2', JSON.stringify(sampleDeck));
+  }, deck);
+
+  await page.goto('file://' + path.resolve(__dirname, '..', 'index.html'));
+  await page.locator('[data-tab="export"]').click();
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download', { timeout: 90000 }),
+    page.locator('#exportPptxBrowserBtn').click(),
+  ]);
+
+  const pptxPath = testInfo.outputPath('MagicSlider-file-html2pptx-local.pptx');
+  await download.saveAs(pptxPath);
+
+  const stat = fs.statSync(pptxPath);
+  expect(stat.size).toBeGreaterThan(10000);
+  expect(fs.readFileSync(pptxPath).subarray(0, 2).toString('utf8')).toBe('PK');
+});
