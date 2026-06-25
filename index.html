@@ -174,6 +174,8 @@
         <label class="fld">Densité de photos : <span id="photoVal">50</span>%</label>
         <input id="photoDensity" type="range" min="0" max="100" step="10" value="50" style="width:100%">
         <label class="fld" style="display:flex;align-items:center;gap:8px;margin-top:12px"><input type="checkbox" id="useThinking" style="width:auto"> Extended thinking (qualité max — plus lent, peut être coupé par le navigateur)</label>
+        <label class="fld" style="display:flex;align-items:flex-start;gap:8px;margin-top:12px"><input type="checkbox" id="pptCompat" style="width:auto;margin-top:2px"> Mode PowerPoint compatible</label>
+        <div class="hint">Génère des slides plus faciles à convertir : polices Office, fonds pleins, sans dégradés CSS ni effets difficiles.</div>
       </div>
       <div class="create-foot">
         <button class="btn primary" id="createBtn" style="width:100%; padding:12px">Create ✦</button>
@@ -257,8 +259,8 @@
           <button class="btn primary" id="exportPptxBrowserBtn">1. Export local JS</button>
           <p class="hint"><b>2. Export DOM</b> — utilise le bundle de la repo <code>dom-to-pptx</code>. Bon moteur de comparaison pour gradients, ombres, arrondis et SVG.</p>
           <button class="btn" id="exportPptxDomBtn">2. Export DOM</button>
-          <p class="hint"><b>3. Export PPTX Converter v4</b> — moteur complet repris de <code>Documents/PPTXConverter</code>, avec meilleure couverture tables, liens, SVG, images et validations de mise en page.</p>
-          <button class="btn" id="exportPptxFullBrowserBtn">3. Export PPTX Converter v4</button>
+          <p class="hint"><b>3. Export MagicSlider PPTX</b> — pipeline intégré autour du moteur PPTXConverter, avec préparation HTML dédiée, styles PowerPoint-safe et validations de mise en page.</p>
+          <button class="btn" id="exportPptxFullBrowserBtn">3. Export MagicSlider PPTX</button>
         </div>
         <div class="card">
           <h3>Anciens exports</h3>
@@ -362,7 +364,7 @@ const THEMES = {
 
 /* ---------- state ---------- */
 const LS={ provider:'ms_provider', apiKey:'ms_api_key', azKey:'ms_azure_key', azEndpoint:'ms_azure_endpoint',
-  azDeploy:'ms_azure_deploy', model:'ms_model', deck:'ms_deck2' };
+  azDeploy:'ms_azure_deploy', model:'ms_model', deck:'ms_deck2', pptCompat:'ms_ppt_compat' };
 const DEFAULT_MODELS={
   anthropic:['claude-opus-4-8','claude-sonnet-4-6','claude-haiku-4-5'],
   openai:['gpt-5.1','gpt-5','gpt-4.1','gpt-4o','gpt-4o-mini','o4-mini'],
@@ -383,11 +385,12 @@ const state={
   cIndex:0, eIndex:0,
   customTheme:null,
   loadedCss:'',
-  editing:false
+  editing:false,
+  pptCompatible:localStorage.getItem(LS.pptCompat)==='1'
 };
 const deck=()=>state.deck;
 function persist(){ try{ localStorage.setItem(LS.deck, JSON.stringify(state.deck)); }catch(e){} }
-function loadPersisted(){ try{ const d=JSON.parse(localStorage.getItem(LS.deck)||'null'); if(d&&d.slides){ state.deck=d; state.loadedCss=d.loadedCss||''; } }catch(e){} }
+function loadPersisted(){ try{ const d=JSON.parse(localStorage.getItem(LS.deck)||'null'); if(d&&d.slides){ state.deck=d; state.loadedCss=d.loadedCss||''; if(typeof d.pptCompatible==='boolean') state.pptCompatible=d.pptCompatible; } }catch(e){} }
 
 /* ---------- toasts ---------- */
 function toast(msg,type){ type=type||'info'; const t=document.createElement('div'); t.className='toast '+type; t.textContent=msg;
@@ -459,7 +462,7 @@ const THEME_CSS = {
 .hero{position:absolute;inset:0;background:var(--brand-grad);color:#fff}
 .on-dark,.hero .title,.hero .eyebrow,.hero .subtitle{color:#fff}
 .hero .subtitle{opacity:.92}
-.dark{background:var(--ink);color:#fff}
+.dark{background:var(--indigo-d);color:#fff}
 .timeline{position:relative;height:4px;background:#e3def0;margin:40px 0}
 .node{position:absolute;top:50%;width:18px;height:18px;background:var(--indigo);transform:translate(-50%,-50%)}
 .node.green{background:var(--green-d)}
@@ -503,7 +506,7 @@ const THEME_CSS = {
 	.hero{position:absolute;inset:0;background:linear-gradient(120deg,var(--ws2-indigo),var(--ws2-indigo-d));color:#fff}
 	.hero .title,.hero .eyebrow,.hero .subtitle,.dark .title,.dark .eyebrow,.dark .subtitle{color:#fff}
 	.hero .subtitle,.dark .subtitle{color:rgba(255,255,255,.84)}
-	.dark{background:var(--ws2-ink);color:#fff}
+	.dark{background:var(--ws2-indigo-d);color:#fff}
 	.timeline{position:relative;height:3px;background:var(--ws2-line);margin:34px 0}
 	.node{position:absolute;top:50%;width:16px;height:16px;border-radius:50%;background:var(--ws2-indigo);transform:translate(-50%,-50%)}
 	.node.green{background:var(--ws2-green)}
@@ -544,12 +547,51 @@ const THEME_CSS = {
 .muted{color:var(--muted)}.list{list-style:none;padding:0;margin:0}.list li{display:flex;gap:14px;align-items:flex-start;margin:14px 0;font-size:18px}
 `
 };
-function baseCssFor(){ if(state.loadedCss) return state.loadedCss; const k=$('#styleSelect').value; return THEME_CSS[k]||THEME_CSS.wavestone; }
+function selectedThemeName(){ const el=$('#styleSelect'); return el ? el.value : ((deck()&&deck().themeName)||'wavestone'); }
+function isPptCompat(){ const el=$('#pptCompat'); return el ? !!el.checked : !!state.pptCompatible; }
+function isWavestoneTheme(name){ return name==='wavestone'||name==='wavestone2'||name==='Wavestone'||name==='Wavestone2'; }
+function pptCompatCss(){
+  return `
+/* MagicSlider PowerPoint-compatible guardrails */
+:root{--ms-ppt-font:Aptos,Arial,Calibri,sans-serif;--ms-ppt-display:"Aptos Display",Aptos,Arial,Calibri,sans-serif;--ms-ppt-brand:#451DC7;--ms-ppt-accent:#04F06A;--ms-ppt-surface:#F1EEFB;--ms-ppt-ink:#16121F}
+.slide,.slide *{font-family:var(--ms-ppt-font) !important;text-shadow:none !important;filter:none !important;backdrop-filter:none !important;mix-blend-mode:normal !important}
+.title,.title.xl,.kpi,.eyebrow,.card h3,h1,h2,h3{font-family:var(--ms-ppt-display) !important}
+.title em,.kpi{background-image:none !important;-webkit-background-clip:border-box !important;background-clip:border-box !important;-webkit-text-fill-color:currentColor !important;color:var(--ms-ppt-brand) !important}
+.hero{background:#451DC7 !important;color:#fff !important}
+.dark{background:#2D1380 !important;color:#fff !important}
+.card{box-shadow:none !important}
+.blob{display:none !important}
+.photo-mask.l{background:rgba(45,19,128,.74) !important}
+.photo-mask.b{background:rgba(45,19,128,.66) !important}
+.photo-mask.full{background:rgba(45,19,128,.70) !important}
+`;
+}
+function wavestoneNoBlackCss(themeName){
+  if(!isWavestoneTheme(themeName)) return '';
+  return `
+/* Wavestone guardrail: no black slide backgrounds */
+.slide{background-color:#FFFFFF}
+.slide.dark,.dark{background:#2D1380 !important;color:#FFFFFF}
+.hero{background:#451DC7;color:#FFFFFF}
+.slide [style*="#000"],.slide [style*="#000000"],.slide [style*="black"],.slide [style*="#070a12"],.slide [style*="#0a0e17"],.slide [style*="#16121F"],.slide [style*="#16121f"]{background-color:#2D1380 !important}
+`;
+}
+function baseCssFor(){
+  const k=selectedThemeName();
+  let css=state.loadedCss || THEME_CSS[k] || THEME_CSS.wavestone;
+  css += '\n' + wavestoneNoBlackCss(k);
+  if(isPptCompat()) css += '\n' + pptCompatCss();
+  return css;
+}
 
 function baseSlideCss(){
-  const base = (deck()&&deck().baseCss) || state.loadedCss || THEME_CSS.wavestone;
+  const d=deck();
+  const themeName=(d&&d.themeName)||selectedThemeName();
+  const base = (d&&d.baseCss) || state.loadedCss || THEME_CSS.wavestone;
+  const guard = '\n' + wavestoneNoBlackCss(themeName) + ((d&&d.pptCompatible)?('\n'+pptCompatCss()):'');
   return 'html,body{margin:0;padding:0;background:#fff}*{box-sizing:border-box}'
     + (base?('\n/* design system */\n'+base+'\n'):'')
+    + guard
     + '__DECKCSS__'
     + '\n.slide{width:1280px;height:720px;overflow:hidden;position:relative}';
 }
@@ -672,13 +714,30 @@ function availableModels(){ const def=DEFAULT_MODELS[state.settings.provider]||[
    ============================================================================ */
 function curTheme(){ const v=$('#styleSelect').value; if(v==='custom'&&state.customTheme) return state.customTheme; if(v==='wavestone2') return THEMES.wavestone2; if(v==='darkcyber') return THEMES.darkcyber; return THEMES.wavestone; }
 function paletteText(th){
+  const fonts=isPptCompat()
+    ? 'Polices — titres "Aptos Display" ou "Arial", texte "Aptos", "Arial" ou "Calibri" uniquement (compatibles PowerPoint).'
+    : 'Polices — titres "'+th.fontDisplay+'", texte "'+th.fontBody+'" (déjà chargées : Poppins, Inter, Carlito, IBM Plex Mono, Rajdhani, Orbitron, Fraunces, Playfair Display).';
   return 'Ambiance: '+(th.mood||'premium')+'.\n'
     +'Couleurs — primary '+th.primary+' · accent '+th.accent+' · secondary '+th.secondary+' · fond '+th.bg+' · surface '+th.surface+' · texte '+th.text+' · texte sourd '+th.muted+' · sur-fond-coloré '+th.onBrand+'.\n'
-    +'Polices — titres "'+th.fontDisplay+'", texte "'+th.fontBody+'" (déjà chargées : Poppins, Inter, Carlito, IBM Plex Mono, Rajdhani, Orbitron, Fraunces, Playfair Display).';
+    +fonts;
+}
+function pptCompatiblePromptRules(enabled){
+  if(!enabled) return '';
+  return `\nMODE POWERPOINT COMPATIBLE ACTIVÉ :
+- Le deck doit rester premium, board-level et très esthétique, mais avec des primitives PowerPoint robustes.
+- Utilise uniquement des polices disponibles dans PowerPoint/Office : Aptos, Aptos Display, Arial, Calibri, Verdana, Georgia, Times New Roman. Pas de Poppins, Inter, Orbitron, Rajdhani, Google Fonts ou police exotique dans le HTML généré.
+- Interdiction des gradients CSS, background-clip:text, texte transparent, filtres blur, backdrop-filter, mix-blend-mode, text-shadow, box-shadow lourd, clip-path et masques complexes.
+- Remplace les dégradés par des aplats riches, grands blocs de couleur, filets fins, contrastes, typographie forte, photos bien cadrées, pictogrammes et grilles soignées.
+- Les fonds doivent être des couleurs pleines ou des photos réelles avec overlay uni semi-transparent, jamais un gradient CSS.`;
 }
 function styleRules(th){
-  if(th.name==='Wavestone2') return 'STYLE WAVESTONE2 : conserve le langage du deck PPTX de reference. Autorise des cartes compactes legerement arrondies (6-8px), de fines regles vert acide, de petits badges, des rails de severite, des grands numeros fantomes et un chrome de pied de page discret. Images : le LLM doit choisir autonomement de belles photos reelles, precises et adaptees au theme du deck cree, slide par slide, sans banque fixe ni images generiques par defaut ; utilise des URLs HTTPS directes et valides, avec overlay indigo/noir lisible.';
-  return 'STYLE IMPOSE : coins parfaitement CARRES partout (aucun border-radius, aucune forme arrondie). N ajoute JAMAIS de barre ou filet colore en haut ou a gauche d un bloc de texte ou d une carte. Pour separer un titre, utilise de l espace, pas une barre coloree.';
+  if(th.name==='Wavestone2') return 'STYLE WAVESTONE2 : conserve le langage du deck PPTX de reference. Autorise des cartes compactes legerement arrondies (6-8px), de fines regles vert acide, de petits badges, des rails de severite, des grands numeros fantomes et un chrome de pied de page discret. Images : le LLM doit choisir autonomement de belles photos reelles, precises et adaptees au theme du deck cree, slide par slide, sans banque fixe ni images generiques par defaut ; utilise des URLs HTTPS directes et valides, avec overlay indigo lisible. INTERDICTION : ne crée jamais une slide Wavestone2 avec fond noir ; si une slide doit être sombre, utilise un indigo Wavestone plein (#2D1380 ou #451DC7), jamais noir/anthracite.';
+  const noBlack=th.name==='Wavestone'?' INTERDICTION : ne crée jamais une slide Wavestone avec fond noir ; utilise blanc, lavande claire, vert accent, photo plein cadre ou indigo Wavestone plein (#2D1380/#5A2BE0), jamais noir/anthracite.':'';
+  return 'STYLE IMPOSE : coins parfaitement CARRES partout (aucun border-radius, aucune forme arrondie). N ajoute JAMAIS de barre ou filet colore en haut ou a gauche d un bloc de texte ou d une carte. Pour separer un titre, utilise de l espace, pas une barre coloree.'+noBlack;
+}
+function layoutVarietyText(th){
+  const dark = (th.name==='Wavestone'||th.name==='Wavestone2') ? 'slide indigo de marque non noire' : 'slide .dark';
+  return 'VARIE fortement les mises en page slide à slide (titre hero, photo demi-page gauche, photo demi-page droite, photo plein fond, grille de cartes, gros KPI, timeline, split couleur, '+dark+').';
 }
 function genHtmlSystem(th, n, photoPct){
   const dens = photoPct<=20 ? 'TRÈS PEU de photos : compose surtout avec icônes plates, cartes, gros chiffres, dégradés et formes.'
@@ -699,12 +758,13 @@ RÈGLES SLIDE :
 - Cohérence : mêmes classes, même grille, même palette sur TOUT le deck.
 
 ${paletteText(th)}
+${pptCompatiblePromptRules(isPptCompat())}
 
 DIRECTION ARTISTIQUE (c'est ce qui fait la beauté) :
 - PHOTOS : ${dens} Tu dois trouver et inclure autonomement de belles photos reelles adaptees au theme exact du deck et au contenu de chaque slide. N'utilise pas de bibliotheque fixe, pas d'image generique, pas de placeholder. Selectionne des images avec un sujet visuel precis tire du brief (lieu, secteur, metier, produit, scene, preuve, contexte) et insere des URLs HTTPS directes et valides (Unsplash, Wikimedia Commons, pages media officielles, ou autre source publique stable). Sur chaque photo, pose TOUJOURS un overlay degrade sombre (un div en position:absolute, ou un ::before) puis du texte clair lisible.
 - FLAT ICONS partout : <iconify-icon icon="tabler:radar"></iconify-icon> (collections mdi/tabler/ph/solar/lucide). Mets-les dans les cartes, les puces, les KPI, les étapes de timeline — souvent dans une pastille ronde colorée.
 - Dégradés riches, cartes à liseré/ombre, GROS chiffres (88-150px), timelines (ligne + jalons), hiérarchie typo (eyebrow majuscule → titre 56-80px → sous-titre → corps), filets accent sous les titres, blobs décoratifs flous en fond.
-- VARIE fortement les mises en page d'une slide à l'autre (photo gauche / photo droite / plein fond / grille de cartes / split couleur / gros chiffres).
+- ${layoutVarietyText(th)}
 - Slide 1 = titre sur fond dégradé de la marque. Prévois aussi : sommaire, sections, timeline si pertinent, grille (acteurs/risques), synthèse/reco finale.
 ${css}
 Rappels : HTML pur, ${n} <section class="slide">, tout dans 1280x720, photos + icônes, soigné et splendide. Aucune explication, que le HTML.`;
@@ -730,6 +790,33 @@ function parseSlideHtml(text){
   const tmp=document.createElement('div'); tmp.innerHTML=inner; $$('script',tmp).forEach(x=>x.remove());
   return { inner: tmp.innerHTML.trim(), css: extraCss };
 }
+function sanitizeSlideInnerForTheme(inner, themeName, pptCompat){
+  const tmp=document.createElement('div'); tmp.innerHTML=inner||'';
+  const brandDark=themeName==='wavestone2'?'#2D1380':'#2D1380';
+  $$('*',tmp).forEach(el=>{
+    let st=el.getAttribute('style')||'';
+    if(!st) return;
+    if(isWavestoneTheme(themeName)){
+      st=st.replace(/background(?:-color)?\s*:\s*(?:#000(?:000)?|black|#070a12|#0a0e17|#16121f|var\(--(?:ink|ws2-ink)\))\b[^;]*;?/ig,'background-color:'+brandDark+';');
+    }
+    if(pptCompat){
+      st=st.replace(/background(?:-image)?\s*:[^;]*gradient\([^;]*\)\s*;?/ig,'background-color:#451DC7;');
+      st=st.replace(/(?:filter|backdrop-filter|mix-blend-mode|text-shadow|box-shadow)\s*:[^;]*;?/ig,'');
+      st=st.replace(/font-family\s*:[^;]*;?/ig,'font-family:Aptos,Arial,Calibri,sans-serif;');
+    }
+    el.setAttribute('style',st);
+  });
+  return tmp.innerHTML.trim();
+}
+function sanitizeDeckCssForPowerPoint(css){
+  return String(css||'')
+    .replace(/background(?:-image)?\s*:[^{};]*gradient\([^{};]*\)\s*;?/ig,'background-color:#451DC7;')
+    .replace(/-webkit-background-clip\s*:\s*text\s*;?/ig,'')
+    .replace(/background-clip\s*:\s*text\s*;?/ig,'')
+    .replace(/-webkit-text-fill-color\s*:\s*transparent\s*;?/ig,'')
+    .replace(/(?:filter|backdrop-filter|mix-blend-mode|text-shadow)\s*:[^;{}]*;?/ig,'')
+    .replace(/font-family\s*:[^;{}]*?(?:Poppins|Inter|Orbitron|Rajdhani|Fraunces|Playfair Display|IBM Plex Mono)[^;{}]*;?/ig,'font-family:Aptos,Arial,Calibri,sans-serif;');
+}
 
 /* ============================================================================
    CREATE
@@ -745,6 +832,7 @@ function genPlanSystem(th,n,photoPct,baseCss){
 
 UN DESIGN SYSTEM CSS PROFESSIONNEL EST DÉJÀ FOURNI (ci-dessous). Tu DOIS bâtir les slides avec SES classes (.pad, .eyebrow, .title, .title.xl, .title em, .subtitle, .card, .grid .grid-2/3/4, .kpi, .kpi-label, .chip, .badge, .photo, .photo-mask.l/.b/.full, .hero, .on-dark, .dark, .timeline, .node, .blob, .list, .row/.col/.between/.center/.mta). Ne réécris PAS ce système.
 ${styleRules(th)}
+${pptCompatiblePromptRules(isPptCompat())}
 
 SORTIE STRICTE (aucun markdown), dans cet ordre :
 1) UN bloc <style>...</style> = UNIQUEMENT le CSS COMPLÉMENTAIRE spécifique (mises en page particulières, variantes) qui n'existe pas déjà dans le système fourni. Reste court si le système suffit.
@@ -752,7 +840,7 @@ SORTIE STRICTE (aucun markdown), dans cet ordre :
 
 Produis EXACTEMENT ${n} entrées ===SLIDE===. Contenu réel et substantiel (c'est pour un board), jamais de placeholder.
 ${paletteText(th)}
-Densité photos : ${dens}. Les slides marquees "photo: oui" devront recevoir en etape 2 une vraie image choisie par toi, belle et coherente avec le theme du deck. VARIE fortement les mises en page slide à slide (titre hero, photo demi-page gauche, photo demi-page droite, photo plein fond, grille de cartes, gros KPI, timeline, split couleur, slide .dark). Slide 1 = titre (.hero). Prévois : sommaire, sections de fond, une timeline détaillée si pertinent, une grille (acteurs/risques), une synthèse/recommandations finale.
+Densité photos : ${dens}. Les slides marquees "photo: oui" devront recevoir en etape 2 une vraie image choisie par toi, belle et coherente avec le theme du deck. ${layoutVarietyText(th)} Slide 1 = titre (.hero). Prévois : sommaire, sections de fond, une timeline détaillée si pertinent, une grille (acteurs/risques), une synthèse/recommandations finale.
 
 /* DESIGN SYSTEM FOURNI (réutilise ses classes) */
 ${(baseCss||'').slice(0,5200)}
@@ -766,6 +854,7 @@ SORTIE : UNIQUEMENT le HTML INTERNE de la slide (le contenu), SANS <section>, SA
 
 Tu DOIS réutiliser EN PRIORITÉ les classes du DESIGN SYSTEM (fourni dans le message) : enveloppe le contenu dans <div class="pad"> (sauf slides à photo/hero plein cadre), utilise .eyebrow/.title/.subtitle pour les en-têtes, .card (+grilles) pour les blocs, .kpi pour les chiffres, .chip + <iconify-icon> pour les icônes, .photo + .photo-mask pour les images, .hero/.dark pour les fonds, .timeline/.node pour les frises.
 ${styleRules(th)}
+${pptCompatiblePromptRules(isPptCompat())}
 Compose RICHE et soigné, aligné sur une grille, rien de vide, RIEN ne déborde de 1280x720. Respecte la mise en page demandée dans le brief.
 Photos : si le brief demande une photo, tu dois choisir autonomement une belle image reelle adaptee au theme du deck et a cette slide precise, puis utiliser une URL HTTPS directe et valide dans <img class="photo" src="...">. La photo doit ameliorer le sens et l'esthetique de la slide, pas seulement decorer. Place l'image dans un conteneur position:absolute + un <div class="photo-mask l/b/full"></div> par-dessus, puis le texte au-dessus (z-index). Ne reutilise pas une bibliotheque fixe, n'utilise pas d'image generique et n'invente pas d'URL factice.
 Icônes : <iconify-icon icon="tabler:..."></iconify-icon> (mdi/tabler/ph/solar/lucide), souvent dans une .chip.
@@ -789,9 +878,11 @@ async function runCreate(){
   const th=curTheme();
   const provider=state.settings.provider;
   const thinking=$('#useThinking').checked && provider==='anthropic';
+  state.pptCompatible=isPptCompat();
+  localStorage.setItem(LS.pptCompat,state.pptCompatible?'1':'0');
 
   logClear();
-  logMsg('user','PROMPT ('+provider+' · '+state.settings.model+(thinking?' · thinking':'')+')\n\n'+prompt+'\n\n→ '+n+' slides · photos '+photoPct+'% · '+th.name);
+  logMsg('user','PROMPT ('+provider+' · '+state.settings.model+(thinking?' · thinking':'')+(state.pptCompatible?' · PowerPoint compatible':'')+')\n\n'+prompt+'\n\n→ '+n+' slides · photos '+photoPct+'% · '+th.name);
   setBusy('#createBusy','#createBusyTxt', true, 'Étape 1/2 — plan & design…');
   $('#createBtn').disabled=true;
   const baseCss=baseCssFor();
@@ -801,7 +892,7 @@ async function runCreate(){
     const planTxt=await callLLM(genPlanSystem(th,n,photoPct,baseCss), prompt, null, {stream:false,thinking,maxTokens:7000});
     const plan=parsePlan(planTxt);
     if(!plan.briefs.length) throw new Error('Plan illisible (aucune entrée ===SLIDE===).');
-    state.deck={ themeName:$('#styleSelect').value, baseCss:baseCss, css:plan.css, slides:[], loadedCss:state.loadedCss };
+    state.deck={ themeName:$('#styleSelect').value, baseCss:baseCss, css:state.pptCompatible?sanitizeDeckCssForPowerPoint(plan.css):plan.css, slides:[], loadedCss:state.loadedCss, pptCompatible:state.pptCompatible };
     state.cIndex=0; state.eIndex=0; persist();
     logMsg('ai','✓ '+plan.briefs.length+' slides planifiées. Génération slide par slide…');
 
@@ -820,8 +911,8 @@ async function runCreate(){
           +'\n\n/* ===> SLIDE À PRODUIRE : '+(i+1)+'/'+count+' <=== */\n'+plan.briefs[i];
         const txt=await callLLM(slideSys, user, null, {stream:false,thinking,maxTokens:8000});
         const p=parseSlideHtml(txt); if(!p.inner) throw new Error('réponse vide');
-        if(p.css) state.deck.css+='\n'+p.css;
-        state.deck.slides.push(p.inner);
+        if(p.css) state.deck.css+='\n'+(state.pptCompatible?sanitizeDeckCssForPowerPoint(p.css):p.css);
+        state.deck.slides.push(sanitizeSlideInnerForTheme(p.inner, state.deck.themeName, state.pptCompatible));
         logMsg('ai','✓ Slide '+(i+1)+'/'+count);
       }catch(se){ logMsg('err','✗ Slide '+(i+1)+' échouée ('+se.message+') — ignorée'); }
       persist(); state.cIndex=Math.max(0,state.deck.slides.length-1); renderPreview(); updatePills();
@@ -1172,13 +1263,29 @@ async function ensureHtml2PptxFullBrowser(){
   if(!window.html2pptxFullBrowser||typeof window.html2pptxFullBrowser.convertDeck!=='function') throw new Error('html2pptx v4 indisponible : assets/html2pptx-full-browser.js est absent ou bloqué');
 }
 
-function buildFullHtml2PptxDoc(){
-  const css = baseSlideCss().replace('__DECKCSS__','\n'+(deck().css||'')+'\n');
-  const sections = deck().slides.map(s=>'<section class="slide">'+s+'</section>').join('\n');
-  return '<!DOCTYPE html><html><head><meta charset="utf-8">'+FONTS_LINK
+function buildMagicSliderPptxDoc(){
+  const d=deck();
+  const themeName=(d&&d.themeName)||'wavestone';
+  const pptSafe=!!(d&&d.pptCompatible);
+  const deckCss=pptSafe?sanitizeDeckCssForPowerPoint(d.css||''):(d.css||'');
+  const css = baseSlideCss().replace('__DECKCSS__','\n'+deckCss+'\n')
+    + '\nbody{margin:0;padding:0;background:#fff;overflow:visible}.slide{display:block;margin:0}'
+    + '\n.ms-export{width:1280px;margin:0;padding:0;background:#fff}'
+    + '\n' + wavestoneNoBlackCss(themeName)
+    + (pptSafe?('\n'+pptCompatCss()):'');
+  const sections = d.slides.map(s=>{
+    const safeInner=sanitizeSlideInnerForTheme(s, themeName, pptSafe);
+    return '<section class="slide">'+safeInner+'</section>';
+  }).join('\n');
+  const fontHead=pptSafe?'':FONTS_LINK;
+  const classes=['ms-export','ms-theme-'+String(themeName).replace(/[^a-z0-9_-]/ig,'').toLowerCase(),pptSafe?'pptx-safe':''].filter(Boolean).join(' ');
+  return '<!DOCTYPE html><html><head><meta charset="utf-8">'+fontHead
     + '<script src="'+ICONIFY+'"><\/script>'
-    + '<style>'+css+'\nbody{margin:0;padding:0;background:#fff;overflow:visible}.slide{display:block;margin:0}</style>'
-    + '</head><body>'+sections+'</body></html>';
+    + '<style>'+css+'</style>'
+    + '</head><body class="'+classes+'">'+sections+'</body></html>';
+}
+function buildFullHtml2PptxDoc(){
+  return buildMagicSliderPptxDoc();
 }
 
 function buildDomToPptxDoc(){
@@ -1284,28 +1391,29 @@ async function exportPptxBrowser(){
   finally{ setBusy('#createBusy','#createBusyTxt',false); }
 }
 
-async function exportPptxFullBrowser(){
+async function exportMagicSliderPptx(){
   if(!deck()||!deck().slides.length){ toast('Aucune slide à exporter.','error'); return; }
-  setBusy('#createBusy','#createBusyTxt',true,'Export PPTX Converter v4…'); switchTab('create');
+  setBusy('#createBusy','#createBusyTxt',true,'Export MagicSlider PPTX…'); switchTab('create');
   try{
     await ensurePptxGen();
     await ensureHtml2PptxFullBrowser();
-    const fileName='MagicSlider-pptx-converter-v4.pptx';
-    const result=await withTimeout(window.html2pptxFullBrowser.convertDeck(buildFullHtml2PptxDoc(),{
+    const fileName='MagicSlider-export.pptx';
+    const result=await withTimeout(window.html2pptxFullBrowser.convertDeck(buildMagicSliderPptxDoc(),{
       fileName,
-      title:'MagicSlider PPTX Converter v4',
+      title:'MagicSlider PPTX export',
       onProgress:p=>{
-        if(p.phase==='slide') $('#createBusyTxt').textContent='PPTX Converter v4 slide '+(p.index+1)+' / '+p.total+'…';
-        else if(p.phase==='finalize') $('#createBusyTxt').textContent='Écriture du fichier PPTX Converter v4…';
+        if(p.phase==='slide') $('#createBusyTxt').textContent='MagicSlider PPTX slide '+(p.index+1)+' / '+p.total+'…';
+        else if(p.phase==='finalize') $('#createBusyTxt').textContent='Écriture du fichier MagicSlider PPTX…';
       }
-    }),FULL_HTML2PPTX_TIMEOUT_MS,'conversion PPTX Converter v4 trop lente');
+    }),FULL_HTML2PPTX_TIMEOUT_MS,'conversion MagicSlider PPTX trop lente');
     const warnings=(result&&result.warnings)||[];
-    warnings.forEach(w=>logMsg(/ERROR|CRITICAL|MUST FIX/.test(w.message)?'err':'info','Export PPTX Converter v4 - slide '+w.slide+' : '+w.message));
+    warnings.forEach(w=>logMsg(/ERROR|CRITICAL|MUST FIX/.test(w.message)?'err':'info','Export MagicSlider PPTX - slide '+w.slide+' : '+w.message));
     const critical=warnings.filter(w=>/ERROR|CRITICAL|MUST FIX/.test(w.message)).length;
-    toast('PPTX Converter v4 exporté' + (critical?' ('+critical+' avertissement(s) critique(s))':'') + ' ✦', critical?'info':'success');
-  }catch(e){ toastExportError('Export PPTX Converter v4',e); }
+    toast('PPTX MagicSlider exporté' + (critical?' ('+critical+' avertissement(s) critique(s))':'') + ' ✦', critical?'info':'success');
+  }catch(e){ toastExportError('Export MagicSlider PPTX',e); }
   finally{ setBusy('#createBusy','#createBusyTxt',false); }
 }
+function exportPptxFullBrowser(){ return exportMagicSliderPptx(); }
 
 async function exportPptx(){
   if(!deck()||!deck().slides.length){ toast('Aucune slide à exporter.','error'); return; }
@@ -1630,6 +1738,8 @@ function init(){
   $$('.tab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
 
   // create
+  $('#pptCompat').checked=!!state.pptCompatible;
+  $('#pptCompat').addEventListener('change',e=>{ state.pptCompatible=!!e.target.checked; localStorage.setItem(LS.pptCompat,state.pptCompatible?'1':'0'); });
   $('#createBtn').addEventListener('click',runCreate);
   $('#photoDensity').addEventListener('input',e=>{ $('#photoVal').textContent=e.target.value; });
   $('#cPrev').addEventListener('click',()=>{ state.cIndex--; renderPreview(); });
@@ -1666,7 +1776,7 @@ function init(){
   $('#exportHtmlBtn').addEventListener('click',exportHtml);
   $('#saveJsonBtn').addEventListener('click',()=>{ if(!deck()){ toast('Rien à sauvegarder.','error'); return; } downloadBlob(JSON.stringify(deck(),null,2),'magicslider-projet.json','application/json'); });
   $('#loadJsonBtn').addEventListener('click',()=>$('#jsonFile').click());
-  $('#jsonFile').addEventListener('change',e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); if(!d.slides) throw 0; state.deck=d; state.loadedCss=d.loadedCss||''; state.cIndex=0; state.eIndex=0; persist(); setCssState(); refreshAll(); toast('Projet chargé.','success'); }catch(err){ toast('Fichier invalide.','error'); } }; r.readAsText(f); e.target.value=''; });
+  $('#jsonFile').addEventListener('change',e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); if(!d.slides) throw 0; state.deck=d; state.loadedCss=d.loadedCss||''; if(typeof d.pptCompatible==='boolean'){ state.pptCompatible=d.pptCompatible; $('#pptCompat').checked=state.pptCompatible; localStorage.setItem(LS.pptCompat,state.pptCompatible?'1':'0'); } state.cIndex=0; state.eIndex=0; persist(); setCssState(); refreshAll(); toast('Projet chargé.','success'); }catch(err){ toast('Fichier invalide.','error'); } }; r.readAsText(f); e.target.value=''; });
 
   // settings
   $('#setProvider').value=state.settings.provider;
