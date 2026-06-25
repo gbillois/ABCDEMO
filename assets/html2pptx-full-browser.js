@@ -1,13 +1,8 @@
-/* Extracted from /Users/gerome/Documents/PPTXConverter/index.html.
-
- * Includes runtime shims, html2pptx v4 engine, and deck conversion harness.
-
+/* Generated from /Users/gerome/Documents/PPTXConverter/webapp sources.
+ * Includes runtime shims, html2pptx engine, and deck conversion harness.
  * Standalone UI controller intentionally omitted.
-
  */
-
 (function(){
-
   if (window.html2pptxFullBrowser && window.html2pptxFullBrowser.convertDeck) return;
 
 /* ============================================================================
@@ -351,10 +346,9 @@ function shimRequire(name) {
 }
 
 
-
 (function(){
-  var module = { exports: {} };
-  var exports = module.exports;
+  const module = { exports: {} };
+  const exports = module.exports;
   (function(module, exports, require, process, Buffer, __dirname, __filename){
 /**
  * html2pptx v4 — Convert HTML slide to pptxgenjs slide with positioned elements
@@ -601,6 +595,99 @@ function checkTextOverlaps(slideData) {
   }
   return w;
 }
+// Design-QA linter: flag near-miss alignment, uneven distribution, and
+// inconsistent sibling sizing — the "consistency & alignment" rules a human (or
+// the PowerPoint design assistant) would check. Conservative thresholds + caps
+// keep it from flooding. Opt-in via the `checkAlignment` option.
+function checkAlignmentConsistency(slideData, sw, sh) {
+  const warnings = [];
+  const PX = 1 / 96;
+  const NEAR_MIN = 1.5 * PX;   // below this = effectively aligned → ignore
+  const NEAR_MAX = 12 * PX;    // above this = probably intentionally different
+  const slideArea = sw * sh;
+
+  const items = [];
+  for (const el of (slideData.elements || [])) {
+    if (!el.position) continue;
+    const p = el.position;
+    if (!Number.isFinite(p.x) || !Number.isFinite(p.w)) continue;
+    if (Math.max(0, p.w) * Math.max(0, p.h) > slideArea * 0.55) continue; // background / full-bleed
+    if (p.w < 0.18 || p.h < 0.06) continue;                                // too small to matter
+    const t = el.style && el.style.transparency;
+    if (typeof t === 'number' && t >= 80) continue;                        // watermark
+    if ((el.style && el.style.fontSize || 0) >= 150) continue;
+    items.push({ x: p.x, y: p.y, w: p.w, h: p.h, label: getElementLabel(el) });
+  }
+
+  const lbl = (it) => {
+    let s = String(it.label || '').replace(/\s+/g, ' ').trim();
+    if (s.length > 28) s = s.slice(0, 27) + '…';
+    return s || '[element]';
+  };
+  const contains = (a, b) =>
+    a.x <= b.x + 0.02 && a.y <= b.y + 0.02 &&
+    a.x + a.w >= b.x + b.w - 0.02 && a.y + a.h >= b.y + b.h - 0.02;
+
+  // A) edge / center alignment near-misses
+  const axes = [
+    ['left', (it) => it.x], ['right', (it) => it.x + it.w],
+    ['top', (it) => it.y], ['bottom', (it) => it.y + it.h],
+    ['horizontal-center', (it) => it.x + it.w / 2],
+    ['vertical-center', (it) => it.y + it.h / 2],
+  ];
+  const seen = new Set();
+  let aCount = 0;
+  for (const [name, fn] of axes) {
+    const arr = items.map((it) => ({ it, v: fn(it) })).sort((a, b) => a.v - b.v);
+    for (let i = 1; i < arr.length && aCount < 5; i++) {
+      const d = Math.abs(arr[i].v - arr[i - 1].v);
+      if (d < NEAR_MIN || d > NEAR_MAX) continue;
+      const a = arr[i - 1].it, b = arr[i].it;
+      if (contains(a, b) || contains(b, a)) continue; // nesting/padding, not misalignment
+      const k = name + '|' + lbl(a) + '|' + lbl(b);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      warnings.push(`⚠ ALIGN: "${lbl(a)}" and "${lbl(b)}" ${name} edges differ by ${Math.round(d / PX)}px — align them.`);
+      aCount++;
+    }
+  }
+
+  // B/C) rows of 3+ similar items → uneven spacing / inconsistent widths
+  const used = new Array(items.length).fill(false);
+  let rCount = 0;
+  for (let i = 0; i < items.length && rCount < 3; i++) {
+    if (used[i]) continue;
+    const base = items[i];
+    const row = [{ it: base, idx: i }];
+    for (let j = 0; j < items.length; j++) {
+      if (j === i || used[j]) continue;
+      const o = items[j];
+      if (Math.abs(o.y - base.y) <= 0.12 && Math.abs(o.h - base.h) <= 0.18) row.push({ it: o, idx: j });
+    }
+    if (row.length < 3) continue;
+    row.sort((a, b) => a.it.x - b.it.x);
+    row.forEach((r) => { used[r.idx] = true; });
+    const cells = row.map((r) => r.it);
+    const gaps = [];
+    for (let g = 1; g < cells.length; g++) gaps.push(cells[g].x - (cells[g - 1].x + cells[g - 1].w));
+    if (gaps.every((x) => x > -0.02)) {
+      const gmin = Math.min(...gaps), gmax = Math.max(...gaps);
+      if (gmax - gmin > 0.08) {
+        warnings.push(`⚠ CONSISTENCY: ${cells.length} items in a row are unevenly spaced (gaps ${Math.round(gmin / PX)}px–${Math.round(gmax / PX)}px) — distribute them evenly.`);
+        rCount++;
+      }
+    }
+    const ws = cells.map((c) => c.w);
+    const wmin = Math.min(...ws), wmax = Math.max(...ws);
+    if (wmax - wmin > 0.09 && rCount < 3) {
+      warnings.push(`⚠ CONSISTENCY: ${cells.length} items in a row have inconsistent widths (${Math.round(wmin * 96)}px–${Math.round(wmax * 96)}px) — make them equal.`);
+      rCount++;
+    }
+  }
+
+  return warnings;
+}
+
 function hasExplicitTextBreaks(el) {
   if (typeof el.text === 'string') return el.text.includes('\n');
   if (Array.isArray(el.text)) return el.text.some(r => (r.text && r.text.includes('\n')) || r.options?.breakLine);
@@ -2265,6 +2352,29 @@ async function extractSlideData(page, slideDims) {
     // Back-compat alias — existing call sites pass linear gradients; now radial too.
     const renderLinearGradientBackground = renderGradientBackground;
 
+    // A solid-filled element with `filter: blur()` and no text (a glow / "light
+    // effect" blob) would otherwise export as a hard rectangle shape with the
+    // blur dropped. Rasterize its fill onto a PADDED canvas with the blur applied
+    // so the glow spreads softly beyond the box, exactly like the browser.
+    const renderBlurredBox = (computed, rect, blurPx) => {
+      const pad = Math.min(160, Math.ceil(blurPx * 3) + 2);
+      const innerW = Math.max(1, Math.round(rect.width));
+      const innerH = Math.max(1, Math.round(rect.height));
+      const w = innerW + pad * 2;
+      const h = innerH + pad * 2;
+      if (w <= 0 || h <= 0 || w > 4096 || h > 4096) return null;
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      const op = parseFloat(computed.opacity);
+      if (Number.isFinite(op) && op >= 0 && op < 1) ctx.globalAlpha = op;
+      try { ctx.filter = 'blur(' + blurPx + 'px)'; } catch (e) {}
+      ctx.fillStyle = computed.backgroundColor;
+      ctx.fillRect(pad, pad, innerW, innerH);
+      return { dataUrl: canvas.toDataURL('image/png'), pad };
+    };
+
     const applyTextTransform = (text, textTransform) => {
       if (textTransform === 'uppercase') return text.toUpperCase();
       if (textTransform === 'lowercase') return text.toLowerCase();
@@ -2627,6 +2737,7 @@ async function extractSlideData(page, slideDims) {
     noteElements.forEach(noteEl => noteEl.remove());
 
     let background;
+    let rootGradientImage = null;
     if (bgImage && bgImage !== 'none') {
       // Extract URL from url("...") or url(...)
       const urlMatch = bgImage.match(/url\(["']?([^"')]+)["']?\)/);
@@ -2635,6 +2746,29 @@ async function extractSlideData(page, slideDims) {
           type: 'image',
           path: urlMatch[1]
         };
+      } else if (/gradient/i.test(bgImage)) {
+        // Slide-root gradient background → only the (often transparent) solid
+        // backgroundColor was captured before, so the gradient was dropped and
+        // the slide looked blank. Rasterize the gradient to a full-slide PNG and
+        // emit it as the bottom-most element; keep a representative solid stop as
+        // the slide fill so there is always a backing color.
+        const rootRect = (slideRoot || body).getBoundingClientRect();
+        const bw = Math.max(1, Math.round(rootRect.width || 1280));
+        const bh = Math.max(1, Math.round(rootRect.height || 720));
+        let fallback = rgbToHex(bgColor);
+        const layer0 = splitCssTopLevel(bgImage).map(parseGradientLayer).filter(Boolean)[0];
+        if (layer0 && layer0.stops && layer0.stops.length) {
+          const fb = rgbToHex(layer0.stops[Math.floor(layer0.stops.length / 2)].color);
+          if (fb) fallback = fb;
+        }
+        const gdata = renderGradientBackground(bgImage, bw, bh);
+        if (gdata) {
+          rootGradientImage = {
+            type: 'image', src: gdata, objectFit: 'fill', zIndex: -100000,
+            position: rectPosition({ left: rootRect.left, top: rootRect.top, width: bw, height: bh })
+          };
+        }
+        background = { type: 'color', value: fallback };
       } else {
         background = {
           type: 'color',
@@ -2650,6 +2784,7 @@ async function extractSlideData(page, slideDims) {
 
     // Process all elements
     const elements = [];
+    if (rootGradientImage) elements.push(rootGradientImage);
     const placeholders = [];
     const textTags = ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'LI'];
     // Block container elements treated identically to DIV (background → shape, unwrapped text → error)
@@ -3318,12 +3453,25 @@ async function extractSlideData(page, slideDims) {
       // "broken glyph", so a missed mapping still looks intentional.
       return '✦';
     };
+    // Emoji/symbol glyphs used as icons, e.g. <span style="font-size:18px">🎯</span>.
+    // Covers emoji (surrogate pairs + variation selector) and common BMP symbol
+    // ranges (arrows, dingbats, misc symbols: ✓ ⚠ ☣ ⏱ ↻ ⛓ …).
+    const _isEmojiGlyph = (s) =>
+      /[←-⇿⌀-⏿☀-➿⬀-⯿️]|[\uD800-\uDBFF][\uDC00-\uDFFF]/.test(s);
     // Mark icon elements so they are extracted with mapped glyph + PPT-safe font
     document.querySelectorAll('i, span').forEach(el => {
       if (isIconElement(el)) {
         el._isIcon = true;
         el._iconGlyph = resolveIconGlyph(el);
         normalizeIconBoxForMeasurement(el);
+      } else if (el.children.length === 0) {
+        // Plain emoji/symbol icon glyph (a leaf span with only an emoji). Without
+        // this it's dropped when it's an inline sibling of block children.
+        const t = (el.textContent || '').trim();
+        if (t && Array.from(t).length <= 3 && _isEmojiGlyph(t)) {
+          el._isIcon = true;
+          el._iconGlyph = t; // keep the actual emoji; rendered with a symbol font
+        }
       }
     });
     // The inline style changes above intentionally affect flex/grid layout.
@@ -3884,6 +4032,34 @@ async function extractSlideData(page, slideDims) {
       if (isContainer) {
         const computed = window.getComputedStyle(el);
         const isSlideCanvasElement = el === slideRoot;
+
+        // Decorative blurred glow ("light effect"): a solid-filled, text-less box
+        // with filter:blur would otherwise become a hard rectangle and lose the
+        // blur. Rasterize it into a soft, padded glow image instead.
+        if (!isSlideCanvasElement) {
+          const _bm = String(computed.filter || '').match(/blur\(\s*([\d.]+)px\s*\)/i);
+          const _blurPx = _bm ? parseFloat(_bm[1]) : 0;
+          const _bg = computed.backgroundColor;
+          const _hasSolid = _bg && _bg !== 'rgba(0, 0, 0, 0)' && _bg !== 'transparent';
+          const _bgImg = computed.backgroundImage;
+          const _hasGrad = _bgImg && _bgImg !== 'none' && /gradient/.test(_bgImg);
+          const _empty = !el.textContent || el.textContent.trim() === '';
+          if (_blurPx >= 4 && _empty && _hasSolid && !_hasGrad) {
+            const r = el.getBoundingClientRect();
+            const out = (r.width > 0 && r.height > 0) ? renderBlurredBox(computed, r, _blurPx) : null;
+            if (out) {
+              elements.push({
+                type: 'image', src: out.dataUrl, objectFit: 'fill',
+                zIndex: getEffectiveZIndex(el),
+                position: rectPosition({ left: r.left - out.pad, top: r.top - out.pad, width: r.width + out.pad * 2, height: r.height + out.pad * 2 })
+              });
+              processed.add(el);
+              el.querySelectorAll('*').forEach((c) => processed.add(c));
+              return;
+            }
+          }
+        }
+
         // background-clip:text uses the element background as glyph paint.
         // Exporting it as a normal shape/image creates a visible gradient box
         // around KPI numbers and headings, so only the text extractor may use it.
@@ -3916,7 +4092,12 @@ async function extractSlideData(page, slideDims) {
           const blurM = String(computed.filter || '').match(/blur\(\s*([\d.]+)px\s*\)/i);
           const hostBlurPx = blurM ? parseFloat(blurM[1]) : 0;
           const gradientDataUrl = renderLinearGradientBackground(bgImage, hostBgRect.width, hostBgRect.height, hostBlurPx);
-          if (gradientDataUrl && hostBgRect.width > 0 && hostBgRect.height > 0) {
+          const hasPhoto = urlMatches.length > 0 && !isSlideCanvasElement;
+          const pushGradientLayer = () => {
+            // Skip the slide root: its gradient is emitted once as the bottom-most
+            // full-slide image by the background detector (no duplicate full-slide gradient).
+            if (!gradientDataUrl || isSlideCanvasElement) return;
+            if (!(hostBgRect.width > 0 && hostBgRect.height > 0)) return;
             const gradientImg = {
               type: 'image',
               src: gradientDataUrl,
@@ -3927,7 +4108,11 @@ async function extractSlideData(page, slideDims) {
             const gradientOpacityT = computeTransparency(null, computed.opacity);
             if (gradientOpacityT !== null) gradientImg.transparency = gradientOpacityT;
             elements.push(gradientImg);
-          }
+          };
+          // Plain gradient surface (no photo): emit it now so it sits under content.
+          // Photo + overlay: emit the photo FIRST, the gradient scrim AFTER (below),
+          // so the translucent scrim lands ON TOP of the photo (CSS paint order).
+          if (!hasPhoto) pushGradientLayer();
 
           if (isLinear && !gradientDataUrl) {
             // Parse the angle (e.g. "linear-gradient(135deg, ...)" or "to right, ...")
@@ -4008,16 +4193,11 @@ async function extractSlideData(page, slideDims) {
           // background-color), hiding the image entirely. Insertion order
           // ensures it still lands above the parent's shape (which was pushed
           // earlier when we visited the parent element).
-          if (urlMatches.length > 0 && !isSlideCanvasElement) {
+          if (hasPhoto) {
             const r = hostBgRect;
-            // Forward host element's opacity to the bg image. Decorative bg
-            // images often rely on `opacity: 0.2` (or a radial mask-image) to
-            // fade visually into the page; without forwarding opacity, the
-            // image dominates the slide as a sharp full-strength rectangle.
-            // We can't replicate `mask-image: radial-gradient(...)` exactly,
-            // but a uniformly translucent image is a much closer match than
-            // a fully opaque one.
+            // Forward host element's opacity to the bg image.
             const bgImgT = computeTransparency(null, computed.opacity);
+            // Photo(s) first (bottom of this element's surface), object-fit honored.
             for (const u of urlMatches) {
               if (r.width > 0 && r.height > 0) {
                 const imgEl = {
@@ -4032,6 +4212,13 @@ async function extractSlideData(page, slideDims) {
                 elements.push(imgEl);
               }
             }
+            // Gradient scrim ON TOP of the photo (its translucent PNG alpha keeps
+            // the photo visible — matching the CSS `linear-gradient(...), url(...)`).
+            pushGradientLayer();
+            // The photo + scrim fully represent this element's surface — do NOT
+            // also emit an opaque background-color shape that would cover them.
+            hasBg = false;
+            bgFillValue = null;
           }
         }
 
@@ -4898,7 +5085,8 @@ async function html2pptx(htmlFile, pres, options = {}) {
   const {
     tmpDir = process.env.TMPDIR || '/tmp',
     slide = null,
-    fontConfig = null  // { cjk, latin, emphasis, display, symbol }
+    fontConfig = null,  // { cjk, latin, emphasis, display, symbol }
+    checkAlignment = false  // opt-in design-QA: alignment + consistency warnings
   } = options;
   const effectiveFontConfig = { ...DEFAULT_FONT_CONFIG, ...(fontConfig || {}) };
 
@@ -5088,6 +5276,7 @@ async function html2pptx(htmlFile, pres, options = {}) {
     if (slideData.warnings) allWarnings.push(...slideData.warnings);
     allWarnings.push(...checkElementBounds(slideData, slideWidthIn, slideHeightIn));
     allWarnings.push(...checkTextOverlaps(slideData));
+    if (checkAlignment) allWarnings.push(...checkAlignmentConsistency(slideData, slideWidthIn, slideHeightIn));
 
     // Surface Iconify problems clearly without ever failing the slide.
     if (iconStatus) {
@@ -5130,45 +5319,92 @@ module.exports = html2pptx;
   window.__html2pptx__ = module.exports;
 })();
 
-
 /* ============================================================================
- * harness.js — deck splitting + conversion loop + UI glue
+ * harness.js — deck splitting + conversion loop + (optional) AI auto-fix
  *
- * Runs after runtime.js (shims) and the engine (window.__html2pptx__) are loaded.
- * Responsibilities:
- *   1. Split an uploaded multi-slide HTML document into one standalone document
- *      per slide (each carrying the original <head> so CSS/fonts apply).
- *   2. Drive the engine once per slide into a single PptxGenJS deck.
- *   3. Resolve the engine's __TMPFS__ "temp file" image paths to data URLs by
- *      wrapping each slide's addImage.
+ * Runs after runtime.js (shims) and the engine (window.__html2pptx__) load.
+ *   - _splitDeck        : multi-slide HTML  -> { headHTML, rawHead, slides[] }
+ *   - _buildDeck        : slide HTML[]      -> { pptx, warningsPerSlide }
+ *   - convertDeck       : split -> build -> download (the normal path)
+ *   - aiAutofixDeck     : split -> build -> Claude-fix flagged slides -> re-export
  * ==========================================================================*/
 
 function _collectSlides(doc) {
-  // Primary: every element carrying the `.slide` class that is not nested in
-  // another `.slide` (matches the kit convention + MagicSlider's <section class="slide">).
   let slides = Array.from(doc.querySelectorAll('.slide'))
     .filter((el) => !(el.parentElement && el.parentElement.closest('.slide')));
   if (slides.length) return slides;
-
-  // Fallback 1: a #stage / [data-deck] container's direct element children.
   const stage = doc.querySelector('#stage, [data-deck], .deck, .slides');
   if (stage) {
     slides = Array.from(stage.children).filter((el) => el.nodeType === 1 && !/^(script|style|link)$/i.test(el.tagName));
     if (slides.length) return slides;
   }
-
-  // Fallback 2: direct <section>/<div> children of <body>.
-  slides = Array.from(doc.body.children)
-    .filter((el) => /^(section|div|article)$/i.test(el.tagName));
-  return slides;
+  return Array.from(doc.body.children).filter((el) => /^(section|div|article)$/i.test(el.tagName));
 }
 
-function _buildSlideDoc(headHTML, slideEl) {
-  // Strip deck-level scripts (nav/keyboard handlers) from the head to avoid
-  // hiding the isolated slide; CSS that hides slides is usually scoped to the
-  // stage container which is absent here, so the lone .slide renders visibly.
-  const slideHTML = slideEl.outerHTML;
-  return '<!DOCTYPE html><html lang="' + (document.documentElement.lang || 'en') + '">' +
+function _splitDeck(fullHtmlString) {
+  const doc = new DOMParser().parseFromString(fullHtmlString, 'text/html');
+  const rawHead = doc.head ? doc.head.innerHTML : '';
+  // For measurement: drop deck-nav scripts (keep icon loaders) and Google Fonts
+  // links (the Node pipeline blocks them during measurement — matching it keeps
+  // the browser output geometrically identical to the validated CLI).
+  let headHTML = rawHead.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, (m) =>
+    /src=["'][^"']*(iconify|fontawesome|material)/i.test(m) ? m : '');
+  headHTML = headHTML.replace(/<link\b[^>]*(?:fonts\.googleapis\.com|fonts\.gstatic\.com)[^>]*>/gi, '');
+  const slides = _collectSlides(doc).map((el) => el.outerHTML);
+  const lang = doc.documentElement.lang || 'en';
+  return { headHTML, rawHead, slides, lang };
+}
+
+// Pre-resolve <iconify-icon> elements to inline <svg> by fetching each unique
+// icon's SVG from the Iconify API ONCE, up front. This removes the per-render
+// CDN-timeout race that was dropping icons, and keeps them crisp/vector. Any
+// icon that can't be fetched is left as-is (the engine still captures it from the
+// web component's shadow DOM if it renders in time).
+async function _preresolveIcons(slideHTMLs) {
+  const names = new Set();
+  const re = /<iconify-icon\b[^>]*\bicon=["']([^"']+)["']/gi;
+  slideHTMLs.forEach((h) => { let m; while ((m = re.exec(h))) names.add(m[1]); });
+  if (!names.size) return slideHTMLs;
+
+  const cache = new Map();
+  await Promise.all([...names].map(async (n) => {
+    const parts = n.split(':');
+    if (parts.length !== 2 || !parts[0] || !parts[1]) return;
+    try {
+      const r = await fetch('https://api.iconify.design/' + parts[0] + '/' + parts[1] + '.svg');
+      if (!r.ok) return;
+      const svg = await r.text();
+      if (/<svg[\s>]/i.test(svg)) cache.set(n, svg);
+    } catch (e) { /* leave unresolved */ }
+  }));
+  if (!cache.size) return slideHTMLs;
+
+  return slideHTMLs.map((h) => {
+    const doc = new DOMParser().parseFromString('<div id="__w">' + h + '</div>', 'text/html');
+    const wrap = doc.getElementById('__w');
+    wrap.querySelectorAll('iconify-icon').forEach((el) => {
+      const raw = cache.get(el.getAttribute('icon'));
+      if (!raw) return;
+      const tmp = doc.createElement('div');
+      tmp.innerHTML = raw;
+      const svg = tmp.querySelector('svg');
+      if (!svg) return;
+      const style = el.getAttribute('style') || '';
+      const fs = (style.match(/font-size:\s*([\d.]+)px/) || [])[1] || '22';
+      const col = (style.match(/(?:^|;)\s*color:\s*([^;]+)/) || [])[1];
+      svg.setAttribute('width', fs);
+      svg.setAttribute('height', fs);
+      svg.style.verticalAlign = 'middle';
+      svg.style.flexShrink = '0';
+      if (col) svg.style.color = col.trim(); // iconify SVGs paint with currentColor
+      el.replaceWith(svg);
+    });
+    return wrap.innerHTML;
+  });
+}
+
+function _buildSlideDoc(headHTML, slideHTML, lang) {
+  return '<!DOCTYPE html><html lang="' + (lang || 'en') + '">' +
     '<head>' + headHTML +
     '<style>html,body{margin:0;padding:0;background:#fff;overflow:visible}' +
     '#stage,#stageWrap{position:static!important;inset:auto!important;display:block!important;transform:none!important}' +
@@ -5186,69 +5422,272 @@ function _patchSlideAddImage(slide) {
     }
     return orig(opts);
   };
-  // addBackground may also call slide.background = { path }; leave that to pptx.
 }
 
-async function convertDeck(fullHtmlString, opts = {}) {
-  const onProgress = opts.onProgress || (() => {});
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(fullHtmlString, 'text/html');
-
-  let headHTML = doc.head ? doc.head.innerHTML : '';
-  // Drop deck-navigation <script> tags from the head copy (keep font/CSS links,
-  // icon webcomponent loaders, etc. — those help fidelity).
-  headHTML = headHTML.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, (m) =>
-    /src=["'][^"']*(iconify|fontawesome|material)/i.test(m) ? m : '');
-  // Match the Node pipeline exactly: it blocks Google Fonts during measurement
-  // (page.route) so text boxes are sized with fallback metrics, then maps every
-  // web font to a PowerPoint-safe face anyway. Stripping the font <link>s here
-  // makes the browser output geometrically match the validated CLI output.
-  headHTML = headHTML.replace(
-    /<link\b[^>]*(?:fonts\.googleapis\.com|fonts\.gstatic\.com)[^>]*>/gi, '');
-
-  const slides = _collectSlides(doc);
-  if (!slides.length) throw new Error('No slides found. Expected elements with class "slide" (or sections/divs in <body>).');
-
+// Build a deck (in memory) from slide HTML strings; returns the pptx + per-slide warnings.
+async function _buildDeck(headHTML, slideHTMLs, lang, onProgress, buildOpts) {
+  const checkAlignment = !!(buildOpts && buildOpts.checkAlignment);
   const PptxGenJS = window.PptxGenJS;
   if (!PptxGenJS) throw new Error('PptxGenJS failed to load (offline / blocked CDN?).');
-
   const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_16x9';
-  if (opts.title) { pptx.title = opts.title; pptx.subject = opts.title; }
   pptx.author = 'html2pptx (browser)';
-
-  const allWarnings = [];
-  for (let i = 0; i < slides.length; i++) {
-    onProgress({ phase: 'slide', index: i, total: slides.length });
-    __H2P_SHIM__.nextDocHTML = _buildSlideDoc(headHTML, slides[i]);
+  const warningsPerSlide = [];
+  for (let i = 0; i < slideHTMLs.length; i++) {
+    if (onProgress) onProgress({ phase: 'slide', index: i, total: slideHTMLs.length });
+    __H2P_SHIM__.nextDocHTML = _buildSlideDoc(headHTML, slideHTMLs[i], lang);
     const slide = pptx.addSlide();
     _patchSlideAddImage(slide);
     try {
-      const res = await window.__html2pptx__('slide_' + (i + 1) + '.html', pptx, { slide });
-      if (res && res.warnings) {
-        res.warnings.forEach((w) => allWarnings.push({ slide: i + 1, message: w }));
-      }
+      const res = await window.__html2pptx__('slide_' + (i + 1) + '.html', pptx, { slide, checkAlignment });
+      warningsPerSlide[i] = (res && res.warnings) ? res.warnings.slice() : [];
     } catch (err) {
-      allWarnings.push({ slide: i + 1, message: 'ERROR: ' + err.message });
+      warningsPerSlide[i] = ['ERROR: ' + err.message];
       console.error('[slide ' + (i + 1) + ']', err);
     }
   }
+  return { pptx, warningsPerSlide };
+}
 
+function _flattenWarnings(warningsPerSlide) {
+  const out = [];
+  warningsPerSlide.forEach((ws, i) => ws.forEach((w) => out.push({ slide: i + 1, message: w })));
+  return out;
+}
+
+// ─────────────────────────── normal path ───────────────────────────
+async function convertDeck(fullHtmlString, opts = {}) {
+  const onProgress = opts.onProgress || (() => {});
+  const { headHTML, slides, lang } = _splitDeck(fullHtmlString);
+  if (!slides.length) throw new Error('No slides found. Expected elements with class "slide" (or sections/divs in <body>).');
+  const resolved = await _preresolveIcons(slides);
+  const { pptx, warningsPerSlide } = await _buildDeck(headHTML, resolved, lang, onProgress, { checkAlignment: !!opts.checkAlignment });
   onProgress({ phase: 'finalize', total: slides.length });
-
+  const allWarnings = _flattenWarnings(warningsPerSlide);
   if (window.__TEST__) {
-    const b64 = await pptx.write({ outputType: 'base64' });
-    window.__PPTX_B64__ = b64;
+    window.__PPTX_B64__ = await pptx.write({ outputType: 'base64' });
     window.__PPTX_WARNINGS__ = allWarnings;
     return { warnings: allWarnings, slideCount: slides.length };
   }
-
   await pptx.writeFile({ fileName: opts.fileName || 'deck.pptx' });
   return { warnings: allWarnings, slideCount: slides.length };
 }
 
-window.html2pptxFullBrowser = { convertDeck: convertDeck };
+/* ============================================================================
+ * Optional AI auto-fix loop (Anthropic Claude, called directly from the browser)
+ * ==========================================================================*/
 
+// Only genuine, convergent mechanical problems are auto-fixed. Decorative
+// off-canvas bleed (BOUNDS on blobs/photos) and icon-CDN timeouts are NOT —
+// "fixing" those would damage the design or can't be fixed in the HTML.
+function _isFixableWarning(w) {
+  if (/ICONS:/.test(w)) return false;
+  // Alignment/consistency findings only appear when that option is on — always fixable.
+  if (/⚠ ALIGN:|⚠ CONSISTENCY:/.test(w)) return true;
+  if (/CRITICAL OVERFLOW|MUST FIX|OVERLAP/.test(w)) return true;
+  // BOUNDS: distinguish genuine content clipping from intentional decorative
+  // bleed. The engine labels decorative shapes "[shape]" and text elements with
+  // their text. A named (text) element past the edge is a real problem even at a
+  // small overshoot; an unnamed shape is usually intentional unless severe.
+  const m = w.match(/BOUNDS:\s*"([^"]*)"[\s\S]*?extends\s+([\d.]+)pt/);
+  if (m) {
+    const isShape = m[1] === '[shape]';
+    const pt = parseFloat(m[2]);
+    if (!isShape && pt >= 18) return true;
+    if (isShape && pt >= 160) return true;
+  }
+  return false;
+}
+
+function _buildSystemPrompt(modes) {
+  const base = [
+    'You are an expert slide designer editing a single HTML slide so it converts faithfully',
+    'to PowerPoint via the html2pptx engine (which renders the HTML in a browser, reads each',
+    "element's computed box, and rebuilds it as a native PPTX object on a 1280x720 canvas).",
+    '',
+    'RULES THE OUTPUT MUST FOLLOW:',
+    '- The root is one .slide element, exactly 1280x720, overflow hidden. Keep meaningful',
+    '  content (text, cards) inside a ~56px safe margin. Decorative full-bleed photos,',
+    '  gradient surfaces and blurred blobs MAY bleed off-canvas intentionally — do not "fix" those.',
+    '- Each element becomes an absolutely-positioned box. Give text explicit line-height (>=1.15)',
+    '  and a little width headroom so PPT font substitution (Inter/Poppins->Carlito) does not',
+    '  re-wrap it; force critical breaks with <br>.',
+    '- Solid background-color and linear/radial gradients are supported; gradient text renders',
+    '  as its middle stop color. Accent stripes should be real positioned <div>s, not border-left.',
+    '',
+    'WHAT TO DO:',
+    '- Fix genuine export problems: content clipped off the 1280x720 canvas, elements overlapping,',
+    '  or content overflowing its box.',
+  ];
+  if (modes.alignment) base.push(
+    '- Fix alignment & consistency: align edges/centers of related elements that are slightly off',
+    '  so they line up exactly; make the spacing between repeated items (cards, columns, list rows)',
+    '  even; and make sibling elements (cards in a row, stat blocks) consistent in size, padding and style.');
+  if (modes.polish) base.push(
+    '- Improve overall visual polish WITHOUT changing the content: tighten the type hierarchy,',
+    '  balance whitespace and margins, make component styling and colors consistent across the slide,',
+    '  and remove visual clutter. Keep every piece of text and the layout intent and color identity;',
+    '  do NOT invent, add, or remove content, and do NOT restructure the slide.');
+  base.push(
+    '',
+    'Preserve all text content, classes and structure as closely as the goal allows; prefer the',
+    'smallest change that achieves it. ' + (modes.polish ? '' : 'Do NOT redesign. ') +
+      'If nothing genuinely needs changing, return the slide unchanged.',
+    '',
+    'OUTPUT: one sentence summarizing the change, then the corrected slide element in a single',
+    '```html fenced code block — and nothing else.');
+  return base.join('\n');
+}
+
+async function _captureSlide(docHTML) {
+  if (!window.html2canvas) return null;
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;left:-100000px;top:0;width:1280px;height:720px;border:0;';
+  iframe.width = '1280'; iframe.height = '720';
+  document.body.appendChild(iframe);
+  try {
+    await new Promise((r) => { iframe.onload = r; iframe.srcdoc = docHTML; });
+    await new Promise((r) => setTimeout(r, 900)); // let fonts/icons settle
+    const el = iframe.contentDocument.querySelector('.slide') || iframe.contentDocument.body;
+    const canvas = await window.html2canvas(el, {
+      width: 1280, height: 720, windowWidth: 1280, windowHeight: 720,
+      useCORS: true, backgroundColor: '#ffffff', scale: 1, logging: false,
+    });
+    return (canvas.toDataURL('image/png').split(',')[1]) || null;
+  } catch (e) {
+    return null; // text-only fallback
+  } finally {
+    iframe.remove();
+  }
+}
+
+async function _callClaudeFix(cfg, slideHTML, warnings, screenshotB64, systemPrompt) {
+  const userText =
+    'Slide canvas: 1280x720px.\n\nConverter warnings for this slide:\n' +
+    (warnings.length ? warnings.map((w) => '- ' + w).join('\n') : '(none)') +
+    '\n\nCurrent slide HTML:\n```html\n' + slideHTML + '\n```\n\n' +
+    (screenshotB64 ? 'The attached image shows how the slide currently renders. ' : '') +
+    'Fix the genuine export problems above with minimal edits; preserve design and content. ' +
+    'Return only the corrected slide element in one ```html block.';
+  const content = [];
+  if (screenshotB64) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: screenshotB64 } });
+  content.push({ type: 'text', text: userText });
+
+  const body = { model: cfg.model, max_tokens: 16000, system: systemPrompt, messages: [{ role: 'user', content }] };
+  // Adaptive thinking + effort are supported on Opus/Sonnet, rejected on Haiku.
+  if (cfg.model !== 'claude-haiku-4-5') {
+    body.thinking = { type: 'adaptive' };
+    body.output_config = { effort: 'medium' };
+  }
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': cfg.apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    let detail = '';
+    try { detail = JSON.stringify((await res.json()).error || {}); } catch (e) { detail = await res.text(); }
+    throw new Error('Claude API ' + res.status + ': ' + String(detail).slice(0, 240));
+  }
+  const data = await res.json();
+  if (data.stop_reason === 'refusal') throw new Error('model declined this slide');
+  const text = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n');
+  const m = text.match(/```html\s*([\s\S]*?)```/i);
+  return m ? m[1].trim() : null;
+}
+
+function _reassembleDeck(rawHead, slideHTMLs, lang) {
+  return '<!DOCTYPE html><html lang="' + (lang || 'en') + '"><head>' + rawHead + '</head><body>\n' +
+    slideHTMLs.join('\n') + '\n</body></html>';
+}
+
+async function aiAutofixDeck(fullHtmlString, opts = {}) {
+  const onProgress = opts.onProgress || (() => {});
+  const cfg = { apiKey: opts.apiKey, model: opts.model || 'claude-opus-4-8' };
+  const maxIterations = Math.max(1, Math.min(4, opts.maxIterations || 2));
+  if (!cfg.apiKey) throw new Error('No API key provided.');
+
+  const modes = { alignment: !!opts.checkAlignment, polish: !!opts.polish };
+  const buildOpts = { checkAlignment: modes.alignment };
+  const fixPrompt = _buildSystemPrompt({ alignment: modes.alignment, polish: false });
+  const polishPrompt = _buildSystemPrompt({ alignment: modes.alignment, polish: true });
+
+  const { headHTML, rawHead, slides, lang } = _splitDeck(fullHtmlString);
+  if (!slides.length) throw new Error('No slides found.');
+  let slideHTMLs = await _preresolveIcons(slides.slice());
+  let warningsPerSlide = [];
+  const fixLog = [];
+
+  async function applyToSlide(i, ws, systemPrompt, iter) {
+    const shot = await _captureSlide(_buildSlideDoc(headHTML, slideHTMLs[i], lang));
+    try {
+      const corrected = await _callClaudeFix(cfg, slideHTMLs[i], ws, shot, systemPrompt);
+      if (corrected && corrected.length > 20 && /class=["'][^"']*slide/.test(corrected)) {
+        slideHTMLs[i] = corrected;
+        fixLog.push({ slide: i + 1, iter, applied: true });
+      } else {
+        fixLog.push({ slide: i + 1, iter, applied: false, reason: 'no usable HTML returned' });
+      }
+    } catch (err) {
+      onProgress({ phase: 'fixError', slide: i + 1, message: err.message });
+      fixLog.push({ slide: i + 1, iter, applied: false, reason: err.message });
+    }
+  }
+
+  // ── Polish / redesign pass: send EVERY slide once for a broader visual pass ──
+  if (modes.polish) {
+    ({ warningsPerSlide } = await _buildDeck(headHTML, slideHTMLs, lang, null, buildOpts));
+    for (let i = 0; i < slideHTMLs.length; i++) {
+      onProgress({ phase: 'polish', slide: i + 1, k: i, total: slideHTMLs.length });
+      await applyToSlide(i, (warningsPerSlide[i] || []).filter(_isFixableWarning), polishPrompt, 'polish');
+    }
+  }
+
+  // ── Convergent fix passes: clipping / overlap / alignment only ──
+  for (let iter = 0; iter < maxIterations; iter++) {
+    onProgress({ phase: 'convert', iter, maxIterations });
+    ({ warningsPerSlide } = await _buildDeck(headHTML, slideHTMLs, lang, null, buildOpts));
+    const fixable = warningsPerSlide
+      .map((ws, i) => ({ i, ws: ws.filter(_isFixableWarning) }))
+      .filter((x) => x.ws.length);
+    onProgress({ phase: 'analyze', iter, fixableCount: fixable.length });
+    if (!fixable.length) break;
+    for (let k = 0; k < fixable.length; k++) {
+      const { i, ws } = fixable[k];
+      onProgress({ phase: 'fix', iter, slide: i + 1, k, total: fixable.length });
+      await applyToSlide(i, ws, fixPrompt, iter);
+    }
+  }
+
+  onProgress({ phase: 'finalize' });
+  const { pptx } = await _buildDeck(headHTML, slideHTMLs, lang, null, buildOpts);
+  ({ warningsPerSlide } = await _buildDeck(headHTML, slideHTMLs, lang, null, buildOpts)); // final warnings
+  const allWarnings = _flattenWarnings(warningsPerSlide);
+  const correctedDeckHTML = _reassembleDeck(rawHead, slideHTMLs, lang);
+
+  if (window.__TEST__) {
+    window.__PPTX_B64__ = await pptx.write({ outputType: 'base64' });
+    window.__PPTX_WARNINGS__ = allWarnings;
+    window.__FIX_LOG__ = fixLog;
+    return { warnings: allWarnings, slideCount: slideHTMLs.length, fixLog, correctedDeckHTML };
+  }
+  await pptx.writeFile({ fileName: opts.fileName || 'deck.pptx' });
+  return { warnings: allWarnings, slideCount: slideHTMLs.length, fixLog, correctedDeckHTML };
+}
+
+window.convertDeck = convertDeck;
+window.aiAutofixDeck = aiAutofixDeck;
+
+
+window.html2pptxFullBrowser = {
+  convertDeck: window.convertDeck,
+  aiAutofixDeck: window.aiAutofixDeck,
+};
 
 })();
-

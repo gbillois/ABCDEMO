@@ -213,3 +213,35 @@ p{font-size:27px;line-height:1.35;margin:0}
   expect(stat.size).toBeGreaterThan(10000);
   expect(fs.readFileSync(pptxPath).subarray(0, 2).toString('utf8')).toBe('PK');
 });
+
+test('PPTX Converter engine pre-resolves Iconify icons without the web component CDN', async ({ page }) => {
+  await page.route('https://code.iconify.design/**', route => route.abort());
+  await page.route('https://api.iconify.design/**', route => route.fulfill({
+    contentType: 'image/svg+xml',
+    body: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2 3 7v6c0 5 4 8 9 9 5-1 9-4 9-9V7l-9-5z"/></svg>',
+  }));
+
+  await page.goto('/');
+  await page.addScriptTag({ path: path.resolve(__dirname, '..', 'assets', 'pptxgen.bundle.js') });
+  await page.addScriptTag({ path: path.resolve(__dirname, '..', 'assets', 'html2pptx-full-browser.js') });
+
+  const result = await page.evaluate(async () => {
+    window.__TEST__ = true;
+    const html = `<!doctype html><html><head>
+      <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+      <style>
+        .slide{width:1280px;height:720px;position:relative;background:#fff;color:#16121F;font-family:Arial,sans-serif}
+        .card{position:absolute;left:100px;top:90px;width:520px;height:260px;background:#F1EEFB;border:2px solid #451DC7;padding:40px}
+        iconify-icon{font-size:72px;color:#451DC7}
+        h1{font-size:44px;margin:24px 0 0;color:#451DC7}
+      </style></head><body>
+      <section class="slide"><div class="card"><iconify-icon icon="tabler:shield-lock"></iconify-icon><h1>Icon export</h1></div></section>
+      </body></html>`;
+    const out = await window.html2pptxFullBrowser.convertDeck(html, { fileName: 'icon-test.pptx' });
+    return { warnings: out.warnings, b64: window.__PPTX_B64__ };
+  });
+
+  expect(result.b64).toBeTruthy();
+  expect(Buffer.from(result.b64, 'base64').subarray(0, 2).toString('utf8')).toBe('PK');
+  expect(result.warnings.map(w => w.message).join('\n')).not.toContain('ICONS:');
+});
