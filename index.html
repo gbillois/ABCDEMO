@@ -127,11 +127,54 @@
   .busy .t{color:var(--muted); font-size:13px}
   .spinner{width:42px;height:42px;border:4px solid var(--line); border-top-color:var(--brand); border-radius:50%; animation:spin 1s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* sidebar toggle button (hidden on large screens) */
+  .sidebar-toggle{display:none; padding:7px 10px; border-radius:8px; background:var(--panel2); border:1px solid var(--line); color:var(--txt); font-size:16px; cursor:pointer; margin-right:6px; flex-shrink:0}
+
+  /* --- Responsive breakpoints --- */
+  @media (max-width: 900px){
+    body{overflow:auto}
+    .app{height:auto; min-height:100vh}
+    .topbar{flex-wrap:wrap; gap:8px; padding:8px 10px}
+    .tabs{overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; flex-shrink:0}
+    .tabs::-webkit-scrollbar{display:none}
+    .topbar .spacer{display:none}
+    .pill{font-size:11px; padding:5px 8px}
+    .sidebar-toggle{display:flex; align-items:center; justify-content:center}
+
+    /* stack col-left above col-main */
+    .view{min-height:0; height:auto}
+    .view.active{flex-direction:column; height:auto}
+    .col-left{width:100%; min-width:0; border-right:none; border-bottom:1px solid var(--line); max-height:none; overflow:visible; min-height:0}
+    .col-left.collapsed{display:none}
+    .create-foot{position:sticky; bottom:0; background:var(--panel); z-index:10; padding:10px 16px}
+    .col-main{min-height:400px}
+
+    /* filmstrip horizontal on small screens */
+    .filmstrip{width:100%; border-right:none; border-bottom:1px solid var(--line); flex-direction:column; min-height:0; max-height:160px}
+    .film-list{display:flex; flex-direction:row; overflow-x:auto; padding:8px; gap:8px}
+    .film-list .thumb{margin-bottom:0; flex-shrink:0}
+
+    /* stage / edit host min height */
+    .stage-wrap{min-height:400px}
+    .stage-area{min-height:260px}
+    .edit-host{min-height:260px}
+    .stage-bar{flex-wrap:wrap; gap:4px}
+    .log{height:100px}
+  }
+
+  @media (max-width: 600px){
+    .logo span:not(.mark){display:none}
+    .tab{padding:7px 10px; font-size:12px}
+    .pill{display:none}
+    .stage-bar button.btn.sm{padding:5px 7px; font-size:11px}
+  }
 </style>
 </head>
 <body>
 <div class="app">
   <div class="topbar">
+    <button class="sidebar-toggle" id="sidebarToggle" title="Afficher/masquer le panneau">☰</button>
     <div class="logo"><span class="mark">✦</span> MagicSlider</div>
     <div class="tabs">
       <button class="tab active" data-tab="create">Create</button>
@@ -1726,6 +1769,9 @@ function updatePills(){ $('#aiProviderLbl').textContent=state.settings.provider+
 /* ---------- misc ---------- */
 function setBusy(sel,txtSel,on,txt){ const b=$(sel); if(!b) return; b.classList.toggle('show',!!on); if(txt&&$(txtSel)) $(txtSel).textContent=txt; }
 function switchTab(name){ commitEditing(); $$('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name)); $$('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+name));
+  // on small screens, auto-expand the sidebar when switching tabs
+  const left=$('.col-left'); const toggle=$('#sidebarToggle');
+  if(left&&left.classList.contains('collapsed')){ left.classList.remove('collapsed'); if(toggle) toggle.textContent='☰'; }
   if(name==='create') renderPreview(); if(name==='modify'){ renderFilmstrip(); renderEditor(); } }
 function refreshAll(){ updatePills(); renderPreview(); renderFilmstrip(); renderEditor(); }
 function setCssState(){ $('#cssState').textContent = state.loadedCss ? ('CSS importé ('+Math.round(state.loadedCss.length/1024)+' Ko) — l\'IA réutilisera ses classes.') : 'Aucun CSS importé.'; }
@@ -1736,6 +1782,18 @@ function setCssState(){ $('#cssState').textContent = state.loadedCss ? ('CSS imp
 function init(){
   loadPersisted();
   $$('.tab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
+
+  // sidebar toggle for small screens
+  const sidebarToggle=$('#sidebarToggle');
+  if(sidebarToggle){
+    sidebarToggle.addEventListener('click',()=>{
+      const left=$('.col-left');
+      if(left){ left.classList.toggle('collapsed'); sidebarToggle.textContent=left.classList.contains('collapsed')?'▼':'☰'; }
+    });
+    // reset collapse on tab switch
+    const origSwitch=switchTab;
+    window._switchTab=origSwitch;
+  }
 
   // create
   $('#pptCompat').checked=!!state.pptCompatible;
