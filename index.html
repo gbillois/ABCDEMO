@@ -344,6 +344,7 @@
               <select id="setProvider" class="ctl">
                 <option value="anthropic">Anthropic (Claude)</option>
                 <option value="openai">OpenAI</option>
+                <option value="openrouter">OpenRouter</option>
                 <option value="google">Google Gemini</option>
                 <option value="mistral">Mistral</option>
                 <option value="azure">Azure OpenAI</option>
@@ -411,6 +412,7 @@ const LS={ provider:'ms_provider', apiKey:'ms_api_key', azKey:'ms_azure_key', az
 const DEFAULT_MODELS={
   anthropic:['claude-opus-4-8','claude-sonnet-4-6','claude-haiku-4-5'],
   openai:['gpt-5.1','gpt-5','gpt-4.1','gpt-4o','gpt-4o-mini','o4-mini'],
+  openrouter:['openrouter/auto','~openai/gpt-latest','anthropic/claude-sonnet-4.6','google/gemini-2.5-pro'],
   google:['gemini-2.5-pro','gemini-2.5-flash','gemini-2.0-flash'],
   mistral:['mistral-large-latest','mistral-medium-latest','mistral-small-latest'],
   azure:['gpt-4o','gpt-4.1','gpt-4o-mini'] };
@@ -680,6 +682,11 @@ async function callLLM(system, user, onToken, opts){
     if(!s.apiKey.trim()) throw new Error('Clé API OpenAI manquante (Réglages).');
     url='https://api.openai.com/v1/chat/completions'; headers['Authorization']='Bearer '+s.apiKey;
     body={ model:s.model, max_completion_tokens:maxTok, stream, messages:[{role:'system',content:system},{role:'user',content:user}] };
+  } else if(provider==='openrouter'){
+    if(!s.apiKey.trim()) throw new Error('Clé API OpenRouter manquante (Réglages).');
+    url='https://openrouter.ai/api/v1/chat/completions'; headers['Authorization']='Bearer '+s.apiKey;
+    headers['HTTP-Referer']=location.origin; headers['X-OpenRouter-Title']='ABCDemo';
+    body={ model:s.model, max_tokens:maxTok, stream, messages:[{role:'system',content:system},{role:'user',content:user}] };
   } else if(provider==='mistral'){
     if(!s.apiKey.trim()) throw new Error('Clé API Mistral manquante (Réglages).');
     url='https://api.mistral.ai/v1/chat/completions'; headers['Authorization']='Bearer '+s.apiKey;
@@ -737,11 +744,13 @@ async function fetchModels(){
     let url,headers={};
     if(s.provider==='anthropic'){ if(!s.apiKey) throw 0; url='https://api.anthropic.com/v1/models'; headers={'x-api-key':s.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}; }
     else if(s.provider==='openai'){ if(!s.apiKey) throw 0; url='https://api.openai.com/v1/models'; headers={'Authorization':'Bearer '+s.apiKey}; }
+    else if(s.provider==='openrouter'){ if(!s.apiKey) throw 0; url='https://openrouter.ai/api/v1/models'; headers={'Authorization':'Bearer '+s.apiKey}; }
     else if(s.provider==='mistral'){ if(!s.apiKey) throw 0; url='https://api.mistral.ai/v1/models'; headers={'Authorization':'Bearer '+s.apiKey}; }
     else if(s.provider==='google'){ if(!s.apiKey) throw 0; url='https://generativelanguage.googleapis.com/v1beta/models?key='+encodeURIComponent(s.apiKey); }
     else { state.modelCatalog={status:'success',models:DEFAULT_MODELS.azure}; setCatStatus('ok','défauts (Azure)'); fillModelSelect(); return; }
     const r=await fetch(url,{headers}); if(!r.ok) throw 0; const j=await r.json(); let ids=[];
     if(s.provider==='google') ids=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')).map(m=>(m.name||'').replace(/^models\//,''));
+    else if(s.provider==='openrouter') ids=(j.data||[]).filter(m=>!m.architecture||!Array.isArray(m.architecture.output_modalities)||m.architecture.output_modalities.includes('text')).map(m=>m.id);
     else ids=(j.data||[]).map(m=>m.id);
     if(s.provider==='openai') ids=ids.filter(id=>/^(gpt-|o\d|chatgpt)/i.test(id)&&!/(audio|realtime|embedding|moderation|image|tts|whisper|transcribe|search)/i.test(id));
     if(s.provider==='mistral') ids=ids.filter(id=>!/(embed|ocr|moderation)/i.test(id));
@@ -1746,7 +1755,7 @@ function downloadBlob(content,name,type){ const blob=content instanceof Blob?con
 function renderKeyFields(){ const p=state.settings.provider; const box=$('#keyFields'); let h='';
   if(p==='azure'){ h='<label class="fld">Clé API Azure</label><input class="ctl" id="fKey" type="password" value="'+esc(state.settings.azureKey)+'" placeholder="azure key">'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div><label class="fld">Endpoint</label><input class="ctl" id="fAzEp" value="'+esc(state.settings.azureEndpoint)+'" placeholder="https://xxx.openai.azure.com"></div><div><label class="fld">Déploiement</label><input class="ctl" id="fAzDep" value="'+esc(state.settings.azureDeployment)+'" placeholder="nom-deploiement"></div></div>'; }
-  else { const lbl={anthropic:'Clé API Anthropic',openai:'Clé API OpenAI',google:'Clé API Google',mistral:'Clé API Mistral'}[p];
+  else { const lbl={anthropic:'Clé API Anthropic',openai:'Clé API OpenAI',openrouter:'Clé API OpenRouter',google:'Clé API Google',mistral:'Clé API Mistral'}[p];
     h='<label class="fld">'+lbl+'</label><input class="ctl" id="fKey" type="password" value="'+esc(state.settings.apiKey)+'" placeholder="'+p+'-...">'; }
   box.innerHTML=h; }
 function esc(s){ return (s||'').replace(/"/g,'&quot;'); }
