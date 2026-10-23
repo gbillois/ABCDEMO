@@ -226,7 +226,9 @@ const LEVELS = [1, 2, 3, 4, 5].map(k => k * LEVEL_H);
 const DECK_W = [5, 4.5, 4, 3.6, 3.4];
 function rt(y) { y = Math.max(0, y); return 3.6 * (1 - y / 95) + 3.2 * Math.exp(-y / 2.5); }
 const stairMask = a => smooth(1.05, 1.5, Math.abs(angDiff(a, .55)));
-function buttress(a, y) { if (y > 7) return 1; const k = Math.exp(-Math.max(y, 0) / 2.2); return 1 + .42 * k * Math.pow(Math.max(0, Math.cos(a * 5 + .6)), 3) * stairMask(a); }
+// chaque racine prolonge une arête du tronc : le tronc s'évase vers elle, sans couture
+const ROOTS = [[1.95, 0], [2.39, 2], [2.85, 1], [3.3, 0], [3.65, 2], [4.15, 1], [4.55, 0], [4.91, 2], [5.4, 1]].map(([a, sz]) => ({ a, sz, w: [.13, .17, .22][sz], h: [.22, .34, .5][sz] }));
+function buttress(a, y) { if (y > 9) return 1; const k = Math.exp(-Math.max(y, 0) / 2.4); let sum = 0; for (const r of ROOTS) { const d = angDiff(a, r.a) / r.w; sum += r.h * Math.exp(-d * d); } return 1 + k * sum * stairMask(a); }
 function trunkSurf(a, y) { return rt(y) * buttress(a, y); }
 function landingZone(ys) { if (ys < .5) return true; for (const h of LEVELS) if (Math.abs(ys - h) < .8) return true; return false; }
 const stairBase = a => ((((a - TH0) % TAU) + TAU) % TAU) / TAU * LEVEL_H;
@@ -391,7 +393,7 @@ function wedge(r0, r1, a0, a1, yTop, t, col) {
   return colorize(g, col);
 }
 // Tube effilé le long d'une courbe (branches, racines)
-function taperTube(curve, segs, rad, r0, r1, col, uvScale) {
+function taperTube(curve, segs, rad, r0, r1, col, uvScale, flat) {
   const frames = curve.computeFrenetFrames(segs, false), pos = [], nor = [], uv = [], idx = [], P = new V3(), N = new V3(), len = curve.getLength();
   const ur = Math.max(1, Math.round(r0 * 4));
   for (let i = 0; i <= segs; i++) {
@@ -399,7 +401,7 @@ function taperTube(curve, segs, rad, r0, r1, col, uvScale) {
     for (let j = 0; j <= rad; j++) {
       const v = j / rad * TAU, s = Math.sin(v), c = -Math.cos(v);
       N.set(c * nn.x + s * bb.x, c * nn.y + s * bb.y, c * nn.z + s * bb.z).normalize();
-      pos.push(P.x + r * N.x, P.y + r * N.y, P.z + r * N.z); nor.push(N.x, N.y, N.z); uv.push(j / rad * ur, t * len / (uvScale || 3));
+      const fy = flat ? flat + (1 - flat) * t * .5 : 1; pos.push(P.x + r * N.x, P.y + r * N.y * fy, P.z + r * N.z); nor.push(N.x, N.y, N.z); uv.push(j / rad * ur, t * len / (uvScale || 3));
     }
   }
   for (let i = 0; i < segs; i++) for (let j = 0; j < rad; j++) { const a = i * (rad + 1) + j, b = (i + 1) * (rad + 1) + j, c = b + 1, d = a + 1; idx.push(a, b, d, b, c, d); }
@@ -441,15 +443,15 @@ function railing(cx, cz, r, h, gaps, opt = {}) {
   for (let i = 0; i < N; i++) {
     const a = i / N * TAU; if (inGap(a, gaps)) { posts.push(null); continue; }
     const x = cx + r * Math.cos(a), z = cz + r * Math.sin(a);
-    GEO.wood.push(prep(scaleUV(new THREE.CylinderGeometry(.055, .065, 1.14, 6), 1, 1), woodCol(0x6e4a2c), [x, h + .57, z]));
+    GEO.wood.push(prep(scaleUV(new THREE.CylinderGeometry(.055, .065, 1.14, 12, 3), 1, 1), woodCol(0x6e4a2c), [x, h + .57, z])); GEO.wood.push(prep(new THREE.SphereGeometry(.072, 14, 10), woodCol(0x5e4128), [x, h + 1.16, z], null, [1, .7, 1]));
     posts.push([x, z, a]);
     if (opt.lanterns && i % opt.lanterns === 0) lanterns.push(new V3(x, h + 1.3, z));
   }
   for (let i = 0; i < N; i++) {
     const p = posts[i], q = posts[(i + 1) % N]; if (!p || !q) continue;
     if (inGap((p[2] + (q[2] < p[2] ? q[2] + TAU : q[2])) / 2, gaps)) continue;
-    beam(new V3(p[0], h + 1.1, p[1]), new V3(q[0], h + 1.1, q[1]), .05, woodCol(0x7a5232));
-    beam(new V3(p[0], h + .58, p[1]), new V3(q[0], h + .58, q[1]), .032, woodCol(0x6e4a2c));
+    beam(new V3(p[0], h + 1.1, p[1]), new V3(q[0], h + 1.1, q[1]), .05, woodCol(0x7a5232), null, 12);
+    beam(new V3(p[0], h + .58, p[1]), new V3(q[0], h + .58, q[1]), .032, woodCol(0x6e4a2c), null, 10);
   }
   walls.push({ type: 'circle', cx, cz, r, y0: h - .1, y1: h + 1.15, gaps });
 }
@@ -493,7 +495,7 @@ function buildBridge(A, B) {
   for (const s of [-1, 1]) {
     for (const hh of [1.05, .52]) {
       const pts = []; for (let k = 0; k <= 12; k++) { const t = k / 12; pts.push(new V3(A.x + dx * t + perp.x * s * .78, lerp(A.y, B.y, t) + hh - (b.sag + .12) * 4 * t * (1 - t), A.z + dz * t + perp.z * s * .78)); }
-      GEO.rope.push(prep(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, hh > 1 ? .035 : .025, 5), 0xc2a676));
+      GEO.rope.push(prep(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 56, hh > 1 ? .035 : .025, 8), 0xc2a676));
     }
     for (let i = 0; i <= n; i += 3) { const t = i / n, x = A.x + dx * t + perp.x * s * .76, z = A.z + dz * t + perp.z * s * .76, y = bridgeY(b, t);
       beam(new V3(x, y, z), new V3(x, lerp(A.y, B.y, t) + 1.05 - (b.sag + .12) * 4 * t * (1 - t), z), .013, 0xb09466, GEO.rope, 4, 0); }
@@ -523,8 +525,17 @@ const hutWallPlanks = (cx, cz, h, W, doorA, hgt, col, windows) => {
   GEO.wood.push(prep(new THREE.BoxGeometry(.95, 1.95, .06), 0x7a4e2a, [dx, h + 1.0, dz], [0, Math.PI / 2 - da + 1.2, 0]));
 };
 function roof(cx, cz, y, rad, hgt, col) {
-  const g = new THREE.ConeGeometry(rad, hgt, 36, 3, true); scaleUV(g, 7, 2.5);
-  GEO.roof.push(prep(g, col, [cx, y + hgt / 2, cz]));
+  const g = new THREE.ConeGeometry(rad, hgt, 48, 3, true); scaleUV(g, 7, 2.5);
+  GEO.roof.push(prep(g, new THREE.Color(col).multiplyScalar(.55), [cx, y + hgt / 2, cz]));
+  const phi = Math.atan2(hgt, rad), slant = Math.hypot(rad, hgt), rows = Math.ceil(slant / .19), e = new THREE.Euler(0, 0, 0, 'YXZ'), m = new THREE.Matrix4();
+  for (let i = 0; i < rows - 1; i++) {
+    const t0 = i / rows, r = rad * (1 - t0) + .03, yy = y + hgt * t0 + .03, circ = TAU * r, n = Math.max(6, Math.round(circ / .24)), off = (i % 2) * .5;
+    for (let k = 0; k < n; k++) {
+      const a = (k + off) / n * TAU, tile = new THREE.BoxGeometry(circ / n * 1.06, .022, .27, 1, 1, 2); scaleUV(tile, .3, .4, rnd(), rnd());
+      e.set(phi + R(-.05, .05), Math.PI / 2 - a + R(-.03, .03), R(-.03, .03)); m.makeRotationFromEuler(e); m.setPosition(cx + Math.cos(a) * (r - .02), yy + .02, cz + Math.sin(a) * (r - .02)); tile.applyMatrix4(m);
+      GEO.roof.push(prep(tile, col, null, null, null, .35));
+    }
+  }
   GEO.wood.push(prep(new THREE.SphereGeometry(.16, 10, 8), 0x5a3a20, [cx, y + hgt + .05, cz]));
   GEO.wood.push(prep(new THREE.CylinderGeometry(.04, .08, .5, 6), 0x5a3a20, [cx, y + hgt + .3, cz]));
 }
@@ -551,7 +562,7 @@ function buildCabin(c) {
   const ysb = d.h - LEVEL_H + stairBase(c.a); let y0 = h - 5; if (Math.abs(ysb - y0) < 2.4 || (ysb > y0 && ysb < h - .5)) y0 = ysb + 1.9 < h - 1.4 ? ysb + 1.9 : ysb - 3.2;
   const ca = Math.cos(c.a), sa = Math.sin(c.a), r0 = rt(y0) * .7;
   const curve = new THREE.CatmullRomCurve3([new V3(ca * r0, y0, sa * r0), new V3(ca * (rt(y0) + 2.5), lerp(y0, h - .5, .35), sa * (rt(y0) + 2.5)), new V3(ca * (c.rc - PR * .6), h - .9, sa * (c.rc - PR * .6)), new V3(ca * (c.rc + PR * .3), h - .5, sa * (c.rc + PR * .3))]);
-  GEO.bark.push(taperTube(curve, 30, 12, 1.05, .45, 0xe8e0d8));
+  GEO.bark.push(taperTube(curve, 56, 22, 1.05, .45, 0xe8e0d8));
   for (const s of [-1, 1]) { const a2 = c.a + s * Math.PI / 2; beam(new V3(cx + ca * PR * .1, h - 1.1, cz + sa * PR * .1), new V3(cx + Math.cos(a2) * PR * .8, h - .3, cz + Math.sin(a2) * PR * .8), .1, 0x5e4128); }
   // murs, toit
   const W = c.wall;
@@ -663,7 +674,7 @@ function trunkVisR(a, y) {
   return r;
 }
 function buildTrunk() {
-  const RS = 96, HS = 230, y0 = -1.5, y1 = 74.5, pos = [], uv = [], idx = [];
+  const RS = 168, HS = 360, y0 = -1.5, y1 = 74.5, pos = [], uv = [], idx = [];
   for (let i = 0; i <= HS; i++) {
     const y = lerp(y0, y1, i / HS);
     for (let j = 0; j <= RS; j++) {
@@ -679,23 +690,22 @@ function buildTrunk() {
   GEO.bark.push(prep(g, 0xffffff));
   const pts = []; for (let y = 0; y <= 74; y += 2) pts.push(new THREE.Vector2(rt(y) + .2, y));
   proxies.push(prox(new THREE.LatheGeometry(pts, 20), 0, 0, 0));
-  // racines
-  const rootA = [2.39, 3.65, 4.91, 2.95, 4.25, 5.6];
-  rootA.forEach((a, k) => {
-    const big = k < 3, ca = Math.cos(a), sa = Math.sin(a), len = big ? R(12, 16) : R(8, 11);
-    const p0 = new V3(ca * rt(2) * .8, big ? 2.4 : 1.4, sa * rt(2) * .8);
-    const side = new V3(-sa, 0, ca).multiplyScalar(R(-1.5, 1.5));
-    const curve = new THREE.CatmullRomCurve3([p0, new V3(ca * (rt(0) + 1), .6, sa * (rt(0) + 1)).add(side.clone().multiplyScalar(.3)), new V3(ca * (rt(0) + len * .5), .1, sa * (rt(0) + len * .5)).add(side), new V3(ca * (rt(0) + len), -.6, sa * (rt(0) + len)).add(side.clone().multiplyScalar(1.6))]);
-    GEO.bark.push(taperTube(curve, 28, 10, big ? 1.5 : .9, .12, 0xe0d8d0));
-    for (let s = 0; s < 3; s++) { const t0 = s / 3, t1 = (s + 1) / 3, P = curve.getPointAt(t0), Q = curve.getPointAt(t1);
-      walls.push({ type: 'seg', ax: P.x, az: P.z, bx: Q.x, bz: Q.z, rad: (big ? 1.2 : .75) * (1 - t0 * .7) + .2, yr: () => [-2, .9 - t0 * .5] }); }
+  // racines : partent de l'intérieur du tronc, suivent l'arête puis s'enfoncent dans le sol
+  ROOTS.forEach(rt0 => {
+    const a = rt0.a, sz = rt0.sz, ca = Math.cos(a), sa = Math.sin(a), len = [R(5, 7), R(8, 11), R(12, 16)][sz], r0 = [.6, .9, 1.3][sz], yTop = [2.2, 3.0, 4.2][sz];
+    const side = new V3(-sa, 0, ca), sk = R(-1, 1), P = (rr, y, lat) => new V3(ca * rr, y, sa * rr).addScaledVector(side, lat * sk);
+    const b0 = trunkSurf(a, 0);
+    const curve = new THREE.CatmullRomCurve3([P(rt(yTop) * .45, yTop, 0), P(trunkSurf(a, yTop * .5) - r0 * .55, yTop * .5, 0), P(trunkSurf(a, .4) - r0 * .1, .45, .05), P(b0 + len * .35, .15, .5), P(b0 + len * .7, -.1, 1.1), P(b0 + len, -.75, 1.6)]);
+    GEO.bark.push(taperTube(curve, 64, 24, r0, .08, 0xe0d8d0, 3, .62));
+    for (let s2 = 0; s2 < 4; s2++) { const t0 = .25 + s2 * .18, P0 = curve.getPointAt(t0), Q = curve.getPointAt(Math.min(1, t0 + .18));
+      walls.push({ type: 'seg', ax: P0.x, az: P0.z, bx: Q.x, bz: Q.z, rad: r0 * (1 - t0 * .6) + .25, yr: () => [-2, .7 - t0 * .4] }); }
   });
 }
 function branch(start, dir, len, r0, r1, depth, opts) {
   const pts = [start.clone()]; let p = start.clone(); const d = dir.clone().normalize(), segs = 5;
   for (let i = 1; i <= segs; i++) { d.add(new V3(R(-.16, .16), R(-.06, .1) + (opts.lift || 0), R(-.16, .16))).normalize(); p = p.clone().addScaledVector(d, len / segs); pts.push(p); }
   const curve = new THREE.CatmullRomCurve3(pts);
-  GEO.bark.push(taperTube(curve, depth === 0 ? 26 : 12, depth === 0 ? 12 : 7, r0, r1, depth === 0 ? 0xf0e8e0 : 0xd8d0c8, 2.5));
+  GEO.bark.push(taperTube(curve, depth === 0 ? 56 : 24, depth === 0 ? 22 : 12, r0, r1, depth === 0 ? 0xf0e8e0 : 0xd8d0c8, 2.5));
   if (depth < 2) {
     const nSub = depth === 0 ? 3 + (rnd() * 3 | 0) : 2 + (rnd() * 2 | 0);
     for (let k = 0; k < nSub; k++) {
@@ -789,8 +799,8 @@ function addMerged(list, mat, cast = true, recv = true) {
 let leafGeo;
 function makeLeafCluster() {
   const lr = mulberry32(5), parts = [];
-  for (let i = 0; i < 30; i++) {
-    const p = new THREE.PlaneGeometry(1.25, 1.25), u = lr() * TAU, v = Math.acos(2 * lr() - 1), d = Math.cbrt(lr()) * 1.05;
+  for (let i = 0; i < 44; i++) {
+    const p = new THREE.PlaneGeometry(1.15, 1.15), u = lr() * TAU, v = Math.acos(2 * lr() - 1), d = Math.cbrt(lr()) * 1.05;
     _eu.set(lr() * TAU, lr() * TAU, lr() * TAU); _q.setFromEuler(_eu);
     _m4.compose(new V3(Math.sin(v) * Math.cos(u) * d, Math.cos(v) * d * .8, Math.sin(v) * Math.sin(u) * d), _q, ONE); p.applyMatrix4(_m4); parts.push(p);
   }
@@ -839,10 +849,11 @@ function buildGround() {
   const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: TX.grass, normalMap: TX.grassN, roughness: 1, vertexColors: true })); m.receiveShadow = true; scene.add(m);
   // brins d'herbe
   const bl = new THREE.BufferGeometry(), bp = [], bc = [], bn = [], bi = [], dark = new THREE.Color(0x1f3814), light = new THREE.Color(0x96b84a);
-  for (let i = 0; i <= 3; i++) { const t = i / 3, w = .045 * (1 - t * .85), y = t * .55, z = t * t * .12;
-    if (i < 3) { bp.push(-w, y, z, w, y, z); } else bp.push(0, y, z);
-    const cc = dark.clone().lerp(light, t); for (let k = 0; k < (i < 3 ? 2 : 1); k++) { bc.push(cc.r, cc.g, cc.b); bn.push(0, 1, 0); } }
-  for (let i = 0; i < 2; i++) { const a = i * 2; bi.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } bi.push(4, 5, 6);
+  const BS = 6;
+  for (let i = 0; i <= BS; i++) { const t = i / BS, w = .042 * (1 - t * .9), y = t * .58, z = t * t * .16;
+    if (i < BS) bp.push(-w, y, z, w, y, z); else bp.push(0, y, z);
+    const cc = dark.clone().lerp(light, t); for (let k2 = 0; k2 < (i < BS ? 2 : 1); k2++) { bc.push(cc.r, cc.g, cc.b); bn.push(0, 1, 0); } }
+  for (let i = 0; i < BS - 1; i++) { const a2 = i * 2; bi.push(a2, a2 + 1, a2 + 2, a2 + 1, a2 + 3, a2 + 2); } bi.push((BS - 1) * 2, (BS - 1) * 2 + 1, BS * 2);
   bl.setAttribute('position', new THREE.Float32BufferAttribute(bp, 3)); bl.setAttribute('color', new THREE.Float32BufferAttribute(bc, 3)); bl.setAttribute('normal', new THREE.Float32BufferAttribute(bn, 3)); bl.setIndex(bi);
   const NB = HQ() ? 65000 : 20000, im = new THREE.InstancedMesh(bl, MAT.grass, NB), col = new THREE.Color(); let n = 0;
   for (let k = 0; k < NB * 2 && n < NB; k++) {
@@ -856,9 +867,10 @@ function buildGround() {
   // fleurs
   for (let k = 0; k < 260; k++) { const a = rnd() * TAU, r = R(9, 45), x = Math.cos(a) * r, z = Math.sin(a) * r, y = terrainH(x, z);
     if (Math.hypot(x - POND.x, z - POND.z) < POND.r) continue; const pc = [0xffffff, 0xf8e060, 0xc89af0, 0xf090b0][k % 4];
-    GEO.deco.push(prep(new THREE.CylinderGeometry(.008, .008, .3, 4), 0x4a7a2a, [x, y + .15, z]));
-    GEO.deco.push(prep(new THREE.CylinderGeometry(.07, .05, .02, 8), pc, [x, y + .31, z], [R(-.3, .3), 0, R(-.3, .3)]));
-    GEO.deco.push(prep(new THREE.SphereGeometry(.025, 6, 4), 0xf0c020, [x, y + .33, z])); }
+    GEO.deco.push(prep(new THREE.CylinderGeometry(.007, .009, .3, 8, 3), 0x4a7a2a, [x, y + .15, z]));
+    for (let pe = 0; pe < 7; pe++) { const pa = pe / 7 * TAU; GEO.deco.push(prep(new THREE.SphereGeometry(.035, 10, 6), pc, [x + Math.cos(pa) * .045, y + .31, z + Math.sin(pa) * .045], [0, -pa, 0], [1.2, .25, .55])); }
+    GEO.deco.push(prep(new THREE.SphereGeometry(.026, 12, 8), 0xf0c020, [x, y + .325, z], null, [1, .6, 1]));
+    GEO.deco.push(prep(new THREE.SphereGeometry(.03, 10, 6), 0x4a7a2a, [x + .03, y + .12, z], [0, rnd() * TAU, .6], [1.6, .2, .6])); }
   // champignons
   for (let k = 0; k < 26; k++) { const a = R(2, 6), r = R(7, 13), x = Math.cos(a) * r, z = Math.sin(a) * r, s = R(.7, 1.4);
     GEO.deco.push(prep(new THREE.CylinderGeometry(.05 * s, .07 * s, .22 * s, 8), 0xf0e8d8, [x, .11 * s, z]));
@@ -866,7 +878,7 @@ function buildGround() {
     for (let i = 0; i < 4; i++) GEO.deco.push(prep(new THREE.SphereGeometry(.02 * s, 5, 4), 0xffffff, [x + Math.cos(i * 1.7) * .08 * s, .2 * s + .1 * s, z + Math.sin(i * 1.7) * .08 * s])); }
   // rochers
   for (let k = 0; k < 36; k++) { const a = rnd() * TAU, r = R(14, 80), x = Math.cos(a) * r, z = Math.sin(a) * r; if (Math.hypot(x - POND.x, z - POND.z) < POND.r + 1 || Math.abs(angDiff(a, ZIP.a)) < .1) continue;
-    const g2 = new THREE.IcosahedronGeometry(1, 2), p2 = g2.attributes.position; for (let i = 0; i < p2.count; i++) { const v = new V3(p2.getX(i), p2.getY(i), p2.getZ(i)); v.multiplyScalar(1 + (fbm(v.x * 1.5 + k, v.y * 1.5 + v.z, 91) - .5) * .5); p2.setXYZ(i, v.x, v.y, v.z); }
+    const g2 = new THREE.IcosahedronGeometry(1, 5), p2 = g2.attributes.position; for (let i = 0; i < p2.count; i++) { const v = new V3(p2.getX(i), p2.getY(i), p2.getZ(i)); v.multiplyScalar(1 + (fbm(v.x * 1.5 + k, v.y * 1.5 + v.z, 91) - .5) * .5); p2.setXYZ(i, v.x, v.y, v.z); }
     g2.computeVertexNormals(); const s = R(.4, 1.6);
     GEO.rock.push(prep(g2, new THREE.Color().setHSL(.1, .05, R(.35, .5)), [x, terrainH(x, z) + s * .25, z], [rnd(), rnd(), rnd()], [s * R(1, 1.6), s * R(.6, .9), s * R(1, 1.4)]));
     if (s > .9) walls.push({ type: 'seg', ax: x, az: z, bx: x + .01, bz: z, rad: s * 1.2, yr: () => [-5, terrainH(x, z) + s * .8] }); }
@@ -901,11 +913,13 @@ function buildGround() {
 
 // --- Lanternes et panneaux
 function buildLanternsAndSigns() {
-  const im = new THREE.InstancedMesh(new THREE.SphereGeometry(.075, 10, 8), MAT.lantern, lanterns.length), gp = [];
+  const im = new THREE.InstancedMesh(new THREE.SphereGeometry(.06, 16, 12), MAT.lantern, lanterns.length), gp = [];
   lanterns.forEach((p, i) => { _m4.makeTranslation(p.x, p.y, p.z); im.setMatrixAt(i, _m4); gp.push(p.x, p.y, p.z);
-    for (const [dx, dz] of [[-.07, -.07], [.07, -.07], [.07, .07], [-.07, .07]]) GEO.metal.push(prep(new THREE.BoxGeometry(.015, .2, .015), 0x2a2a2a, [p.x + dx, p.y, p.z + dz]));
-    GEO.metal.push(prep(new THREE.ConeGeometry(.12, .08, 4), 0x2a2a2a, [p.x, p.y + .13, p.z], [0, Math.PI / 4, 0]));
-    GEO.metal.push(prep(new THREE.BoxGeometry(.16, .02, .16), 0x2a2a2a, [p.x, p.y - .1, p.z])); });
+    for (let b2 = 0; b2 < 8; b2++) { const ba = b2 / 8 * TAU; GEO.metal.push(prep(new THREE.CylinderGeometry(.006, .006, .2, 6), 0x2a2a2a, [p.x + Math.cos(ba) * .085, p.y, p.z + Math.sin(ba) * .085])); }
+    for (const yy of [-.09, .09]) GEO.metal.push(prep(new THREE.TorusGeometry(.088, .008, 6, 24), 0x2a2a2a, [p.x, p.y + yy, p.z], [Math.PI / 2, 0, 0]));
+    GEO.metal.push(prep(new THREE.TorusGeometry(.04, .006, 6, 18), 0x2a2a2a, [p.x, p.y + .2, p.z]));
+    GEO.metal.push(prep(new THREE.ConeGeometry(.115, .09, 24), 0x2a2a2a, [p.x, p.y + .14, p.z]));
+    GEO.metal.push(prep(new THREE.CylinderGeometry(.095, .08, .025, 24), 0x2a2a2a, [p.x, p.y - .1, p.z])); });
   scene.add(im);
   const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(gp, 3));
   scene.add(new THREE.Points(pg, new THREE.PointsMaterial({ map: TX.glow, size: .9, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: 0xffc070 })));
@@ -994,94 +1008,192 @@ function buildMountains() {
 
 // ============================================================ Personnages
 function partMesh(list, cast = true) { const m = new THREE.Mesh(mergeGeometries(list, false), MAT.char); m.castShadow = cast; m.receiveShadow = true; return m; }
+function lathe(pts, segs, phiStart, phiLen) { return new THREE.LatheGeometry(pts.map(p => new THREE.Vector2(p[0], p[1])), segs, phiStart || 0, phiLen || TAU); }
+function folds(g, amp, freq, fromY, toY) { // plis de tissu : ondulation qui grandit vers le bas
+  const P = g.attributes.position;
+  for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), z = P.getZ(i), r = Math.hypot(x, z); if (r < 1e-5) continue;
+    const k = clamp((fromY - y) / (fromY - toY), 0, 1), nr = r + Math.sin(Math.atan2(z, x) * freq) * amp * k; P.setX(i, x / r * nr); P.setZ(i, z / r * nr); }
+  g.computeVertexNormals(); return g;
+}
+function strand(pts, r0, r1, col, segs, rad) { return taperTube(new THREE.CatmullRomCurve3(pts), segs || 12, rad || 5, r0, r1, col); }
+function orientTo(geo, dir) { _q.setFromUnitVectors(new V3(0, 1, 0), dir.clone().normalize()); _m4.makeRotationFromQuaternion(_q); geo.applyMatrix4(_m4); return geo; }
 function makeHumanoid(o) {
-  const elf = !!o.elf, legLen = elf ? .88 : .5, torsoH = elf ? .6 : .42, tr = elf ? .155 : .17, headR = elf ? .13 : .16, armLen = elf ? .64 : .4, hipW = .085, sh = tr + .05;
-  const root = new THREE.Group(), body = [], top = legLen + torsoH, hy = top + .07 + headR;
-  body.push(prep(new THREE.CylinderGeometry(tr * 1.03, tr * .92, torsoH, 16), o.tunic, [0, legLen + torsoH / 2, 0]));
-  const sk = elf ? .5 : .2; body.push(prep(new THREE.CylinderGeometry(tr * .95, tr * 1.45, sk, 16, 1, true), o.tunic2 || o.tunic, [0, legLen + .1 - sk / 2, 0]));
-  body.push(prep(new THREE.TorusGeometry(tr * .98, .022, 6, 20), o.belt || 0x5a3418, [0, legLen + .14, 0], [Math.PI / 2, 0, 0]));
-  body.push(prep(new THREE.CylinderGeometry(.05, .055, .1, 8), o.skin, [0, top + .03, 0]));
-  body.push(prep(new THREE.SphereGeometry(headR, 20, 16), o.skin, [0, hy, 0], null, [1, 1.06, 1]));
-  for (const s of [-1, 1]) {
-    body.push(prep(new THREE.SphereGeometry(headR * .2, 10, 8), 0xffffff, [s * headR * .36, hy + headR * .08, headR * .84]));
-    body.push(prep(new THREE.SphereGeometry(headR * .12, 8, 6), o.eye || 0x2a3a5a, [s * headR * .36, hy + headR * .08, headR * .97]));
-  }
-  body.push(prep(new THREE.SphereGeometry(headR * .12, 8, 6), o.skin, [0, hy - headR * .12, headR * .98]));
-  body.push(prep(new THREE.TorusGeometry(headR * .22, headR * .04, 4, 10, Math.PI), 0xa05050, [0, hy - headR * .38, headR * .86], [0, 0, Math.PI]));
-  body.push(prep(new THREE.SphereGeometry(headR * 1.09, 20, 12, 0, TAU, 0, Math.PI * .5), o.hair, [0, hy + .015, -.012], [-.25, 0, 0]));
+  const elf = !!o.elf, k = elf ? 1.4 : 1;
+  const thigh = elf ? .45 : .26, shin = elf ? .43 : .25, legLen = thigh + shin, torsoH = elf ? .58 : .4, tr = elf ? .148 : .165, headR = elf ? .122 : .155;
+  const upA = elf ? .3 : .19, foreA = elf ? .27 : .17, hipW = elf ? .085 : .08, shW = tr + .04, seg = 40;
+  const root = new THREE.Group(), T = [];
+  // bassin, torse, tunique plissée, ceinture, col, cou
+  T.push(prep(lathe([[0, -.11], [tr * .8, -.1], [tr * .93, -.05], [tr * .9, 0]], seg), o.pants, [0, legLen, 0], null, [1, 1, .8]));
+  T.push(prep(lathe([[tr * .9, 0], [tr * .87, torsoH * .15], [tr * .92, torsoH * .35], [tr * 1.02, torsoH * .6], [tr * 1.07, torsoH * .8], [tr * 1.0, torsoH * .92], [tr * .72, torsoH * .99], [.04, torsoH * 1.02]], seg), o.tunic, [0, legLen, 0], null, [1, 1, .78]));
+  const sk = elf ? .55 : .2;
+  T.push(prep(folds(lathe([[tr * .92, .13], [tr * 1.0, 0], [tr * 1.18, -sk * .5], [tr * 1.4, -sk]], 72), elf ? .018 : .011, 14, .05, -sk), o.tunic2 || o.tunic, [0, legLen + .03, 0], null, [1, 1, .84]));
+  T.push(prep(new THREE.TorusGeometry(tr * .97, .024, 10, 64), o.belt || 0x5a3418, [0, legLen + .1, 0], [Math.PI / 2, 0, 0], [1, .8, 1]));
+  T.push(prep(new THREE.BoxGeometry(.05, .04, .014, 2, 2, 1), 0xe0b040, [0, legLen + .1, tr * .8]));
+  T.push(prep(new THREE.TorusGeometry(tr * .5, .022, 10, 40), o.collar || o.tunic2 || o.tunic, [0, legLen + torsoH * .99, 0], [Math.PI / 2, 0, 0], [1, .85, 1]));
+  T.push(prep(new THREE.CylinderGeometry(.042 * k, .048 * k, .1, 24), o.skin, [0, legLen + torsoH + .03, 0]));
+  for (let i = 0; i < 4; i++) T.push(prep(new THREE.SphereGeometry(.009, 10, 8), o.button || 0xe8d8b0, [0, legLen + torsoH * (.3 + i * .17), tr * .79 - i * .004]));
   if (elf) {
-    body.push(prep(new THREE.CylinderGeometry(headR * .98, headR * 1.2, .55, 16, 1, true, Math.PI / 2, Math.PI), o.hair, [0, hy - .22, -.01]));
-    for (const s of [-1, 1]) body.push(prep(new THREE.ConeGeometry(.03, .16, 6), o.skin, [s * headR * .98, hy + .03, -.01], [0, 0, -s * (Math.PI / 2 - .5)]));
-    body.push(prep(new THREE.TorusGeometry(headR * 1.03, .011, 6, 24), 0xe8c060, [0, hy + headR * .35, 0], [Math.PI / 2 - .15, 0, 0]));
-    body.push(prep(new THREE.CylinderGeometry(tr * 1.25, tr * 2.1, torsoH + legLen * .78, 18, 1, true, Math.PI / 2 + .25, Math.PI - .5), o.cloak, [0, top - (torsoH + legLen * .78) / 2, -.03]));
+    const ch = torsoH + legLen * .6;
+    T.push(prep(folds(lathe([[tr * 1.02, 0], [tr * 1.25, -.18], [tr * 1.7, -ch * .6], [tr * 2.15, -ch]], 64, Math.PI / 2 + .3, Math.PI - .6), .022, 18, -.1, -ch), o.cloak, [0, legLen + torsoH * .96, -.02], null, [1, 1, .9]));
+    T.push(prep(new THREE.SphereGeometry(tr * .95, 32, 16, 0, TAU, 0, Math.PI / 2), o.cloak, [0, legLen + torsoH + .01, -.07], [-.6, 0, 0], [1.1, .7, .9]));
+    T.push(prep(new THREE.SphereGeometry(.018, 16, 12), 0xe8c060, [tr * .55, legLen + torsoH * .93, tr * .62]));
   } else {
-    body.push(prep(new THREE.SphereGeometry(headR * 1.04, 16, 12), o.hair, [0, hy + .015, -.035]));
-    body.push(prep(new THREE.TorusGeometry(.12, .04, 8, 18), 0xd83838, [0, top + .02, 0], [Math.PI / 2, 0, 0]));
-    body.push(prep(new THREE.BoxGeometry(.08, .22, .04), 0xd83838, [.05, top - .1, -.15], [.2, 0, .2]));
+    T.push(prep(new THREE.TorusGeometry(.115, .042, 14, 40), 0xd83838, [0, legLen + torsoH + .005, 0], [Math.PI / 2, 0, 0]));
+    T.push(strand([new V3(.05, legLen + torsoH - .01, -.1), new V3(.07, legLen + torsoH - .12, -.17), new V3(.09, legLen + torsoH - .24, -.15)], .035, .025, 0xc83030, 12, 8));
+    T.push(strand([new V3(.0, legLen + torsoH - .01, -.11), new V3(.0, legLen + torsoH - .1, -.18), new V3(-.02, legLen + torsoH - .2, -.17)], .03, .022, 0xc02c2c, 12, 8));
   }
-  const torso = partMesh(body); root.add(torso);
-  const legs = [], arms = [];
+  const torso = partMesh(T); root.add(torso);
+  // tête
+  const head = new THREE.Group(); head.position.set(0, legLen + torsoH + .07, 0); torso.add(head);
+  const H = [], hy = headR * .95;
+  H.push(prep(new THREE.SphereGeometry(headR, 56, 40), o.skin, [0, hy, 0], null, [.93, 1.04, .98]));
+  H.push(prep(new THREE.SphereGeometry(headR * .62, 36, 28), o.skin, [0, hy - headR * .42, headR * .28], null, [1, .8, 1]));
   for (const s of [-1, 1]) {
-    const lg = new THREE.Group(); lg.position.set(s * hipW, legLen, 0);
-    const lp = [prep(new THREE.CylinderGeometry(.06, .055, legLen - .07, 10), o.pants, [0, -(legLen - .07) / 2, 0]), prep(new THREE.BoxGeometry(.11, .09, .2), o.shoes, [0, -legLen + .045, .035])];
-    if (elf) lp.push(prep(new THREE.CylinderGeometry(.068, .062, .34, 10), o.shoes, [0, -legLen + .2, 0]));
-    lg.add(partMesh(lp)); root.add(lg); legs.push(lg);
-    const ag = new THREE.Group(); ag.position.set(s * sh, top - .06, 0);
-    ag.add(partMesh([prep(new THREE.CylinderGeometry(.05, .045, armLen - .06, 10), o.sleeve || o.tunic, [0, -(armLen - .06) / 2, 0]), prep(new THREE.SphereGeometry(.048, 10, 8), o.skin, [0, -armLen + .01, 0])]));
-    root.add(ag); arms.push(ag);
+    const ex = s * headR * .36, ey = hy + headR * .08;
+    H.push(prep(new THREE.SphereGeometry(headR * .19, 28, 20), 0xfaf6f0, [ex, ey, headR * .8], null, [1, .85, .6]));
+    H.push(prep(new THREE.SphereGeometry(headR * .11, 24, 16), o.eye || 0x3a5a8a, [ex, ey, headR * .89], null, [1, 1, .5]));
+    H.push(prep(new THREE.SphereGeometry(headR * .06, 16, 12), 0x0a0a10, [ex, ey, headR * .925], null, [1, 1, .5]));
+    H.push(prep(new THREE.SphereGeometry(headR * .025, 10, 8), 0xffffff, [ex + headR * .035, ey + headR * .04, headR * .945]));
+    H.push(prep(new THREE.SphereGeometry(headR * .205, 28, 14, 0, TAU, 0, Math.PI * .42), o.skin, [ex, ey + headR * .01, headR * .79], [-.25, 0, 0], [1.02, .92, .66]));
+    H.push(prep(new THREE.TorusGeometry(headR * .17, headR * .028, 8, 24, Math.PI * .8), o.brow || o.hair, [ex, ey + headR * .13, headR * .86], [0, 0, Math.PI * .1], [1, .6, 1]));
+    H.push(prep(new THREE.SphereGeometry(headR * .16, 20, 14), o.cheek || 0xf0a8a0, [s * headR * .52, hy - headR * .2, headR * .66], null, [1, .7, .4]));
+    if (elf) {
+      const ear = new THREE.ConeGeometry(headR * .17, headR * 1.15, 24, 6); ear.translate(0, headR * .57, 0); ear.scale(1, 1, .45);
+      H.push(prep(ear, o.skin, [s * headR * .88, hy + headR * .05, -headR * .05], [0, 0, -s * (Math.PI / 2 - .55)]));
+      H.push(prep(new THREE.SphereGeometry(headR * .2, 20, 14), o.skin, [s * headR * .9, hy, -headR * .03], null, [.45, 1, .7]));
+    } else H.push(prep(new THREE.SphereGeometry(headR * .21, 24, 18), o.skin, [s * headR * .92, hy, -headR * .02], null, [.45, 1, .75]));
   }
-  return { root, torso, legs, arms, headY: hy, phase: 0 };
+  H.push(prep(new THREE.SphereGeometry(headR * .11, 24, 18), o.skin, [0, hy - headR * .07, headR * .98], null, [.8, 1, 1.15]));
+  for (const s of [-1, 1]) H.push(prep(new THREE.SphereGeometry(headR * .03, 10, 8), 0x8a4a3a, [s * headR * .04, hy - headR * .14, headR * 1.03]));
+  H.push(prep(new THREE.TorusGeometry(headR * .19, headR * .038, 10, 28, Math.PI), o.lip || 0xc46a64, [0, hy - headR * .35, headR * .85], [0, 0, Math.PI], [1, .7, 1]));
+  // cheveux
+  H.push(prep(new THREE.SphereGeometry(headR * 1.06, 56, 30, 0, TAU, 0, Math.PI * .55), o.hair, [0, hy + headR * .03, -headR * .04], [-.32, 0, 0]));
+  const hr = mulberry32(elf ? 700 + (o.hair & 255) : 77);
+  if (!elf) {
+    H.push(prep(new THREE.SphereGeometry(headR * 1.03, 44, 32), o.hair, [0, hy, -headR * .13], null, [.99, .98, .9]));
+    for (let i = 0; i < 60; i++) {
+      const th = hr() * 1.25, ph = hr() * TAU; if (Math.cos(ph) > .55 && th > .75) continue;
+      const dir = new V3(Math.sin(th) * Math.sin(ph), Math.cos(th), Math.sin(th) * Math.cos(ph)), base = dir.clone().multiplyScalar(headR * 1.0).add(new V3(0, hy, -headR * .04));
+      const out = dir.clone().multiplyScalar(.45).add(new V3((hr() - .5) * .3, -1, dir.z > .3 ? .45 : -.55)).normalize(), cone = new THREE.ConeGeometry(headR * (.14 + hr() * .06), headR * (.32 + hr() * .22), 12, 3);
+      cone.translate(0, headR * .2, 0); orientTo(cone, out); cone.translate(base.x, base.y, base.z); H.push(prep(cone, o.hair, null, null, null, .15));
+    }
+  } else {
+    const NS = HQ() ? 80 : 46;
+    for (let i = 0; i < NS; i++) {
+      const ph = Math.PI * .5 + hr() * Math.PI + (hr() < .3 ? (hr() - .5) * 1.2 : 0), th = .25 + hr() * 1.05;
+      const dir = new V3(Math.sin(th) * Math.sin(ph), Math.cos(th), Math.sin(th) * Math.cos(ph)), p0 = dir.clone().multiplyScalar(headR * 1.03).add(new V3(0, hy, -headR * .04));
+      const lenB = .35 + hr() * .3, sx = dir.x * 1.25;
+      const pts = [p0, p0.clone().add(new V3(sx * headR * .5, -headR * .5, -headR * .25)), new V3(p0.x * 1.3 + sx * .02, hy - headR * 1.4, -headR * .75 - hr() * .05), new V3(p0.x * 1.15 + (hr() - .5) * .05, hy - headR - lenB, -headR * .7 - hr() * .08)];
+      H.push(strand(pts, .017 + hr() * .008, .004, o.hair, 14, 6));
+    }
+    H.push(prep(new THREE.TorusGeometry(headR * 1.04, .011, 10, 64), 0xe8c060, [0, hy + headR * .38, -headR * .02], [Math.PI / 2 - .2, 0, 0]));
+    H.push(prep(new THREE.OctahedronGeometry(.016, 1), o.gem || 0x50c0a0, [0, hy + headR * .5, headR * .98]));
+  }
+  head.add(partMesh(H));
+  // bras : épaule, coude, main avec doigts
+  const arms = [], legs = [];
+  for (const s of [-1, 1]) {
+    const sh = new THREE.Group(); sh.position.set(s * shW, legLen + torsoH * .9, 0); torso.add(sh);
+    sh.add(partMesh([prep(lathe([[0, .02], [.05, .01], [.058, -upA * .3], [.05, -upA], [0, -upA - .005]], 28), o.sleeve || o.tunic), prep(new THREE.SphereGeometry(.058, 24, 18), o.sleeve || o.tunic)]));
+    const el = new THREE.Group(); el.position.set(0, -upA, 0); sh.add(el);
+    const A = [prep(lathe([[0, .01], [.045, 0], [.043, -foreA * .7], [.037, -foreA], [0, -foreA - .003]], 28), elf ? o.sleeve || o.tunic : o.skin), prep(new THREE.SphereGeometry(.046, 20, 14), elf ? o.sleeve || o.tunic : o.skin)];
+    A.push(prep(new THREE.TorusGeometry(.039, .012, 8, 28), o.cuff || o.tunic2 || o.tunic, [0, -foreA * .85, 0], [Math.PI / 2, 0, 0]));
+    const hy2 = -foreA - .04;
+    A.push(prep(new THREE.SphereGeometry(.04, 24, 18), o.skin, [0, hy2, 0], null, [.9, 1.1, .55]));
+    for (let f = 0; f < 4; f++) A.push(prep(new THREE.CapsuleGeometry(.0085 * k, .042 * k, 4, 10), o.skin, [(f - 1.5) * .016 * k * s * -1, hy2 - .055 * k, .004], [.15, 0, 0]));
+    A.push(prep(new THREE.CapsuleGeometry(.009 * k, .03 * k, 4, 10), o.skin, [-s * .03, hy2 - .01, .018], [.4, 0, s * .7]));
+    el.add(partMesh(A)); arms.push({ sh, el });
+    // jambes : hanche, genou, pied
+    const hip = new THREE.Group(); hip.position.set(s * hipW, legLen, 0); root.add(hip);
+    hip.add(partMesh([prep(lathe([[0, .01], [.068, -.02], [.064, -thigh * .6], [.055, -thigh], [0, -thigh - .005]], 28), o.pants)]));
+    const kn = new THREE.Group(); kn.position.set(0, -thigh, 0); hip.add(kn);
+    const Lg = [prep(new THREE.SphereGeometry(.054, 20, 14), o.pants), prep(lathe([[0, 0], [.053, -.01], [.05, -shin * .4], [.04, -shin], [0, -shin]], 28), o.pants)];
+    if (elf) {
+      Lg.push(prep(lathe([[0, -shin * .3], [.06, -shin * .3], [.057, -shin * .65], [.05, -shin + .03], [0, -shin + .03]], 28), o.shoes));
+      Lg.push(prep(new THREE.TorusGeometry(.058, .012, 8, 28), o.shoes, [0, -shin * .3, 0], [Math.PI / 2, 0, 0]));
+      Lg.push(prep(new THREE.SphereGeometry(.055, 24, 16), o.shoes, [0, -shin + .02, .045], null, [1, .75, 2.1]));
+    } else {
+      Lg.push(prep(new THREE.TorusGeometry(.043, .012, 8, 28), 0xf0f0f0, [0, -shin + .07, 0], [Math.PI / 2, 0, 0]));
+      Lg.push(prep(new THREE.SphereGeometry(.06, 24, 16), o.shoes, [0, -shin + .03, .035], null, [1, .8, 1.8]));
+    }
+    Lg.push(prep(new THREE.BoxGeometry(.1, .02, .21, 2, 1, 4), 0x2a1a10, [0, -shin - .005, .04]));
+    kn.add(partMesh(Lg)); legs.push({ hip, kn });
+  }
+  return { root, torso, head, legs, arms, phase: 0, look: 0 };
 }
 function animHumanoid(h, dt, speed, mode) {
   if (speed > .05) h.phase += dt * (3 + speed * 2.4);
-  const amt = clamp(speed / 3, 0, 1.2), s = Math.sin(h.phase);
-  h.legs[0].rotation.x = s * .65 * amt; h.legs[1].rotation.x = -s * .65 * amt;
-  h.arms[0].rotation.set(-s * .55 * amt, 0, 0); h.arms[1].rotation.set(s * .55 * amt, 0, 0);
-  h.torso.position.y = Math.abs(Math.cos(h.phase)) * .025 * amt + (speed < .05 ? Math.sin(performance.now() / 700) * .006 : 0);
-  if (mode === 'wave') { h.arms[1].rotation.set(0, 0, 2.5 + Math.sin(performance.now() / 120) * .3); }
-  if (mode === 'hang') { h.arms[0].rotation.set(-3.0, 0, 0); h.arms[1].rotation.set(-3.0, 0, 0); h.legs[0].rotation.x = .3; h.legs[1].rotation.x = .1; }
-  if (mode === 'air') { h.arms[0].rotation.set(-.4, 0, -.5); h.arms[1].rotation.set(-.4, 0, .5); h.legs[0].rotation.x = .5; h.legs[1].rotation.x = -.3; }
+  const amt = clamp(speed / 3, 0, 1.2), s = Math.sin(h.phase), c = Math.cos(h.phase), now = performance.now() / 1000;
+  for (let i = 0; i < 2; i++) {
+    const sg = i ? -1 : 1, L = h.legs[i], A = h.arms[i];
+    L.hip.rotation.set(-sg * s * .6 * amt, 0, 0); L.kn.rotation.set(Math.max(0, sg * c) * .95 * amt + .03, 0, 0);
+    A.sh.rotation.set(sg * s * .5 * amt, 0, (i ? 1 : -1) * .07); A.el.rotation.set(-.15 - Math.max(0, -sg * s) * .55 * amt, 0, 0);
+  }
+  h.torso.position.y = Math.abs(c) * .025 * amt + (speed < .05 ? Math.sin(now * 1.6) * .004 : 0);
+  h.torso.rotation.y = s * .07 * amt;
+  h.head.rotation.y += (clamp(h.look || 0, -1, 1) - h.head.rotation.y) * .1; h.head.rotation.x = Math.sin(now * .7) * .03;
+  if (mode === 'wave') { const A = h.arms[1]; A.sh.rotation.set(0, 0, 2.5); A.el.rotation.set(0, 0, .5 + Math.sin(now * 9) * .35); }
+  if (mode === 'hang') { for (const A of h.arms) { A.sh.rotation.set(-3.0, 0, 0); A.el.rotation.set(0, 0, 0); } h.legs[0].hip.rotation.x = -.35; h.legs[1].hip.rotation.x = -.15; h.legs[0].kn.rotation.x = .5; h.legs[1].kn.rotation.x = .3; }
+  if (mode === 'air') { h.arms[0].sh.rotation.set(-.4, 0, -.6); h.arms[1].sh.rotation.set(-.4, 0, .6); h.legs[0].hip.rotation.x = -.6; h.legs[0].kn.rotation.x = .9; h.legs[1].hip.rotation.x = .3; h.legs[1].kn.rotation.x = .4; }
 }
 function makeSquirrel() {
-  const g = new THREE.Group(), B = 0x9c4a22, L = 0xe8c8a0, parts = [];
-  parts.push(prep(new THREE.SphereGeometry(.09, 14, 10), B, [0, .1, 0], null, [1, .85, 1.6]));
-  parts.push(prep(new THREE.SphereGeometry(.07, 12, 8), L, [0, .08, .04], null, [.8, .7, 1.2]));
-  parts.push(prep(new THREE.SphereGeometry(.065, 14, 10), B, [0, .16, .15]));
-  parts.push(prep(new THREE.SphereGeometry(.03, 8, 6), L, [0, .145, .205]));
-  for (const s of [-1, 1]) { parts.push(prep(new THREE.ConeGeometry(.022, .06, 6), B, [s * .035, .225, .14])); parts.push(prep(new THREE.SphereGeometry(.013, 6, 5), 0x111111, [s * .04, .175, .2]));
-    parts.push(prep(new THREE.SphereGeometry(.025, 6, 5), B, [s * .05, .03, .1])); parts.push(prep(new THREE.SphereGeometry(.03, 6, 5), B, [s * .05, .04, -.08])); }
-  g.add(partMesh(parts, false));
-  const tail = new THREE.Group(); tail.position.set(0, .12, -.14);
-  const tp = []; [[0, .03, -.03, .05], [0, .1, -.08, .062], [0, .19, -.08, .07], [0, .27, -.03, .066], [0, .31, .04, .055]].forEach(([x, y, z, r]) => tp.push(prep(new THREE.SphereGeometry(r, 10, 8), 0xa8582a, [x, y, z])));
+  const g = new THREE.Group(), B = 0x9c4a22, D = 0x6e3214, L = 0xf0d8b8, P = [];
+  P.push(prep(lathe([[0, -.13], [.05, -.12], [.085, -.06], [.09, .02], [.075, .09], [.045, .13], [0, .145]], 36), B, [0, .1, 0], [Math.PI / 2, 0, 0], [1, 1, .85]));
+  P.push(prep(new THREE.SphereGeometry(.06, 28, 20), L, [0, .07, .03], null, [.75, .6, 1.3]));
+  P.push(prep(new THREE.SphereGeometry(.062, 36, 28), B, [0, .16, .15], null, [1, .95, 1.15]));
+  P.push(prep(new THREE.SphereGeometry(.036, 24, 18), L, [0, .145, .2], null, [1, .85, 1]));
+  P.push(prep(new THREE.SphereGeometry(.012, 14, 10), 0x201010, [0, .153, .238]));
+  for (const s of [-1, 1]) {
+    P.push(prep(new THREE.SphereGeometry(.017, 18, 14), 0x101010, [s * .04, .178, .19])); P.push(prep(new THREE.SphereGeometry(.005, 8, 6), 0xffffff, [s * .043, .183, .205]));
+    P.push(prep(new THREE.ConeGeometry(.02, .055, 18, 3), B, [s * .032, .225, .14], [0, 0, -s * .25])); P.push(prep(new THREE.ConeGeometry(.008, .03, 10), D, [s * .038, .262, .14], [0, 0, -s * .3]));
+    P.push(prep(new THREE.SphereGeometry(.03, 16, 12), L, [s * .04, .143, .18]));
+    P.push(prep(new THREE.CapsuleGeometry(.013, .055, 4, 12), B, [s * .04, .055, .12], [.35, 0, 0])); P.push(prep(new THREE.SphereGeometry(.016, 12, 10), D, [s * .04, .025, .135]));
+    P.push(prep(new THREE.SphereGeometry(.045, 24, 18), B, [s * .055, .07, -.06], null, [.7, 1, 1.2])); P.push(prep(new THREE.CapsuleGeometry(.012, .05, 4, 10), D, [s * .055, .013, -.02], [Math.PI / 2, 0, 0]));
+  }
+  g.add(partMesh(P, false));
+  const tail = new THREE.Group(); tail.position.set(0, .12, -.13);
+  const tc = new THREE.CatmullRomCurve3([new V3(0, 0, 0), new V3(0, .1, -.08), new V3(0, .2, -.07), new V3(0, .28, -.01), new V3(0, .31, .05)]), tp = [], fr = mulberry32(3);
+  for (let i = 0; i < 46; i++) { const t = i / 45, p = tc.getPointAt(t).add(new V3((fr() - .5) * .05, (fr() - .5) * .04, (fr() - .5) * .05)), r = .03 + Math.sin(t * Math.PI) * .03;
+    tp.push(prep(new THREE.SphereGeometry(r, 14, 10), t > .85 ? 0xc87a42 : (fr() < .3 ? D : 0xa8582a), [p.x, p.y, p.z], [fr(), fr(), fr()], [1, 1.5, .9])); }
   tail.add(partMesh(tp, false)); g.add(tail); g.userData.tail = tail; g.scale.setScalar(1.25); return g;
 }
 const BIRD_COLS = [[0x3a6ad8, 0xf0d040], [0x8a5a3a, 0xe87030], [0xc83030, 0x5a3a2a], [0x6a7a40, 0xd8d0a0], [0x2a2a30, 0xe8a030]];
 function makeBird(ci) {
-  const [A, Bc] = BIRD_COLS[ci % BIRD_COLS.length], g = new THREE.Group(), p = [];
-  p.push(prep(new THREE.SphereGeometry(.06, 12, 8), A, [0, 0, 0], null, [.9, .85, 1.4]));
-  p.push(prep(new THREE.SphereGeometry(.05, 10, 8), Bc, [0, -.015, .03], null, [.8, .75, 1]));
-  p.push(prep(new THREE.SphereGeometry(.045, 12, 8), A, [0, .045, .07]));
-  p.push(prep(new THREE.ConeGeometry(.012, .04, 6), 0xe0b040, [0, .04, .125], [Math.PI / 2, 0, 0]));
-  for (const s of [-1, 1]) p.push(prep(new THREE.SphereGeometry(.009, 6, 4), 0x101010, [s * .03, .055, .1]));
-  p.push(prep(new THREE.BoxGeometry(.05, .01, .09), A, [0, .005, -.11], [.25, 0, 0]));
+  const [A, Bc] = BIRD_COLS[ci % BIRD_COLS.length], Dk = new THREE.Color(A).multiplyScalar(.6), g = new THREE.Group(), p = [];
+  p.push(prep(lathe([[0, -.09], [.03, -.08], [.055, -.03], [.058, .02], [.045, .06], [0, .08]], 32), A, [0, 0, 0], [Math.PI / 2, 0, 0], [1, .95, 1]));
+  p.push(prep(new THREE.SphereGeometry(.048, 28, 20), Bc, [0, -.015, .03], null, [.8, .75, 1]));
+  p.push(prep(new THREE.SphereGeometry(.045, 32, 24), A, [0, .045, .07]));
+  p.push(prep(new THREE.ConeGeometry(.013, .038, 14), 0xe0b040, [0, .043, .122], [Math.PI / 2, 0, 0], [1, 1, .7]));
+  p.push(prep(new THREE.ConeGeometry(.011, .03, 14), 0xc89030, [0, .036, .118], [Math.PI / 2 + .15, 0, 0], [1, 1, .6]));
+  for (const s of [-1, 1]) { p.push(prep(new THREE.SphereGeometry(.01, 14, 10), 0x101010, [s * .03, .055, .1])); p.push(prep(new THREE.SphereGeometry(.003, 6, 5), 0xffffff, [s * .032, .058, .107]));
+    p.push(prep(new THREE.CylinderGeometry(.004, .004, .035, 8), 0xd08a40, [s * .015, -.06, .01])); }
+  for (let f = -2; f <= 2; f++) p.push(prep(new THREE.BoxGeometry(.022, .004, .09, 2, 1, 3), f % 2 ? Dk : A, [f * .011, .01, -.11], [.2, f * .14, 0]));
   g.add(partMesh(p, false));
-  const wings = []; for (const s of [-1, 1]) { const w = new THREE.Group(); w.position.set(s * .04, .02, 0); w.add(partMesh([prep(new THREE.BoxGeometry(.12, .01, .08), A, [s * .06, 0, -.01])], false)); g.add(w); wings.push(w); }
+  const wings = [];
+  for (const s of [-1, 1]) { const w = new THREE.Group(); w.position.set(s * .04, .02, 0); const fe = [];
+    for (let f = 0; f < 7; f++) fe.push(prep(new THREE.BoxGeometry(.028, .004, .07 + f * .007, 2, 1, 3), f > 4 ? Dk : A, [s * (.018 + f * .017), -f * .001, -.01 - f * .005], [0, s * f * .04, 0]));
+    w.add(partMesh(fe, false)); g.add(w); wings.push(w); }
   g.userData.wings = wings; g.scale.setScalar(1.7); return g;
 }
 const OWL = { pos: null };
 function makeOwl() {
   const g = new THREE.Group(), p = [];
-  p.push(prep(new THREE.SphereGeometry(.2, 16, 12), 0x7a5a3a, [0, .22, 0], null, [1, 1.25, .9]));
-  p.push(prep(new THREE.SphereGeometry(.16, 14, 10), 0xd8c0a0, [0, .2, .06], null, [.9, 1.1, .8]));
-  for (let i = 0; i < 14; i++) p.push(prep(new THREE.SphereGeometry(.014, 5, 4), 0x5a3a20, [R(-.09, .09), R(.1, .3), .19]));
-  for (const s of [-1, 1]) p.push(prep(new THREE.SphereGeometry(.05, 8, 6), 0x3a2a1a, [s * .05, .01, .07], null, [1, .5, 1.2]));
+  p.push(prep(lathe([[0, 0], [.12, .02], [.19, .12], [.2, .25], [.17, .36], [.1, .42], [0, .43]], 48), 0x7a5a3a, null, null, [1, 1, .9]));
+  for (let row = 0; row < 7; row++) for (let col = -3; col <= 3; col++) { const y = .08 + row * .045, a = col * .22 + (row % 2) * .11, r = .19 - Math.abs(y - .22) * .25;
+    p.push(prep(new THREE.SphereGeometry(.026, 14, 10), (row + col) % 2 ? 0xe8d8b8 : 0x9a7a52, [Math.sin(a) * r, y, Math.cos(a) * r * .9 + .005], [0, a, 0], [1, .6, .4])); }
+  for (const s of [-1, 1]) { p.push(prep(new THREE.SphereGeometry(.13, 32, 24), 0x5e4228, [s * .16, .22, -.02], null, [.35, 1.1, .9]));
+    for (let i = 0; i < 5; i++) p.push(prep(new THREE.BoxGeometry(.012, .02, .14, 1, 1, 3), 0xd8c0a0, [s * .205, .12 + i * .05, -.02]));
+    for (let t = 0; t < 3; t++) p.push(prep(new THREE.ConeGeometry(.01, .04, 10), 0x3a3020, [s * .05 + (t - 1) * .02, .0, .07], [Math.PI / 2 + .4, 0, 0])); }
   g.add(partMesh(p));
-  const head = new THREE.Group(); head.position.set(0, .48, 0); const hp = [];
-  hp.push(prep(new THREE.SphereGeometry(.16, 16, 12), 0x7a5a3a, [0, 0, 0], null, [1.1, .95, 1]));
-  hp.push(prep(new THREE.CylinderGeometry(.12, .12, .04, 18), 0xe0cca8, [0, 0, .12], [Math.PI / 2, 0, 0], [1.25, 1, .9]));
-  for (const s of [-1, 1]) { hp.push(prep(new THREE.SphereGeometry(.045, 12, 10), 0xf8c820, [s * .06, .01, .15])); hp.push(prep(new THREE.SphereGeometry(.025, 10, 8), 0x101010, [s * .06, .01, .185]));
-    hp.push(prep(new THREE.ConeGeometry(.03, .1, 6), 0x5a3a20, [s * .1, .15, 0], [0, 0, -s * .4])); }
-  hp.push(prep(new THREE.ConeGeometry(.018, .05, 6), 0x3a3020, [0, -.04, .17], [Math.PI / 2 + .4, 0, 0]));
+  const head = new THREE.Group(); head.position.set(0, .5, 0); const hp = [];
+  hp.push(prep(new THREE.SphereGeometry(.16, 44, 32), 0x7a5a3a, [0, 0, 0], null, [1.12, .95, 1]));
+  hp.push(prep(lathe([[0, 0], [.1, .01], [.13, .03], [.138, .05]], 40), 0xe0cca8, [0, .0, .1], [Math.PI / 2, 0, 0], [1.25, 1, 1]));
+  for (const s of [-1, 1]) {
+    hp.push(prep(new THREE.SphereGeometry(.046, 28, 20), 0xf8c820, [s * .062, .012, .15])); hp.push(prep(new THREE.SphereGeometry(.027, 20, 16), 0x101010, [s * .062, .012, .186]));
+    hp.push(prep(new THREE.SphereGeometry(.008, 8, 6), 0xffffff, [s * .055, .022, .2])); hp.push(prep(new THREE.TorusGeometry(.05, .006, 8, 24, Math.PI), 0x4a3420, [s * .062, .015, .16], [0, 0, 0]));
+    for (let t = 0; t < 3; t++) hp.push(prep(new THREE.ConeGeometry(.02 - t * .004, .1 - t * .015, 12, 3), 0x5a3a20, [s * (.1 + t * .012), .14 + t * .01, -t * .01], [0, 0, -s * (.35 + t * .1)]));
+  }
+  hp.push(prep(new THREE.ConeGeometry(.018, .055, 16), 0x3a3020, [0, -.04, .17], [Math.PI / 2 + .45, 0, 0]));
   head.add(partMesh(hp)); g.add(head); g.userData.head = head; return g;
 }
 function makeAcorn() {
@@ -1401,6 +1513,7 @@ function update(dt, time) {
       if (moving) e.face = Math.atan2(-Math.sin(e.a), Math.cos(e.a));
     }
     if (near) { const tf = Math.atan2(player.x - e.x, player.z - e.z); e.face += angDiff(tf, e.face) * Math.min(1, dt * 5); }
+    e.h.look = near ? angDiff(Math.atan2(player.x - e.x, player.z - e.z), e.face) : 0;
     e.h.root.position.set(e.x, e.y, e.z); e.h.root.rotation.y = e.face;
     animHumanoid(e.h, dt, moving, near && dialogElf === e ? 'wave' : null);
     if (dialogElf === e && d > 4.5) hideDialog();
@@ -1516,7 +1629,7 @@ $('bPlay').addEventListener('click', () => {
   initAudio(); $('title').hidden = true; $('hud').hidden = false; state.playing = true; if (document.body.classList.contains('touch')) $('touch').hidden = false;
   teleport(player.x, player.y, player.z, cam.yaw); canvas.focus(); toast("Monte l'escalier qui tourne autour du tronc !", 3.5);
 });
-window.__game = { player, LIFT, ZIP, CABINS, decks, teleport, cam, state, acorns, stepPlayer, supportAt, interact, rt };
+window.__game = { camera, player, LIFT, ZIP, CABINS, decks, teleport, cam, state, acorns, stepPlayer, supportAt, interact, rt };
 build();
 </script>
 </body>
