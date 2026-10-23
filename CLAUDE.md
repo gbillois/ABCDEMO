@@ -1,7 +1,10 @@
-# Les jeux de Théo — règles du dossier
+# Les jeux de Théo — règles du dépôt
 
-Bac à sable de jeux pour Théo. Tout ce qui concerne les jeux vit dans `jeux-de-theo/` ;
-ne pas toucher à l'appli MagicSlider à la racine du dépôt.
+Ce dépôt est un bac à sable de jeux pour Théo. Ne faire aucune action sur un autre dépôt.
+
+Structure :
+- `index.html` — page d'accueil (étagère de cartouches, un bouton par jeu).
+- `jeux/<nom>.html` — un fichier par jeu.
 
 ## Principes
 
@@ -32,36 +35,35 @@ ne pas toucher à l'appli MagicSlider à la racine du dépôt.
   cdn.jsdelivr.net/npm, unpkg.com. Toujours une version exacte, jamais `@latest`.
   Polices : Google Fonts uniquement.
 
-## Contraintes de publication (artefact claude.ai)
+## Publication
 
-L'accueil `index.html` est publié comme artefact :
-https://claude.ai/artifact/Rdck8jNSJYTvgeizMot8QG
+Les pages sont servies à deux endroits :
+- **GitHub Pages** : https://gbillois.github.io/ABCDEMO/ (branche `main`).
+- **Artefact claude.ai** : https://claude.ai/artifact/Rdck8jNSJYTvgeizMot8QG
+  (republier avec `url` = ce lien pour garder l'adresse ; les jeux passent par `files`,
+  `"jeux/<nom>.html": "jeux/<nom>.html"`).
 
-- Les jeux sont publiés au même lien via `files` (`"jeux/<nom>.html": "jeux-de-theo/jeux/<nom>.html"`).
-- `index.html` n'a pas de `<!doctype>`/`<html>`/`<head>` (le squelette est ajouté à la
-  publication). Chaque jeu, lui, est une page complète avec `<!doctype html>`, charset,
-  viewport et styles de base.
+Contraintes communes :
+- `index.html` n'a pas de `<!doctype>`/`<html>`/`<head>` (squelette ajouté par l'artefact),
+  mais garde `<meta charset>` et `<meta name="viewport">` en haut pour GitHub Pages.
+  Chaque jeu est une page complète avec `<!doctype html>`, charset, viewport et styles de base.
 - Aucune requête réseau à l'exécution hors scripts des CDN ci-dessus (fetch, images,
-  sons externes sont bloqués). `alert`/`confirm`/`prompt` ne s'affichent pas : faire ses
-  propres écrans.
+  sons externes sont bloqués dans l'artefact). `alert`/`confirm`/`prompt` ne s'affichent pas :
+  faire ses propres écrans.
 - Meilleurs scores : `localStorage`, toujours dans un `try/catch` (peut être indisponible).
 - Chaque jeu a un bouton retour vers l'accueil (`../index.html`).
 
-## Git et GitHub Pages
+## Git
 
 À chaque modification (autorisation explicite du propriétaire) : commit, push sur la branche
-de travail **et sur `main`** (fast-forward / merge), pour mettre à jour GitHub Pages :
-https://gbillois.github.io/ABCDEMO/jeux-de-theo/ — et republier l'artefact.
-
-Les pages sont donc servies à la fois en artefact et par GitHub Pages : garder
-`<meta charset>` et `<meta name="viewport">` en haut de `index.html`.
+de travail **et sur `main`** pour mettre à jour GitHub Pages, puis republier l'artefact.
 
 ## Ajouter un jeu
 
 1. Créer `jeux/<nom>.html`.
 2. Ajouter une entrée dans le tableau `JEUX` de `index.html`
    (`titre`, `description`, `icone`, `fichier`, `couleur` c1…c6).
-3. Republier l'artefact (accueil + `files` du jeu), puis commit et push.
+3. Commit, push (branche + `main`), republier l'artefact (accueil + `files` du jeu).
 
 ## Jouabilité
 
