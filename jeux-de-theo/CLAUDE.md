@@ -47,6 +47,15 @@ https://claude.ai/artifact/Rdck8jNSJYTvgeizMot8QG
 - Meilleurs scores : `localStorage`, toujours dans un `try/catch` (peut être indisponible).
 - Chaque jeu a un bouton retour vers l'accueil (`../index.html`).
 
+## Git et GitHub Pages
+
+À chaque modification (autorisation explicite du propriétaire) : commit, push sur la branche
+de travail **et sur `main`** (fast-forward / merge), pour mettre à jour GitHub Pages :
+https://gbillois.github.io/ABCDEMO/jeux-de-theo/ — et republier l'artefact.
+
+Les pages sont donc servies à la fois en artefact et par GitHub Pages : garder
+`<meta charset>` et `<meta name="viewport">` en haut de `index.html`.
+
 ## Ajouter un jeu
 
 1. Créer `jeux/<nom>.html`.
