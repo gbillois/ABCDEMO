@@ -1,0 +1,171 @@
+<title>Les jeux de Théo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@500;700;800&display=swap">
+<style>
+  /* Layout : une étagère de cartouches — chaque jeu est une cartouche cliquable. */
+  :root {
+    --bg: #eef3fb;
+    --shelf: #dbe4f3;
+    --ink: #1c2240;
+    --muted: #5b6488;
+    --card: #ffffff;
+    --accent: #ff5a3c;
+    --c1: #ffc531; --c2: #1fb5a6; --c3: #3d6cf0; --c4: #ff6fa8; --c5: #8a5cf6; --c6: #ff8a2b;
+    --display: "Bungee", "Arial Black", Impact, sans-serif;
+    --body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141a33; --shelf: #1e2648; --ink: #eef1ff; --muted: #a3abd0; --card: #232c55;
+      --accent: #ff7a5e; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141a33; --shelf: #1e2648; --ink: #eef1ff; --muted: #a3abd0; --card: #232c55;
+    --accent: #ff7a5e; color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 1rem;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 2.5rem 3rem;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; display: grid; gap: 2rem; }
+
+  header { display: grid; gap: .5rem; }
+  .eyebrow {
+    font-weight: 800; font-size: .8rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  h1 {
+    font-family: var(--display); font-weight: 400;
+    font-size: clamp(2.2rem, 7vw, 4rem); line-height: 1; margin: 0;
+    text-wrap: balance;
+  }
+  h1 .name { color: var(--accent); }
+  h1 .dots { display: inline-flex; gap: .15em; margin-left: .2em; vertical-align: middle; }
+  h1 .dots i { width: .22em; height: .22em; border-radius: 50%; display: block; }
+  h1 .dots i:nth-child(1) { background: var(--c1); }
+  h1 .dots i:nth-child(2) { background: var(--c2); }
+  h1 .dots i:nth-child(3) { background: var(--c3); }
+  .lead { margin: 0; color: var(--muted); font-size: 1.1rem; max-width: 60ch; }
+  .count { font-variant-numeric: tabular-nums; font-weight: 800; color: var(--ink); }
+
+  .shelf {
+    background: var(--shelf); border-radius: 18px;
+    padding: 1.25rem;
+    display: grid; gap: 1.25rem;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  }
+
+  /* Cartouche */
+  .cart {
+    --c: var(--c3);
+    position: relative; display: flex; flex-direction: column;
+    text-decoration: none; color: var(--ink);
+    background: var(--c);
+    border-radius: 14px 14px 8px 8px;
+    padding: 14px 12px 12px;
+    min-height: 230px;
+    box-shadow: 0 6px 0 rgba(0,0,0,.18);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .cart::before { /* encoches du haut */
+    content: ""; position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+    width: 40%; height: 4px; border-radius: 2px; background: rgba(0,0,0,.18);
+  }
+  .cart .label {
+    flex: 1; margin-top: 10px;
+    background: var(--card); border-radius: 8px; padding: 14px;
+    display: flex; flex-direction: column; gap: .5rem;
+  }
+  .cart .icon { font-size: 2.4rem; line-height: 1; }
+  .cart h2 { font-family: var(--display); font-weight: 400; font-size: 1.15rem; margin: 0; text-wrap: balance; }
+  .cart p { margin: 0; color: var(--muted); font-size: .92rem; }
+  .cart .play {
+    margin-top: auto; align-self: flex-start;
+    font-weight: 800; font-size: .85rem; letter-spacing: .08em; text-transform: uppercase;
+    background: var(--ink); color: var(--bg); padding: .45rem .8rem; border-radius: 999px;
+  }
+  .cart .ridges { display: flex; gap: 4px; justify-content: center; margin-top: 10px; }
+  .cart .ridges i { width: 10px; height: 6px; border-radius: 2px; background: rgba(0,0,0,.2); display: block; }
+  a.cart:hover, a.cart:focus-visible { transform: translateY(-4px); box-shadow: 0 10px 0 rgba(0,0,0,.18); }
+  a.cart:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+  a.cart:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,.18); }
+
+  /* Emplacement vide */
+  .slot {
+    min-height: 230px; border-radius: 14px 14px 8px 8px;
+    border: 3px dashed color-mix(in srgb, var(--muted) 45%, transparent);
+    display: grid; place-items: center; text-align: center; padding: 1rem;
+    color: var(--muted); font-weight: 700;
+  }
+  .slot span { display: block; font-family: var(--display); font-weight: 400; font-size: 2rem; opacity: .5; }
+
+  footer { color: var(--muted); font-size: .9rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cart { transition: none; }
+    a.cart:hover, a.cart:focus-visible, a.cart:active { transform: none; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Salle de jeux</div>
+    <h1>Les jeux de <span class="name">Théo</span><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></h1>
+    <p class="lead">Choisis une cartouche pour lancer un jeu. <span class="count" id="count"></span></p>
+  </header>
+
+  <main class="shelf" id="shelf" aria-label="Liste des jeux"></main>
+
+  <footer>Chaque nouveau jeu apparaît ici avec son propre bouton.</footer>
+</div>
+
+<script>
+  // Liste des jeux : ajouter une entrée par nouveau jeu (fichier dans jeux/).
+  // couleur : c1 jaune, c2 turquoise, c3 bleu, c4 rose, c5 violet, c6 orange
+  const JEUX = [
+    // { titre: "Morpion", description: "Aligne trois symboles avant l'adversaire.", icone: "⭕", fichier: "jeux/morpion.html", couleur: "c4" },
+  ];
+
+  const shelf = document.getElementById("shelf");
+  const count = document.getElementById("count");
+
+  for (const jeu of JEUX) {
+    const a = document.createElement("a");
+    a.className = "cart";
+    a.href = jeu.fichier;
+    a.style.setProperty("--c", `var(--${jeu.couleur || "c3"})`);
+    a.innerHTML = `
+      <div class="label">
+        <div class="icon" aria-hidden="true"></div>
+        <h2></h2>
+        <p></p>
+        <span class="play">Jouer ▸</span>
+      </div>
+      <div class="ridges" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>`;
+    a.querySelector(".icon").textContent = jeu.icone || "🎮";
+    a.querySelector("h2").textContent = jeu.titre;
+    a.querySelector("p").textContent = jeu.description || "";
+    shelf.appendChild(a);
+  }
+
+  // Emplacements libres pour compléter la rangée
+  const libres = Math.max(3 - JEUX.length, 1);
+  for (let i = 0; i < libres; i++) {
+    const s = document.createElement("div");
+    s.className = "slot";
+    s.innerHTML = `<div><span>+</span>Emplacement libre<br>pour un prochain jeu</div>`;
+    shelf.appendChild(s);
+  }
+
+  count.textContent = JEUX.length === 0
+    ? "Aucun jeu pour l'instant : le premier arrive bientôt."
+    : `${JEUX.length} jeu${JEUX.length > 1 ? "x" : ""} disponible${JEUX.length > 1 ? "s" : ""}.`;
+</script>
