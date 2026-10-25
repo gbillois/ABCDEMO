@@ -36,7 +36,7 @@
   body {
     margin: 0; color: var(--cream); font-family: var(--body); font-size: 16px; min-height: 100vh;
     background: #0d1a12 radial-gradient(ellipse 120% 70% at 50% 0%, #24452d 0%, #12261a 55%, #0d1a12 100%) fixed;
-    padding-bottom: 32px; -webkit-tap-highlight-color: transparent;
+    padding-bottom: calc(var(--kb, 0px) + 32px); -webkit-tap-highlight-color: transparent;
   }
   button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
   button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
@@ -125,7 +125,7 @@
     font-family: var(--hand); font-size: 1.3em; line-height: 1.1; padding: 0 4px; }
   .gap.full { border-bottom-style: solid; border-bottom-color: var(--pen); }
   .opts { display: flex; flex-wrap: wrap; gap: 8px; }
-  .opt, .chk, .wd, .tile {
+  .opt, .chk, .wd {
     border: 2px solid #d7c9a3; background: #fffdf6; border-radius: 999px; padding: 6px 14px; min-height: 44px;
     font-weight: 700; font-size: 1.05rem; color: var(--ink);
   }
@@ -135,17 +135,42 @@
   mark { background: #ffe58a; color: inherit; padding: 0 4px; border-radius: 4px; }
   .sol { display: none; margin-top: 8px; color: var(--red); font-family: var(--hand); font-size: 1.25rem; }
   .reveal .q.ko .sol { display: block; }
-  .flash { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-  .flash .card-w { min-width: 180px; min-height: 58px; display: grid; place-items: center; padding: 6px 16px; border-radius: 12px;
+  /* Mots à écrire : une lettre fausse n'est jamais écrite, l'enfant ne voit que des mots justes. */
+  .tw { display: flex; flex-direction: column; gap: 10px; }
+  .tw-top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .card-w { min-width: 180px; min-height: 58px; display: grid; place-items: center; padding: 6px 16px; border-radius: 12px;
     border: 2px dashed #b9a676; font-family: var(--hand); font-size: 2rem; color: var(--pen); background: #fff; }
-  .flash .bar { height: 5px; border-radius: 3px; background: var(--theme); width: 100%; transform-origin: left; }
+  .card-w .bar { height: 5px; border-radius: 3px; background: var(--theme); width: 100%; transform-origin: left; }
   .look { border: 2px solid var(--edge); background: linear-gradient(#e4c069, #b98a2e); color: #1d1405; border-radius: 999px; padding: 0 16px; min-height: 46px; font-family: var(--label); font-weight: 700; }
-  .ord-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
-  .ord-ans { min-width: 200px; min-height: 52px; display: inline-flex; align-items: center; padding: 4px 14px; border-radius: 12px;
-    background: #fff; border: 2px solid #d7c9a3; font-family: var(--hand); font-size: 2rem; letter-spacing: 3px; color: var(--pen); }
-  .tile { width: 50px; height: 50px; padding: 0; border-radius: 12px; font-size: 1.45rem; font-family: var(--body); font-weight: 800; }
-  .tile:disabled { opacity: .25; }
-  .undo { border: 2px solid #d7c9a3; background: #fffdf6; border-radius: 12px; min-height: 46px; padding: 0 12px; font-weight: 800; }
+  .look:disabled { opacity: .5; }
+  .model { font-family: var(--hand); font-size: 2.2rem; letter-spacing: 2px; background: #fff; border: 2px solid #d7c9a3; border-radius: 12px; padding: 0 18px; }
+  .slots { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; border-radius: 12px; cursor: pointer; align-self: flex-start; }
+  .slots.on { background: #eef2ff; box-shadow: 0 0 0 3px var(--pen); }
+  .slots.shake { animation: shake .3s; }
+  @keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+  .sl { width: 30px; height: 44px; display: grid; place-items: center; background: #fff; border-bottom: 3px solid #8b88a0; border-radius: 6px 6px 0 0;
+    font-family: var(--hand); font-size: 1.85rem; color: var(--pen); }
+  .slots.on .sl.cur { background: #fff0a0; border-bottom-color: var(--pen); }
+  .sl.help { color: #c96a00; }
+  .tw-msg { font-weight: 800; min-height: 1.2em; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .tw-msg.good { color: var(--green); }
+  .tw-msg.help { color: #b0700a; }
+  .retry { border: 2px solid #d7c9a3; background: #fffdf6; border-radius: 999px; min-height: 42px; padding: 0 14px; font-weight: 800; }
+
+  /* Clavier de lettres à l'écran */
+  #kb {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; gap: 6px;
+    padding: 8px max(6px, calc((100vw - 760px) / 2)) max(10px, env(safe-area-inset-bottom));
+    background: var(--panel-solid); border-top: 2px solid var(--edge); box-shadow: 0 -6px 18px var(--shadow);
+    transform: translateY(110%); transition: transform .2s ease;
+  }
+  #kb.show { transform: none; }
+  #kb .row { display: flex; gap: 5px; justify-content: center; }
+  #kb button { flex: 1 1 0; max-width: 62px; height: 50px; padding: 0; border: 2px solid var(--edge); border-radius: 12px;
+    background: #1f3a28; color: var(--cream); font-size: 1.45rem; font-weight: 800; box-shadow: 0 3px 0 #08120c; }
+  #kb button:active { transform: translateY(2px); box-shadow: 0 1px 0 #08120c; }
+  #kb .acc button { background: #2b4d35; }
+  #kb .k-close { max-width: 110px; flex-grow: 1.6; color: var(--gold); }
 
   .actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 28px; }
   .big { border: 2px solid #f6dc8c; border-radius: 999px; padding: 0 28px; min-height: 54px; font-family: var(--label); font-weight: 700; font-size: 1.1rem;
@@ -199,6 +224,10 @@
     .sent { font-size: 1.08rem; }
     .top .lbl { display: none; }
     .card { padding: 22px 16px 18px; }
+    #kb { gap: 5px; }
+    #kb .row { gap: 4px; }
+    #kb button { height: 44px; font-size: 1.25rem; border-radius: 9px; }
+    .sl { width: 27px; height: 40px; font-size: 1.65rem; }
   }
   @media (prefers-reduced-motion: reduce) { .sheet, .stamp { animation: none; } }
 </style>
@@ -242,6 +271,8 @@
   <div class="card"><h2>Rejouer ?</h2><p>Toutes tes réponses de cette série seront effacées.</p>
     <div class="row"><button class="ghost" id="noBtn">Non, garder</button><button class="big" id="yesBtn">Oui, effacer</button></div></div>
 </div>
+<div id="kb" aria-label="Clavier de lettres"></div>
+
 <div class="ov" id="resultOv" hidden><div class="card" id="resultCard"></div></div>
 
 <script>
@@ -474,12 +505,9 @@ const SUJET_VERBE = [
   [["Sur la colline", "<b>galope</b>", "un cheval blanc"], 2], [["Les amis de Théo", "<b>jouent</b>", "au foot"], 0],
   [["Le soir,", "les étoiles", "<b>brillent</b>"], 1], [["La sœur de Mei", "<b>cherche</b>", "sa petite sœur"], 0],
 ];
-const MOTS_DICTEE = [
-  ["muraille", "muraile", "murraille"], ["grenouille", "grenouie", "greunouille"], ["princesse", "princese", "prinsesse"], ["empereur", "empreur", "ampereur"],
-  ["épouse", "épouze", "éppouse"], ["monument", "monumant", "monnument"], ["jardin", "jardain", "jardint"], ["palais", "palai", "palet"],
-  ["voisin", "voisain", "voizin"], ["fillette", "fillete", "fiyette"], ["flèche", "flêche", "flaiche"], ["pierre", "piere", "pièrre"],
-  ["espace", "éspace", "espasse"], ["désespéré", "dézespéré", "désespèré"], ["épreuve", "épreuf", "éprheuve"], ["construit", "construi", "contruit"],
-];
+// Mots des dictées (bien écrits uniquement : on ne montre jamais de mot faux).
+const MOTS_DICTEE = ["muraille", "grenouille", "princesse", "empereur", "épouse", "monument", "jardin", "palais", "voisin", "fillette",
+  "flèche", "pierre", "espace", "désespéré", "épreuve", "construit", "terre", "jour"];
 const VF_MOTS = [
   ["Je trie les mots de ma liste avant de commencer.", 0], ["Je peux apprendre tous les mots en une seule fois.", 1],
   ["Je revois les mots plusieurs fois, même ceux que je connais.", 0], ["Pour apprendre, j'utilise seulement mes oreilles.", 1],
@@ -735,13 +763,12 @@ const LECONS = [
         <div>${ICON.stylo}<span><b>3. La calligraphie</b> : je recopie le mot en formant des lettres belles ou amusantes.</span></div>
       </div>`,
     ex: [
-      { title: "L'appareil photo : regarde le mot, puis retrouve-le.", sub: "Le mot disparaît après 3 secondes !", n: 4, two: 1, make: (r) => r.sample(MOTS_DICTEE, 4).map(m => { const o = r.shuffle(m); return { type: "flash", word: m[0], opts: o, a: o.indexOf(m[0]) }; }) },
+      { title: "L'appareil photo : regarde le mot, puis écris-le.", sub: "Le mot disparaît après 3 secondes. Si une lettre n'est pas la bonne, elle ne s'écrit pas : essaie une autre lettre !", n: 4, two: 1,
+        make: (r) => r.sample(MOTS_DICTEE, 4).map(word => ({ type: "type", word, mode: "photo" })) },
       { title: "Vrai ou faux ?", n: 5, make: (r) => r.sample(VF_MOTS, 5).map(v => pick(v[0], ["Vrai", "Faux"], v[1])) },
       { title: "Quelle méthode est-ce ?", n: 4, make: (r) => r.sample(METHODES, 4).map(m => pick(m[0], ["L'appareil photo", "Les histoires", "La calligraphie"], m[1])) },
-      { title: "Remets les lettres dans l'ordre.", sub: "Touche les lettres une par une.", n: 3, make: (r) => r.sample(MOTS_DICTEE.filter(m => m[0].length <= 9), 3).map(m => {
-          const L = [...m[0]]; let t; do t = r.shuffle(L.map((_, i) => i)); while (t.every((v, i) => v === i));
-          return { type: "order", word: m[0], tiles: t.map(i => L[i]) };
-        }) },
+      { title: "La calligraphie : recopie le mot.", sub: "Regarde bien le modèle et écris-le lettre après lettre.", n: 3, two: 1,
+        make: (r) => r.sample(MOTS_DICTEE, 3).map(word => ({ type: "type", word, mode: "copy" })) },
     ],
   },
   {
@@ -786,6 +813,7 @@ const Snd = {
     s.connect(f).connect(g).connect(this.ac.destination); s.start(t);
   },
   tap() { this.tone(880, .06, { type: "triangle", vol: .08 }); },
+  bump() { this.tone(180, .12, { type: "square", vol: .04 }); },
   pick(i) { this.tone([523, 587, 659, 698, 784, 880][i % 6], .12, { type: "triangle", vol: .1 }); },
   page() { this.noise(.4, { vol: .22, freq: 700, q: .7, sweep: 2.5 }); },
   shutter() { this.noise(.08, { vol: .4, freq: 2500, q: 1 }); this.tone(1400, .05, { type: "square", vol: .04 }); },
@@ -848,27 +876,25 @@ function renderItem(it, k, ii, units) {
     sol = it.sol;
     const good = it.a.slice().sort((a, b) => a - b).join(",");
     units.push({ k, kind: "multi", ans: good, check: A => (A[k] || "").split(",").filter(Boolean).map(Number).sort((a, b) => a - b).join(",") === good });
-  } else if (it.type === "flash") {
-    body = `<div class="flash">${lt}<div><div class="card-w" data-fw="${k}" data-word="${it.word}">?</div></div><button class="look" data-look="${k}">📷 Regarder</button></div>
-      <div class="opts" data-fo="${k}" hidden>${btns("opt")}</div>`;
+  } else if (it.type === "type") {
+    const top = it.mode === "photo"
+      ? `<div class="tw-top">${lt}<div class="card-w" data-fw="${k}">?</div><button class="look" data-look="${k}">📷 Regarder</button></div>`
+      : `<div class="tw-top">${lt}<span class="model">${it.word}</span></div>`;
+    body = `<div class="tw" data-tw="${k}">${top}<div class="slots" data-sl="${k}" role="button" aria-label="Écrire le mot">${[...it.word].map(() => `<span class="sl"></span>`).join("")}</div>
+      <div class="tw-msg" data-msg="${k}"></div></div>`;
     sol = it.word;
-    units.push({ k, kind: "single", ans: String(it.a), check: A => A[k] === String(it.a) });
-  } else if (it.type === "order") {
-    body = `<div class="ord-line">${lt}<span class="ord-ans" data-oa="${k}"></span><button class="undo" data-undo="${k}" aria-label="Effacer la dernière lettre">⌫</button></div>
-      <div class="opts">${it.tiles.map((c, j) => `<button class="tile" data-o="${k}" data-i="${j}">${c}</button>`).join("")}</div>`;
-    sol = it.word;
-    const tiles = it.tiles;
-    units.push({ k, kind: "order", ans: null, tiles, check: A => (A[k] || "").split(",").filter(Boolean).map(i => tiles[+i]).join("") === it.word });
-    units[units.length - 1].ans = solveOrder(tiles, it.word);
+    units.push({ k, kind: "type", word: it.word, mode: it.mode, ans: JSON.stringify({ n: it.word.length, e: 0, h: [] }),
+      check: A => { const st = typeState(A[k]); return st.n === it.word.length && st.e === 0; } });
   }
   return `<div class="q" data-u="${k}">${body}<div class="sol">Réponse : ${sol}</div></div>`;
 }
-function solveOrder(tiles, word) {
-  const used = new Set();
-  return [...word].map(c => { const i = tiles.findIndex((t, j) => t === c && !used.has(j)); used.add(i); return i; }).join(",");
+function typeState(v) {
+  try { const st = JSON.parse(v); if (st && typeof st.n === "number") return st; } catch (e) {}
+  return { n: 0, e: 0, h: [] };
 }
 
 function showMenu() {
+  closeKb();
   cur = null;
   lessonEl.hidden = true; menuEl.hidden = false;
   $("backBtn").hidden = true; $("homeBtn").hidden = false;
@@ -893,6 +919,7 @@ menuEl.addEventListener("click", ev => {
 });
 
 function openLesson(L, serie) {
+  closeKb();
   S.serie[L.id] = serie; save();
   const pid = `${L.id}-${serie}`;
   const P = S.pages[pid] || { a: {}, best: null, m: false, rev: false };
@@ -930,14 +957,72 @@ function applyAnswers() {
     g.textContent = btn ? btn.textContent : "…"; g.classList.toggle("full", !!btn);
   });
   sheet.querySelectorAll(".wd").forEach(b => b.classList.toggle("sel", (A[b.dataset.m] || "").split(",").includes(b.dataset.i)));
-  sheet.querySelectorAll("[data-fo]").forEach(o => { if (A[o.dataset.fo] != null || cur.seen.has(o.dataset.fo)) o.hidden = false; });
-  sheet.querySelectorAll("[data-oa]").forEach(paintOrder);
+  sheet.querySelectorAll("[data-tw]").forEach(w => paintType(w.dataset.tw));
 }
-function paintOrder(el) {
-  const k = el.dataset.oa, u = cur.uMap[k], seq = (cur.P.a[k] || "").split(",").filter(Boolean);
-  el.textContent = seq.map(i => u.tiles[+i]).join("");
-  $("sheet").querySelectorAll(`.tile[data-o="${k}"]`).forEach(t => { t.disabled = seq.includes(t.dataset.i); });
+// Mot à écrire : seules les bonnes lettres s'écrivent ; après deux essais, la lettre s'écrit en orange (aide).
+function paintType(k) {
+  const u = cur.uMap[k], sheet = $("sheet"), st = typeState(cur.P.a[k]), len = u.word.length;
+  const slots = sheet.querySelector(`[data-sl="${k}"]`), msg = sheet.querySelector(`[data-msg="${k}"]`);
+  slots.hidden = u.mode === "photo" && !cur.seen.has(k) && cur.P.a[k] == null;
+  slots.classList.toggle("on", cur.typing === k);
+  [...slots.children].forEach((sl, i) => {
+    sl.textContent = i < st.n ? u.word[i] : "";
+    sl.classList.toggle("help", st.h.includes(i));
+    sl.classList.toggle("cur", i === st.n);
+  });
+  msg.className = "tw-msg";
+  if (st.n < len) { msg.innerHTML = ""; return; }
+  if (st.e === 0) { msg.classList.add("good"); msg.textContent = "✓ Mot parfait !"; return; }
+  msg.classList.add("help");
+  msg.innerHTML = `Les lettres orange étaient difficiles : regarde-les bien. <button class="retry" data-retry="${k}">↺ Réessayer</button>`;
 }
+function activateType(k) {
+  cur.typing = k; cur.miss = 0;
+  $("kb").classList.add("show"); document.body.style.setProperty("--kb", $("kb").offsetHeight + "px");
+  $("sheet").querySelectorAll("[data-tw]").forEach(w => paintType(w.dataset.tw));
+  requestAnimationFrame(() => {
+    const el = $("sheet").querySelector(`[data-sl="${k}"]`); if (!el) return;
+    const rc = el.getBoundingClientRect(), bottom = window.innerHeight - $("kb").offsetHeight - 16;
+    if (rc.bottom > bottom) window.scrollBy({ top: rc.bottom - bottom + 30, behavior: "smooth" });
+  });
+}
+function closeKb() {
+  const k = cur && cur.typing;
+  if (cur) cur.typing = null;
+  $("kb").classList.remove("show"); document.body.style.setProperty("--kb", "0px");
+  if (k && $("sheet")) paintType(k);
+}
+function typeLetter(ch) {
+  const k = cur && cur.typing; if (!k) return;
+  const u = cur.uMap[k], st = typeState(cur.P.a[k]), len = u.word.length;
+  if (st.n >= len) return;
+  if (ch === u.word[st.n]) { st.n++; cur.miss = 0; Snd.pick(st.n); }
+  else {
+    st.e++; cur.miss = (cur.miss || 0) + 1; Snd.bump();
+    const sl = $("sheet").querySelector(`[data-sl="${k}"]`);
+    sl.classList.remove("shake"); void sl.offsetWidth; sl.classList.add("shake");
+    if (cur.miss >= 2) { st.h.push(st.n); st.n++; cur.miss = 0; }
+  }
+  setAns(k, JSON.stringify(st));
+  paintType(k);
+  if (st.n === len) { closeKb(); st.e === 0 ? Snd.good() : Snd.soso(); }
+}
+function buildKb() {
+  const row = (letters, cls = "") => `<div class="row ${cls}">${[...letters].map(c => `<button data-l="${c}">${c}</button>`).join("")}</div>`;
+  $("kb").innerHTML = row("éèêëàâçùîô", "acc") + row("azertyuiop") + row("qsdfghjklm")
+    + `<div class="row">${[..."wxcvbn"].map(c => `<button data-l="${c}">${c}</button>`).join("")}<button class="k-close" data-f="close" aria-label="Fermer le clavier">✕</button></div>`;
+}
+$("kb").addEventListener("pointerdown", ev => { if (ev.target.closest("button")) ev.preventDefault(); });
+$("kb").addEventListener("click", ev => {
+  const b = ev.target.closest("button"); if (!b) return;
+  if (b.dataset.l) typeLetter(b.dataset.l); else closeKb();
+});
+document.addEventListener("keydown", ev => {
+  if (!cur || !cur.typing || paused || !$("resultOv").hidden || !$("confirmOv").hidden) return;
+  if (ev.key === "Escape") { closeKb(); return; }
+  if (ev.key.length === 1 && /\p{L}/u.test(ev.key)) { typeLetter(ev.key.toLowerCase()); ev.preventDefault(); }
+});
+
 function setAns(k, v) {
   if (v === "" || v == null) delete cur.P.a[k]; else cur.P.a[k] = v;
   const q = $("sheet").querySelector(`.q[data-u="${k}"]`); if (q) q.classList.remove("ok", "ko");
@@ -958,13 +1043,17 @@ lessonEl.addEventListener("click", ev => {
   }
   const look = t.closest("[data-look]");
   if (look) { flash(look.dataset.look); return; }
-  const tile = t.closest(".tile");
-  if (tile) { const k = tile.dataset.o, seq = (cur.P.a[k] || "").split(",").filter(Boolean); seq.push(tile.dataset.i); setAns(k, seq.join(",")); applyAnswers(); Snd.pick(seq.length); return; }
-  const undo = t.closest("[data-undo]");
-  if (undo) { const k = undo.dataset.undo, seq = (cur.P.a[k] || "").split(",").filter(Boolean); seq.pop(); setAns(k, seq.join(",")); applyAnswers(); Snd.tap(); return; }
+  const retry = t.closest("[data-retry]");
+  if (retry) {
+    const k = retry.dataset.retry; Snd.tap();
+    if (cur.uMap[k].mode === "photo") flash(k); else { setAns(k, ""); activateType(k); }
+    return;
+  }
+  const slots = t.closest("[data-sl]");
+  if (slots) { const k = slots.dataset.sl; if (typeState(cur.P.a[k]).n < cur.uMap[k].word.length) { activateType(k); Snd.tap(); } return; }
   const act = t.closest("[data-act]");
   if (act) {
-    Snd.tap();
+    Snd.tap(); closeKb();
     const a = act.dataset.act, e = +act.dataset.e;
     if (a === "corriger") corriger(false);
     else if (a === "exo") corrigerEx(e, false);
@@ -974,20 +1063,21 @@ lessonEl.addEventListener("click", ev => {
   }
 });
 
-// L'appareil photo : le mot s'affiche 3 secondes puis disparaît.
+// L'appareil photo : le mot s'affiche 3 secondes, disparaît, puis l'enfant l'écrit.
 function flash(k) {
   const card = $("sheet").querySelector(`[data-fw="${k}"]`), btn = $("sheet").querySelector(`[data-look="${k}"]`);
   if (!card || card.dataset.busy) return;
+  closeKb();
+  setAns(k, ""); cur.seen.delete(k); paintType(k);
   card.dataset.busy = "1"; btn.disabled = true;
-  card.innerHTML = `<span>${card.dataset.word}</span><span class="bar"></span>`;
+  card.innerHTML = `<span>${cur.uMap[k].word}</span><span class="bar"></span>`;
   Snd.shutter();
-  const bar = card.querySelector(".bar");
-  bar.animate([{ transform: "scaleX(1)" }, { transform: "scaleX(0)" }], { duration: 3000, easing: "linear" });
+  card.querySelector(".bar").animate([{ transform: "scaleX(1)" }, { transform: "scaleX(0)" }], { duration: 3000, easing: "linear" });
   setTimeout(() => {
     if (!card.isConnected) return;
-    card.textContent = "?"; delete card.dataset.busy; btn.disabled = false;
+    card.textContent = "?"; delete card.dataset.busy; btn.disabled = false; btn.textContent = "📷 Regarder encore";
     cur.seen.add(k);
-    const o = $("sheet").querySelector(`[data-fo="${k}"]`); if (o) o.hidden = false;
+    activateType(k);
   }, 3000);
 }
 
@@ -1027,6 +1117,7 @@ function corrigerEx(e, silent) {
   S.pages[cur.pid] = cur.P; save();
   return { ok, tot };
 }
+
 function corriger(silent) {
   let ok = 0, tot = 0;
   cur.L.ex.forEach((_, e) => { const r = corrigerEx(e, true); ok += r.ok; tot += r.tot; });
@@ -1075,6 +1166,7 @@ $("muteBtn").addEventListener("click", () => { Snd.muted = !Snd.muted; S.muted =
 $("playBtn").addEventListener("click", () => { Snd.init(); $("title").hidden = true; Snd.page(); });
 
 Snd.muted = !!S.muted; showMute();
+buildKb();
 $("titleStickers").innerHTML = ART.groupes + ART.aa + ART.gn + ART.relire;
 showMenu();
 
