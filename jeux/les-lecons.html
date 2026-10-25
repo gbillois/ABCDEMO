@@ -160,9 +160,9 @@
   /* Clavier de lettres à l'écran */
   #kb {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; gap: 6px;
-    padding: 8px max(6px, calc((100vw - 760px) / 2)) max(10px, env(safe-area-inset-bottom));
+    padding: 8px max(6px, calc((100vw - 760px) / 2)) max(26px, calc(env(safe-area-inset-bottom) + 18px));
     background: var(--panel-solid); border-top: 2px solid var(--edge); box-shadow: 0 -6px 18px var(--shadow);
-    transform: translateY(110%); transition: transform .2s ease;
+    transform: translateY(calc(100% + 70px)); transition: transform .2s ease;
   }
   #kb.show { transform: none; }
   #kb .row { display: flex; gap: 5px; justify-content: center; }
@@ -170,7 +170,11 @@
     background: #1f3a28; color: var(--cream); font-size: 1.45rem; font-weight: 800; box-shadow: 0 3px 0 #08120c; }
   #kb button:active { transform: translateY(2px); box-shadow: 0 1px 0 #08120c; }
   #kb .acc button { background: #2b4d35; }
-  #kb .k-close { max-width: 110px; flex-grow: 1.6; color: var(--gold); }
+  /* Onglet « Fermer » posé au-dessus du clavier, loin des touches (et loin du bas de l'écran). */
+  #kb .kb-close { position: absolute; right: max(12px, calc((100vw - 760px) / 2)); bottom: 100%; height: 44px; padding: 0 18px;
+    border: 2px solid var(--edge); border-bottom: 0; border-radius: 14px 14px 0 0; background: var(--panel-solid);
+    color: var(--gold); font-family: var(--body); font-size: 1rem; font-weight: 800; box-shadow: none; }
+  #kb .kb-close { max-width: none; flex: none; }
 
   .actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 28px; }
   .big { border: 2px solid #f6dc8c; border-radius: 999px; padding: 0 28px; min-height: 54px; font-family: var(--label); font-weight: 700; font-size: 1.1rem;
@@ -978,11 +982,11 @@ function paintType(k) {
 }
 function activateType(k) {
   cur.typing = k; cur.miss = 0;
-  $("kb").classList.add("show"); document.body.style.setProperty("--kb", $("kb").offsetHeight + "px");
+  $("kb").classList.add("show"); document.body.style.setProperty("--kb", $("kb").offsetHeight + 50 + "px");
   $("sheet").querySelectorAll("[data-tw]").forEach(w => paintType(w.dataset.tw));
   requestAnimationFrame(() => {
     const el = $("sheet").querySelector(`[data-sl="${k}"]`); if (!el) return;
-    const rc = el.getBoundingClientRect(), bottom = window.innerHeight - $("kb").offsetHeight - 16;
+    const rc = el.getBoundingClientRect(), bottom = window.innerHeight - $("kb").offsetHeight - 60;
     if (rc.bottom > bottom) window.scrollBy({ top: rc.bottom - bottom + 30, behavior: "smooth" });
   });
 }
@@ -1010,7 +1014,8 @@ function typeLetter(ch) {
 function buildKb() {
   const row = (letters, cls = "") => `<div class="row ${cls}">${[...letters].map(c => `<button data-l="${c}">${c}</button>`).join("")}</div>`;
   $("kb").innerHTML = row("éèêëàâçùîô", "acc") + row("azertyuiop") + row("qsdfghjklm")
-    + `<div class="row">${[..."wxcvbn"].map(c => `<button data-l="${c}">${c}</button>`).join("")}<button class="k-close" data-f="close" aria-label="Fermer le clavier">✕</button></div>`;
+    + `<div class="row">${[..."wxcvbn"].map(c => `<button data-l="${c}">${c}</button>`).join("")}</div>`
+    + `<button class="kb-close" data-f="close" aria-label="Fermer le clavier">▼ Fermer</button>`;
 }
 $("kb").addEventListener("pointerdown", ev => { if (ev.target.closest("button")) ev.preventDefault(); });
 $("kb").addEventListener("click", ev => {

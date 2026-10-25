@@ -222,9 +222,9 @@
   #kp {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
     display: grid; grid-template-columns: repeat(16, 1fr); gap: 6px;
-    padding: 9px max(8px, calc((100vw - 900px) / 2)) max(10px, env(safe-area-inset-bottom));
+    padding: 9px max(8px, calc((100vw - 900px) / 2)) max(26px, calc(env(safe-area-inset-bottom) + 18px));
     background: var(--panel-solid); border-top: 2px solid var(--edge); box-shadow: 0 -6px 18px var(--shadow);
-    transform: translateY(110%); transition: transform .2s ease;
+    transform: translateY(calc(100% + 70px)); transition: transform .2s ease;
   }
   #kp.show { transform: none; }
   #kp button { height: 54px; border: 2px solid var(--edge); border-radius: 14px; background: #1f3a28; color: var(--cream);
@@ -232,6 +232,12 @@
   #kp button:active { transform: translateY(2px); box-shadow: 0 1px 0 #08120c; }
   #kp .k-ok { grid-column: span 2; background: linear-gradient(#e4c069, #b98a2e); color: #1d1405; border-color: #f6dc8c; font-size: 1.05rem; }
   #kp .k-fn { color: var(--gold); font-size: 1.2rem; }
+  #kp .k-del { grid-column: span 2; background: #5a2620; border-color: #e89a8c; color: #ffe2dc; font-family: var(--body); font-size: .95rem; }
+  /* Onglet « Fermer » posé au-dessus du clavier, loin des touches (et loin du bas de l'écran). */
+  #kp .kb-close { position: absolute; right: max(12px, calc((100vw - 900px) / 2)); bottom: 100%; height: 44px; padding: 0 18px;
+    border: 2px solid var(--edge); border-bottom: 0; border-radius: 14px 14px 0 0; background: var(--panel-solid);
+    color: var(--gold); font-family: var(--body); font-size: 1rem; font-weight: 800; box-shadow: none; }
+
 
   /* Fenêtres (comme les menus du Grand Arbre) */
   .ov { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(6,14,9,.6); }
@@ -1196,12 +1202,12 @@ function activate(el) {
   showKp();
   requestAnimationFrame(() => {
     const rc = el.getBoundingClientRect(), topH = document.querySelector(".top").offsetHeight;
-    const bottom = window.innerHeight - kp.offsetHeight - 16;
+    const bottom = window.innerHeight - kp.offsetHeight - 60;
     if (rc.bottom > bottom) window.scrollBy({ top: rc.bottom - bottom + 30, behavior: "smooth" });
     else if (rc.top < topH + 8) window.scrollBy({ top: rc.top - topH - 40, behavior: "smooth" });
   });
 }
-function showKp() { kp.classList.add("show"); document.body.style.setProperty("--kp", kp.offsetHeight + "px"); }
+function showKp() { kp.classList.add("show"); document.body.style.setProperty("--kp", kp.offsetHeight + 50 + "px"); }
 function hideKp() { kp.classList.remove("show"); document.body.style.setProperty("--kp", "0px"); if (active) { active.classList.remove("on"); active = null; } }
 const groupOf = el => el && el.dataset.g;
 function neighbour(el, dir) {
@@ -1249,11 +1255,11 @@ function backspace() {
 
 function buildKp() {
   const keys = [..."1234567890"].map(d => `<button data-d="${d}">${d}</button>`);
-  keys.push(`<button class="k-fn" data-f="del" aria-label="Effacer">⌫</button>`,
+  keys.push(`<button class="k-del" data-f="del" aria-label="Effacer">⌫ Effacer</button>`,
     `<button class="k-fn" data-f="prev" aria-label="Case précédente">◀</button>`,
     `<button class="k-fn" data-f="next" aria-label="Case suivante">▶</button>`,
     `<button class="k-ok" data-f="ok">OK ↵</button>`,
-    `<button class="k-fn" data-f="close" aria-label="Fermer le clavier">✕</button>`);
+    `<button class="kb-close" data-f="close" aria-label="Fermer le clavier">▼ Fermer</button>`);
   kp.innerHTML = keys.join("");
 }
 kp.addEventListener("pointerdown", ev => { if (ev.target.closest("button")) ev.preventDefault(); });
