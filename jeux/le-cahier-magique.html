@@ -206,6 +206,15 @@
     font-family: var(--label); font-weight: 700; }
   .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 22px; color: var(--theme); font-family: var(--label); font-weight: 700; font-size: .8rem; letter-spacing: .12em; }
   .foot .pno { background: var(--theme); color: #fff; font-size: 1.2rem; padding: 2px 10px; letter-spacing: 0; border-radius: 4px; }
+  .ex-check { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(111,101,80,.35); }
+  .mini { border: 2px solid var(--edge); background: #fffaf0; color: var(--ink); border-radius: 999px; padding: 0 16px; min-height: 44px;
+    font-weight: 800; font-size: 1rem; box-shadow: 0 2px 0 rgba(107,74,28,.5); }
+  .mini:active { transform: translateY(1px); box-shadow: none; }
+  .mini.go { background: linear-gradient(#f1d585, #d1a648); color: #1d1405; }
+  .ex-res { font-weight: 800; font-size: 1.05rem; }
+  .ex-res.all { color: var(--green); }
+  .ex-res.some { color: #b0700a; }
+  .ex-res.none { color: var(--red); }
   .score-line { text-align: center; margin-top: 14px; font-weight: 800; color: var(--muted); }
   .score-line .st { color: #c89500; letter-spacing: 2px; }
 
@@ -1026,9 +1035,11 @@ function render(page) {
     <div><h2>${THEMES[theme].nom}</h2><div class="sub">Niveau ${"★".repeat(level)} · code ${code}</div></div>
     <div class="who">Prénom :<br><span>Théo</span></div></div>`;
   page.exs.forEach((ex, i) => {
-    h += `<section class="ex"><h3><span class="num">${i + 1}</span><span>${ex.title}${ex.sub ? `<small>${ex.sub}</small>` : ""}</span></h3>${ex.html}</section>`;
+    h += `<section class="ex" data-ex="${i + 1}"><h3><span class="num">${i + 1}</span><span>${ex.title}${ex.sub ? `<small>${ex.sub}</small>` : ""}</span></h3>${ex.html}
+      <div class="ex-check"><button class="mini go" data-act="exo" data-e="${i + 1}">✔ Corriger l'exercice ${i + 1}</button>
+        <span class="ex-res" aria-live="polite"></span><button class="mini" data-act="exsol" data-e="${i + 1}" hidden>👀 Solution</button></div></section>`;
   });
-  h += `<div class="actions"><button class="big" data-act="corriger">✔ Corriger ma fiche</button>
+  h += `<div class="actions"><button class="big" data-act="corriger">✔ Corriger toute la fiche</button>
     <button class="ghost" data-act="effacer">↺ Rejouer la fiche</button></div>
     <div class="score-line" id="scoreLine"></div>
     <div class="foot"><span>NOMBRES ET CALCULS</span><span class="pno">${n}</span></div>`;
@@ -1040,9 +1051,12 @@ function render(page) {
     u.keys.forEach(k => { cur.keyUnit[k] = u; });
     if (u.kind === "num") u.keys.forEach(k => { const el = cur.fieldEls[k]; if (el) el.dataset.sol = String(u.ans[k]); });
   });
+  cur.nEx = page.exs.length;
   active = null; hideKp();
   applyAnswers();
+  Object.keys(cur.P.rx || {}).forEach(e => { const sec = exSection(e); if (sec) sec.classList.add("reveal"); });
   if (cur.P.m) corriger(true);
+  else Object.keys(cur.P.ex || {}).forEach(e => corrigerEx(+e, true));
   updateScoreLine();
 }
 
@@ -1070,7 +1084,7 @@ function touchPage() {
 function setAns(key, val) {
   if (val === "" || val == null) delete cur.P.a[key]; else cur.P.a[key] = val;
   const u = cur.keyUnit[key];
-  if (u) unmark(u);
+  if (u) { unmark(u); clearExRes(exOf(u)); }
   touchPage();
 }
 
@@ -1083,10 +1097,18 @@ function unitEls(u) {
 function mark(u, ok) { unitEls(u).forEach(el => { el.classList.remove("ok", "ko"); el.classList.add(ok ? "ok" : "ko"); }); }
 function unmark(u) { unitEls(u).forEach(el => el.classList.remove("ok", "ko")); }
 
-function corriger(silent) {
-  const A = cur.P.a;
-  let ok = 0, tot = 0;
-  cur.units.forEach(u => {
+// Chaque exercice a son propre bouton « Corriger » ; le bouton du bas corrige toute la fiche.
+const exOf = u => parseInt(u.keys[0], 10);
+const exSection = e => paper.querySelector(`section.ex[data-ex="${e}"]`);
+const sawSolutions = () => !!cur.P.rev || Object.keys(cur.P.rx || {}).length > 0;
+function clearExRes(e) {
+  const sec = exSection(e); if (!sec) return;
+  const r = sec.querySelector(".ex-res"); r.textContent = ""; r.className = "ex-res";
+  sec.querySelector('[data-act="exsol"]').hidden = true;
+}
+function markUnits(list) {
+  const A = cur.P.a; let ok = 0, tot = 0;
+  list.forEach(u => {
     const res = !!u.check(A);
     if (!u.scored) {
       if (u.keys.some(k => (A[k] || "") !== "")) mark(u, res); else unmark(u);
@@ -1095,12 +1117,37 @@ function corriger(silent) {
     tot++; if (res) ok++;
     mark(u, res);
   });
+  return { ok, tot };
+}
+function corrigerEx(e, silent) {
+  const { ok, tot } = markUnits(cur.units.filter(u => exOf(u) === e));
+  const sec = exSection(e), r = sec.querySelector(".ex-res");
+  r.className = "ex-res " + (ok === tot ? "all" : ok ? "some" : "none");
+  r.textContent = ok === tot ? `Bravo, tout est juste ! (${ok}/${tot})` : `${ok} juste${ok > 1 ? "s" : ""} sur ${tot} : corrige les cases rouges.`;
+  sec.querySelector('[data-act="exsol"]').hidden = ok === tot || sec.classList.contains("reveal");
+  (cur.P.ex = cur.P.ex || {})[e] = 1;
+  if (silent) return { ok, tot };
+  hideKp();
+  ok === tot ? Snd.good() : Snd.soso();
+  touchPage();
+  // Quand tous les exercices ont été corrigés, la fiche compte pour les étoiles.
+  if (Object.keys(cur.P.ex).length >= cur.nEx) {
+    const all = markUnits(cur.units), s = all.tot ? all.ok / all.tot : 0;
+    cur.P.m = true; cur.P.last = s;
+    if (!sawSolutions() && (cur.P.best == null || s > cur.P.best)) cur.P.best = s;
+    touchPage(); save(true); updateScoreLine();
+  }
+  return { ok, tot };
+}
+function corriger(silent) {
+  let ok = 0, tot = 0;
+  for (let e = 1; e <= cur.nEx; e++) { const r = corrigerEx(e, true); ok += r.ok; tot += r.tot; }
   if (silent) return;
   hideKp();
   const s = tot ? ok / tot : 0;
   cur.P.m = true;
   cur.P.last = s;
-  if (!cur.P.rev && (cur.P.best == null || s > cur.P.best)) cur.P.best = s;
+  if (!sawSolutions() && (cur.P.best == null || s > cur.P.best)) cur.P.best = s;
   touchPage(); save(true);
   updateScoreLine();
   showResult(ok, tot, s);
@@ -1118,7 +1165,7 @@ function showResult(ok, tot, s) {
     <div class="bigstars">${"★".repeat(st)}<i>${"★".repeat(3 - st)}</i></div>
     <p><b>${ok} bonne${ok > 1 ? "s" : ""} réponse${ok > 1 ? "s" : ""} sur ${tot}</b></p>
     <p>${msg}</p>
-    ${cur.P.rev ? `<p style="color:var(--muted)">Tu as vu les solutions : ton meilleur score reste celui d'avant.</p>` : ""}
+    ${sawSolutions() ? `<p style="color:var(--muted-d)">Tu as vu des solutions : ton meilleur score reste celui d'avant.</p>` : ""}
     <div class="row">
       ${s < 1 ? `<button class="ghost" data-r="fix">✏️ Corriger mes erreurs</button>` : ""}
       ${s < 1 && !cur.P.rev ? `<button class="ghost" data-r="sol">👀 Voir les solutions</button>` : ""}
@@ -1244,7 +1291,13 @@ paper.addEventListener("click", ev => {
   const act = t.closest("[data-act]");
   if (act) {
     Snd.tap();
-    if (act.dataset.act === "corriger") corriger(false);
+    const a = act.dataset.act, e = +act.dataset.e;
+    if (a === "corriger") corriger(false);
+    else if (a === "exo") corrigerEx(e, false);
+    else if (a === "exsol") {
+      exSection(e).classList.add("reveal"); act.hidden = true;
+      (cur.P.rx = cur.P.rx || {})[e] = 1; touchPage();
+    }
     else { hideKp(); $("confirmOv").hidden = false; }
     return;
   }

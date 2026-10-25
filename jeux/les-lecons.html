@@ -152,6 +152,15 @@
     background: linear-gradient(#e4c069, #b98a2e); color: #1d1405; box-shadow: 0 4px 0 #6b4a1c; text-decoration: none; display: inline-grid; place-items: center; }
   .big:active { transform: translateY(2px); box-shadow: 0 2px 0 #6b4a1c; }
   .ghost { border: 2px solid var(--edge); background: transparent; border-radius: 999px; padding: 0 20px; min-height: 54px; font-family: var(--label); font-weight: 700; }
+  .ex-check { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(111,101,80,.35); }
+  .mini { border: 2px solid var(--edge); background: #fffaf0; color: var(--ink); border-radius: 999px; padding: 0 16px; min-height: 44px;
+    font-weight: 800; font-size: 1rem; box-shadow: 0 2px 0 rgba(107,74,28,.5); }
+  .mini:active { transform: translateY(1px); box-shadow: none; }
+  .mini.go { background: linear-gradient(#f1d585, #d1a648); color: #1d1405; }
+  .ex-res { font-weight: 800; font-size: 1.05rem; }
+  .ex-res.all { color: var(--green); }
+  .ex-res.some { color: #b0700a; }
+  .ex-res.none { color: var(--red); }
   .score-line { text-align: center; margin-top: 14px; font-weight: 800; color: var(--muted); }
   .score-line .st { color: #c89500; letter-spacing: 2px; }
 
@@ -811,8 +820,10 @@ function buildLesson(L, serie) {
     const r = makeRng(`${VERSION}|${L.id}|${serie}|${ei}`);
     const items = def.make(r);
     const html = items.map((it, ii) => renderItem(it, `${ei}.${ii}`, ii, units)).join("");
-    return `<section class="ex"><h3><span class="num">${ei + 1}</span><span>${def.title}${def.sub ? `<small>${def.sub}</small>` : ""}</span></h3>
-      <div class="qs${def.two ? " two" : ""}">${html}</div></section>`;
+    return `<section class="ex" data-ex="${ei}"><h3><span class="num">${ei + 1}</span><span>${def.title}${def.sub ? `<small>${def.sub}</small>` : ""}</span></h3>
+      <div class="qs${def.two ? " two" : ""}">${html}</div>
+      <div class="ex-check"><button class="mini go" data-act="exo" data-e="${ei}">✔ Corriger l'exercice ${ei + 1}</button>
+        <span class="ex-res" aria-live="polite"></span><button class="mini" data-act="exsol" data-e="${ei}" hidden>👀 Solution</button></div></section>`;
   });
   return { exs, units };
 }
@@ -898,12 +909,14 @@ function openLesson(L, serie) {
     <p class="ex-phrase">${L.phrase}</p>
     <div class="retenir"><h3>À retenir</h3>${L.retenir}</div>
     ${page.exs.join("")}
-    <div class="actions"><button class="big" data-act="corriger">✔ Corriger</button><button class="ghost" data-act="effacer">↺ Rejouer</button>
+    <div class="actions"><button class="big" data-act="corriger">✔ Tout corriger</button><button class="ghost" data-act="effacer">↺ Rejouer</button>
       <button class="ghost" data-act="nouv">✚ Nouvelles questions</button></div>
     <div class="score-line" id="scoreLine"></div>
   </article>`;
   applyAnswers();
+  Object.keys(P.rx || {}).forEach(e => { const sec = exSection(e); if (sec) sec.classList.add("reveal"); });
   if (P.m) corriger(true);
+  else Object.keys(P.ex || {}).forEach(e => corrigerEx(+e, true));
   updateScoreLine();
   window.scrollTo({ top: 0 });
   Snd.page();
@@ -928,6 +941,7 @@ function paintOrder(el) {
 function setAns(k, v) {
   if (v === "" || v == null) delete cur.P.a[k]; else cur.P.a[k] = v;
   const q = $("sheet").querySelector(`.q[data-u="${k}"]`); if (q) q.classList.remove("ok", "ko");
+  clearExRes(parseInt(k, 10));
   S.pages[cur.pid] = cur.P; save();
 }
 
@@ -951,8 +965,11 @@ lessonEl.addEventListener("click", ev => {
   const act = t.closest("[data-act]");
   if (act) {
     Snd.tap();
-    if (act.dataset.act === "corriger") corriger(false);
-    else if (act.dataset.act === "effacer") $("confirmOv").hidden = false;
+    const a = act.dataset.act, e = +act.dataset.e;
+    if (a === "corriger") corriger(false);
+    else if (a === "exo") corrigerEx(e, false);
+    else if (a === "exsol") { exSection(e).classList.add("reveal"); act.hidden = true; (cur.P.rx = cur.P.rx || {})[e] = 1; S.pages[cur.pid] = cur.P; save(); }
+    else if (a === "effacer") $("confirmOv").hidden = false;
     else openLesson(cur.L, cur.serie + 1);
   }
 });
@@ -974,17 +991,49 @@ function flash(k) {
   }, 3000);
 }
 
-function corriger(silent) {
+// Chaque exercice a son propre bouton « Corriger » ; le bouton du bas corrige tout.
+const exSection = e => $("sheet").querySelector(`section.ex[data-ex="${e}"]`);
+const sawSolutions = () => !!cur.P.rev || Object.keys(cur.P.rx || {}).length > 0;
+function clearExRes(e) {
+  const sec = exSection(e); if (!sec) return;
+  const r = sec.querySelector(".ex-res"); r.textContent = ""; r.className = "ex-res";
+  sec.querySelector('[data-act="exsol"]').hidden = true;
+}
+function markUnits(list) {
   const A = cur.P.a; let ok = 0;
-  cur.units.forEach(u => {
+  list.forEach(u => {
     const res = !!u.check(A); if (res) ok++;
     const q = $("sheet").querySelector(`.q[data-u="${u.k}"]`);
     q.classList.remove("ok", "ko"); q.classList.add(res ? "ok" : "ko");
   });
+  return { ok, tot: list.length };
+}
+function corrigerEx(e, silent) {
+  const { ok, tot } = markUnits(cur.units.filter(u => parseInt(u.k, 10) === e));
+  const sec = exSection(e), r = sec.querySelector(".ex-res");
+  r.className = "ex-res " + (ok === tot ? "all" : ok ? "some" : "none");
+  r.textContent = ok === tot ? `Bravo, tout est juste ! (${ok}/${tot})` : `${ok} juste${ok > 1 ? "s" : ""} sur ${tot} : regarde les réponses en rouge.`;
+  sec.querySelector('[data-act="exsol"]').hidden = ok === tot || sec.classList.contains("reveal");
+  (cur.P.ex = cur.P.ex || {})[e] = 1;
+  if (silent) return { ok, tot };
+  ok === tot ? Snd.good() : Snd.soso();
+  // Quand tous les exercices ont été corrigés, la série compte pour les étoiles.
+  if (Object.keys(cur.P.ex).length >= cur.L.ex.length) {
+    const all = markUnits(cur.units), s = all.ok / all.tot;
+    cur.P.m = true;
+    if (!sawSolutions() && (cur.P.best == null || s > cur.P.best)) cur.P.best = s;
+    updateScoreLine();
+  }
+  S.pages[cur.pid] = cur.P; save();
+  return { ok, tot };
+}
+function corriger(silent) {
+  let ok = 0, tot = 0;
+  cur.L.ex.forEach((_, e) => { const r = corrigerEx(e, true); ok += r.ok; tot += r.tot; });
   if (silent) return;
-  const tot = cur.units.length, s = ok / tot;
+  const s = ok / tot;
   cur.P.m = true;
-  if (!cur.P.rev && (cur.P.best == null || s > cur.P.best)) cur.P.best = s;
+  if (!sawSolutions() && (cur.P.best == null || s > cur.P.best)) cur.P.best = s;
   S.pages[cur.pid] = cur.P; save();
   updateScoreLine();
   const st = starsOf(s);
@@ -995,7 +1044,7 @@ function corriger(silent) {
   else { stamp = "Courage"; msg = "Relis tranquillement le cadre « À retenir », puis réessaie."; Snd.soso(); }
   $("resultCard").innerHTML = `<div class="stamp">${stamp}</div><div class="bigstars">${starHTML(s)}</div>
     <p><b>${ok} bonne${ok > 1 ? "s" : ""} réponse${ok > 1 ? "s" : ""} sur ${tot}</b></p><p>${msg}</p>
-    ${cur.P.rev ? `<p style="color:var(--muted-d)">Tu as vu les solutions : ton meilleur score reste celui d'avant.</p>` : ""}
+    ${sawSolutions() ? `<p style="color:var(--muted-d)">Tu as vu des solutions : ton meilleur score reste celui d'avant.</p>` : ""}
     <div class="row">${s < 1 ? `<button class="ghost" data-r="fix">✏️ Corriger mes erreurs</button>` : ""}
     ${s < 1 && !cur.P.rev ? `<button class="ghost" data-r="sol">👀 Voir les solutions</button>` : ""}
     <button class="big" data-r="next">Nouvelles questions ▶</button></div>
