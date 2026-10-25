@@ -1,0 +1,1036 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Les Leçons de Théo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@600;700&family=Nunito:wght@500;700;800&family=Patrick+Hand&display=swap">
+<style>
+  /* Leçons de français : rappel « À retenir » puis exercices sur parchemin ;
+     menus façon Le Grand Arbre (bois, feuillage, accents dorés). */
+  :root {
+    --panel: rgba(18, 34, 24, .92);
+    --panel-solid: #142a1d;
+    --edge: #d9b45a;
+    --cream: #f4ecd8;
+    --muted-d: #c3cfb4;
+    --gold: #f2cf6b;
+    --leaf: #7fb85a;
+    --shadow: rgba(4, 10, 6, .55);
+    --paper: #fbf4e1;
+    --ink: #2a2418;
+    --muted: #6f6550;
+    --pen: #1f3fbf;
+    --red: #c8302a;
+    --green: #17904a;
+    --gr: #c8502e; --or: #2f62c4; --me: #12806a;
+    --theme: var(--gr);
+    --hand: "Patrick Hand", "Comic Sans MS", cursive;
+    --title: "Cinzel Decorative", "Cinzel", Georgia, serif;
+    --label: "Cinzel", Georgia, serif;
+    --body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; color: var(--cream); font-family: var(--body); font-size: 16px; min-height: 100vh;
+    background: #0d1a12 radial-gradient(ellipse 120% 70% at 50% 0%, #24452d 0%, #12261a 55%, #0d1a12 100%) fixed;
+    padding-bottom: 32px; -webkit-tap-highlight-color: transparent;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
+  button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+  .top {
+    position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 8px;
+    padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
+    background: var(--panel-solid); border-bottom: 2px solid var(--edge); box-shadow: 0 6px 18px var(--shadow);
+  }
+  .brand { flex: 1; min-width: 0; font-family: var(--title); font-weight: 700; font-size: 1.2rem; color: var(--gold);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 0 #6b4a1c; }
+  .tbtn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 46px; height: 46px; padding: 0 12px;
+    border: 2px solid var(--edge); border-radius: 999px; background: var(--panel); color: var(--cream);
+    font-family: var(--label); font-weight: 700; text-decoration: none; font-size: 1rem;
+  }
+  .tbtn:active { filter: brightness(1.25); }
+
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 12px; }
+
+  /* Menu des leçons */
+  .menu h2.cat { font-family: var(--label); color: var(--leaf); font-size: 1.15rem; letter-spacing: .05em; margin: 26px 4px 10px; }
+  .cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  .lcard {
+    display: flex; gap: 12px; align-items: center; text-align: left; padding: 12px 14px; min-height: 96px;
+    background: var(--panel); border: 2px solid var(--edge); border-radius: 18px; color: var(--cream);
+    box-shadow: 0 6px 20px var(--shadow), inset 0 0 0 1px rgba(242,207,107,.18);
+  }
+  .lcard:active { transform: translateY(2px); }
+  .lcard svg { flex: none; width: 66px; height: 66px; }
+  .lcard b { display: block; font-family: var(--label); font-size: 1.02rem; line-height: 1.2; color: var(--gold); }
+  .lcard small { display: block; color: var(--muted-d); font-size: .85rem; margin-top: 3px; }
+  .lcard .st { color: var(--gold); letter-spacing: 2px; margin-top: 4px; font-size: 1rem; }
+  .lcard .st i { font-style: normal; color: rgba(244,236,216,.25); }
+  .hello { text-align: center; margin: 18px 0 0; color: var(--muted-d); font-weight: 700; }
+  .hello b { color: var(--gold); }
+
+  /* Feuille de leçon */
+  .sheet {
+    margin: 14px auto 0; padding: 20px 24px 22px; position: relative; color: var(--ink);
+    border: 2px solid var(--edge); border-radius: 16px; background: var(--paper) linear-gradient(180deg, #fffaf0, #f6ecd2);
+    box-shadow: 0 12px 40px var(--shadow), inset 0 0 0 4px rgba(217,180,90,.18);
+    animation: flip .35s ease-out;
+  }
+  @keyframes flip { from { opacity: 0; transform: translateY(14px); } }
+  .lh { display: flex; align-items: center; gap: 14px; padding-bottom: 10px; border-bottom: 3px solid var(--theme); }
+  .lh svg { width: 72px; height: 72px; flex: none; }
+  .lh .kind { font-weight: 800; color: var(--theme); font-size: .85rem; letter-spacing: .1em; text-transform: uppercase; }
+  .lh h2 { margin: 2px 0 0; font-family: var(--label); font-weight: 700; font-size: 1.55rem; line-height: 1.15; }
+  .lh .serie { margin-left: auto; text-align: right; color: var(--muted); font-weight: 700; font-size: .9rem; }
+
+  .ex-phrase { text-align: center; font-size: 1.2rem; margin: 16px 0 4px; }
+  .retenir { position: relative; margin: 22px 0 6px; padding: 18px 18px 14px; border: 2px solid var(--ink); border-radius: 12px; line-height: 1.55; font-size: 1.06rem; }
+  .retenir > h3 { position: absolute; top: -.9em; left: 50%; transform: translateX(-50%); margin: 0; padding: 0 12px; background: #fcf6e6;
+    font-family: var(--label); font-size: 1.05rem; white-space: nowrap; }
+  .retenir p { margin: 6px 0; }
+  .retenir ul { margin: 6px 0; padding-left: 1.2em; }
+  .retenir li { margin: 4px 0; }
+  .retenir .exm { color: var(--muted); font-size: .95rem; }
+  .retenir .exm i { font-style: normal; color: var(--ink); }
+  .r { color: var(--red); }
+  .bl { color: var(--pen); }
+  .u { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  .chip { display: inline-block; padding: 1px 8px; border-radius: 8px; font-weight: 700; margin: 1px 0; }
+  .chip.S { background: #f7d3c6; } .chip.V { background: #cfdcf6; } .chip.C { background: #cdebd9; }
+  .grid4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px 12px; margin: 8px 0; }
+  .grid4 span { background: rgba(217,180,90,.14); border-radius: 8px; padding: 4px 8px; font-size: .98rem; }
+  .meth { display: grid; gap: 8px; margin: 8px 0; }
+  .meth div { display: flex; gap: 10px; align-items: center; border: 1.5px solid rgba(42,36,24,.35); border-radius: 10px; padding: 6px 10px; }
+  .meth svg { width: 42px; height: 42px; flex: none; }
+
+  .ex { margin-top: 24px; }
+  .ex h3 { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 12px; font-size: 1.07rem; font-weight: 800; line-height: 1.35; }
+  .ex h3 .num { flex: none; display: inline-grid; place-items: center; width: 27px; height: 27px; border-radius: 6px;
+    background: var(--theme); color: #fff; font-weight: 800; font-size: .95rem; }
+  .ex h3 small { display: block; color: var(--muted); font-weight: 600; font-size: .9rem; }
+  .qs { display: grid; gap: 12px; }
+  .qs.two { grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
+  .q { position: relative; padding: 8px 10px; border-radius: 12px; background: rgba(217,180,90,.09); }
+  .q.ok { box-shadow: inset 0 0 0 2px var(--green); background: rgba(23,144,74,.08); }
+  .q.ko { box-shadow: inset 0 0 0 2px var(--red); background: rgba(200,48,42,.07); }
+  .q.ok::after { content: "✓"; position: absolute; right: 10px; top: 6px; color: var(--green); font-weight: 800; font-size: 1.2rem; }
+  .sent { margin: 0 0 8px; font-size: 1.15rem; line-height: 1.6; }
+  .lt { font-weight: 800; color: var(--theme); margin-right: 4px; }
+  .gap { display: inline-block; min-width: 3.2em; text-align: center; border-bottom: 2px dotted #8b88a0; color: var(--pen);
+    font-family: var(--hand); font-size: 1.3em; line-height: 1.1; padding: 0 4px; }
+  .gap.full { border-bottom-style: solid; border-bottom-color: var(--pen); }
+  .opts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .opt, .chk, .wd, .tile {
+    border: 2px solid #d7c9a3; background: #fffdf6; border-radius: 999px; padding: 6px 14px; min-height: 44px;
+    font-weight: 700; font-size: 1.05rem; color: var(--ink);
+  }
+  .opt.sel, .chk.sel, .wd.sel { border-color: var(--pen); color: var(--pen); background: #e8eeff; box-shadow: inset 0 0 0 1px var(--pen); }
+  .chunks { display: inline-flex; flex-wrap: wrap; gap: 6px; vertical-align: middle; }
+  .chk, .wd { border-radius: 10px; padding: 4px 10px; min-height: 42px; font-size: 1.1rem; }
+  mark { background: #ffe58a; color: inherit; padding: 0 4px; border-radius: 4px; }
+  .sol { display: none; margin-top: 8px; color: var(--red); font-family: var(--hand); font-size: 1.25rem; }
+  .reveal .q.ko .sol { display: block; }
+  .flash { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .flash .card-w { min-width: 180px; min-height: 58px; display: grid; place-items: center; padding: 6px 16px; border-radius: 12px;
+    border: 2px dashed #b9a676; font-family: var(--hand); font-size: 2rem; color: var(--pen); background: #fff; }
+  .flash .bar { height: 5px; border-radius: 3px; background: var(--theme); width: 100%; transform-origin: left; }
+  .look { border: 2px solid var(--edge); background: linear-gradient(#e4c069, #b98a2e); color: #1d1405; border-radius: 999px; padding: 0 16px; min-height: 46px; font-family: var(--label); font-weight: 700; }
+  .ord-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .ord-ans { min-width: 200px; min-height: 52px; display: inline-flex; align-items: center; padding: 4px 14px; border-radius: 12px;
+    background: #fff; border: 2px solid #d7c9a3; font-family: var(--hand); font-size: 2rem; letter-spacing: 3px; color: var(--pen); }
+  .tile { width: 50px; height: 50px; padding: 0; border-radius: 12px; font-size: 1.45rem; font-family: var(--body); font-weight: 800; }
+  .tile:disabled { opacity: .25; }
+  .undo { border: 2px solid #d7c9a3; background: #fffdf6; border-radius: 12px; min-height: 46px; padding: 0 12px; font-weight: 800; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 28px; }
+  .big { border: 2px solid #f6dc8c; border-radius: 999px; padding: 0 28px; min-height: 54px; font-family: var(--label); font-weight: 700; font-size: 1.1rem;
+    background: linear-gradient(#e4c069, #b98a2e); color: #1d1405; box-shadow: 0 4px 0 #6b4a1c; text-decoration: none; display: inline-grid; place-items: center; }
+  .big:active { transform: translateY(2px); box-shadow: 0 2px 0 #6b4a1c; }
+  .ghost { border: 2px solid var(--edge); background: transparent; border-radius: 999px; padding: 0 20px; min-height: 54px; font-family: var(--label); font-weight: 700; }
+  .score-line { text-align: center; margin-top: 14px; font-weight: 800; color: var(--muted); }
+  .score-line .st { color: #c89500; letter-spacing: 2px; }
+
+  /* Fenêtres */
+  .ov { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(6,14,9,.6); }
+  #title { background: #0d1a12 radial-gradient(ellipse 120% 80% at 50% 0%, #24452d 0%, #12261a 55%, #0d1a12 100%); overflow: auto; }
+  .card { width: 100%; max-width: 560px; max-height: calc(100dvh - 32px); overflow: auto; color: var(--cream);
+    background: var(--panel-solid); border: 2px solid var(--edge); border-radius: 18px; padding: 26px 24px 22px; text-align: center;
+    box-shadow: 0 10px 40px var(--shadow), inset 0 0 0 1px rgba(242,207,107,.18); }
+  .card h1 { font-family: var(--title); font-weight: 700; font-size: clamp(2rem, 7vw, 2.9rem); margin: 0; line-height: 1.1;
+    color: var(--gold); text-shadow: 0 3px 0 #6b4a1c, 0 8px 24px rgba(0,0,0,.6); }
+  .card h2 { font-family: var(--label); font-weight: 700; margin: 0 0 8px; font-size: 1.6rem; color: var(--gold); }
+  .card .sub { font-family: var(--label); color: var(--leaf); font-size: 1rem; letter-spacing: .04em; margin: 6px 0 0; }
+  .card p { margin: 8px 0; line-height: 1.5; font-size: 1.05rem; }
+  .card ul { list-style: none; text-align: left; margin: 14px 0 0; padding: 12px 14px; display: grid; gap: 6px; background: rgba(0,0,0,.18); border-radius: 12px; line-height: 1.45; }
+  .card li b { font-family: var(--label); color: var(--gold); }
+  .card .row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 16px; }
+  .card .ghost { color: var(--cream); }
+  .stickers { display: flex; gap: 12px; justify-content: center; margin: 16px 0 4px; }
+  .stickers svg { width: 60px; height: 60px; }
+  .back-link { display: block; margin-top: 14px; color: var(--muted-d); font-weight: 700; font-size: .95rem; }
+  .stamp { display: inline-block; margin: 6px auto 10px; padding: 4px 22px; border: 5px solid #ff6a55; border-radius: 50%;
+    color: #ff6a55; font-family: var(--hand); font-size: 3rem; line-height: 1.1; transform: rotate(-10deg); animation: stamp .45s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes stamp { from { transform: scale(2.4) rotate(-25deg); opacity: 0; } }
+  .bigstars { font-size: 2.4rem; letter-spacing: 6px; color: var(--gold); }
+  .bigstars i { font-style: normal; color: rgba(244,236,216,.2); }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 0 8px; }
+    .sheet { padding: 14px 12px 18px; }
+    .lh svg { width: 56px; height: 56px; }
+    .lh h2 { font-size: 1.25rem; }
+    .lh .serie { display: none; }
+    .retenir { padding: 18px 12px 12px; font-size: 1rem; }
+    .qs.two { grid-template-columns: 1fr; }
+    .sent { font-size: 1.08rem; }
+    .top .lbl { display: none; }
+    .card { padding: 22px 16px 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .sheet, .stamp { animation: none; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <a class="tbtn" id="homeBtn" href="../index.html" aria-label="Retour à l'accueil">←<span class="lbl"> Accueil</span></a>
+  <button class="tbtn" id="backBtn" hidden aria-label="Retour aux leçons">←<span class="lbl"> Leçons</span></button>
+  <div class="brand" id="brand">Les Leçons de Théo</div>
+  <button class="tbtn" id="pauseBtn" aria-label="Pause">❚❚</button>
+  <button class="tbtn" id="muteBtn" aria-label="Couper le son">🔊</button>
+</header>
+
+<main class="wrap">
+  <section class="menu" id="menu"></section>
+  <section id="lesson" hidden></section>
+</main>
+
+<div class="ov" id="title">
+  <div class="card">
+    <h1>Les Leçons de Théo</h1>
+    <p class="sub">Grammaire · Orthographe · Méthode</p>
+    <div class="stickers" id="titleStickers" aria-hidden="true"></div>
+    <ul>
+      <li>Choisis une <b>leçon</b> dans le grand livre.</li>
+      <li>Lis bien le cadre <b>À retenir</b>.</li>
+      <li>Fais les <b>exercices</b> en touchant les réponses.</li>
+      <li>Appuie sur <b>Corriger</b> et gagne des <b>étoiles</b>. Tes réponses sont gardées.</li>
+    </ul>
+    <div class="row"><button class="big" id="playBtn">📖 Jouer</button></div>
+    <a class="back-link" href="../index.html">← Les jeux de Théo</a>
+  </div>
+</div>
+
+<div class="ov" id="pauseOv" hidden>
+  <div class="card"><h2>Pause</h2><p>Prends une petite pause. Ta leçon t'attend.</p>
+    <div class="row"><button class="big" id="resumeBtn">▶ Reprendre</button></div></div>
+</div>
+<div class="ov" id="confirmOv" hidden>
+  <div class="card"><h2>Rejouer ?</h2><p>Toutes tes réponses de cette série seront effacées.</p>
+    <div class="row"><button class="ghost" id="noBtn">Non, garder</button><button class="big" id="yesBtn">Oui, effacer</button></div></div>
+</div>
+<div class="ov" id="resultOv" hidden><div class="card" id="resultCard"></div></div>
+
+<script>
+"use strict";
+/* ============================================================
+   Hasard déterministe : une série = une graine (leçon, numéro de série).
+   ============================================================ */
+const VERSION = "v1";
+function hashStr(s) {
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (h1 ^ h2) >>> 0;
+}
+function makeRng(seed) {
+  let a = hashStr(seed);
+  const next = () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const r = {
+    next, int: (lo, hi) => lo + Math.floor(next() * (hi - lo + 1)), pick: arr => arr[Math.floor(next() * arr.length)],
+    shuffle: arr => { const b = arr.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(next() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; },
+  };
+  r.sample = (arr, k) => r.shuffle(arr).slice(0, k);
+  return r;
+}
+const LETTRES = "abcdefghij";
+const strip = s => s.replace(/<[^>]+>/g, "");
+
+/* ============================================================
+   Petits dessins faits maison (SVG)
+   ============================================================ */
+const K = "#2a2418";
+const ART = {
+  groupes: `<svg viewBox="0 0 100 100"><rect x="4" y="30" width="28" height="40" rx="8" fill="#e98d6c" stroke="${K}" stroke-width="3"/><rect x="36" y="30" width="28" height="40" rx="8" fill="#7ea2ea" stroke="${K}" stroke-width="3"/><rect x="68" y="30" width="28" height="40" rx="8" fill="#6cc39a" stroke="${K}" stroke-width="3"/><text x="18" y="58" font-size="22" font-weight="800" text-anchor="middle" fill="${K}" font-family="Nunito,sans-serif">S</text><text x="50" y="58" font-size="22" font-weight="800" text-anchor="middle" fill="${K}" font-family="Nunito,sans-serif">V</text><text x="82" y="58" font-size="22" font-weight="800" text-anchor="middle" fill="${K}" font-family="Nunito,sans-serif">C</text></svg>`,
+  sujet: `<svg viewBox="0 0 100 100"><circle cx="24" cy="26" r="12" fill="#f28c28" stroke="${K}" stroke-width="3"/><circle cx="76" cy="26" r="12" fill="#f28c28" stroke="${K}" stroke-width="3"/><ellipse cx="50" cy="56" rx="38" ry="34" fill="#f28c28" stroke="${K}" stroke-width="3"/><ellipse cx="50" cy="72" rx="20" ry="14" fill="#fff4e0"/><path d="M50 26v12M36 28l4 10M64 28l-4 10M14 52h12M14 62h10M86 52H74M86 62H76" stroke="${K}" stroke-width="4" stroke-linecap="round"/><circle cx="37" cy="52" r="5" fill="${K}"/><circle cx="63" cy="52" r="5" fill="${K}"/><path d="M44 64h12l-6 6z" fill="${K}"/><path d="M42 76q8 6 16 0" stroke="${K}" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`,
+  formes: `<svg viewBox="0 0 100 100"><path d="M8 14h48a8 8 0 0 1 8 8v20a8 8 0 0 1-8 8H26l-10 10v-10H8a8 8 0 0 1-8-8V22a8 8 0 0 1 8-8z" transform="translate(2 0)" fill="#9fd8a8" stroke="${K}" stroke-width="3"/><text x="34" y="40" font-size="17" font-weight="800" text-anchor="middle" fill="${K}" font-family="Nunito,sans-serif">OUI</text><path d="M44 50h48a8 8 0 0 1 8 8v20a8 8 0 0 1-8 8h-8v10l-10-10H44a8 8 0 0 1-8-8V58a8 8 0 0 1 8-8z" transform="translate(-2 0)" fill="#f3a39a" stroke="${K}" stroke-width="3"/><text x="66" y="76" font-size="17" font-weight="800" text-anchor="middle" fill="${K}" font-family="Nunito,sans-serif">NON</text></svg>`,
+  verbe: `<svg viewBox="0 0 100 100"><circle cx="58" cy="16" r="10" fill="#f2cf6b" stroke="${K}" stroke-width="3"/><path d="M54 28L44 56M50 38l18 8M50 38L30 46M44 56l18 14 -6 20M44 56L30 72 14 70" stroke="${K}" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M70 60h20M74 72h18M66 84h16" stroke="#d9b45a" stroke-width="4" stroke-linecap="round"/></svg>`,
+  aa: `<svg viewBox="0 0 100 100"><path d="M0 80Q25 50 50 62T100 40V100H0z" fill="#9cc58a"/><path d="M4 76L20 62 40 66 60 54 80 50 96 36" stroke="#8d7a5a" stroke-width="10" fill="none" stroke-linejoin="round"/><g fill="#b9a27a" stroke="${K}" stroke-width="2.5"><path d="M14 66v-18h12v18z"/><path d="M54 58v-18h12v18z"/><path d="M84 46v-18h12v18z"/></g><path d="M14 48v-4h3v4M20 48v-4h3v4M54 40v-4h3v4M60 40v-4h3v4M84 28v-4h3v4M90 28v-4h3v4" stroke="${K}" stroke-width="2.5" fill="none"/></svg>`,
+  gn: `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="66" rx="36" ry="24" fill="#7fb85a" stroke="${K}" stroke-width="3"/><circle cx="32" cy="42" r="13" fill="#7fb85a" stroke="${K}" stroke-width="3"/><circle cx="68" cy="42" r="13" fill="#7fb85a" stroke="${K}" stroke-width="3"/><circle cx="32" cy="42" r="6" fill="#fff"/><circle cx="68" cy="42" r="6" fill="#fff"/><circle cx="33" cy="43" r="3" fill="${K}"/><circle cx="67" cy="43" r="3" fill="${K}"/><path d="M34 70q16 10 32 0" stroke="${K}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M36 26l4-14 10 10 10-10 4 14z" fill="#f2cf6b" stroke="${K}" stroke-width="3" stroke-linejoin="round"/></svg>`,
+  est: `<svg viewBox="0 0 100 100"><path d="M30 52q0-30 20-36 20 6 20 36z" fill="#fffaf0" stroke="${K}" stroke-width="3"/><path d="M50 16v-8" stroke="${K}" stroke-width="3"/><rect x="22" y="52" width="56" height="34" fill="#fffaf0" stroke="${K}" stroke-width="3"/><path d="M42 86V70q8-10 16 0v16" fill="#c9b9e8" stroke="${K}" stroke-width="3"/><path d="M10 86V40M90 86V40" stroke="${K}" stroke-width="5"/><circle cx="10" cy="38" r="4" fill="#fffaf0" stroke="${K}" stroke-width="2.5"/><circle cx="90" cy="38" r="4" fill="#fffaf0" stroke="${K}" stroke-width="2.5"/><path d="M4 90h92" stroke="${K}" stroke-width="3"/></svg>`,
+  muettes: `<svg viewBox="0 0 100 100"><text x="40" y="78" font-size="78" font-weight="800" text-anchor="middle" fill="none" stroke="#8d8270" stroke-width="3" stroke-dasharray="6 5" font-family="Nunito,sans-serif">d</text><path d="M62 18h30a6 6 0 0 1 6 6v14a6 6 0 0 1-6 6H76l-8 8v-8h-6a6 6 0 0 1-6-6V24a6 6 0 0 1 6-6z" fill="#fff" stroke="${K}" stroke-width="3"/><text x="77" y="37" font-size="14" font-weight="800" text-anchor="middle" fill="${K}" font-family="Nunito,sans-serif">chut</text></svg>`,
+  accord: `<svg viewBox="0 0 100 100"><path d="M0 86Q50 76 100 82" stroke="#6b4a1c" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M36 18l6 18M64 18l-6 18" stroke="${K}" stroke-width="7" stroke-linecap="round"/><ellipse cx="50" cy="56" rx="28" ry="30" fill="#9aa3a0" stroke="${K}" stroke-width="3"/><ellipse cx="50" cy="66" rx="17" ry="17" fill="#f4ecd8"/><circle cx="40" cy="42" r="5" fill="#fff" stroke="${K}" stroke-width="2"/><circle cx="60" cy="42" r="5" fill="#fff" stroke="${K}" stroke-width="2"/><circle cx="40" cy="42" r="2" fill="${K}"/><circle cx="60" cy="42" r="2" fill="${K}"/><path d="M42 62q4-3 8 0q4-3 8 0" stroke="#9aa3a0" stroke-width="2.5" fill="none"/><path d="M28 48h-12M28 52h-10M72 48h12M72 52h10" stroke="${K}" stroke-width="2"/></svg>`,
+  mots: `<svg viewBox="0 0 100 100"><rect x="8" y="30" width="84" height="56" rx="10" fill="#cfd5d9" stroke="${K}" stroke-width="3"/><path d="M34 30l6-10h20l6 10" fill="#cfd5d9" stroke="${K}" stroke-width="3" stroke-linejoin="round"/><circle cx="50" cy="58" r="18" fill="#fff" stroke="${K}" stroke-width="3"/><circle cx="50" cy="58" r="9" fill="#2f62c4" stroke="${K}" stroke-width="3"/><rect x="74" y="38" width="10" height="6" rx="2" fill="#f2cf6b" stroke="${K}" stroke-width="2"/><path d="M44 12v-6M50 12v-8M56 12v-6" stroke="#d9b45a" stroke-width="3" stroke-linecap="round"/></svg>`,
+  relire: `<svg viewBox="0 0 100 100"><rect x="10" y="8" width="60" height="80" rx="6" fill="#fffaf0" stroke="${K}" stroke-width="3"/><path d="M20 24h40M20 36h40M20 48h28M20 60h36M20 72h22" stroke="#8d8270" stroke-width="3" stroke-linecap="round"/><circle cx="62" cy="56" r="18" fill="rgba(160,210,240,.45)" stroke="${K}" stroke-width="5"/><path d="M75 69l16 16" stroke="#6b4a1c" stroke-width="9" stroke-linecap="round"/></svg>`,
+};
+const ICON = {
+  cerveau: `<svg viewBox="0 0 100 100"><path d="M30 76c-14 0-20-12-16-22-8-8-2-22 8-22 0-12 14-18 24-12 8-8 24-4 26 8 12 0 18 14 10 22 6 10-2 24-14 22-4 8-18 10-24 4-4 4-10 4-14 0z" fill="#f4b6c8" stroke="${K}" stroke-width="3"/><path d="M50 22v54M34 40q8 4 6 14M66 40q-8 4-6 14" stroke="${K}" stroke-width="2.5" fill="none"/></svg>`,
+  oeil: `<svg viewBox="0 0 100 100"><path d="M6 50q44-44 88 0-44 44-88 0z" fill="#fff" stroke="${K}" stroke-width="4"/><circle cx="50" cy="50" r="16" fill="#2f62c4" stroke="${K}" stroke-width="3"/><circle cx="50" cy="50" r="7" fill="${K}"/></svg>`,
+  oreille: `<svg viewBox="0 0 100 100"><path d="M36 84c10 6 22 0 22-12 0-10 16-16 16-36 0-16-12-26-26-26S22 20 22 38" fill="#f6c8a4" stroke="${K}" stroke-width="4" stroke-linecap="round"/><path d="M36 40c0-10 18-12 20 0 2 10-12 12-10 22" stroke="${K}" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`,
+  main: `<svg viewBox="0 0 100 100"><path d="M30 92V46q0-6 6-6t6 6v-24q0-6 6-6t6 6v20-26q0-6 6-6t6 6v26-18q0-6 6-6t6 6v40q0 30-26 30H44Q30 92 18 70l-6-12q-2-6 4-8t10 4l4 8" fill="#f6c8a4" stroke="${K}" stroke-width="4" stroke-linejoin="round"/></svg>`,
+  photo: `<svg viewBox="0 0 100 100"><rect x="8" y="30" width="84" height="56" rx="10" fill="#cfd5d9" stroke="${K}" stroke-width="4"/><circle cx="50" cy="58" r="16" fill="#fff" stroke="${K}" stroke-width="4"/><path d="M34 30l6-10h20l6 10" fill="none" stroke="${K}" stroke-width="4"/></svg>`,
+  livre: `<svg viewBox="0 0 100 100"><path d="M50 26Q30 16 8 22v58q22-6 42 4 20-10 42-4V22q-22-6-42 4z" fill="#fffaf0" stroke="${K}" stroke-width="4" stroke-linejoin="round"/><path d="M50 26v58" stroke="${K}" stroke-width="4"/></svg>`,
+  stylo: `<svg viewBox="0 0 100 100"><path d="M70 10l20 20-50 50-26 6 6-26z" fill="#2f62c4" stroke="${K}" stroke-width="4" stroke-linejoin="round"/><path d="M20 60l20 20" stroke="${K}" stroke-width="4"/><path d="M10 92h50" stroke="${K}" stroke-width="4" stroke-linecap="round"/></svg>`,
+};
+
+/* ============================================================
+   Banques de phrases
+   ============================================================ */
+// Groupes : [texte, rôle (S sujet, V verbal, C complément), question du complément]
+const GROUPES = [
+  [["Ce matin", "C", "Quand ?"], ["le petit chat", "S"], ["boit son lait", "V"], ["dans la cuisine", "C", "Où ?"]],
+  [["Le tigre", "S"], ["chasse une gazelle", "V"], ["sans bruit", "C", "Comment ?"]],
+  [["Théo", "S"], ["lit une histoire", "V"], ["le soir", "C", "Quand ?"]],
+  [["Dans la forêt", "C", "Où ?"], ["les elfes", "S"], ["construisent des cabanes", "V"]],
+  [["Mon cheval", "S"], ["galope", "V"], ["très vite", "C", "Comment ?"]],
+  [["Demain", "C", "Quand ?"], ["nous", "S"], ["partirons en vacances", "V"]],
+  [["Les oiseaux", "S"], ["chantent", "V"], ["joyeusement", "C", "Comment ?"]],
+  [["La maîtresse", "S"], ["corrige les cahiers", "V"], ["avec un stylo rouge", "C", "Comment ?"]],
+  [["En hiver", "C", "Quand ?"], ["la neige", "S"], ["recouvre les montagnes", "V"]],
+  [["Les enfants", "S"], ["jouent au ballon", "V"], ["dans la cour", "C", "Où ?"]],
+  [["Ma cousine", "S"], ["a parcouru la muraille", "V"], ["à pied", "C", "Comment ?"]],
+  [["Chaque samedi", "C", "Quand ?"], ["Papa", "S"], ["prépare des crêpes", "V"]],
+  [["Sous le pont", "C", "Où ?"], ["un vieux troll", "S"], ["ronfle", "V"]],
+  [["Le dragon", "S"], ["crache du feu", "V"], ["avec colère", "C", "Comment ?"]],
+  [["Les abeilles", "S"], ["fabriquent du miel", "V"], ["au printemps", "C", "Quand ?"]],
+  [["Doucement", "C", "Comment ?"], ["la princesse", "S"], ["ouvre la porte", "V"]],
+  [["Le hibou", "S"], ["dort", "V"], ["dans le grand chêne", "C", "Où ?"]],
+];
+const SUJETS = [ // [groupes, index du sujet, nature]
+  [["Le tigre", "chasse", "la nuit"], 0, "GN"], [["Théo", "lit", "une bande dessinée"], 0, "NP"],
+  [["Elles", "dansent", "dans la forêt"], 0, "PP"], [["Dans la mare", "nagent", "les canards"], 2, "GN"],
+  [["Sur la branche", "dort", "un hibou"], 2, "GN"], [["Nous", "préparons", "un gâteau"], 0, "PP"],
+  [["Vassilissa", "réussit", "les épreuves"], 0, "NP"], [["Au loin", "galopent", "les chevaux sauvages"], 2, "GN"],
+  [["Ma cousine", "parcourt", "la muraille"], 0, "GN"], [["Il", "offre", "des glands"], 0, "PP"],
+  [["Dans le ciel", "brillent", "les étoiles"], 2, "GN"], [["Paris", "est", "une grande ville"], 0, "NP"],
+  [["Les deux sœurs", "rencontrent", "Totoro"], 0, "GN"], [["Tu", "chantes", "très bien"], 0, "PP"],
+  [["Le vieux magicien", "agite", "sa baguette"], 0, "GN"], [["Ici", "vivait", "un roi"], 2, "GN"],
+  [["Mei", "cherche", "sa sœur"], 0, "NP"], [["Ils", "rient", "aux éclats"], 0, "PP"],
+];
+const PRONOMS = [
+  ["Les deux sœurs", "rient aux éclats", 3], ["Le tigre", "chasse la nuit", 0], ["Ma cousine", "marche sur la muraille", 2],
+  ["Les chevaux", "galopent dans le pré", 1], ["Théo", "lit une histoire", 0], ["La princesse", "coud une robe", 2],
+  ["Les fillettes", "découvrent la maison", 3], ["Totoro et le chat bus", "retrouvent Mei", 1], ["L'empereur", "construit un palais", 0],
+  ["Les abeilles", "fabriquent du miel", 3], ["Mamie et Léa", "cueillent des fleurs", 3], ["Papa et Théo", "jouent au foot", 1],
+];
+const CESTQUI = [
+  ["Le chat de Léa attrape une souris.", "C'est le chat de Léa qui attrape une souris.", "C'est Léa qui attrape une souris.", "C'est la souris qui attrape le chat."],
+  ["Dans la mare nagent les canards.", "C'est les canards qui nagent dans la mare.", "C'est la mare qui nage.", "C'est l'eau qui nage avec les canards."],
+  ["Le frère de Tom mange une glace.", "C'est le frère de Tom qui mange une glace.", "C'est Tom qui mange une glace.", "C'est la glace qui mange le frère."],
+  ["Le soir, Mamie raconte une histoire.", "C'est Mamie qui raconte une histoire.", "C'est le soir qui raconte une histoire.", "C'est l'histoire qui raconte Mamie."],
+  ["Sur la branche dort un hibou.", "C'est un hibou qui dort sur la branche.", "C'est la branche qui dort.", "C'est l'arbre qui dort."],
+  ["Les amis de Théo jouent au ballon.", "C'est les amis de Théo qui jouent au ballon.", "C'est Théo qui joue au ballon.", "C'est le ballon qui joue."],
+  ["La maîtresse de ma sœur corrige les cahiers.", "C'est la maîtresse de ma sœur qui corrige les cahiers.", "C'est ma sœur qui corrige les cahiers.", "C'est les cahiers qui corrigent la maîtresse."],
+  ["Au fond du jardin pousse un grand chêne.", "C'est un grand chêne qui pousse au fond du jardin.", "C'est le jardin qui pousse.", "C'est le fond qui pousse."],
+];
+const FORMES = [
+  ["Le chat dort sur le canapé.", 0], ["Je n'aime pas les épinards.", 1], ["Il ne pleut plus.", 1], ["Nous partons en vacances demain.", 0],
+  ["Personne ne répond au téléphone.", 1], ["Théo ne mange jamais de soupe.", 1], ["Les oiseaux chantent le matin.", 0],
+  ["Je ne vois rien dans le noir.", 1], ["Elle n'a ni chien ni chat.", 1], ["Le dragon crache du feu.", 0], ["Tu n'as aucune idée.", 1],
+  ["Ma cousine aime les châteaux.", 0], ["On n'entend personne.", 1], ["Les enfants rient dans la cour.", 0], ["La pluie ne tombe plus.", 1],
+];
+const NEGMOTS = [
+  [["Je", "ne", "mange", "pas", "de", "bonbons."], [1, 3]], [["Le", "chat", "ne", "dort", "jamais", "le", "jour."], [2, 4]],
+  [["Il", "n'", "y", "a", "plus", "de", "pain."], [1, 4]], [["Nous", "ne", "voyons", "rien."], [1, 3]],
+  [["Tu", "n'", "as", "pas", "froid."], [1, 3]], [["Personne", "ne", "chante", "ce", "soir."], [0, 1]],
+  [["Elle", "n'", "aime", "ni", "les", "choux", "ni", "les", "navets."], [1, 3, 6]], [["Le", "roi", "n'", "a", "aucun", "ami."], [2, 4]],
+  [["Mon", "frère", "ne", "range", "jamais", "sa", "chambre."], [2, 4]], [["Je", "n'", "entends", "personne."], [1, 3]],
+];
+const NEGPHR = [
+  ["Le chat mange.", "Le chat ne mange pas.", "Le chat mange pas.", "Le chat ne pas mange."],
+  ["Théo aime la soupe.", "Théo n'aime pas la soupe.", "Théo ne aime pas la soupe.", "Théo aime pas la soupe."],
+  ["Il pleut.", "Il ne pleut pas.", "Il pleut ne pas.", "Il ne pas pleut."],
+  ["Nous jouons dehors.", "Nous ne jouons pas dehors.", "Nous jouons pas dehors.", "Nous pas jouons dehors."],
+  ["Elle a faim.", "Elle n'a pas faim.", "Elle a pas faim.", "Elle ne a pas faim."],
+  ["Tu chantes bien.", "Tu ne chantes pas bien.", "Tu chantes ne pas bien.", "Tu pas chantes bien."],
+  ["Les oiseaux volent.", "Les oiseaux ne volent pas.", "Les oiseaux volent pas.", "Les oiseaux ne pas volent."],
+  ["J'entends la musique.", "Je n'entends pas la musique.", "J'entends pas la musique.", "Je ne entends pas la musique."],
+];
+const NE = [
+  ["Le loup ___ a pas faim.", 1], ["Je ___ mange pas de viande.", 0], ["Elle ___ aime pas le froid.", 1], ["Nous ___ jouons plus.", 0],
+  ["Tu ___ écoutes jamais !", 1], ["Il ___ voit rien.", 0], ["Les fées ___ ont aucun souci.", 1], ["Mon chien ___ dort jamais le jour.", 0],
+  ["On ___ entend personne.", 1], ["Je ___ veux pas dormir.", 0], ["Vous ___ habitez plus ici.", 1], ["Les poules ___ volent pas haut.", 0],
+];
+const VERBES = [
+  [["Le", "tigre", "chasse", "la", "nuit."], 2], [["Les", "enfants", "jouent", "dans", "la", "cour."], 2],
+  [["Ce", "matin,", "Théo", "lit", "une", "histoire."], 3], [["Ma", "cousine", "marche", "sur", "la", "muraille."], 2],
+  [["Nous", "préparons", "des", "crêpes."], 1], [["Le", "soleil", "brille", "fort."], 2], [["Dans", "la", "forêt", "vivent", "des", "elfes."], 3],
+  [["Tu", "dessines", "un", "dragon."], 1], [["Les", "oiseaux", "construisent", "leur", "nid."], 2], [["Le", "chat", "est", "fatigué."], 2],
+  [["Mamie", "tricote", "une", "écharpe."], 1], [["Vous", "chantez", "très", "bien."], 1],
+];
+const ETAT = [
+  ["Le ciel <b>est</b> bleu.", 1], ["Mon frère <b>semble</b> fatigué.", 1], ["La chenille <b>devient</b> papillon.", 1], ["Le lion <b>paraît</b> calme.", 1],
+  ["Tu <b>restes</b> sage.", 1], ["Il <b>est</b> étonné.", 1], ["Théo <b>court</b> dans le jardin.", 0], ["Le boulanger <b>pétrit</b> la pâte.", 0],
+  ["Les oiseaux <b>construisent</b> un nid.", 0], ["Je <b>lance</b> le ballon.", 0], ["Il <b>mange</b> une pomme.", 0], ["Le vent <b>souffle</b>.", 0],
+];
+const INFINITIFS = [
+  ["Il <b>mange</b> une pomme.", "manger", "mangé", "mangeait"], ["Nous <b>finissons</b> nos devoirs.", "finir", "finissons", "fini"],
+  ["Les chevaux <b>galopent</b>.", "galoper", "galopé", "galopent"], ["Tu <b>vas</b> à l'école.", "aller", "vas", "allé"],
+  ["Elle <b>est</b> contente.", "être", "est", "été"], ["J'<b>ai</b> un vélo.", "avoir", "ai", "eu"], ["Vous <b>prenez</b> le train.", "prendre", "prenez", "pris"],
+  ["Ils <b>font</b> un gâteau.", "faire", "font", "fait"], ["Le chien <b>court</b> vite.", "courir", "court", "couru"],
+  ["Je <b>chante</b> une chanson.", "chanter", "chanté", "chantais"], ["Les enfants <b>dorment</b>.", "dormir", "dorment", "dormi"], ["Théo <b>lit</b> un livre.", "lire", "lit", "lu"],
+];
+const COUPES = [["chantons", 5], ["parlez", 4], ["dansent", 5], ["jouais", 3], ["sautons", 4], ["regardez", 6], ["aimais", 3], ["tombent", 4], ["rêvons", 3], ["dessinez", 6], ["collent", 4], ["marchais", 6]];
+const A_A = [
+  ["Ma cousine ___ parcouru la muraille.", 0], ["Elle marche ___ pied.", 1], ["Théo ___ un nouveau vélo.", 0], ["Nous allons ___ la piscine.", 1],
+  ["Le chat ___ faim.", 0], ["Il habite ___ Paris.", 1], ["Mon frère ___ perdu sa clé.", 0], ["Je pense ___ toi.", 1], ["Le train part ___ huit heures.", 1],
+  ["La princesse ___ une robe bleue.", 0], ["On joue ___ cache-cache.", 1], ["Il y ___ du soleil.", 0], ["C'est l'heure d'aller ___ l'école.", 1], ["Léa ___ trouvé un trésor.", 0],
+];
+const ON_ONT = [
+  ["Les Chinois ___ construit une muraille.", 1], ["Demain, ___ ira au parc.", 0], ["Mes amis ___ gagné le match.", 1], ["Les oiseaux ___ fait un nid.", 1],
+  ["Ce soir, ___ mange des crêpes.", 0], ["Les enfants ___ peur du noir.", 1], ["Le dimanche, ___ se promène en forêt.", 0], ["Mes parents ___ une grande maison.", 1],
+  ["Dans la cour, ___ joue au ballon.", 0], ["Les elfes ___ construit des cabanes.", 1], ["Ici, ___ parle français.", 0], ["Les lions ___ rugi très fort.", 1],
+];
+const PASSE_AVOIR = [
+  ["Ma cousine [a] parcouru la muraille.", 0], ["Les Chinois [ont] construit une muraille.", 1], ["Théo [a] un chien.", 0], ["Mes amis [ont] gagné.", 1],
+  ["Le chat [a] faim.", 0], ["Les enfants [ont] peur.", 1], ["Léa [a] trouvé un trésor.", 0], ["Les oiseaux [ont] chanté.", 1],
+];
+const EST_ET = [
+  ["L'empereur ___ désespéré.", 0], ["Un palais ___ un jardin.", 1], ["Le ciel ___ bleu.", 0], ["Théo ___ Léa jouent ensemble.", 1], ["Ma sœur ___ malade.", 0],
+  ["J'aime les fraises ___ les cerises.", 1], ["Ce monument ___ très beau.", 0], ["Il pleut ___ il fait froid.", 1], ["Le chat ___ sur le toit.", 0],
+  ["Du pain ___ du fromage.", 1], ["La muraille ___ immense.", 0], ["Papa ___ Maman arrivent.", 1],
+];
+const SONT_SON = [
+  ["Ce palais et ce jardin ___ construits.", 0], ["L'empereur aime ___ épouse.", 1], ["Les enfants ___ contents.", 0], ["Théo range ___ cartable.", 1],
+  ["Les fleurs ___ belles.", 0], ["Le chien mange ___ os.", 1], ["Mes amis ___ partis.", 0], ["Léa prête ___ vélo.", 1], ["Les étoiles ___ brillantes.", 0],
+  ["Le roi porte ___ manteau rouge.", 1], ["Ils ___ très gentils.", 0], ["Le chat joue avec ___ frère.", 1],
+];
+const PASSE_ETRE = [
+  ["L'empereur [est] désespéré.", 0], ["Ce palais et ce jardin [sont] construits.", 1], ["Le ciel [est] gris.", 0], ["Les enfants [sont] contents.", 1],
+  ["Ma sœur [est] malade.", 0], ["Les fleurs [sont] belles.", 1], ["Le chat [est] sur le toit.", 0], ["Mes amis [sont] partis.", 1],
+];
+// Groupe nominal : [déterminant, nom, formes de l'adjectif (m.s., f.s., m.p., f.p.), bonne forme, adjectif avant le nom ?]
+const GN = [
+  ["les", "épreuves", ["différent", "différente", "différents", "différentes"], 3, 1], ["une", "robe", ["vert", "verte", "verts", "vertes"], 1, 0],
+  ["des", "chevaux", ["blanc", "blanche", "blancs", "blanches"], 2, 0], ["la", "grenouille", ["petit", "petite", "petits", "petites"], 1, 1],
+  ["des", "fleurs", ["joli", "jolie", "jolis", "jolies"], 3, 1], ["un", "dragon", ["méchant", "méchante", "méchants", "méchantes"], 0, 0],
+  ["les", "tigres", ["rayé", "rayée", "rayés", "rayées"], 2, 0], ["une", "muraille", ["long", "longue", "longs", "longues"], 1, 1],
+  ["les", "maisons", ["grand", "grande", "grands", "grandes"], 3, 1], ["le", "jardin", ["fleuri", "fleurie", "fleuris", "fleuries"], 0, 0],
+  ["des", "pommes", ["mûr", "mûre", "mûrs", "mûres"], 3, 0], ["un", "monument", ["ancien", "ancienne", "anciens", "anciennes"], 0, 0],
+  ["les", "rivières", ["profond", "profonde", "profonds", "profondes"], 3, 0], ["une", "fée", ["gentil", "gentille", "gentils", "gentilles"], 1, 1],
+  ["les", "ours", ["brun", "brune", "bruns", "brunes"], 2, 0], ["la", "princesse", ["courageux", "courageuse", "courageux", "courageuses"], 1, 0],
+];
+const GENRES = ["masculin singulier", "féminin singulier", "masculin pluriel", "féminin pluriel"];
+const gnText = (g, f) => g[4] ? `${g[0]} ${f} ${g[1]}` : `${g[0]} ${g[1]} ${f}`;
+const FEMININ = [["grand", "grande"], ["petit", "petite"], ["gris", "grise"], ["blanc", "blanche"], ["long", "longue"], ["gros", "grosse"],
+  ["froid", "froide"], ["chaud", "chaude"], ["lourd", "lourde"], ["vert", "verte"], ["content", "contente"], ["mauvais", "mauvaise"],
+  ["rond", "ronde"], ["bavard", "bavarde"], ["fort", "forte"], ["gourmand", "gourmande"], ["profond", "profonde"], ["épais", "épaisse"], ["haut", "haute"], ["lent", "lente"]];
+const FAMILLE = [["un", "art", "artiste"], ["une", "dent", "dentiste"], ["le", "sport", "sportif"], ["le", "lait", "laitier"], ["le", "chant", "chanteur"],
+  ["un", "bond", "bondir"], ["le", "galop", "galoper"], ["le", "tapis", "tapisser"], ["le", "repos", "reposer"], ["le", "camp", "camper"], ["le", "sirop", "siroter"],
+  ["le", "bord", "border"], ["le", "retard", "retarder"], ["le", "regard", "regarder"], ["le", "tricot", "tricoter"], ["le", "marchand", "marchandise"],
+  ["le", "banc", "banquette"], ["le", "plomb", "plombier"], ["le", "rang", "ranger"], ["le", "chocolat", "chocolatier"], ["un", "abricot", "abricotier"],
+  ["le", "début", "débuter"], ["le", "saut", "sauter"], ["le", "chat", "chaton"], ["le", "vent", "ventilateur"], ["le", "trot", "trotter"], ["le", "bras", "brassard"]];
+const MUETTES = ["d", "t", "s", "c", "g", "p", "x"];
+// Lettres à éviter comme leurres car elles forment un autre vrai mot (lait/laid, vent/vend…).
+const VRAIS_MOTS = { lait: "dsx", vent: "d", chat: "s", vert: "sx", court: "s", marchand: "t", gros: "t", lent: "s" };
+const ACCORD = [
+  ["Les deux sœurs ___ Totoro.", ["rencontre", "rencontrent"], 1], ["Il ___ des glands aux fillettes.", ["offre", "offrent"], 0],
+  ["Le chat ___ du lait.", ["boit", "boivent"], 0], ["Les enfants ___ dans la cour.", ["joue", "jouent"], 1], ["Mon frère ___ un gâteau.", ["mange", "mangent"], 0],
+  ["Les oiseaux ___ le matin.", ["chante", "chantent"], 1], ["La maîtresse ___ une histoire.", ["lit", "lisent"], 0], ["Mes cousins ___ à la plage.", ["va", "vont"], 1],
+  ["Le vent ___ fort.", ["souffle", "soufflent"], 0], ["Les étoiles ___ la nuit.", ["brille", "brillent"], 1], ["Le dragon ___ du feu.", ["crache", "crachent"], 0],
+  ["Les fées ___ dans la forêt.", ["danse", "dansent"], 1],
+];
+const DEUX_SUJETS = [
+  ["Totoro et le chat bus ___ Mei.", ["retrouve", "retrouvent"], 1], ["Théo et Léa ___ au ballon.", ["joue", "jouent"], 1],
+  ["Le chien et le chat ___ ensemble.", ["dort", "dorment"], 1], ["Papa et Maman ___ le dîner.", ["prépare", "préparent"], 1],
+  ["La lune et le soleil ___.", ["brille", "brillent"], 1], ["Mon frère et ma sœur ___ à l'école.", ["va", "vont"], 1],
+  ["Le lion et le tigre ___.", ["rugit", "rugissent"], 1], ["Mamie et Papi ___ en vacances.", ["part", "partent"], 1],
+  ["Le copain de Théo ___ vite.", ["court", "courent"], 0], ["La maman des poussins ___ des graines.", ["picore", "picorent"], 0],
+];
+const PRONOM_VERBE = [
+  ["Les filles découvrent la maison, elles ___.", ["rit", "rient"], 1], ["Mon frère est content, il ___.", ["chante", "chantent"], 0],
+  ["Les chevaux ont soif, ils ___ de l'eau.", ["boit", "boivent"], 1], ["La princesse est fatiguée, elle ___.", ["dort", "dorment"], 0],
+  ["Les enfants entrent, ils ___ bonjour.", ["dit", "disent"], 1], ["Théo a froid, il ___ son manteau.", ["met", "mettent"], 0],
+  ["Mes amies arrivent, elles ___ un cadeau.", ["apporte", "apportent"], 1], ["Le chat qui ___ est gris.", ["dort", "dorment"], 0],
+  ["Les oiseaux qui ___ sont beaux.", ["chante", "chantent"], 1], ["Les fillettes, qui ___ peur, se cachent.", ["a", "ont"], 1],
+];
+const SUJET_VERBE = [
+  [["Les deux sœurs", "<b>rencontrent</b>", "Totoro"], 0], [["Dans le jardin", "<b>poussent</b>", "de jolies fleurs"], 2],
+  [["Ce matin,", "Théo et Léa", "<b>partent</b>", "en voyage"], 1], [["Totoro", "<b>offre</b>", "des glands", "aux fillettes"], 0],
+  [["Sur la colline", "<b>galope</b>", "un cheval blanc"], 2], [["Les amis de Théo", "<b>jouent</b>", "au foot"], 0],
+  [["Le soir,", "les étoiles", "<b>brillent</b>"], 1], [["La sœur de Mei", "<b>cherche</b>", "sa petite sœur"], 0],
+];
+const MOTS_DICTEE = [
+  ["muraille", "muraile", "murraille"], ["grenouille", "grenouie", "greunouille"], ["princesse", "princese", "prinsesse"], ["empereur", "empreur", "ampereur"],
+  ["épouse", "épouze", "éppouse"], ["monument", "monumant", "monnument"], ["jardin", "jardain", "jardint"], ["palais", "palai", "palet"],
+  ["voisin", "voisain", "voizin"], ["fillette", "fillete", "fiyette"], ["flèche", "flêche", "flaiche"], ["pierre", "piere", "pièrre"],
+  ["espace", "éspace", "espasse"], ["désespéré", "dézespéré", "désespèré"], ["épreuve", "épreuf", "éprheuve"], ["construit", "construi", "contruit"],
+];
+const VF_MOTS = [
+  ["Je trie les mots de ma liste avant de commencer.", 0], ["Je peux apprendre tous les mots en une seule fois.", 1],
+  ["Je revois les mots plusieurs fois, même ceux que je connais.", 0], ["Pour apprendre, j'utilise seulement mes oreilles.", 1],
+  ["Je m'imagine en train d'écrire sous la dictée.", 0], ["J'utilise mes yeux, mes oreilles et mes mains.", 0],
+  ["Je me concentre sur les mots nouveaux ou difficiles.", 0], ["Il faut apprendre les mots juste cinq minutes avant la dictée.", 1],
+  ["Les mots que je connais déjà, je ne les revois jamais.", 1],
+];
+const METHODES = [
+  ["Je regarde le mot, je ferme les yeux et je le revois dans ma tête.", 0], ["J'invente une petite histoire pour me souvenir d'une partie difficile.", 1],
+  ["Je recopie le mot avec de belles lettres amusantes.", 2], ["Je « photographie » le mot lettre après lettre.", 0],
+  ["Pour « muraille », j'imagine deux L qui grimpent sur le mur.", 1], ["J'utilise ma main pour former des lettres décorées.", 2],
+  ["Pour « grenouille », je raconte que la grenouille saute dans le « ou ».", 1], ["Je regarde le mot en détail puis je le revois les yeux fermés.", 0],
+  ["J'écris le mot en couleurs, avec des lettres jolies.", 2],
+];
+const RELECTURES = [
+  ["Je vérifie que j'ai écrit tous les mots dictés.", 0], ["Je vérifie les points et les majuscules.", 0], ["Je mets une majuscule aux noms propres.", 0],
+  ["Je vérifie les accords des déterminants, des noms et des adjectifs.", 1], ["Je vérifie que les verbes sont bien conjugués.", 1],
+  ["J'écoute bien les questions de l'enseignant.", 1], ["Je fais attention aux homophones comme a/à ou et/est.", 2],
+  ["Je reviens sur les mots que j'ai soulignés.", 2], ["Je vérifie les règles des sons que j'ai apprises.", 2],
+];
+const ERREURS = [ // [mots, indices des erreurs, phrase corrigée]
+  [["les", "Chinois", "ont", "construit", "une", "muraille."], [0], "Les Chinois ont construit une muraille."],
+  [["Ma", "cousine", "à", "parcouru", "la", "muraille."], [2], "Ma cousine a parcouru la muraille."],
+  [["Les", "deux", "sœurs", "rencontre", "Totoro."], [3], "Les deux sœurs rencontrent Totoro."],
+  [["Vassilissa", "réussit", "les", "différente", "épreuves."], [3], "Vassilissa réussit les différentes épreuves."],
+  [["Le", "palais", "et", "le", "jardin", "son", "magnifiques."], [5], "Le palais et le jardin sont magnifiques."],
+  [["L'empereur", "et", "triste."], [1], "L'empereur est triste."],
+  [["Le", "wayang", "kulit", "est", "un", "gran", "art."], [5], "Le wayang kulit est un grand art."],
+  [["Les", "fillettes", "on", "peur", "du", "noir."], [2], "Les fillettes ont peur du noir."],
+  [["Il", "offre", "des", "gland", "aux", "fillettes."], [3], "Il offre des glands aux fillettes."],
+  [["Totoro", "et", "le", "chat", "bus", "retrouve", "mei."], [5, 6], "Totoro et le chat bus retrouvent Mei."],
+  [["la", "princesse", "grenouille", "est", "sage."], [0], "La princesse grenouille est sage."],
+  [["Les", "enfants", "joue", "à", "cache-cache."], [2], "Les enfants jouent à cache-cache."],
+  [["Mon", "voisin", "a", "un", "chien", "blan."], [5], "Mon voisin a un chien blanc."],
+  [["Elle", "porte", "une", "robe", "vert."], [4], "Elle porte une robe verte."],
+];
+const SANS_ERREUR = [
+  ["Les Chinois ont construit une muraille.", "Les chinois on construit une muraille.", "Les Chinois ont construit une muraile."],
+  ["Ma cousine a parcouru la muraille à pied.", "Ma cousine à parcouru la muraille a pied.", "ma cousine a parcouru la muraille à pied."],
+  ["Les deux sœurs rencontrent Totoro.", "Les deux sœurs rencontre Totoro.", "Les deux sœur rencontrent Totoro."],
+  ["L'empereur est triste et fatigué.", "L'empereur et triste est fatigué.", "L'empereur est triste est fatigué."],
+  ["Ce palais et ce jardin sont beaux.", "Ce palais et ce jardin son beaux.", "Ce palais est ce jardin sont beaux."],
+  ["Vassilissa réussit les différentes épreuves.", "Vassilissa réussit les différents épreuves.", "vassilissa réussit les différentes épreuves."],
+  ["Le wayang kulit est un grand art.", "Le wayang kulit est un gran art.", "Le wayang kulit est un grand ar."],
+  ["Elles rient et elles chantent.", "Elles rit et elles chantent.", "Elles rient est elles chantent."],
+];
+const VF_RELIRE = [
+  ["Je dois relire ma dictée au moins trois fois.", 0], ["Si je ne suis pas sûr d'un mot, je le souligne au crayon à papier.", 0],
+  ["Je relis une seule fois, très vite.", 1], ["Je corrige d'abord les erreurs signalées par l'enseignant.", 0], ["Les majuscules, ça ne compte pas.", 1],
+  ["Je fais attention aux homophones (a/à, et/est).", 0], ["Je vérifie que j'ai écrit tous les mots dictés.", 0], ["Je n'ai pas besoin de vérifier les accords.", 1],
+];
+
+/* ============================================================
+   Fabriques d'exercices
+   ============================================================ */
+// gap : phrase à trou + boutons ; pick : question + boutons ; chunks : toucher un groupe ;
+// words : toucher plusieurs mots ; flash : mot à photographier ; order : lettres à remettre.
+const gap = (t, opts, a) => ({ type: "gap", t, opts, a });
+const pick = (q, opts, a) => ({ type: "pick", q, opts, a });
+function pickShuffled(r, q, good, wrong) { const o = r.shuffle([good, ...wrong]); return pick(q, o, o.indexOf(good)); }
+const passe = forms => ([t, a]) => {
+  const orig = t.replace(/\[(.+?)\]/, "<b>$1</b>"), trou = t.replace(/\[(.+?)\]/, "___");
+  return gap(`${orig}<br><span style="color:var(--muted)">Au passé :</span> ${trou}`, forms, a);
+};
+const chunkText = g => g.map(c => c[0]);
+
+const LECONS = [
+  {
+    id: "groupes", cat: "Grammaire", titre: "Les groupes dans la phrase", art: "groupes",
+    phrase: `<span class="chip C">Ce matin</span> <span class="chip S">le tigre</span> <span class="chip V">chasse une gazelle</span> <span class="chip C">dans la savane</span>.`,
+    retenir: `<p><span class="chip S">Groupe sujet</span> : groupe <b class="r">indispensable</b>. Il répond à la question <b class="bl">« De qui ou de quoi je parle ? »</b></p>
+      <p><span class="chip V">Groupe verbal</span> : groupe <b class="r">indispensable</b>. Il répond à la question <b class="bl">« Qu'est-ce que j'en dis ? »</b></p>
+      <p><span class="chip C">Groupes compléments</span> : ils répondent aux questions <b class="bl">Où ? Quand ? Comment ?</b><br>
+      On peut les <b class="r">supprimer</b> ou les <b class="r">déplacer</b>.</p>
+      <p class="exm">Exemple : <i>Le tigre chasse une gazelle.</i> (on a supprimé « Ce matin » et « dans la savane », la phrase veut encore dire quelque chose)</p>`,
+    ex: [
+      { title: "Touche le groupe sujet.", sub: "Demande-toi : de qui ou de quoi je parle ?", n: 5, make: (r) => r.sample(GROUPES, 5).map(g => ({ type: "chunks", parts: chunkText(g), a: g.findIndex(c => c[1] === "S") })) },
+      { title: "Quel est le groupe surligné ?", n: 5, make: (r) => r.sample(GROUPES, 5).map(g => {
+          const i = r.int(0, g.length - 1);
+          const q = g.map((c, j) => j === i ? `<mark>${c[0]}</mark>` : c[0]).join(" ") + ".";
+          return pick(q, ["Groupe sujet", "Groupe verbal", "Complément"], "SVC".indexOf(g[i][1]));
+        }) },
+      { title: "À quelle question répond le complément surligné ?", n: 5, make: (r) => r.sample(GROUPES, 5).map(g => {
+          const cs = g.map((c, j) => c[1] === "C" ? j : -1).filter(j => j >= 0), i = r.pick(cs);
+          const q = g.map((c, j) => j === i ? `<mark>${c[0]}</mark>` : c[0]).join(" ") + ".";
+          return pick(q, ["Où ?", "Quand ?", "Comment ?"], ["Où ?", "Quand ?", "Comment ?"].indexOf(g[i][2]));
+        }) },
+      { title: "Touche le groupe que l'on peut supprimer.", sub: "La phrase doit encore vouloir dire quelque chose sans lui.", n: 4,
+        make: (r) => r.sample(GROUPES.filter(g => g.filter(c => c[1] === "C").length === 1), 4).map(g => ({ type: "chunks", parts: chunkText(g), a: g.findIndex(c => c[1] === "C") })) },
+    ],
+  },
+  {
+    id: "sujet", cat: "Grammaire", titre: "Le sujet", art: "sujet",
+    phrase: `<span class="u">Le tigre</span> chass<b class="r">e</b>. &nbsp; <span class="u">Ils</span> chass<b class="r">ent</b>.`,
+    retenir: `<p>Le sujet est <b class="r">un mot ou un groupe de mots</b>. Il peut être :</p>
+      <div class="grid4"><span>un <b class="r">groupe nominal</b> (GN) : <i>le petit chat</i></span><span>un <b class="r">nom propre</b> : <i>Théo</i></span><span>un <b class="r">pronom personnel</b> : <i>il, elles…</i></span></div>
+      <p>Le sujet est un groupe <b class="r">indispensable</b>. Il n'est <b class="r">pas toujours placé devant</b> le groupe verbal.</p>
+      <p>Il <b class="r">commande le verbe</b> : on dit que le sujet et le verbe <b class="r">s'accordent</b>.</p>
+      <p>Pour trouver le sujet, on peut utiliser la formule <b class="bl">« C'est … qui … »</b>.</p>
+      <p class="exm">Exemple : <i>Qui est-ce qui aime chasser ? C'est <b>le tigre</b> qui aime chasser.</i></p>`,
+    ex: [
+      { title: "Touche le sujet du verbe.", sub: "Attention : il n'est pas toujours devant le verbe !", n: 5, make: (r) => r.sample(SUJETS, 5).map(s => ({ type: "chunks", parts: s[0], a: s[1] })) },
+      { title: "Le sujet surligné est…", n: 4, make: (r) => r.sample(SUJETS, 4).map(s => {
+          const q = s[0].map((c, j) => j === s[1] ? `<mark>${c}</mark>` : c).join(" ") + ".";
+          return pick(q, ["un groupe nominal", "un nom propre", "un pronom personnel"], ["GN", "NP", "PP"].indexOf(s[2]));
+        }) },
+      { title: "Remplace le sujet par un pronom.", n: 5, make: (r) => r.sample(PRONOMS, 5).map(p => gap(`<b>${p[0]}</b> ${p[1]}. → ___ ${p[1]}.`, ["Il", "Ils", "Elle", "Elles"], p[2])) },
+      { title: "Trouve le sujet avec « C'est … qui … ».", sub: "Choisis la bonne phrase.", n: 3, make: (r) => r.sample(CESTQUI, 3).map(c => pickShuffled(r, c[0], c[1], c.slice(2))) },
+    ],
+  },
+  {
+    id: "formes", cat: "Grammaire", titre: "Les formes de phrases", art: "formes",
+    phrase: `Théo aime les épinards. → Théo <b class="r">n'</b>aime <b class="r">pas</b> les épinards.`,
+    retenir: `<p>Une phrase peut avoir deux formes :</p>
+      <ul><li>la <b class="r">forme affirmative</b> sert à donner une information ou à décrire une action qui se produit ;</li>
+      <li>la <b class="r">forme négative</b> sert à nier une information : l'action décrite ne se produit pas.</li></ul>
+      <p>Dans une phrase négative, le verbe est en général entouré des <b class="r">adverbes de négation</b> <b class="bl">ne / n' … pas</b>.</p>
+      <p>Il y en a d'autres : <b class="bl">ne… plus, ne… jamais, ne… rien, ne… personne, ne… aucun, ni… ni</b>.</p>`,
+    ex: [
+      { title: "Cette phrase est-elle affirmative ou négative ?", n: 6, two: 1, make: (r) => r.sample(FORMES, 6).map(f => pick(f[0], ["Affirmative", "Négative"], f[1])) },
+      { title: "Touche tous les mots de la négation.", n: 4, make: (r) => r.sample(NEGMOTS, 4).map(w => ({ type: "words", w: w[0], a: w[1], sol: w[1].map(i => w[0][i].replace(/[.,]/g, "")).join(" … ") })) },
+      { title: "Choisis la bonne phrase négative.", n: 4, make: (r) => r.sample(NEGPHR, 4).map(p => pickShuffled(r, p[0] + " →", p[1], p.slice(2))) },
+      { title: "Complète avec « ne » ou « n' ».", sub: "Devant une voyelle (a, e, i, o, u, é…), on écrit n'.", n: 6, two: 1, make: (r) => r.sample(NE, 6).map(n => gap(n[0], ["ne", "n'"], n[1])) },
+    ],
+  },
+  {
+    id: "verbe", cat: "Grammaire", titre: "Le verbe", art: "verbe",
+    phrase: `chant<b class="r">er</b> → nous chant<b class="r">ons</b> &nbsp;(radical <span class="u">chant</span> + terminaison <b class="r">ons</b>)`,
+    retenir: `<p>Les verbes se classent selon leur terminaison : les verbes en <b class="r">-er</b> et les autres.</p>
+      <p>Le verbe est formé d'un <b class="r">radical</b> et d'une <b class="r">terminaison</b>.</p>
+      <p>Il peut être à l'<b class="r">infinitif</b> (<i>chanter</i>) ou <b class="r">conjugué</b> (<i>il chante</i>).</p>
+      <p>Le verbe exprime une <b class="r">action</b> ou un <b class="r">état</b>.</p>
+      <p class="exm">Exemples : <i>Il mange.</i> → action &nbsp;·&nbsp; <i>Il est étonné.</i> → état</p>
+      <p>Le verbe <b class="r">varie</b> selon le <b class="r">temps</b> et la <b class="r">personne</b>.</p>
+      <p>Pour trouver le verbe, on peut mettre la phrase à la <b class="bl">forme négative</b> (<i>il <b>ne</b> mange <b>pas</b></i>) ou utiliser <b class="bl">« C'est … qui … »</b>.</p>`,
+    ex: [
+      { title: "Touche le verbe conjugué.", sub: "Astuce : essaie de mettre ne … pas autour.", n: 5, make: (r) => r.sample(VERBES, 5).map(v => ({ type: "chunks", parts: v[0], a: v[1], words: 1 })) },
+      { title: "Le verbe en gras exprime une action ou un état ?", n: 6, two: 1, make: (r) => r.sample(ETAT, 6).map(e => pick(e[0], ["Action", "État"], e[1])) },
+      { title: "Quel est l'infinitif du verbe en gras ?", n: 4, make: (r) => r.sample(INFINITIFS, 4).map(i => pickShuffled(r, i[0], i[1], i.slice(2))) },
+      { title: "Où se trouve la coupure entre le radical et la terminaison ?", n: 4, make: (r) => r.sample(COUPES, 4).map(([w, c]) => {
+          const cut = k => `${w.slice(0, k)} | ${w.slice(k)}`;
+          const wrong = [c - 1, c + 1, c + 2].filter(k => k >= 1 && k < w.length).slice(0, 2).map(cut);
+          return pickShuffled(r, `<b>${w}</b>`, cut(c), wrong);
+        }) },
+    ],
+  },
+  {
+    id: "a-on", cat: "Orthographe", titre: "Écrire « a » ou « à », « on » ou « ont »", art: "aa",
+    phrase: `Les Chinois <b>ont</b> construit une muraille qu'<b>on</b> voit depuis l'espace.<br>Ma cousine <b>a</b> parcouru une partie de cette muraille <b>à</b> pied.`,
+    retenir: `<ul><li><b class="r">a</b> et <b class="r">ont</b> sont des formes conjuguées du verbe <b>« avoir »</b>. On peut les mettre au passé.
+        <div class="exm"><i>Les Chinois <b>ont</b> construit une muraille.</i> (Ils <b>avaient</b> construit…)<br><i>Ma cousine <b>a</b> parcouru cette muraille.</i> (Elle <b>avait</b> parcouru…)</div></li>
+      <li><b class="r">à</b> est une <b>préposition</b>. <span class="exm"><i>Elle a parcouru cette muraille <b>à</b> pied.</i></span></li>
+      <li><b class="r">on</b> est un <b>pronom personnel</b> : on peut le remplacer par <b>« il »</b>.
+        <div class="exm"><i><b>On</b> voit la muraille depuis l'espace.</i> (<b>Il</b> voit la muraille…)</div></li></ul>`,
+    ex: [
+      { title: "Complète avec « a » ou « à ».", sub: "Si tu peux dire « avait », c'est « a ».", n: 6, two: 1, make: (r) => r.sample(A_A, 6).map(x => gap(x[0], ["a", "à"], x[1])) },
+      { title: "Complète avec « on » ou « ont ».", sub: "Si tu peux dire « il », c'est « on ». Si tu peux dire « avaient », c'est « ont ».", n: 6, two: 1, make: (r) => r.sample(ON_ONT, 6).map(x => gap(x[0], ["on", "ont"], x[1])) },
+      { title: "Mélange : a, à, on ou ont ?", n: 4, two: 1, make: (r) => [...r.sample(A_A, 2).map(x => gap(x[0], ["a", "à", "on", "ont"], x[1])), ...r.sample(ON_ONT, 2).map(x => gap(x[0], ["a", "à", "on", "ont"], x[1] + 2))] },
+      { title: "Vérifie en mettant au passé.", n: 4, make: (r) => r.sample(PASSE_AVOIR, 4).map(passe(["avait", "avaient"])) },
+    ],
+  },
+  {
+    id: "gn", cat: "Orthographe", titre: "Les accords dans le groupe nominal", art: "gn",
+    phrase: `Vassilissa « la très sage » réussit les différent<b class="r">es</b> épreuve<b class="r">s</b>.`,
+    retenir: `<p>Dans le groupe nominal, l'<b class="r">adjectif</b> s'accorde avec le <b class="r">nom</b> et le <b class="r">déterminant</b>,
+      en <b>genre</b> (masculin ou féminin) et en <b>nombre</b> (singulier ou pluriel).</p>
+      <p>Pour accorder l'adjectif au nom, j'utilise les marques du <b class="r">féminin (e)</b> et du <b class="r">pluriel (s)</b> si c'est nécessaire.</p>
+      <div class="grid4"><span>un petit chat</span><span>une petit<b class="r">e</b> chatte</span><span>des petit<b class="r">s</b> chats</span><span>des petit<b class="r">es</b> chattes</span></div>`,
+    ex: [
+      { title: "Choisis la bonne forme de l'adjectif.", n: 5, make: (r) => r.sample(GN, 5).map(g => {
+          const opts = [...new Set(g[2])];
+          return gap(`${gnText(g, "___")} <span style="color:var(--muted)">(${g[2][0]})</span>`, opts, opts.indexOf(g[2][g[3]]));
+        }) },
+      { title: "Quel est le genre et le nombre de ce groupe nominal ?", n: 4, make: (r) => r.sample(GN, 4).map(g => pick(`<b>${gnText(g, g[2][g[3]])}</b>`, GENRES, g[3])) },
+      { title: "Choisis le groupe nominal bien accordé.", n: 4, make: (r) => r.sample(GN, 4).map(g => {
+          const good = gnText(g, g[2][g[3]]);
+          const wrong = [...new Set(g[2].map(f => gnText(g, f)))].filter(t => t !== good);
+          return pickShuffled(r, "", good, r.sample(wrong, 2));
+        }) },
+      { title: "Choisis le bon déterminant.", n: 5, two: 1, make: (r) => r.sample(GN.filter(g => ["le", "la", "les", "un", "une", "des"].includes(g[0])), 5).map(g => {
+          const fam = ["le", "la", "les"].includes(g[0]) ? ["le", "la", "les"] : ["un", "une", "des"];
+          return gap(`${gnText(g, g[2][g[3]]).replace(/^\S+/, "___")}`, fam, fam.indexOf(g[0]));
+        }) },
+    ],
+  },
+  {
+    id: "est-son", cat: "Orthographe", titre: "Écrire « est » ou « et », « sont » ou « son »", art: "est",
+    phrase: `Ce palais <b>et</b> ce jardin <b>sont</b> construits par un empereur qui <b>est</b> désespéré par la mort de <b>son</b> épouse.`,
+    retenir: `<ul><li><b class="r">est</b> et <b class="r">sont</b> sont des formes conjuguées du verbe <b>« être »</b>. On peut les mettre au passé.
+        <div class="exm"><i>L'empereur <b>est</b> désespéré.</i> (Il <b>était</b> désespéré.)<br><i>Ce palais et ce jardin <b>sont</b> construits.</i> (Ils <b>étaient</b> construits.)</div></li>
+      <li><b class="r">et</b> est une <b>conjonction</b> qui sert à ajouter quelque chose. <span class="exm"><i>un palais <b>et</b> un jardin</i></span></li>
+      <li><b class="r">son</b> est un <b>déterminant possessif</b> qui veut dire « le sien » ou « la sienne ».
+        <div class="exm"><i>L'empereur construit le monument pour <b>son</b> épouse.</i> (la sienne)</div></li></ul>`,
+    ex: [
+      { title: "Complète avec « est » ou « et ».", sub: "Si tu peux dire « était », c'est « est ».", n: 6, two: 1, make: (r) => r.sample(EST_ET, 6).map(x => gap(x[0], ["est", "et"], x[1])) },
+      { title: "Complète avec « sont » ou « son ».", sub: "Si tu peux dire « étaient », c'est « sont ».", n: 6, two: 1, make: (r) => r.sample(SONT_SON, 6).map(x => gap(x[0], ["sont", "son"], x[1])) },
+      { title: "Mélange : est, et, sont ou son ?", n: 4, two: 1, make: (r) => [...r.sample(EST_ET, 2).map(x => gap(x[0], ["est", "et", "sont", "son"], x[1])), ...r.sample(SONT_SON, 2).map(x => gap(x[0], ["est", "et", "sont", "son"], x[1] + 2))] },
+      { title: "Vérifie en mettant au passé.", n: 4, make: (r) => r.sample(PASSE_ETRE, 4).map(passe(["était", "étaient"])) },
+    ],
+  },
+  {
+    id: "muettes", cat: "Orthographe", titre: "Les lettres finales muettes", art: "muettes",
+    phrase: `Le wayang kulit est un gran<b class="r">d</b> ar<b class="r">t</b>.`,
+    retenir: `<p>Beaucoup de mots se terminent par une <b class="r">lettre finale muette</b> (une lettre qu'on n'entend pas).</p>
+      <p>Pour trouver cette lettre, on peut :</p>
+      <ul><li>mettre le mot au <b class="r">féminin</b> : <i>gran<b>d</b> → gran<b>d</b>e</i></li>
+      <li>chercher des mots de la <b class="r">même famille</b> : <i>ar<b>t</b> → ar<b>t</b>iste, ar<b>t</b>isanat, ar<b>t</b>istique…</i></li></ul>`,
+    ex: [
+      { title: "Trouve la lettre muette.", sub: "Dis le mot au féminin dans ta tête.", n: 5, two: 1, make: (r) => r.sample(FEMININ, 5).map(([m]) => {
+          const l = m.slice(-1); const o = r.shuffle([l, ...r.sample(MUETTES.filter(x => x !== l), 2)]);
+          return pick(`${m.slice(0, -1)}<span class="gap">?</span>`, o, o.indexOf(l));
+        }) },
+      { title: "Trouve la lettre muette grâce à la famille.", n: 5, two: 1, make: (r) => r.sample(FAMILLE, 5).map(([d, m, f]) => {
+          const l = m.slice(-1); const o = r.shuffle([l, ...r.sample(MUETTES.filter(x => x !== l), 2)]);
+          return pick(`${d} ${m.slice(0, -1)}<span class="gap">?</span> <span style="color:var(--muted)">(pense à : ${f})</span>`, o, o.indexOf(l));
+        }) },
+      { title: "Choisis la bonne orthographe.", n: 4, two: 1, make: (r) => r.sample([...FEMININ.map(f => f[0]), ...FAMILLE.map(f => f[1])], 4).map(m => {
+          const base = m.slice(0, -1), l = m.slice(-1), other = r.pick(MUETTES.filter(x => x !== l && !(VRAIS_MOTS[m] || "").includes(x)));
+          return pickShuffled(r, "", m, [base, base + other]);
+        }) },
+      { title: "Quel mot de la même famille t'aide ?", n: 4, make: (r) => r.sample(FAMILLE, 4).map(([d, m, f]) => {
+          const others = r.sample(FAMILLE.filter(x => x[1] !== m), 2).map(x => x[2]);
+          return pickShuffled(r, `Pour trouver la dernière lettre de <b>« ${d} ${m.slice(0, -1)}… »</b>, je pense à :`, f, others);
+        }) },
+    ],
+  },
+  {
+    id: "accord", cat: "Orthographe", titre: "Accorder le verbe", art: "accord",
+    phrase: `<span class="u">Les deux sœurs</span> rencontr<b class="r">ent</b> Totoro.`,
+    retenir: `<ul><li>Le verbe <b class="r">s'accorde avec le sujet</b>. Si le sujet est au pluriel, le verbe est au pluriel ; si le sujet est au singulier, le verbe est au singulier.
+        <div class="exm"><i><span class="u">Les deux sœurs</span> rencontr<b>ent</b> Totoro. &nbsp; <span class="u">Il</span> offr<b>e</b> des glands aux fillettes.</i></div></li>
+      <li>Si le verbe a <b class="r">deux sujets au singulier</b>, il est au <b class="r">pluriel</b>.
+        <div class="exm"><i><span class="u">Totoro et le chat bus</span> retrouv<b>ent</b> Mei.</i></div></li>
+      <li>Quand le sujet est un pronom comme <b>il / ils / elle / elles</b> ou <b>qui</b>, il faut <b class="r">réfléchir</b> pour savoir de qui il s'agit.
+        <div class="exm"><i><span class="u">Les filles</span> découvrent la maison, <span class="u">elles</span> ri<b>ent</b>.</i></div></li></ul>`,
+    ex: [
+      { title: "Choisis la bonne forme du verbe.", n: 6, two: 1, make: (r) => r.sample(ACCORD, 6).map(x => gap(x[0], x[1], x[2])) },
+      { title: "Un sujet ou deux sujets ? Attention !", n: 5, two: 1, make: (r) => r.sample(DEUX_SUJETS, 5).map(x => gap(x[0], x[1], x[2])) },
+      { title: "Le sujet est un pronom : réfléchis !", n: 5, two: 1, make: (r) => r.sample(PRONOM_VERBE, 5).map(x => gap(x[0], x[1], x[2])) },
+      { title: "Touche le sujet qui commande le verbe en gras.", n: 4, make: (r) => r.sample(SUJET_VERBE, 4).map(s => ({ type: "chunks", parts: s[0], a: s[1] })) },
+    ],
+  },
+  {
+    id: "mots", cat: "Méthode", titre: "Comment apprendre ses mots ?", art: "mots",
+    phrase: `Pour apprendre les mots, j'utilise mon <b>cerveau</b>, mais aussi mes <b>yeux</b>, mes <b>oreilles</b> et mes <b>mains</b>.`,
+    retenir: `<ul><li><b class="r">Règle 1</b> : je <b>trie les mots de ma liste</b>. Je mets de côté ceux que je sais déjà écrire et je me concentre sur les mots nouveaux ou difficiles.</li>
+      <li><b class="r">Règle 2</b> : j'utilise <b>plusieurs sens</b> : la vue, l'ouïe et le toucher. J'essaie différentes méthodes.</li>
+      <li><b class="r">Règle 3</b> : on ne peut pas tout apprendre en une fois. Les mots doivent être <b>revus plusieurs fois</b>.</li>
+      <li><b class="r">Règle 4</b> : je m'<b>imagine en train d'écrire</b> sous la dictée.</li></ul>
+      <div class="meth">
+        <div>${ICON.photo}<span><b>1. L'appareil photo</b> : je regarde le mot lettre après lettre, je le « photographie », je ferme les yeux et je le revois dans ma tête.</span></div>
+        <div>${ICON.livre}<span><b>2. Les histoires</b> : si une partie du mot est difficile, j'invente une histoire pour m'en souvenir.</span></div>
+        <div>${ICON.stylo}<span><b>3. La calligraphie</b> : je recopie le mot en formant des lettres belles ou amusantes.</span></div>
+      </div>`,
+    ex: [
+      { title: "L'appareil photo : regarde le mot, puis retrouve-le.", sub: "Le mot disparaît après 3 secondes !", n: 4, two: 1, make: (r) => r.sample(MOTS_DICTEE, 4).map(m => { const o = r.shuffle(m); return { type: "flash", word: m[0], opts: o, a: o.indexOf(m[0]) }; }) },
+      { title: "Vrai ou faux ?", n: 5, make: (r) => r.sample(VF_MOTS, 5).map(v => pick(v[0], ["Vrai", "Faux"], v[1])) },
+      { title: "Quelle méthode est-ce ?", n: 4, make: (r) => r.sample(METHODES, 4).map(m => pick(m[0], ["L'appareil photo", "Les histoires", "La calligraphie"], m[1])) },
+      { title: "Remets les lettres dans l'ordre.", sub: "Touche les lettres une par une.", n: 3, make: (r) => r.sample(MOTS_DICTEE.filter(m => m[0].length <= 9), 3).map(m => {
+          const L = [...m[0]]; let t; do t = r.shuffle(L.map((_, i) => i)); while (t.every((v, i) => v === i));
+          return { type: "order", word: m[0], tiles: t.map(i => L[i]) };
+        }) },
+    ],
+  },
+  {
+    id: "relire", cat: "Méthode", titre: "Comment relire sa dictée ?", art: "relire",
+    phrase: `Tu dois relire ton texte <b>au moins trois fois</b>.`,
+    retenir: `<p><b class="r">Première relecture</b> : je vérifie que j'ai écrit <b>tous les mots</b>, la <b>ponctuation</b> et les <b>majuscules</b> (début de phrase et noms propres).</p>
+      <p><b class="r">Deuxième relecture</b> : je vérifie les <b>accords</b> (déterminants, noms, adjectifs) et les <b>verbes conjugués</b>. J'écoute les questions de l'enseignant : elles m'aident.</p>
+      <p><b class="r">Troisième relecture</b> : je reviens sur les mots soulignés, je fais attention aux <b>homophones</b> (a/à, et/est…) et aux règles des sons apprises.</p>
+      <p>À chaque fois, si je ne suis pas sûr d'un mot, je le <b class="bl">souligne au crayon à papier</b>.</p>
+      <p class="exm">Si l'enseignant a signalé des erreurs, je les corrige <b>en priorité</b>.</p>`,
+    ex: [
+      { title: "Pendant quelle relecture je vérifie cela ?", n: 4, make: (r) => r.sample(RELECTURES, 4).map(x => pick(x[0], ["Première", "Deuxième", "Troisième"], x[1])) },
+      { title: "Touche les mots qui ont une erreur.", sub: "Majuscules, accords, homophones… Sois un vrai détective !", n: 4, make: (r) => r.sample(ERREURS, 4).map(e => ({ type: "words", w: e[0], a: e[1], sol: e[2] })) },
+      { title: "Choisis la phrase sans erreur.", n: 3, make: (r) => r.sample(SANS_ERREUR, 3).map(s => pickShuffled(r, "", s[0], s.slice(1))) },
+      { title: "Vrai ou faux ?", n: 4, make: (r) => r.sample(VF_RELIRE, 4).map(v => pick(v[0], ["Vrai", "Faux"], v[1])) },
+    ],
+  },
+];
+const CAT_COLOR = { "Grammaire": "--gr", "Orthographe": "--or", "Méthode": "--me" };
+
+/* ============================================================
+   Sons faits maison (Web Audio)
+   ============================================================ */
+const Snd = {
+  ac: null, muted: false,
+  init() { if (!this.ac) { try { this.ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; } } if (this.ac.state === "suspended") this.ac.resume(); },
+  tone(f, dur, { type = "sine", vol = .15, delay = 0 } = {}) {
+    if (this.muted || !this.ac) return;
+    const t = this.ac.currentTime + delay, o = this.ac.createOscillator(), g = this.ac.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(g).connect(this.ac.destination); o.start(t); o.stop(t + dur + .05);
+  },
+  noise(dur, { vol = .2, freq = 1200, q = 1, sweep = 0 } = {}) {
+    if (this.muted || !this.ac) return;
+    const t = this.ac.currentTime, len = Math.ceil(this.ac.sampleRate * dur), buf = this.ac.createBuffer(1, len, this.ac.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    const s = this.ac.createBufferSource(), f = this.ac.createBiquadFilter(), g = this.ac.createGain();
+    s.buffer = buf; f.type = "bandpass"; f.frequency.setValueAtTime(freq, t); f.Q.value = q;
+    if (sweep) f.frequency.exponentialRampToValueAtTime(freq * sweep, t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    s.connect(f).connect(g).connect(this.ac.destination); s.start(t);
+  },
+  tap() { this.tone(880, .06, { type: "triangle", vol: .08 }); },
+  pick(i) { this.tone([523, 587, 659, 698, 784, 880][i % 6], .12, { type: "triangle", vol: .1 }); },
+  page() { this.noise(.4, { vol: .22, freq: 700, q: .7, sweep: 2.5 }); },
+  shutter() { this.noise(.08, { vol: .4, freq: 2500, q: 1 }); this.tone(1400, .05, { type: "square", vol: .04 }); },
+  good() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, .22, { type: "triangle", vol: .13, delay: i * .09 })); },
+  soso() { [523, 587, 659].forEach((f, i) => this.tone(f, .2, { type: "triangle", vol: .1, delay: i * .1 })); },
+  stamp() { this.noise(.18, { vol: .6, freq: 180, q: .8 }); [784, 988, 1175, 1568].forEach((f, i) => this.tone(f, .3, { type: "triangle", vol: .12, delay: .2 + i * .1 })); },
+};
+
+/* ============================================================
+   Sauvegarde locale
+   ============================================================ */
+const KEY = "theo-lecons-v1";
+let S;
+try { S = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { S = null; }
+if (!S || S.v !== 1) S = { v: 1, serie: {}, pages: {}, muted: false };
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+const starsOf = s => s == null ? 0 : s >= 1 ? 3 : s >= .8 ? 2 : s >= .5 ? 1 : 0;
+const starHTML = s => "★".repeat(starsOf(s)) + `<i>${"★".repeat(3 - starsOf(s))}</i>`;
+const lessonBest = id => Object.entries(S.pages).filter(([k]) => k.startsWith(id + "-")).reduce((b, [, p]) => p.best != null && (b == null || p.best > b) ? p.best : b, null);
+const totalStars = () => LECONS.reduce((t, l) => t + starsOf(lessonBest(l.id)), 0);
+
+/* ============================================================
+   Construction d'une page de leçon
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const menuEl = $("menu"), lessonEl = $("lesson");
+let cur = null, paused = false;
+
+function buildLesson(L, serie) {
+  const units = [];
+  const exs = L.ex.map((def, ei) => {
+    const r = makeRng(`${VERSION}|${L.id}|${serie}|${ei}`);
+    const items = def.make(r);
+    const html = items.map((it, ii) => renderItem(it, `${ei}.${ii}`, ii, units)).join("");
+    return `<section class="ex"><h3><span class="num">${ei + 1}</span><span>${def.title}${def.sub ? `<small>${def.sub}</small>` : ""}</span></h3>
+      <div class="qs${def.two ? " two" : ""}">${html}</div></section>`;
+  });
+  return { exs, units };
+}
+function renderItem(it, k, ii, units) {
+  const lt = `<span class="lt">${LETTRES[ii]}.</span>`;
+  const btns = (cls) => it.opts.map((o, j) => `<button class="${cls}" data-k="${k}" data-i="${j}">${o}</button>`).join("");
+  let body = "", sol = "";
+  if (it.type === "gap") {
+    body = `<p class="sent">${lt}${it.t.replace("___", `<span class="gap" data-gap="${k}">…</span>`)}</p><div class="opts">${btns("opt")}</div>`;
+    sol = it.opts[it.a];
+    units.push({ k, kind: "single", ans: String(it.a), check: A => A[k] === String(it.a) });
+  } else if (it.type === "pick") {
+    body = `${it.q ? `<p class="sent">${lt}${it.q}</p>` : `<span class="lt">${LETTRES[ii]}.</span>`}<div class="opts">${btns("opt")}</div>`;
+    sol = it.opts[it.a];
+    units.push({ k, kind: "single", ans: String(it.a), check: A => A[k] === String(it.a) });
+  } else if (it.type === "chunks") {
+    body = `<p class="sent">${lt}<span class="chunks">${it.parts.map((p, j) => `<button class="chk" data-k="${k}" data-i="${j}">${p}</button>`).join("")}</span></p>`;
+    sol = strip(it.parts[it.a]);
+    units.push({ k, kind: "single", ans: String(it.a), check: A => A[k] === String(it.a) });
+  } else if (it.type === "words") {
+    body = `<p class="sent">${lt}<span class="chunks">${it.w.map((p, j) => `<button class="wd" data-m="${k}" data-i="${j}">${p}</button>`).join("")}</span></p>`;
+    sol = it.sol;
+    const good = it.a.slice().sort((a, b) => a - b).join(",");
+    units.push({ k, kind: "multi", ans: good, check: A => (A[k] || "").split(",").filter(Boolean).map(Number).sort((a, b) => a - b).join(",") === good });
+  } else if (it.type === "flash") {
+    body = `<div class="flash">${lt}<div><div class="card-w" data-fw="${k}" data-word="${it.word}">?</div></div><button class="look" data-look="${k}">📷 Regarder</button></div>
+      <div class="opts" data-fo="${k}" hidden>${btns("opt")}</div>`;
+    sol = it.word;
+    units.push({ k, kind: "single", ans: String(it.a), check: A => A[k] === String(it.a) });
+  } else if (it.type === "order") {
+    body = `<div class="ord-line">${lt}<span class="ord-ans" data-oa="${k}"></span><button class="undo" data-undo="${k}" aria-label="Effacer la dernière lettre">⌫</button></div>
+      <div class="opts">${it.tiles.map((c, j) => `<button class="tile" data-o="${k}" data-i="${j}">${c}</button>`).join("")}</div>`;
+    sol = it.word;
+    const tiles = it.tiles;
+    units.push({ k, kind: "order", ans: null, tiles, check: A => (A[k] || "").split(",").filter(Boolean).map(i => tiles[+i]).join("") === it.word });
+    units[units.length - 1].ans = solveOrder(tiles, it.word);
+  }
+  return `<div class="q" data-u="${k}">${body}<div class="sol">Réponse : ${sol}</div></div>`;
+}
+function solveOrder(tiles, word) {
+  const used = new Set();
+  return [...word].map(c => { const i = tiles.findIndex((t, j) => t === c && !used.has(j)); used.add(i); return i; }).join(",");
+}
+
+function showMenu() {
+  cur = null;
+  lessonEl.hidden = true; menuEl.hidden = false;
+  $("backBtn").hidden = true; $("homeBtn").hidden = false;
+  $("brand").textContent = "Les Leçons de Théo";
+  let h = `<p class="hello">Tu as gagné <b>${totalStars()} ★</b> sur ${LECONS.length * 3}. Choisis une leçon !</p>`;
+  for (const cat of ["Grammaire", "Orthographe", "Méthode"]) {
+    h += `<h2 class="cat">${cat}</h2><div class="cards">`;
+    LECONS.forEach((L, i) => {
+      if (L.cat !== cat) return;
+      h += `<button class="lcard" data-lesson="${i}">${ART[L.art]}<span><b>${L.titre}</b><small>${L.ex.length} exercices</small><span class="st">${starHTML(lessonBest(L.id))}</span></span></button>`;
+    });
+    h += `</div>`;
+  }
+  menuEl.innerHTML = h;
+  document.documentElement.style.setProperty("--theme", "var(--gr)");
+  window.scrollTo({ top: 0 });
+}
+menuEl.addEventListener("click", ev => {
+  const b = ev.target.closest("[data-lesson]"); if (!b) return;
+  const L = LECONS[+b.dataset.lesson];
+  openLesson(L, S.serie[L.id] || 1);
+});
+
+function openLesson(L, serie) {
+  S.serie[L.id] = serie; save();
+  const pid = `${L.id}-${serie}`;
+  const P = S.pages[pid] || { a: {}, best: null, m: false, rev: false };
+  const page = buildLesson(L, serie);
+  cur = { L, serie, pid, P, units: page.units, uMap: {}, seen: new Set() };
+  page.units.forEach(u => { cur.uMap[u.k] = u; });
+  document.documentElement.style.setProperty("--theme", `var(${CAT_COLOR[L.cat]})`);
+  menuEl.hidden = true; lessonEl.hidden = false;
+  $("backBtn").hidden = false; $("homeBtn").hidden = true;
+  $("brand").textContent = L.titre;
+  const num = LECONS.filter(x => x.cat === L.cat).indexOf(L) + 1;
+  lessonEl.innerHTML = `<article class="sheet${P.rev ? " reveal" : ""}" id="sheet">
+    <div class="lh">${ART[L.art]}<div><div class="kind">${L.cat} · leçon ${num}</div><h2>${L.titre}</h2></div><div class="serie">Série ${serie}</div></div>
+    <p class="ex-phrase">${L.phrase}</p>
+    <div class="retenir"><h3>À retenir</h3>${L.retenir}</div>
+    ${page.exs.join("")}
+    <div class="actions"><button class="big" data-act="corriger">✔ Corriger</button><button class="ghost" data-act="effacer">↺ Rejouer</button>
+      <button class="ghost" data-act="nouv">✚ Nouvelles questions</button></div>
+    <div class="score-line" id="scoreLine"></div>
+  </article>`;
+  applyAnswers();
+  if (P.m) corriger(true);
+  updateScoreLine();
+  window.scrollTo({ top: 0 });
+  Snd.page();
+}
+
+function applyAnswers() {
+  const A = cur.P.a, sheet = $("sheet");
+  sheet.querySelectorAll(".opt, .chk").forEach(b => b.classList.toggle("sel", A[b.dataset.k] === b.dataset.i));
+  sheet.querySelectorAll("[data-gap]").forEach(g => {
+    const u = A[g.dataset.gap], btn = u != null && sheet.querySelector(`.opt[data-k="${g.dataset.gap}"][data-i="${u}"]`);
+    g.textContent = btn ? btn.textContent : "…"; g.classList.toggle("full", !!btn);
+  });
+  sheet.querySelectorAll(".wd").forEach(b => b.classList.toggle("sel", (A[b.dataset.m] || "").split(",").includes(b.dataset.i)));
+  sheet.querySelectorAll("[data-fo]").forEach(o => { if (A[o.dataset.fo] != null || cur.seen.has(o.dataset.fo)) o.hidden = false; });
+  sheet.querySelectorAll("[data-oa]").forEach(paintOrder);
+}
+function paintOrder(el) {
+  const k = el.dataset.oa, u = cur.uMap[k], seq = (cur.P.a[k] || "").split(",").filter(Boolean);
+  el.textContent = seq.map(i => u.tiles[+i]).join("");
+  $("sheet").querySelectorAll(`.tile[data-o="${k}"]`).forEach(t => { t.disabled = seq.includes(t.dataset.i); });
+}
+function setAns(k, v) {
+  if (v === "" || v == null) delete cur.P.a[k]; else cur.P.a[k] = v;
+  const q = $("sheet").querySelector(`.q[data-u="${k}"]`); if (q) q.classList.remove("ok", "ko");
+  S.pages[cur.pid] = cur.P; save();
+}
+
+lessonEl.addEventListener("click", ev => {
+  if (!cur) return;
+  const t = ev.target;
+  const sb = t.closest(".opt, .chk");
+  if (sb) { const k = sb.dataset.k; setAns(k, cur.P.a[k] === sb.dataset.i ? "" : sb.dataset.i); applyAnswers(); Snd.pick(+sb.dataset.i); return; }
+  const wd = t.closest(".wd");
+  if (wd) {
+    const k = wd.dataset.m, s = new Set((cur.P.a[k] || "").split(",").filter(Boolean));
+    s.has(wd.dataset.i) ? s.delete(wd.dataset.i) : s.add(wd.dataset.i);
+    setAns(k, [...s].join(",")); applyAnswers(); Snd.pick(s.size); return;
+  }
+  const look = t.closest("[data-look]");
+  if (look) { flash(look.dataset.look); return; }
+  const tile = t.closest(".tile");
+  if (tile) { const k = tile.dataset.o, seq = (cur.P.a[k] || "").split(",").filter(Boolean); seq.push(tile.dataset.i); setAns(k, seq.join(",")); applyAnswers(); Snd.pick(seq.length); return; }
+  const undo = t.closest("[data-undo]");
+  if (undo) { const k = undo.dataset.undo, seq = (cur.P.a[k] || "").split(",").filter(Boolean); seq.pop(); setAns(k, seq.join(",")); applyAnswers(); Snd.tap(); return; }
+  const act = t.closest("[data-act]");
+  if (act) {
+    Snd.tap();
+    if (act.dataset.act === "corriger") corriger(false);
+    else if (act.dataset.act === "effacer") $("confirmOv").hidden = false;
+    else openLesson(cur.L, cur.serie + 1);
+  }
+});
+
+// L'appareil photo : le mot s'affiche 3 secondes puis disparaît.
+function flash(k) {
+  const card = $("sheet").querySelector(`[data-fw="${k}"]`), btn = $("sheet").querySelector(`[data-look="${k}"]`);
+  if (!card || card.dataset.busy) return;
+  card.dataset.busy = "1"; btn.disabled = true;
+  card.innerHTML = `<span>${card.dataset.word}</span><span class="bar"></span>`;
+  Snd.shutter();
+  const bar = card.querySelector(".bar");
+  bar.animate([{ transform: "scaleX(1)" }, { transform: "scaleX(0)" }], { duration: 3000, easing: "linear" });
+  setTimeout(() => {
+    if (!card.isConnected) return;
+    card.textContent = "?"; delete card.dataset.busy; btn.disabled = false;
+    cur.seen.add(k);
+    const o = $("sheet").querySelector(`[data-fo="${k}"]`); if (o) o.hidden = false;
+  }, 3000);
+}
+
+function corriger(silent) {
+  const A = cur.P.a; let ok = 0;
+  cur.units.forEach(u => {
+    const res = !!u.check(A); if (res) ok++;
+    const q = $("sheet").querySelector(`.q[data-u="${u.k}"]`);
+    q.classList.remove("ok", "ko"); q.classList.add(res ? "ok" : "ko");
+  });
+  if (silent) return;
+  const tot = cur.units.length, s = ok / tot;
+  cur.P.m = true;
+  if (!cur.P.rev && (cur.P.best == null || s > cur.P.best)) cur.P.best = s;
+  S.pages[cur.pid] = cur.P; save();
+  updateScoreLine();
+  const st = starsOf(s);
+  let stamp, msg;
+  if (s >= 1) { stamp = "TB"; msg = "Bravo Théo, tout est juste ! Tu as bien compris la leçon."; Snd.stamp(); }
+  else if (s >= .8) { stamp = "B"; msg = "Super ! Relis le cadre « À retenir » et corrige les réponses en rouge."; Snd.good(); }
+  else if (s >= .5) { stamp = "AB"; msg = "Pas mal ! Relis bien la leçon, puis réessaie les réponses en rouge."; Snd.soso(); }
+  else { stamp = "Courage"; msg = "Relis tranquillement le cadre « À retenir », puis réessaie."; Snd.soso(); }
+  $("resultCard").innerHTML = `<div class="stamp">${stamp}</div><div class="bigstars">${starHTML(s)}</div>
+    <p><b>${ok} bonne${ok > 1 ? "s" : ""} réponse${ok > 1 ? "s" : ""} sur ${tot}</b></p><p>${msg}</p>
+    ${cur.P.rev ? `<p style="color:var(--muted-d)">Tu as vu les solutions : ton meilleur score reste celui d'avant.</p>` : ""}
+    <div class="row">${s < 1 ? `<button class="ghost" data-r="fix">✏️ Corriger mes erreurs</button>` : ""}
+    ${s < 1 && !cur.P.rev ? `<button class="ghost" data-r="sol">👀 Voir les solutions</button>` : ""}
+    <button class="big" data-r="next">Nouvelles questions ▶</button></div>
+    <div class="row"><button class="ghost" data-r="menu">📚 Retour aux leçons</button></div>`;
+  $("resultOv").hidden = false;
+}
+$("resultCard").addEventListener("click", ev => {
+  const b = ev.target.closest("[data-r]"); if (!b) return;
+  Snd.tap(); $("resultOv").hidden = true;
+  const r = b.dataset.r;
+  if (r === "next") return openLesson(cur.L, cur.serie + 1);
+  if (r === "menu") return showMenu();
+  if (r === "sol") { cur.P.rev = true; $("sheet").classList.add("reveal"); S.pages[cur.pid] = cur.P; save(); }
+  const bad = $("sheet").querySelector(".q.ko"); if (bad) bad.scrollIntoView({ behavior: "smooth", block: "center" });
+});
+function updateScoreLine() {
+  const el = $("scoreLine"); if (!el) return;
+  el.innerHTML = cur.P.best != null ? `Meilleur score de cette série : <span class="st">${"★".repeat(starsOf(cur.P.best))}${"☆".repeat(3 - starsOf(cur.P.best))}</span> (${Math.round(cur.P.best * 100)} %)` : "";
+}
+
+$("yesBtn").addEventListener("click", () => { delete S.pages[cur.pid]; save(); $("confirmOv").hidden = true; openLesson(cur.L, cur.serie); });
+$("noBtn").addEventListener("click", () => { Snd.tap(); $("confirmOv").hidden = true; });
+$("backBtn").addEventListener("click", () => { Snd.tap(); showMenu(); });
+$("pauseBtn").addEventListener("click", () => { paused = true; $("pauseOv").hidden = false; Snd.tap(); });
+$("resumeBtn").addEventListener("click", () => { paused = false; $("pauseOv").hidden = true; Snd.tap(); });
+function showMute() { $("muteBtn").textContent = Snd.muted ? "🔇" : "🔊"; $("muteBtn").setAttribute("aria-label", Snd.muted ? "Remettre le son" : "Couper le son"); }
+$("muteBtn").addEventListener("click", () => { Snd.muted = !Snd.muted; S.muted = Snd.muted; save(); showMute(); Snd.tap(); });
+$("playBtn").addEventListener("click", () => { Snd.init(); $("title").hidden = true; Snd.page(); });
+
+Snd.muted = !!S.muted; showMute();
+$("titleStickers").innerHTML = ART.groupes + ART.aa + ART.gn + ART.relire;
+showMenu();
+
+// Petit accès pour les tests automatiques.
+window.lecons = { LECONS, buildLesson, openLesson, showMenu, get cur() { return cur; }, corriger };
+</script>
+</body>
+</html>
