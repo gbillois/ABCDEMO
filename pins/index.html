@@ -992,9 +992,10 @@ function person(o) {
     if (key === "deco") { const c = new THREE.Color(col), n = gg.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = c.r; a[i * 3 + 1] = c.g; a[i * 3 + 2] = c.b; } gg.setAttribute("color", new THREE.BufferAttribute(a, 3)); }
     if (!bins.has(bone)) bins.set(bone, new Map()); const m = bins.get(bone); if (!m.has(key)) m.set(key, []); m.get(key).push(gg);
   }
-  const lathe = (pts, seg = 32) => new THREE.LatheGeometry(pts.map(([x, y]) => new THREE.Vector2(x, y)), seg);
-  const sph = (r, w = 28, h = 20) => new THREE.SphereGeometry(r, w, h), cap = (r, l) => new THREE.CapsuleGeometry(r, l, 6, 16);
-  const tube = (pts, r, seg = 12) => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p))), seg, r, 6);
+  const q = o.lite ? .42 : 1, Q2 = n => Math.max(6, Math.round(n * q));
+  const lathe = (pts, seg = 32) => new THREE.LatheGeometry(pts.map(([x, y]) => new THREE.Vector2(x, y)), Q2(seg));
+  const sph = (r, w = 28, h = 20) => new THREE.SphereGeometry(r, Q2(w), Q2(h)), cap = (r, l) => new THREE.CapsuleGeometry(r, l, o.lite ? 2 : 6, Q2(16));
+  const tube = (pts, r, seg = 12) => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p))), Q2(seg), r, o.lite ? 4 : 6);
   const legs = [], arms = [], knees = [], elbows = [], lids = [];
   // ---- jambes
   for (const s of [-1, 1]) {
@@ -1071,12 +1072,12 @@ function person(o) {
   put(head, "hr", new THREE.SphereGeometry(.243, 48, 24, 0, Math.PI * 2, 0, Math.PI * .5), [0, .045, -.02], [-.35, 0, 0]);
   put(head, "hr", sph(.232, 40, 28), [0, .01, -.055], [0, 0, 0], [.98, .97, .9]);
   if (!female) {
-    for (let i = 0; i < 70; i++) { const th = R() * 1.25, ph = R() * Math.PI * 2; if (Math.cos(ph) > .5 && th > .95) continue;
+    for (let i = 0; i < (o.lite ? 26 : 70); i++) { const th = R() * 1.25, ph = R() * Math.PI * 2; if (Math.cos(ph) > .5 && th > .95) continue;
       const d = new THREE.Vector3(Math.sin(th) * Math.sin(ph), Math.cos(th), Math.sin(th) * Math.cos(ph)), base = d.clone().multiplyScalar(.238).add(new THREE.Vector3(0, .04, -.02));
       const out = d.clone().multiplyScalar(.3).add(new THREE.Vector3((R() - .5) * .3, -.6, d.z > .35 ? .55 : -.65)).normalize(), L = .07 + R() * .05;
       const geo = new THREE.ConeGeometry(.028 + R() * .012, L, 10, 2); geo.translate(0, L / 2, 0); geo.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), out)); geo.translate(base.x, base.y, base.z); put(head, "hr", geo); }
   } else {
-    for (let i = 0; i < 64; i++) { const ph = Math.PI * .45 + R() * Math.PI * 1.1, th = .3 + R() * 1.0, d = new THREE.Vector3(Math.sin(th) * Math.sin(ph), Math.cos(th), Math.sin(th) * Math.cos(ph));
+    for (let i = 0; i < (o.lite ? 24 : 64); i++) { const ph = Math.PI * .45 + R() * Math.PI * 1.1, th = .3 + R() * 1.0, d = new THREE.Vector3(Math.sin(th) * Math.sin(ph), Math.cos(th), Math.sin(th) * Math.cos(ph));
       const p0 = d.clone().multiplyScalar(.24).add(new THREE.Vector3(0, .04, -.02)), L = .32 + R() * .14, sx = d.x * 1.1;
       put(head, "hr", tube([[p0.x, p0.y, p0.z], [p0.x * 1.18 + sx * .02, p0.y - .1, p0.z - .03], [p0.x * 1.15, -.14, -.12 - R() * .05], [p0.x * 1.08 + (R() - .5) * .04, -.14 - L, -.12 - R() * .06]], .02 + R() * .008, 12)); }
     for (const s of [-1, 1]) put(head, "hr", tube([[s * .12, .2, .11], [s * .2, .06, .1], [s * .215, -.12, .05], [s * .2, -.3, .02]], .028, 14));
@@ -1084,10 +1085,10 @@ function person(o) {
   if (o.cap) { const cm = mat(o.cap, .6); M.cap = cm; put(head, "cap", new THREE.SphereGeometry(.252, 40, 16, 0, Math.PI * 2, 0, Math.PI * .5), [0, .055, -.01], [-.12, 0, 0], [1, .8, 1.02]);
     const brim = new THREE.CylinderGeometry(.19, .2, .016, 32, 1, false, -Math.PI / 2, Math.PI); put(head, "cap", brim, [0, .085, .19], [.12, 0, 0], [1, 1, 1.3]); put(head, "cap", sph(.022, 12, 8), [0, .26, -.02]); }
   // assemblage : une seule pièce par matériau et par os
-  const parts = { sh: [], pa: [], so: [], sole: [], hr: [] };
-  for (const [bone, m] of bins) for (const [key, list] of m) { const mesh = new THREE.Mesh(mergeGeometries(list), M[key]); mesh.castShadow = true; mesh.receiveShadow = true; bone.add(mesh); if (parts[key]) parts[key].push(mesh); }
+  const parts = { sh: [], pa: [], so: [], sole: [], hr: [] }, top = [], sleeves = [];
+  for (const [bone, m] of bins) for (const [key, list] of m) { const mesh = new THREE.Mesh(mergeGeometries(list), M[key]); mesh.castShadow = !o.lite; mesh.receiveShadow = true; bone.add(mesh); if (parts[key]) parts[key].push(mesh); if (key === "sh") (bone === body ? top : sleeves).push(mesh); }
   g.scale.setScalar(o.scale ?? .76); g.rotation.order = "YXZ";
-  g.userData = { legs, arms, knees, elbows, head, lids, blink: 2 + R() * 4, shirt: M.sh, pants: M.pa, shoe: M.so, skin: M.sk, skinColor: skinC.getHex(), shirtParts: parts.sh, shoeParts: parts.so.concat(parts.sole), longPants: o.shorts ? [] : [], clothes: { shirt: o.shirt, pants: o.pants ?? 0x3a4a63, shoe: o.shoe ?? 0xf5f5f5 } };
+  g.userData = { female, top, sleeves, legs, arms, knees, elbows, head, lids, blink: 2 + R() * 4, shirt: M.sh, pants: M.pa, shoe: M.so, skin: M.sk, skinColor: skinC.getHex(), shirtParts: parts.sh, shoeParts: parts.so.concat(parts.sole), longPants: o.shorts ? [] : [], clothes: { shirt: o.shirt, pants: o.pants ?? 0x3a4a63, shoe: o.shoe ?? 0xf5f5f5 } };
   return g;
 }
 // clignement des yeux et respiration, pour tous les personnages
@@ -1111,8 +1112,8 @@ function animPerson(g, mode, t) {
 // tenue : habits ou maillot de bain
 function setOutfit(g, id) {
   const u = g.userData, su = SUITS.find(x => x.id === id), show = (arr, v) => arr.forEach(m => m.visible = v);
-  if (!su) { show(u.shirtParts, true); show(u.shoeParts, true); u.shirt.color.setHex(u.clothes.shirt); u.pants.color.setHex(u.clothes.pants); u.pants.map = null; u.pants.metalness = 0; u.pants.roughness = .8; }
-  else { show(u.shirtParts, !!su.full); if (su.full) u.shirt.color.set(su.a); show(u.shoeParts, false); u.pants.color.setHex(0xffffff); u.pants.map = suitTex(su); u.pants.metalness = su.gold ? .7 : 0; u.pants.roughness = su.gold ? .25 : .7; }
+  if (!su) { show(u.shirtParts, true); show(u.shoeParts, true); u.shirt.color.setHex(u.clothes.shirt); u.shirt.map = null; u.pants.color.setHex(u.clothes.pants); u.pants.map = null; u.pants.metalness = 0; u.pants.roughness = .8; }
+  else { show(u.top, !!su.full || u.female); show(u.sleeves, !!su.full); if (su.full) { u.shirt.color.set(su.a); u.shirt.map = null; } else if (u.female) { u.shirt.color.setHex(0xffffff); u.shirt.map = suitTex(su); } u.shirt.needsUpdate = true; show(u.shoeParts, false); u.pants.color.setHex(0xffffff); u.pants.map = suitTex(su); u.pants.metalness = su.gold ? .7 : 0; u.pants.roughness = su.gold ? .25 : .7; }
   u.pants.needsUpdate = true;
 }
 const player = person({ shirt: 0x2e86de, pants: 0xf39c12, shorts: true, cap: 0xff5a4e, shoe: 0xff5a4e, scale: .6 }); scene.add(player);
@@ -1128,6 +1129,66 @@ const npcs = [
 ];
 npcs.forEach(n => { n.g = person(n.o); n.g.position.set(n.pos[0], 0, n.pos[1]); n.g.rotation.y = rnd() * 6; scene.add(n.g); const lb = label(n.name.split(",")[0], "#8e44ad", "#ffffff", .6 / (n.o.scale ?? .76)); lb.position.y = 2.7; n.g.add(lb); circles.push({ x: n.pos[0], z: n.pos[1], r: .5 }); n.idx = -1; });
 const swimmer = person({ shirt: 0xffffff, pants: 0x00b894, shorts: true, hair: 0x2d3436, skin: 0xd9a27a }); setOutfit(swimmer, "requin"); scene.add(swimmer);
+
+/* ================= La foule de l'Aquaparc ================= */
+// Des baigneurs font la queue, montent l'échelle, glissent, nagent jusqu'au bord et recommencent ;
+// d'autres font des longueurs, jouent dans la pataugeoire ou bronzent sur les transats.
+const crowd = [], pick = a => a[Math.floor(rnd() * a.length)];
+const C_SKIN = [0xf1c6a0, 0xe0ac85, 0xc68e6a, 0x8d5a3b, 0xf5d0b5, 0x6b4430], C_HAIR = [0x2d2018, 0x5a3a22, 0xd4a017, 0x8b4513, 0x111111, 0xb5651d, 0xe8d2a0];
+function bather(kid) {
+  const female = rnd() < .5, g = person({ lite: true, long: female, shirt: 0xffffff, pants: 0x3a4a63, shorts: true, skin: pick(C_SKIN), hair: pick(C_HAIR), scale: kid ? .5 + rnd() * .1 : .68 + rnd() * .1, seed: Math.floor(rnd() * 1e6) });
+  setOutfit(g, pick(SUITS).id); g.visible = false; scene.add(g); return g;
+}
+const SLIDE_GAP = [-10, 0, 0, 10];
+slides.forEach((sl, i) => {
+  const tx = -sl.uz, tz = sl.ux, sg = tx * (DOME.x - sl.base.x) + tz * (DOME.z - sl.base.z) > 0 ? 1 : -1;
+  sl.qd = [tx * sg, tz * sg]; sl.queue = []; sl.busy = 0;
+  sl.slot = k => [sl.base.x + sl.qd[0] * (.2 + k * .85), sl.base.z + sl.qd[1] * (.2 + k * .85)];
+  const back = sl.cz < -50, left = back ? SLIDE_GAP[i] <= 0 : sl.cx < 0, sx = left ? POOL.x1 - 1.6 : POOL.x2 + 1.6;
+  sl.route = back ? [[sx, POOL.z2 + 1.2], [sx, POOL.z1 - 2.5], [SLIDE_GAP[i], POOL.z1 - 2.5], [SLIDE_GAP[i], sl.base.z]] : left ? [[sx, POOL.z2 + 1.2], [-24, -30]] : [[sx, POOL.z2 + 1.2], [29, -30]];
+  sl.exitX = left ? POOL.x1 + 3 : POOL.x2 - 3;
+  for (let k = 0; k < 4; k++) { const [x, z] = sl.slot(k), a = { g: bather(rnd() < .4), kind: "slide", sl, st: "queue", x, y: 0, z, t: 0, wt: rnd() * 6, face: 0, path: [] }; sl.queue.push(a); crowd.push(a); }
+});
+for (let k = 0; k < 5; k++) crowd.push({ g: bather(false), kind: "lap", st: "swim", x: POOL.x1 + 2 + rnd() * (PW - 4), y: -.42, z: POOL.z1 + 2 + k * (PD - 4) / 4, dir: rnd() < .5 ? 1 : -1, sp: 1.4 + rnd() * .8, wt: rnd() * 6 });
+for (let k = 0; k < 6; k++) { const a = rnd() * 6.28, r = 2 + rnd() * 4; crowd.push({ g: bather(true), kind: "kid", st: "play", x: KIDS.x + Math.cos(a) * r, y: 0, z: KIDS.z + Math.sin(a) * r, tx: 0, tz: 0, t: 0, wt: rnd() * 6 }); }
+[[-15.2, -35], [-15.2, -43], [6, -23.5]].forEach(([x, z], k) => { const rot = k < 2 ? Math.PI / 2 : Math.PI; crowd.push({ g: bather(false), kind: "lounge", st: "lie", x: x + Math.sin(rot) * .8, y: .6, z: z + Math.cos(rot) * .8, rot, wt: 0 }); });
+const PI2 = Math.PI * 2;
+function stepTo(a, tx, tz, sp, dt) { const dx = tx - a.x, dz = tz - a.z, d = Math.hypot(dx, dz); if (d < .05) return true; const m = Math.min(d, sp * dt); a.x += dx / d * m; a.z += dz / d * m; a.face = Math.atan2(dx, dz); return d < .1; }
+let crowdOn = false, youpiT = 0;
+function updateCrowd(dt) {
+  const near = Math.hypot(player.position.x - DOME.x, player.position.z - DOME.z) < DOME.r + 45;
+  if (near !== crowdOn) { crowdOn = near; crowd.forEach(a => a.g.visible = near); }
+  if (!near) return;
+  youpiT -= dt;
+  for (const sl of slides) if (sl.queue.length && !sl.busy) { const a = sl.queue[0], [qx, qz] = sl.slot(0); if (Math.hypot(a.x - qx, a.z - qz) < .25) { sl.queue.shift(); a.st = "climb"; a.t = 0; sl.busy = 1; } }
+  for (const a of crowd) {
+    const g = a.g; let mode = "idle", spd = 0; g.rotation.x = 0;
+    if (a.kind === "slide") {
+      const sl = a.sl;
+      if (a.st === "queue") { const [qx, qz] = sl.slot(sl.queue.indexOf(a)); if (!stepTo(a, qx, qz, 1.2, dt)) { mode = "walk"; spd = 1.2; } else a.face = Math.atan2(-sl.qd[0], -sl.qd[1]); a.y = 0; }
+      else if (a.st === "climb") { a.t += dt / 3.2; a.x = sl.cx + sl.ux * 2.3; a.z = sl.cz + sl.uz * 2.3; a.y = Math.min(1, a.t) * 9.95; a.face = Math.atan2(-sl.ux, -sl.uz); mode = "climb";
+        if (a.t >= 1) { a.st = "top"; a.t = 0; a.x = sl.cx + sl.ux * 1.4; a.z = sl.cz + sl.uz * 1.4; } }
+      else if (a.st === "top") { a.t += dt; a.y = 9.95; if (a.t > 1) { a.st = "ride"; a.u = 0; if (youpiT <= 0 && Math.hypot(player.position.x - sl.cx, player.position.z - sl.cz) < 30) { youpiT = 1.5; tone(520, .35, "triangle", .05, 600); tone(880, .3, "sine", .03, 400, .15); } } }
+      else if (a.st === "ride") { a.u += dt * (.1 + .2 * a.u); if (a.u > .35) sl.busy = 0; mode = "ride";
+        if (a.u >= 1) { const e = sl.curve.getPointAt(1); a.x = e.x; a.z = e.z; a.st = "swim"; if (Math.hypot(player.position.x - e.x, player.position.z - e.z) < 18) whoosh(.5, .08, 1800, 300); }
+        else { const pt = sl.curve.getPointAt(a.u), tg = sl.curve.getTangentAt(a.u), side = new THREE.Vector3().crossVectors(tg, new THREE.Vector3(0, 1, 0)).normalize(), down = new THREE.Vector3().crossVectors(tg, side).normalize();
+          a.x = pt.x + down.x * .55; a.y = pt.y + down.y * .55; a.z = pt.z + down.z * .55; a.face = Math.atan2(tg.x, tg.z); } }
+      else if (a.st === "swim") { a.y = -.42; mode = "swim"; if (stepTo(a, sl.exitX, POOL.z2 - .9, 2.2, dt)) { a.st = "out"; a.t = 0; } }
+      else if (a.st === "out") { a.t += dt / .9; a.y = -.9 + Math.min(1, a.t) * .9; a.z = POOL.z2 - .9 + Math.min(1, a.t) * 1.9; a.face = 0; mode = "climb"; if (a.t >= 1) { a.st = "walk"; a.y = 0; a.path = sl.route.slice(); } }
+      else if (a.st === "walk") { mode = "walk"; spd = 1.3; const w = a.path[0] || sl.slot(sl.queue.length);
+        if (stepTo(a, w[0], w[1], 1.3, dt)) { if (a.path.length) a.path.shift(); else { sl.queue.push(a); a.st = "queue"; } } }
+    } else if (a.kind === "lap") { mode = "swim"; a.x += a.dir * a.sp * dt; a.face = a.dir > 0 ? Math.PI / 2 : -Math.PI / 2; if (a.x > POOL.x2 - 1.2 || a.x < POOL.x1 + 1.2) a.dir *= -1; a.y = -.42; }
+    else if (a.kind === "kid") { a.t -= dt; if (WT.tip > 0 && WT.tip < 1) { a.tx = WT.x + 2.2 + (rnd() - .5); a.tz = WT.z + (rnd() - .5) * 2; a.t = 3; }
+      else if (a.t <= 0) { const ang = rnd() * PI2, r = 1.8 + rnd() * 4.4; a.tx = KIDS.x + Math.cos(ang) * r; a.tz = KIDS.z + Math.sin(ang) * r; a.t = 2 + rnd() * 4; }
+      if (!stepTo(a, a.tx, a.tz, 1.8, dt)) { mode = "walk"; spd = 2.4; } }
+    else if (a.kind === "lounge") { g.rotation.x = -1.5; a.face = a.rot; }
+    g.position.set(a.x, a.y, a.z); g.rotation.y = a.face;
+    if (mode === "walk") a.wt += dt * 3.5 * Math.max(1, spd); animPerson(g, mode, mode === "walk" ? a.wt : mode === "swim" ? time * 4 + a.wt : mode === "climb" ? time * 9 : time);
+    if (a.kind === "lounge") g.rotation.x = -1.5;
+    liveFace(g, dt);
+  }
+}
+
 
 /* ================= Sons faits maison ================= */
 let actx = null, master = null, muted = false;
@@ -1482,6 +1543,7 @@ function pushBox(p, x1, x2, z1, z2, r) {
 }
 const tmpL = { x: 0, z: 0 };
 function resolve(p, prev) {
+  if (crowdOn) for (const a of crowd) { if (a.st !== "queue" && a.st !== "walk" && a.st !== "play") continue; if (Math.abs(a.y - p.y) > 1) continue; const dx = p.x - a.x, dz = p.z - a.z, d = Math.hypot(dx, dz); if (d < .55 && d > 1e-4) { p.x = a.x + dx / d * .55; p.z = a.z + dz / d * .55; } }
   for (const c of circles) { const dx = p.x - c.x, dz = p.z - c.z, d = Math.hypot(dx, dz), m = c.r + .4; if (d < m && d > 1e-4) { p.x = c.x + dx / d * m; p.z = c.z + dz / d * m; } }
   for (const b of boxes) { if (b.off) continue; pushBox(p, b.x1, b.x2, b.z1, b.z2, .4); }
   // murs des cottages, en repère local
@@ -1655,6 +1717,7 @@ function loop() {
       WT.fall.material.opacity = k > .85 && k < 2.5 ? .5 : Math.max(0, WT.fall.material.opacity - dt * 2); WT.bw.visible = k < 1 || k > 3.4;
       if (k > .85 && !WT.splashed) { WT.splashed = true; if (Math.hypot(P.x - WT.x, P.z - WT.z) < 25) sfx.splash(); }
       if (k > 3.8) { WT.tip = 0; WT.next = 8 + Math.random() * 4; WT.splashed = false; } } }
+  updateCrowd(dt);
   // eau qui bouge : reflets au fond des bassins, filets d'eau des toboggans ; visages vivants
   caustics.forEach((c, i) => c.t.offset.set(time * .035 * c.d + i * .3, time * .022 * c.d));
   streamTex.offset.y = -time * 1.6;
