@@ -566,7 +566,7 @@ function palm(x, z, h = 6) {
 // transats
 function lounger(x, z, ry) {
   const g = new THREE.Group(); const frame = rbox(.75, .12, 1.9, mat(0xffffff, .4), .05); frame.position.y = .38; const cushion = rbox(.68, .1, 1.3, mat(0x2fa7d6, .8), .05); cushion.position.set(0, .48, .25);
-  const back = rbox(.68, .1, .8, mat(0x2fa7d6, .8), .05); back.position.set(0, .7, -.62); back.rotation.x = -.7;
+  const back = rbox(.68, .1, .8, mat(0x2fa7d6, .8), .05); back.position.set(0, .7, -.62); back.rotation.x = .7;
   g.add(frame, cushion, back); for (const sx of [-.3, .3]) for (const sz of [-.8, .8]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .38), metalMat); leg.position.set(sx, .19, sz); g.add(leg); }
   g.position.set(x, 0, z); g.rotation.y = ry; shadowAll(g); scene.add(g); const side = Math.abs(Math.sin(ry)) > .5; boxes.push(side ? { x1: x - 1, x2: x + 1, z1: z - .5, z2: z + .5 } : { x1: x - .5, x2: x + .5, z1: z - 1, z2: z + 1 });
 }
@@ -835,7 +835,7 @@ const terraceTpl = (() => {
   rail(-5.1, 4.3, -5.1, 9); rail(5.1, 4.3, 5.1, 9); rail(-5.1, 9, -.8, 9); rail(.8, 9, 5.1, 9);
   // deux transats
   TERR.loungers.forEach((x, i) => { const c = mat([0x2fa7d6, 0xff8a65][i], .85), l = new THREE.Group();
-    const frame = rbox(.75, .12, 1.9, white, .05); frame.position.y = .38; const cu = rbox(.68, .1, 1.3, c, .05); cu.position.set(0, .48, .25); const bk = rbox(.68, .1, .8, c, .05); bk.position.set(0, .7, -.62); bk.rotation.x = -.7;
+    const frame = rbox(.75, .12, 1.9, white, .05); frame.position.y = .38; const cu = rbox(.68, .1, 1.3, c, .05); cu.position.set(0, .48, .25); const bk = rbox(.68, .1, .8, c, .05); bk.position.set(0, .7, -.62); bk.rotation.x = .7;
     l.add(frame, cu, bk); for (const sx of [-.3, .3]) for (const sz of [-.8, .8]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .38, 8), metalMat); leg.position.set(sx, .19, sz); l.add(leg); }
     const towel = rbox(.5, .03, .7, mat(0xffffff, .9, { map: stripeTex("#ffffff", "#ffc93c", 6) }), .01); towel.position.set(0, .545, .5); l.add(towel);
     l.position.set(x, .2, TERR.ly); g.add(l); });
