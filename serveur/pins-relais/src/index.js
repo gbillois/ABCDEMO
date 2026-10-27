@@ -3,15 +3,30 @@
 // Une partie = un code (8 caractères) = une « salle » en mémoire (Durable Object).
 // Le relais ne fait que transmettre des positions et des numéros de phrases entre les
 // joueurs d'une même salle. Il n'écrit rien sur disque, ne connaît aucun prénom, et
-// refuse tout texte libre : les messages sont des numéros d'une liste fermée.
+// Les phrases sont une liste fermée ; seul le surnom court et filtré est du texte.
 
-const MAX_JOUEURS = 6;
-const NB_PHRASES = 12;        // doit correspondre à la liste PHRASES du jeu
+const MAX_JOUEURS = 10;
+const NB_PHRASES = 64;        // au plus 64 phrases dans la liste PHRASES du jeu (phrases + rendez-vous)
 const TAILLE_MAX = 160;       // octets par message reçu
 const POS_PAR_SECONDE = 15;   // positions acceptées par joueur et par seconde
 const PHRASE_DELAI_MS = 1500; // délai minimal entre deux phrases d'un même joueur
 const CODE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/;
 const MODES = 5;              // 0 immobile, 1 marche, 2 nage, 3 échelle, 4 toboggan
+const MAILLOTS = ["rouge", "raye", "palmiers", "requin", "arcenciel", "surf", "or"];
+
+// Filtre simple, identique dans le jeu et le relais (accents et substitutions courantes).
+function filtrerSurnom(v) {
+  if (typeof v !== "string") return null;
+  const p = v.normalize("NFC").trim().replace(/\s+/g, " ");
+  if (!p) return ""; // sans surnom, on garde le nom de l'animal
+  if (p.length < 2 || p.length > 16 || !/^[A-Za-zÀ-ÖØ-öø-ÿ0-9 _'-]+$/.test(p) || !/[A-Za-zÀ-ÖØ-öø-ÿ0-9]/.test(p)) return null;
+  const simple = p.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/[01345789]/g, c => ({ 0: "o", 1: "i", 3: "e", 4: "a", 5: "s", 7: "t", 8: "b", 9: "g" })[c]);
+  const compact = simple.replace(/[^a-z]/g, "");
+  if (/(connard|connasse|salope|salopard|encul|putain|pute|merde|batard|abruti|debile|idiot|ta?gueule|fuck|shit|bitch|nazi|negro|negre|bougnoule|salejuif)/.test(compact)
+      || /(?:^|[^a-z])(con|cons|pd|fdp|ntm)(?:$|[^a-z])/.test(simple) || /^(con|cons|pd|fdp|ntm)$/.test(compact)) return null;
+  return p;
+}
 
 export default {
   async fetch(request, env) {
@@ -55,6 +70,10 @@ export class Salle {
     let s = 0; while (pris.has(s)) s++;
     serveur.serializeAttachment({ s });
     serveur.send(JSON.stringify({ t: "bienvenue", s, joueurs: [...pris] }));
+    for (const ws of presents) {
+      const a = ws.deserializeAttachment();
+      if (a.sexe) serveur.send(JSON.stringify({ t: "profil", s: a.s, pseudo: a.pseudo, sexe: a.sexe, tenue: a.tenue }));
+    }
     this.diffuser({ t: "arrive", s }, serveur);
     return new Response(null, { status: 101, webSocket: client });
   }
@@ -77,7 +96,19 @@ export class Salle {
     const d = this.debit.get(ws) || { t0: now, n: 0, phrase: 0 };
     this.debit.set(ws, d);
 
-    if (msg.t === "p") {
+    if (msg.t === "profil") {
+      const pseudo = filtrerSurnom(msg.pseudo);
+      if (pseudo === null || !["f", "g"].includes(msg.sexe) || (msg.tenue !== null && !MAILLOTS.includes(msg.tenue))) {
+        ws.send(JSON.stringify({ t: "profil_refuse" })); return;
+      }
+      const a = ws.deserializeAttachment();
+      // Le choix du surnom et du personnage se fait à la connexion ; la tenue peut changer.
+      if (a.sexe && (a.pseudo !== pseudo || a.sexe !== msg.sexe)) return;
+      if (a.sexe && a.tenue === msg.tenue) return;
+      const profil = { s, pseudo, sexe: msg.sexe, tenue: msg.tenue };
+      ws.serializeAttachment(profil);
+      this.diffuser({ t: "profil", ...profil }, null);
+    } else if (msg.t === "p") {
       if (now - d.t0 > 1000) { d.t0 = now; d.n = 0; }
       if (++d.n > POS_PAR_SECONDE) return;
       const nb = (v, min, max) => typeof v === "number" && Number.isFinite(v) ? Math.round(Math.min(max, Math.max(min, v)) * 100) / 100 : null;

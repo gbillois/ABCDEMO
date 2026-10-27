@@ -72,10 +72,19 @@ html.app .site{display:none!important}
 .code{font-size:40px;font-weight:800;letter-spacing:4px;background:#fff3c4;border-radius:16px;padding:4px 16px;display:inline-block;margin:4px 0}
 #codeIn{font-family:var(--ui);font-size:30px;font-weight:800;letter-spacing:3px;text-transform:uppercase;width:min(300px,100%);text-align:center;border:3px solid var(--leaf);border-radius:14px;padding:6px;color:var(--ink);background:#fff;-webkit-user-select:text;user-select:text;touch-action:manipulation}
 #multiMsg{color:#c0392b;font-weight:800;min-height:1.2em}
+.profil{border:0;padding:0;margin:12px 0;display:grid;gap:8px;text-align:left}
+.profil legend{font-weight:800;font-size:19px}
+.profil input[type=text]{width:100%;font:inherit;font-size:19px;border:2px solid var(--leaf);border-radius:12px;padding:9px;color:var(--ink);background:#fff;user-select:text;-webkit-user-select:text;touch-action:manipulation}
+.profil .choix{display:flex;gap:12px;flex-wrap:wrap}
+.profil .choix label{background:#fff;border:2px solid var(--leaf);border-radius:12px;padding:8px 12px;cursor:pointer;touch-action:manipulation}
 .who{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
 .who span{border-radius:999px;padding:2px 12px;font-weight:800;color:#fff}
 .phrases{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}
 .phrases .btn{font-size:18px;padding:10px 8px;background:var(--water)}
+.phrases h3{grid-column:1/-1;margin:10px 0 0;font-size:19px;color:var(--leaf);text-align:left}
+.phrases .rdv{background:#e67e22}
+.phrases .nums{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.phrases .nums .btn{background:#8a5a30;font-size:26px;padding:8px 0}
 </style>
 </head>
 <body>
@@ -164,6 +173,16 @@ html.app .site{display:none!important}
   <div class="card">
     <h1>Jouer à plusieurs 👫</h1>
     <div id="multiOff">
+      <fieldset class="profil">
+        <legend>Ton personnage</legend>
+        <div class="choix">
+          <label><input type="radio" name="personnage" value="f"> Fille</label>
+          <label><input type="radio" name="personnage" value="g" checked> Garçon</label>
+        </div>
+        <label for="pseudoIn">Ton surnom (facultatif, 2 à 16 caractères)</label>
+        <input id="pseudoIn" type="text" maxlength="16" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Exemple : Petit Panda" aria-describedby="pseudoAide">
+        <small id="pseudoAide">Choisis un surnom, pas ton vrai prénom. Sans surnom, tu gardes le nom de ton animal. Les insultes sont refusées.</small>
+      </fieldset>
       <p>Crée une partie et donne le code à tes amis, ou tape le code qu'on t'a donné.</p>
       <div class="row"><button id="createBtn" class="btn">✨ Créer une partie</button></div>
       <p class="small">ou</p>
@@ -177,8 +196,8 @@ html.app .site{display:none!important}
       <div class="who" id="whoList"></div>
       <div class="row"><button id="leaveBtn" class="btn" style="background:var(--slide)">Quitter la partie</button></div>
     </div>
-    <p id="multiMsg"></p>
-    <p class="small">Pas de prénom, pas de compte : chacun est un animal. On ne peut envoyer que des phrases toutes prêtes. Jusqu'à 6 joueurs.</p>
+    <p id="multiMsg" role="status" aria-live="polite"></p>
+    <p class="small">Pas de compte. Ton surnom est visible seulement pendant la partie. Pour discuter, on choisit des phrases toutes prêtes. Jusqu'à 10 joueurs.</p>
     <div class="row"><button id="multiClose" class="btn" style="background:#34495e">Fermer</button></div>
   </div>
 </div>
@@ -357,7 +376,7 @@ function label(text, bg = "#fffdf4", fg = "#1d3b2a", scale = 1) {
   const c = document.createElement("canvas"); c.width = 512; c.height = 128; const x = c.getContext("2d");
   x.font = '800 64px "Baloo 2", "Trebuchet MS", sans-serif'; const w = Math.min(500, x.measureText(text).width + 60);
   x.fillStyle = bg; x.beginPath(); x.roundRect((512 - w) / 2, 14, w, 100, 40); x.fill();
-  x.fillStyle = fg; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(text, 256, 68);
+  x.fillStyle = fg; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(text, 256, 68, 440);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false, toneMapped: false })); s.scale.set(4 * scale, scale, 1); return s;
 }
@@ -632,7 +651,17 @@ const stairH = lz => UP * Math.max(0, Math.min(1, (ST.zBot - lz) / (ST.zBot - ST
 const cottages = [];
 const roofGeo = (() => { const s = new THREE.Shape(); s.moveTo(-5.9, 0); s.lineTo(5.9, 0); s.lineTo(0, 2.9); s.lineTo(-5.9, 0); const g = new THREE.ExtrudeGeometry(s, { depth: 9.2, bevelEnabled: true, bevelThickness: .12, bevelSize: .12, bevelSegments: 2 }); g.translate(0, 0, -4.6); return g; })();
 const roofMat = mat(0xffffff, .85, { map: shingleTex.clone() }); roofMat.map.repeat.set(.45, .45);
-function cottage(cx, cz, rot, mine) {
+// plaque de numéro émaillée (bleue à bord blanc), dessinée en code ; « sub » ajoute un mot au-dessus
+function numTex(num, sub) {
+  const c = document.createElement("canvas"); c.width = 256; c.height = sub ? 220 : 180; const x = c.getContext("2d");
+  x.fillStyle = "#1f4e9e"; x.beginPath(); x.roundRect(6, 6, 244, c.height - 12, 26); x.fill();
+  x.strokeStyle = "#ffffff"; x.lineWidth = 8; x.beginPath(); x.roundRect(18, 18, 220, c.height - 36, 18); x.stroke();
+  x.fillStyle = "#ffffff"; x.textAlign = "center"; x.textBaseline = "middle";
+  if (sub) { x.font = '800 40px "Baloo 2", "Trebuchet MS", sans-serif'; x.fillText(sub, 128, 62); x.font = '800 104px "Baloo 2", "Trebuchet MS", sans-serif'; x.fillText(num, 128, 142); }
+  else { x.font = '800 120px "Baloo 2", "Trebuchet MS", sans-serif'; x.fillText(num, 128, 96); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
+function cottage(cx, cz, rot, mine, num) {
   const g = new THREE.Group(); g.position.set(cx, 0, cz); g.rotation.y = rot; scene.add(g);
   const wallMat = mat(0xffffff, .85, { map: woodTex, transparent: false });
   const floor = new THREE.Mesh(boxUV(new THREE.BoxGeometry(10.3, .16, 8.3), 10.3, .16, 8.3, 2), mat(0xffffff, .7, { map: floorTex })); floor.position.y = .08; floor.receiveShadow = true; g.add(floor);
@@ -691,13 +720,22 @@ function cottage(cx, cz, rot, mine) {
   if (mine) {
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, 7.5, 10), metalMat); pole.position.set(5.7, 3.75, 9.4); g.add(pole);
     const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1, 8, 1), mat(0xff5a4e, .7, { side: THREE.DoubleSide })); flag.position.set(6.5, 7, 9.4); g.add(flag);
-    const lb = label("Ton cottage", "#ff5a4e", "#ffffff", 1.3); lb.position.set(0, 11.6, 0); g.add(lb);
+    const lb = label(`Ton cottage n°${num}`, "#ff5a4e", "#ffffff", 1.3); lb.position.set(0, 11.6, 0); g.add(lb);
     g.userData.flag = flag;
   }
+  // numéro du cottage : plaque à côté de la porte (pour se donner rendez-vous)
+  const plaque = new THREE.Mesh(new THREE.PlaneGeometry(.62, .44), new THREE.MeshStandardMaterial({ map: numTex(num), roughness: .3, metalness: .1 }));
+  plaque.position.set(1.45, 2.05, 4.21); g.add(plaque);
   const s = rot ? -1 : 1;
-  const c = { g, x: cx, z: cz, s, mine, wallMat, roof, door, upper, open: 0, want: 0, fade: 1 };
+  const c = { g, x: cx, z: cz, s, mine, num, wallMat, roof, door, upper, open: 0, want: 0, fade: 1 };
   c.toLocal = (px, pz) => [(px - cx) * s, (pz - cz) * s];
   c.toWorld = (lx, lz) => [cx + lx * s, cz + lz * s];
+  // panneau en bois au début de l'allée, lisible depuis le grand chemin
+  { const post = new THREE.Group(), wood = mat(0x8a5a35, .8);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(.07, .08, 1.36, 10), wood); pole.position.y = .68; post.add(pole); // s'arrête sous le panneau
+    const board = rbox(1.06, .92, .08, wood, .03); board.position.y = 1.78; post.add(board);
+    for (const side of [1, -1]) { const face = new THREE.Mesh(new THREE.PlaneGeometry(.92, .8), new THREE.MeshStandardMaterial({ map: numTex(num, "Cottage"), roughness: .4 })); face.position.set(0, 1.78, side * .046); if (side < 0) face.rotation.y = Math.PI; post.add(face); }
+    const [px, pz] = c.toWorld(2.6, 9.6); post.position.set(px, 0, pz); post.rotation.y = rot; shadowAll(post); scene.add(post); circles.push({ x: px, z: pz, r: .25 }); }
   cottages.push(c); return c;
 }
 
@@ -824,8 +862,8 @@ const terraceTpl = (() => {
 })();
 
 /* ---------- Placement des cottages ---------- */
-[-64, -48, -32, -16, 16, 32, 48, 64].forEach(x => { cottage(x, 44, Math.PI, x === -16); path([x, 30], [x, 35], 1.8); });
-[-56, -40, 40, 56].forEach(x => { cottage(x, 16, 0, false); path([x, 30], [x, 25], 1.8); });
+[-64, -48, -32, -16, 16, 32, 48, 64].forEach((x, i) => { cottage(x, 44, Math.PI, x === -16, i + 1); path([x, 30], [x, 35], 1.8); });
+[-56, -40, 40, 56].forEach((x, i) => { cottage(x, 16, 0, false, 9 + i); path([x, 30], [x, 25], 1.8); });
 const myCottage = cottages.find(c => c.mine);
 let interiorHost = null;
 
@@ -1507,6 +1545,11 @@ HUTS.forEach(([x, z]) => cabane(x, z));
 const cat = Object.assign(makeCat(), { kind: "cat", x: 0, z: 0, y: .2, h: 0, v: 0, sp: 2.4, st: "home", t: 14, ph: 0, graze: 0, pet: 0, r: .25, mt: 3 });
 cat.home = myCottage.toWorld(-4.4, 8.35); cat.x = cat.home[0]; cat.z = cat.home[1]; cat.g.position.set(cat.x, .2, cat.z); scene.add(cat.g);
 /* ================= Personnages ================= */
+// grain de tissu : petites mailles en relief, partagé par tous les vêtements
+const fabricBump = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d");
+  x.fillStyle = "#808080"; x.fillRect(0, 0, 64, 64);
+  for (let i = 0; i < 64; i += 4) for (let j = 0; j < 64; j += 4) { const v = 110 + ((i * 7 + j * 13) % 40); x.fillStyle = `rgb(${v},${v},${v})`; x.fillRect(i, j, 2, 4); x.fillStyle = `rgb(${v + 30},${v + 30},${v + 30})`; x.fillRect(i + 2, j, 2, 2); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(10, 10); return t; })();
 function person(o) {
   // corps humain réaliste : un squelette articulé (hanches, genoux, chevilles, épaules, coudes, poignets, tête),
   // la peau d'un seul tenant, et les vêtements posés par-dessus (on peut les enlever pour le maillot de bain).
@@ -1514,9 +1557,11 @@ function person(o) {
   const female = !!o.long, R = mulberry(o.seed ?? Math.floor(rnd() * 1e6));
   const skinC = new THREE.Color(o.skin ?? 0xf1c6a0), hairC = new THREE.Color(o.hair ?? 0x5a3a22);
   const M = {
-    sk: mat(skinC, .5, { emissive: skinC.clone().multiplyScalar(.06) }),
-    sh: mat(o.shirt, .85), pa: mat(o.pants ?? 0x3a4a63, .8), so: mat(o.shoe ?? 0xf5f5f5, .45), sole: mat(0x2b2b2b, .9),
+    sk: o.lite ? mat(skinC, .5, { emissive: skinC.clone().multiplyScalar(.05) })
+      : new THREE.MeshPhysicalMaterial({ color: skinC, roughness: .46, sheen: .7, sheenRoughness: .45, sheenColor: new THREE.Color(0xff8f7a), clearcoat: .06, clearcoatRoughness: .55, emissive: skinC.clone().lerp(new THREE.Color(0xff6040), .5).multiplyScalar(.035) }),
+    sh: mat(o.shirt, .85, { bumpMap: fabricBump, bumpScale: .9 }), pa: mat(o.pants ?? 0x3a4a63, .8, { bumpMap: fabricBump, bumpScale: .9 }), so: mat(o.shoe ?? 0xf5f5f5, .45), sole: mat(0x2b2b2b, .9),
     hr: mat(hairC, .42), deco: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .3 }),
+    sw: mat(0xffffff, .55), // maillot de bain (motif posé par setOutfit)
   };
   const bins = new Map();
   const T = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler(), V = new THREE.Vector3(), Sc = new THREE.Vector3();
@@ -1527,7 +1572,8 @@ function person(o) {
     if (!bins.has(bone)) bins.set(bone, new Map()); const m = bins.get(bone); if (!m.has(key)) m.set(key, []); m.get(key).push(gg);
   }
   const q = o.lite ? .42 : 1, Q2 = n => Math.max(6, Math.round(n * q));
-  const lathe = (pts, seg = 32) => new THREE.LatheGeometry(pts.map(([x, y]) => new THREE.Vector2(x, y)), Q2(seg));
+  // pièce tournée : les points vont toujours de bas en haut, sinon ses faces regardent vers l'intérieur
+  const lathe = (pts, seg = 32) => new THREE.LatheGeometry((pts[0][1] > pts[pts.length - 1][1] ? pts.slice().reverse() : pts).map(([x, y]) => new THREE.Vector2(x, y)), Q2(seg));
   const sph = (r, w = 28, h = 20) => new THREE.SphereGeometry(r, Q2(w), Q2(h)), cap = (r, l) => new THREE.CapsuleGeometry(r, l, o.lite ? 2 : 6, Q2(16));
   const tube = (pts, r, seg = 12) => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p))), Q2(seg), r, o.lite ? 4 : 6);
   const legs = [], arms = [], knees = [], elbows = [], lids = [];
@@ -1550,7 +1596,7 @@ function person(o) {
   for (const s of [-1, 1]) {
     const sho = new THREE.Group(); sho.position.set(s * .35, 1.55, 0); body.add(sho);
     put(sho, "sk", sph(.11)); put(sho, "sk", lathe([[0, .03], [.098, 0], [.103, -.1], [.088, -.28], [.078, -.35], [0, -.36]]));
-    put(sho, "sh", lathe([[.0, .14], [.1, .12], [.128, .03], [.13, -.08], [.135, -.17], [.138, -.19]], 32)); put(sho, "sh", new THREE.TorusGeometry(.136, .012, 6, 32), [0, -.19, 0], [Math.PI / 2, 0, 0]);
+    put(sho, "sh", lathe([[.0, .125], [.08, .11], [.118, .04], [.126, -.06], [.13, -.16], [.132, -.19]], 32)); // manche près du bras put(sho, "sh", new THREE.TorusGeometry(.136, .012, 6, 32), [0, -.19, 0], [Math.PI / 2, 0, 0]);
     const elb = new THREE.Group(); elb.position.y = -.35; sho.add(elb);
     put(elb, "sk", sph(.078)); put(elb, "sk", lathe([[0, .01], [.077, 0], [.082, -.07], [.066, -.22], [.052, -.31], [0, -.33]]));
     const hand = new THREE.Group(); hand.position.y = -.33; elb.add(hand);
@@ -1564,29 +1610,40 @@ function person(o) {
   put(body, "sk", sph(.27), [0, .97, 0], [0, 0, 0], [1.07, .55, .78]);
   const torsoPts = female ? [[0, 0], [.25, .02], [.22, .2], [.25, .38], [.28, .48], [.27, .58], [.14, .67], [0, .68]] : [[0, 0], [.25, .02], [.25, .18], [.28, .38], [.31, .52], [.29, .62], [.14, .68], [0, .69]];
   put(body, "sk", lathe(torsoPts, 40), [0, .95, 0], [0, 0, 0], [1, 1, .7]);
-  put(body, "sk", new THREE.CylinderGeometry(.082, .098, .24, 24), [0, 1.71, 0]);
+  put(body, "sk", new THREE.CylinderGeometry(.07, .086, .23, 24), [0, 1.7, 0]);
   const shirtPts = torsoPts.slice(1, -1).map(([x, y]) => [x + .028, y]); shirtPts.unshift([.27 + (female ? .02 : 0), -.07]); shirtPts.push([.115, .69]);
   put(body, "sh", lathe(shirtPts, 44), [0, .95, 0], [0, 0, 0], [1, 1, .72]);
   put(body, "sh", new THREE.TorusGeometry(.118, .025, 10, 32), [0, 1.645, 0], [Math.PI / 2, 0, 0]);
   put(body, "sh", new THREE.TorusGeometry(.275, .014, 6, 40), [0, .885, 0], [Math.PI / 2, 0, 0], [1, .72, 1]);
   put(body, "pa", lathe([[.275, .14], [.29, .02], [.3, -.07], [.2, -.14], [0, -.15]], 40), [0, .97, 0], [0, 0, 0], [1.03, 1, .8]);
   put(body, "pa", new THREE.TorusGeometry(.282, .02, 8, 40), [0, 1.1, 0], [Math.PI / 2, 0, 0], [1, .8, 1]);
+  // ---- maillot de bain, porté à la place des habits
+  put(body, "sw", lathe([[0, -.165], [.2, -.155], [.302, -.07], [.298, .03], [.288, .14]], 40), [0, .97, 0], [0, 0, 0], [1.04, 1, .82]);
+  if (!female) { // short de bain : ceinture, cordon et jambes jusqu'à mi-cuisse
+    put(body, "sw", new THREE.TorusGeometry(.29, .024, 10, 40), [0, 1.105, 0], [Math.PI / 2, 0, 0], [1.04, .82, 1]);
+    for (const s of [-1, 1]) put(body, "deco", cap(.008, .07), [s * .02, 1.05, .245], [0, 0, s * .15], [1, 1, 1], 0xf5f5f5);
+    for (const leg of legs) { put(leg, "sw", lathe([[.182, -.27], [.184, -.2], [.176, -.02], [.168, .08]], 32)); put(leg, "sw", new THREE.TorusGeometry(.182, .013, 6, 32), [0, -.27, 0], [Math.PI / 2, 0, 0]); }
+  } else { // maillot une pièce échancré, avec bretelles
+    put(body, "sw", lathe([[.262, 0], [.236, .2], [.266, .38], [.296, .48], [.286, .53]], 40), [0, .95, 0], [0, 0, 0], [1, 1, .73]);
+    put(body, "sw", new THREE.TorusGeometry(.284, .012, 6, 40), [0, 1.48, 0], [Math.PI / 2, 0, 0], [1, .73, 1]);
+    for (const s of [-1, 1]) put(body, "sw", tube([[s * .11, 1.46, .2], [s * .17, 1.62, .1], [s * .19, 1.67, -.02], [s * .14, 1.55, -.17], [s * .11, 1.46, -.2]], .017, 14));
+  }
   // ---- tête
   const head = new THREE.Group(); head.position.y = 1.97; body.add(head);
   put(head, "sk", sph(.23, 48, 40), [0, .02, 0], [0, 0, 0], [.9, 1.04, .98]);
-  put(head, "sk", sph(.17, 40, 32), [0, -.1, .05], [0, 0, 0], [1, .82, 1]);
-  put(head, "sk", sph(.07, 24, 18), [0, -.19, .14], [0, 0, 0], [1.2, .85, .9]);
+  put(head, "sk", sph(.17, 40, 32), [0, -.085, .03], [0, 0, 0], [.93, .8, .9]);
+  put(head, "sk", sph(.058, 24, 18), [0, -.178, .122], [0, 0, 0], [1.15, .78, .85]);
   for (const s of [-1, 1]) { // oreilles
     put(head, "sk", sph(.05, 20, 16), [s * .205, -.01, -.005], [0, 0, 0], [.42, 1, .75]);
     put(head, "sk", new THREE.TorusGeometry(.036, .011, 8, 20, Math.PI * 1.4), [s * .214, -.005, -.005], [0, s * Math.PI / 2, -Math.PI * .2]);
   }
   // nez
-  put(head, "sk", cap(.022, .05), [0, .0, .215], [-.35, 0, 0]); put(head, "sk", sph(.032, 20, 16), [0, -.04, .232], [0, 0, 0], [1.05, .9, 1]);
-  for (const s of [-1, 1]) { put(head, "sk", sph(.019, 14, 10), [s * .026, -.05, .218]); put(head, "deco", sph(.008, 8, 6), [s * .015, -.058, .228], [0, 0, 0], [1, .6, 1], 0x6b3a2a); }
+  put(head, "sk", cap(.016, .05), [0, .0, .212], [-.35, 0, 0]); put(head, "sk", sph(.024, 20, 16), [0, -.038, .226], [0, 0, 0], [1.1, .85, .9]);
+  for (const s of [-1, 1]) { put(head, "sk", sph(.014, 14, 10), [s * .02, -.046, .214]); put(head, "deco", sph(.008, 8, 6), [s * .015, -.058, .228], [0, 0, 0], [1, .6, 1], 0x6b3a2a); }
   // bouche
-  const lip = female ? 0xc75c5c : 0xb9746a;
-  put(head, "deco", new THREE.TorusGeometry(.04, .011, 8, 24, Math.PI), [0, -.098, .197], [0, 0, Math.PI], [1, .55, 1], lip);
-  put(head, "deco", sph(.034, 20, 12), [0, -.112, .192], [0, 0, 0], [1.15, .42, .55], lip);
+  const lip = new THREE.Color(skinC).lerp(new THREE.Color(female ? 0xc4525a : 0xa8605a), female ? .6 : .45).getHex();
+  put(head, "deco", new THREE.TorusGeometry(.036, .0075, 8, 24, Math.PI), [0, -.096, .193], [0, 0, Math.PI], [1, .5, 1], lip);
+  put(head, "deco", sph(.028, 20, 12), [0, -.108, .186], [0, 0, 0], [1.1, .36, .5], lip);
   // yeux, paupières, sourcils
   const irisC = o.eyes ?? [0x5b3a1e, 0x3a6a9a, 0x4f7a3a, 0x6b4a2a][Math.floor(R() * 4)];
   for (const s of [-1, 1]) {
@@ -1600,7 +1657,7 @@ function person(o) {
     const lm = new THREE.Mesh(new THREE.SphereGeometry(.043, 24, 12, 0, Math.PI * 2, 0, Math.PI * .5), M.sk); lm.scale.set(1.02, .95, .66); lid.add(lm); lid.rotation.x = -.55; lids.push(lid);
     if (female) put(head, "deco", new THREE.TorusGeometry(.043, .004, 4, 18, Math.PI * .8), [ex, ey + .004, ez + .012], [-.25, 0, Math.PI * .1], [1.05, 1, 1], 0x1a1a1a);
     put(head, "deco", tube([[ex - s * .045, ey + .058, ez + .005], [ex, ey + .072, ez + .022], [ex + s * .045, ey + .062, ez + .01]], .0085, 10), [0, 0, 0], [0, 0, 0], [1, 1, 1], hairC.clone().multiplyScalar(.75).getHex());
-    put(head, "deco", sph(.035, 14, 10), [s * .125, -.06, .17], [0, 0, 0], [1, .7, .35], new THREE.Color(skinC).lerp(new THREE.Color(0xe88a8a), .45).getHex());
+    put(head, "deco", sph(.03, 14, 10), [s * .118, -.058, .165], [0, 0, 0], [1, .65, .22], new THREE.Color(skinC).lerp(new THREE.Color(0xe88a8a), .22).getHex());
   }
   // cheveux
   put(head, "hr", new THREE.SphereGeometry(.243, 48, 24, 0, Math.PI * 2, 0, Math.PI * .5), [0, .045, -.02], [-.35, 0, 0]);
@@ -1619,10 +1676,11 @@ function person(o) {
   if (o.cap) { const cm = mat(o.cap, .6); M.cap = cm; put(head, "cap", new THREE.SphereGeometry(.252, 40, 16, 0, Math.PI * 2, 0, Math.PI * .5), [0, .055, -.01], [-.12, 0, 0], [1, .8, 1.02]);
     const brim = new THREE.CylinderGeometry(.19, .2, .016, 32, 1, false, -Math.PI / 2, Math.PI); put(head, "cap", brim, [0, .085, .19], [.12, 0, 0], [1, 1, 1.3]); put(head, "cap", sph(.022, 12, 8), [0, .26, -.02]); }
   // assemblage : une seule pièce par matériau et par os
-  const parts = { sh: [], pa: [], so: [], sole: [], hr: [] }, top = [], sleeves = [];
+  const parts = { sh: [], pa: [], so: [], sole: [], hr: [], sw: [] }, top = [], sleeves = [];
   for (const [bone, m] of bins) for (const [key, list] of m) { const mesh = new THREE.Mesh(mergeGeometries(list), M[key]); mesh.castShadow = !o.lite; mesh.receiveShadow = true; bone.add(mesh); if (parts[key]) parts[key].push(mesh); if (key === "sh") (bone === body ? top : sleeves).push(mesh); }
   g.scale.setScalar(o.scale ?? .76); g.rotation.order = "YXZ";
-  g.userData = { female, top, sleeves, legs, arms, knees, elbows, head, lids, blink: 2 + R() * 4, shirt: M.sh, pants: M.pa, shoe: M.so, skin: M.sk, skinColor: skinC.getHex(), shirtParts: parts.sh, shoeParts: parts.so.concat(parts.sole), longPants: o.shorts ? [] : [], clothes: { shirt: o.shirt, pants: o.pants ?? 0x3a4a63, shoe: o.shoe ?? 0xf5f5f5 } };
+  parts.sw.forEach(m => m.visible = false);
+  g.userData = { swim: parts.sw, suit: M.sw, pantsParts: parts.pa, female, top, sleeves, legs, arms, knees, elbows, head, lids, blink: 2 + R() * 4, shirt: M.sh, pants: M.pa, shoe: M.so, skin: M.sk, skinColor: skinC.getHex(), shirtParts: parts.sh, shoeParts: parts.so.concat(parts.sole), longPants: o.shorts ? [] : [], clothes: { shirt: o.shirt, pants: o.pants ?? 0x3a4a63, shoe: o.shoe ?? 0xf5f5f5 } };
   return g;
 }
 // clignement des yeux et respiration, pour tous les personnages
@@ -1651,11 +1709,20 @@ function animPerson(g, mode, t) {
 // tenue : habits ou maillot de bain
 function setOutfit(g, id) {
   const u = g.userData, su = SUITS.find(x => x.id === id), show = (arr, v) => arr.forEach(m => m.visible = v);
-  if (!su) { show(u.shirtParts, true); show(u.shoeParts, true); u.shirt.color.setHex(u.clothes.shirt); u.shirt.map = null; u.pants.color.setHex(u.clothes.pants); u.pants.map = null; u.pants.metalness = 0; u.pants.roughness = .8; }
-  else { show(u.top, !!su.full || u.female); show(u.sleeves, !!su.full); if (su.full) { u.shirt.color.set(su.a); u.shirt.map = null; } else if (u.female) { u.shirt.color.setHex(0xffffff); u.shirt.map = suitTex(su); } u.shirt.needsUpdate = true; show(u.shoeParts, false); u.pants.color.setHex(0xffffff); u.pants.map = suitTex(su); u.pants.metalness = su.gold ? .7 : 0; u.pants.roughness = su.gold ? .25 : .7; }
-  u.pants.needsUpdate = true;
+  show(u.swim, !!su && !su.full);
+  if (!su) { // habits
+    show(u.shirtParts, true); show(u.pantsParts, true); show(u.shoeParts, true);
+    u.shirt.color.setHex(u.clothes.shirt); u.shirt.map = null; u.pants.color.setHex(u.clothes.pants); u.pants.map = null; u.pants.metalness = 0; u.pants.roughness = .8;
+  } else if (su.full) { // combinaison de surf : haut à manches et bas, pieds nus
+    show(u.shirtParts, true); show(u.pantsParts, true); show(u.shoeParts, false);
+    u.shirt.color.set(su.a); u.shirt.map = null; u.pants.color.setHex(0xffffff); u.pants.map = suitTex(su); u.pants.metalness = 0; u.pants.roughness = .7;
+  } else { // short de bain ou maillot une pièce, pieds nus
+    show(u.shirtParts, false); show(u.pantsParts, false); show(u.shoeParts, false);
+    u.suit.map = suitTex(su); u.suit.metalness = su.gold ? .7 : 0; u.suit.roughness = su.gold ? .22 : .55; u.suit.needsUpdate = true;
+  }
+  u.shirt.needsUpdate = true; u.pants.needsUpdate = true;
 }
-const player = person({ shirt: 0x2e86de, pants: 0xf39c12, shorts: true, cap: 0xff5a4e, shoe: 0xff5a4e, scale: .6 }); scene.add(player);
+let player = person({ shirt: 0x2e86de, pants: 0xf39c12, shorts: true, cap: 0xff5a4e, shoe: 0xff5a4e, scale: .6 }); scene.add(player);
 const pLbl = label("Théo", "#2e86de", "#ffffff", .8); pLbl.position.y = 2.75; player.add(pLbl);
 const SPAWN = { x: -16, z: 33 };
 
@@ -2077,21 +2144,22 @@ const inKids = (x, z) => Math.hypot(x - KIDS.x, z - KIDS.z) < KIDS.r + .2;
 function suitCard(su, btnText, disabled, onClick, sub) {
   const d = document.createElement("div"); d.className = "suit"; const cv = su ? suitCanvas(su, 96, 64) : document.createElement("canvas");
   if (!su) { cv.width = 96; cv.height = 64; const x = cv.getContext("2d"); x.fillStyle = "#2e86de"; x.fillRect(0, 0, 96, 32); x.fillStyle = "#f39c12"; x.fillRect(0, 32, 96, 32); }
-  const b = document.createElement("b"); b.textContent = su ? su.name : "Mes habits"; const pr = document.createElement("span"); pr.className = "price"; pr.textContent = sub;
+  const b = document.createElement("b"); b.textContent = su ? nomMaillot(su) : "Mes habits"; const pr = document.createElement("span"); pr.className = "price"; pr.textContent = sub;
   const bt = document.createElement("button"); bt.className = "btn"; bt.textContent = btnText; bt.disabled = disabled; bt.onclick = onClick; d.append(cv, b, pr, bt); return d;
 }
 function renderShop() {
   updMoney(); const L = $("shopList"); L.textContent = "";
   for (const su of SUITS) { if (!su.price) continue; const has = owned.includes(su.id);
     L.append(suitCard(su, has ? "Déjà à toi ✓" : money < su.price ? "Pas assez" : "Acheter", has || money < su.price, () => {
-      if (owned.includes(su.id) || money < su.price) return; money -= su.price; owned.push(su.id); saveShop(); sfx.duck(); toast(`Tu as acheté : ${su.name} ! Va le mettre aux vestiaires.`, 2800); renderShop(); }, su.price + " €")); }
+      if (owned.includes(su.id) || money < su.price) return; money -= su.price; owned.push(su.id); saveShop(); sfx.duck(); toast(`Tu as acheté : ${nomMaillot(su)} ! Va le mettre aux vestiaires.`, 2800); renderShop(); }, su.price + " €")); }
 }
 function renderLocker() {
   const L = $("lockerList"); L.textContent = "";
   L.append(suitCard(null, wearing ? "Mettre" : "Je les porte ✓", !wearing, () => wear(null), "Pour se promener"));
   for (const id of owned) { const su = SUITS.find(x => x.id === id); L.append(suitCard(su, wearing === id ? "Je le porte ✓" : "Mettre", wearing === id, () => wear(id), su.price ? "Acheté" : "Offert")); }
 }
-function wear(id) { wearing = id; setOutfit(player, id); sfx.click(); whoosh(.4, .06, 800, 300); renderLocker(); toast(id ? "Te voilà en maillot de bain ! 🩳 Direction l'eau !" : "Tu as remis tes habits.", 2400); }
+function nomMaillot(su) { return player.userData.female ? su.name.replace(/^Short/, "Maillot une pièce") : su.name; }
+function wear(id) { wearing = id; setOutfit(player, id); envoyerProfil(); sfx.click(); whoosh(.4, .06, 800, 300); renderLocker(); toast(id ? "Te voilà en maillot de bain ! Direction l'eau !" : "Tu as remis tes habits.", 2400); }
 $("shopClose").onclick = () => { sfx.click(); fermer("shopView"); }; $("lockerClose").onclick = () => { sfx.click(); fermer("lockerView"); };
 updMoney();
 let state = "walk", tower = null, climbT = 0, riding = null, swimming = false, inCottage = null, inDome = false;
@@ -2145,14 +2213,21 @@ function drawMap() {
   mx.strokeStyle = "#3f9fbe"; mx.lineWidth = RIVER_HW * 2 * k; mx.lineJoin = "round"; mx.beginPath(); RIV.forEach((p, i) => i ? mx.lineTo(X(p.x), Z(p.z)) : mx.moveTo(X(p.x), Z(p.z))); mx.closePath(); mx.stroke();
   mx.fillStyle = "#6b4426"; mx.fillRect(X(40), Z(66), 10 * k, 10 * k); mx.fillRect(X(58), Z(66), 6 * k, 6 * k); HUTS.forEach(([x, z]) => mx.fillRect(X(x - 2), Z(z - 2), 4 * k, 4 * k));
   mx.fillStyle = "#27ae60"; mx.fillRect(X(RACK.x1), Z(36), (RACK.x2 - RACK.x1) * k, 1.5 * k);
-  cottages.forEach(c => { mx.fillStyle = c.mine ? "#ff5a4e" : "#8a5a30"; mx.fillRect(X(c.x - 5), Z(c.z - 4), 10 * k, 8 * k); });
+  mx.textAlign = "center"; mx.textBaseline = "middle"; mx.font = '800 13px "Baloo 2",sans-serif';
+  cottages.forEach(c => { mx.fillStyle = c.mine ? "#ff5a4e" : "#8a5a30"; mx.fillRect(X(c.x - 5), Z(c.z - 4), 10 * k, 8 * k); mx.fillStyle = "#ffffff"; mx.fillText(c.num, X(c.x), Z(c.z) + 1); });
+  mx.textBaseline = "alphabetic";
   mx.fillStyle = "#e84393"; mx.fillRect(X(11.3), Z(21), 5.4 * k, 2 * k);
   mx.font = '700 13px "Baloo 2",sans-serif'; mx.textAlign = "center"; mx.fillStyle = "#0d3b52";
   mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17));
   mx.fillText("Ferme", X(-70), Z(-36)); mx.fillText("Poney club", X(ARENA.x), Z(ARENA.z - ARENA.rz - 2)); mx.fillText("Karts", X(0), Z(-80)); mx.fillText("Rivière sauvage", X(-50), Z(75)); mx.fillText("Maison dans les arbres", X(50), Z(84)); mx.fillText("Vélos", X(6), Z(41));
-  npcs.forEach(n => { mx.fillStyle = "#8e44ad"; mx.beginPath(); mx.arc(X(n.g.position.x), Z(n.g.position.z), 4, 0, 7); mx.fill(); });
+  mx.font = '700 11px "Baloo 2",sans-serif';
+  npcs.forEach(n => { const nx = X(n.g.position.x), nz = Z(n.g.position.z); mx.fillStyle = "#8e44ad"; mx.beginPath(); mx.arc(nx, nz, 4, 0, 7); mx.fill(); mx.fillText(n.name.split(",")[0], nx, nz - 7); });
   ducks.forEach(d => { if (d.got) return; mx.fillStyle = "#ffd23f"; mx.strokeStyle = "#7a5a00"; mx.lineWidth = 1.5; mx.beginPath(); mx.arc(X(d.x), Z(d.z), 5.5, 0, 7); mx.fill(); mx.stroke(); });
-  if (net) for (const [s, o] of net.autres) if (o.seen) { mx.fillStyle = ANIMAUX[s][3]; mx.strokeStyle = "#fff"; mx.lineWidth = 2.5; mx.beginPath(); mx.arc(X(o.g.position.x), Z(o.g.position.z), 6.5, 0, 7); mx.fill(); mx.stroke(); }
+  if (net && net.rdv) { const rx = X(net.rdv.x), rz = Z(net.rdv.z), pul = 10 + Math.sin(time * 5) * 3; mx.strokeStyle = "#ff3b30"; mx.lineWidth = 3; mx.beginPath(); mx.arc(rx, rz, pul, 0, 7); mx.stroke(); mx.font = '22px sans-serif'; mx.fillText("📍", rx, rz - 6); }
+  if (net) for (const [s, o] of net.autres) if (o.seen) { // les amis : rond à leur couleur, leur animal et son nom
+    const fx = X(o.g.position.x), fz = Z(o.g.position.z); mx.fillStyle = ANIMAUX[s][3]; mx.strokeStyle = "#fff"; mx.lineWidth = 3; mx.beginPath(); mx.arc(fx, fz, 10, 0, 7); mx.fill(); mx.stroke();
+    mx.textBaseline = "middle"; mx.font = '13px sans-serif'; mx.fillText(ANIMAUX[s][0], fx, fz + 1); mx.textBaseline = "alphabetic";
+    const nm = nomJoueur(s); mx.font = '800 12px "Baloo 2",sans-serif'; mx.lineWidth = 3; mx.strokeStyle = "#fff"; mx.strokeText(nm, fx, fz - 14); mx.fillStyle = ANIMAUX[s][3]; mx.fillText(nm, fx, fz - 14); }
   const px = X(player.position.x), pz = Z(player.position.z); mx.save(); mx.translate(px, pz); mx.rotate(-player.rotation.y + Math.PI);
   mx.fillStyle = "#2e86de"; mx.strokeStyle = "#fff"; mx.lineWidth = 2; mx.beginPath(); mx.moveTo(0, -11); mx.lineTo(8, 8); mx.lineTo(-8, 8); mx.closePath(); mx.fill(); mx.stroke(); mx.restore();
 }
@@ -2165,13 +2240,73 @@ const RELAIS = (["localhost", "127.0.0.1"].includes(location.hostname) && new UR
 // Liste fermée : on n'envoie que le numéro de la phrase (le relais refuse tout le reste).
 const PHRASES = ["Coucou ! 👋", "Viens ici !", "Suis-moi !", "Attends-moi !", "On va au toboggan ? 🛝", "On va nager ? 🏊",
   "On va au lac ? 🦢", "J'ai trouvé un canard ! 🦆", "Bravo ! 🎉", "Oui 👍", "Non 👎", "Au revoir ! 👋"];
+// Rendez-vous : trois lieux, puis un numéro par cottage (les enfants touchent le chiffre).
+const LIEUX = [["Rendez-vous à l'Aquaparc ! 🌴", DOME.x, DOME.z, DOME.r + 4], ["Rendez-vous au lac ! 🚤", LAKE.x, LAKE.z, 7], ["Rendez-vous à la crêperie ! 🥞", 14, 22, 7]];
+const RDV0 = PHRASES.length;
+const RDV = [...LIEUX.map(([t, x, z, h]) => ({ t, x, z, h })),
+  ...[...cottages].sort((a, b) => a.num - b.num).map(c => ({ t: `Rendez-vous au cottage n°${c.num} ! 🏠`, x: c.x, z: c.z, h: 13.5, num: c.num }))];
+PHRASES.push(...RDV.map(r => r.t)); // le relais accepte jusqu'à 64 phrases
 // Pas de prénom : chaque place de la partie est un animal.
 const ANIMAUX = [["🦊", "Renard orange", 0xe67e22, "#e67e22"], ["🐧", "Pingouin bleu", 0x2e86de, "#2e86de"], ["🐰", "Lapin rose", 0xe84393, "#e84393"],
-  ["🐸", "Grenouille verte", 0x27ae60, "#27ae60"], ["🦉", "Hibou violet", 0x8e44ad, "#8e44ad"], ["🐿️", "Écureuil roux", 0xb5532a, "#b5532a"]];
+  ["🐸", "Grenouille verte", 0x27ae60, "#27ae60"], ["🦉", "Hibou violet", 0x8e44ad, "#8e44ad"], ["🐿️", "Écureuil roux", 0xb5532a, "#b5532a"],
+  ["🐻", "Ours brun", 0x795548, "#795548"], ["🐨", "Koala gris", 0x607d8b, "#607d8b"], ["🦁", "Lion doré", 0xb8860b, "#b8860b"], ["🐬", "Dauphin turquoise", 0x00838f, "#00838f"]];
 const LETTRES = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // sans I, L, O, 0, 1 pour ne pas les confondre
 const CODE_OK = new RegExp(`^[${LETTRES}]{8}$`);
+// 4 = dans un véhicule : sur le lac c'est le pédalo, ailleurs le toboggan (le relais ne connaît que 0 à 4).
 const MODES = ["idle", "walk", "swim", "climb", "ride"];
 let net = null, ovPaused = false, myLbl = pLbl;
+// Filtre simple, identique dans le jeu et le relais (accents et substitutions courantes).
+function filtrerSurnom(v) {
+  if (typeof v !== "string") return null;
+  const p = v.normalize("NFC").trim().replace(/\s+/g, " ");
+  if (!p) return ""; // sans surnom, on garde le nom de l'animal
+  if (p.length < 2 || p.length > 16 || !/^[A-Za-zÀ-ÖØ-öø-ÿ0-9 _'-]+$/.test(p) || !/[A-Za-zÀ-ÖØ-öø-ÿ0-9]/.test(p)) return null;
+  const simple = p.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/[01345789]/g, c => ({ 0: "o", 1: "i", 3: "e", 4: "a", 5: "s", 7: "t", 8: "b", 9: "g" })[c]);
+  const compact = simple.replace(/[^a-z]/g, "");
+  if (/(connard|connasse|salope|salopard|encul|putain|pute|merde|batard|abruti|debile|idiot|ta?gueule|fuck|shit|bitch|nazi|negro|negre|bougnoule|salejuif)/.test(compact)
+      || /(?:^|[^a-z])(con|cons|pd|fdp|ntm)(?:$|[^a-z])/.test(simple) || /^(con|cons|pd|fdp|ntm)$/.test(compact)) return null;
+  return p;
+}
+function nomJoueur(s) { return net?.profils.get(s)?.pseudo || ANIMAUX[s][1]; }
+function effacerLabel(lb) { lb.material.map.dispose(); lb.material.dispose(); }
+function libererPersonnage(g) {
+  const materiaux = new Set();
+  g.traverse(o => { if (o.isMesh) { o.geometry.dispose(); materiaux.add(o.material); } else if (o.isSprite) effacerLabel(o); });
+  materiaux.forEach(m => m.dispose());
+}
+function choisirPersonnage(sexe) {
+  if (player.userData.female === (sexe === "f")) return;
+  const ancien = player;
+  player = person({ long: sexe === "f", shirt: 0x2e86de, pants: 0xf39c12, shorts: true, cap: 0xff5a4e, shoe: 0xff5a4e, scale: .6 });
+  player.position.copy(ancien.position); player.rotation.copy(ancien.rotation);
+  ancien.remove(myLbl); player.add(myLbl); scene.add(player); scene.remove(ancien); libererPersonnage(ancien);
+  setOutfit(player, wearing);
+}
+function envoyerProfil() {
+  if (!net || net.s < 0 || net.ws.readyState !== 1) return;
+  net.ws.send(JSON.stringify({ t: "profil", pseudo: net.pseudo, sexe: net.sexe, tenue: wearing }));
+}
+function appliquerProfil(d) {
+  const pseudo = filtrerSurnom(d.pseudo);
+  if (pseudo === null || !["f", "g"].includes(d.sexe) || (d.tenue !== null && !SUITS.some(su => su.id === d.tenue))) return;
+  net.profils.set(d.s, { pseudo, sexe: d.sexe, tenue: d.tenue });
+  if (d.s === net.s) monLabel("Toi " + ANIMAUX[d.s][0] + " " + nomJoueur(d.s), ANIMAUX[d.s][3], ANIMAUX[d.s][2]);
+  else {
+    const o = net.autres.get(d.s) || ajouter(d.s, false);
+    if (o.g.userData.female !== (d.sexe === "f")) {
+      const ancien = o.g, neuf = avatar(d.s);
+      neuf.g.position.copy(ancien.position); neuf.g.rotation.copy(ancien.rotation); neuf.g.visible = ancien.visible;
+      if (o.bub) { ancien.remove(o.bub); neuf.g.add(o.bub); }
+      o.g = neuf.g; o.lb = neuf.lb; scene.remove(ancien); libererPersonnage(ancien);
+    } else {
+      o.g.remove(o.lb); effacerLabel(o.lb);
+      o.lb = label(ANIMAUX[d.s][0] + " " + nomJoueur(d.s), ANIMAUX[d.s][3], "#ffffff", .6); o.lb.position.y = 2.95; o.g.add(o.lb);
+    }
+    setOutfit(o.g, d.tenue);
+  }
+  majUI();
+}
 const showCode = c => c.slice(0, 4) + "-" + c.slice(4);
 const r2 = v => Math.round(v * 100) / 100;
 function nouveauCode() { return [...crypto.getRandomValues(new Uint32Array(8))].map(n => LETTRES[n % LETTRES.length]).join(""); }
@@ -2195,40 +2330,54 @@ function poserBulle(o, g, text) {
 }
 
 function avatar(s) {
-  const a = ANIMAUX[s], g = person({ shirt: a[2], pants: 0x34495e, shorts: true, cap: a[2], hair: 0x3b2a1a });
-  const lb = label(a[0] + " " + a[1].split(" ")[0], a[3], "#ffffff", .6); lb.position.y = 2.95; g.add(lb);
+  const a = ANIMAUX[s], profil = net.profils.get(s), g = person({ long: profil?.sexe === "f", shirt: a[2], pants: 0x34495e, shorts: true, cap: a[2], hair: 0x3b2a1a });
+  const lb = label(a[0] + " " + nomJoueur(s), a[3], "#ffffff", .6); lb.position.y = 2.95; g.add(lb);
+  setOutfit(g, profil?.tenue ?? null);
   g.visible = false; scene.add(g);
-  return { g, tx: 0, ty: 0, tz: 0, tr: 0, m: 0, walk: 0, bub: null, bubT: 0, seen: false };
+  return { g, lb, tx: 0, ty: 0, tz: 0, tr: 0, m: 0, walk: 0, bub: null, bubT: 0, seen: false };
 }
 function ajouter(s, annonce) {
   if (s === net.s) return null;
   if (net.autres.has(s)) return net.autres.get(s);
   const o = avatar(s); net.autres.set(s, o); majUI();
-  if (annonce) { toast(`${ANIMAUX[s][0]} ${ANIMAUX[s][1]} arrive dans la partie !`); sfx.duck(); }
+  if (annonce) { toast(`${ANIMAUX[s][0]} ${nomJoueur(s)} arrive dans la partie !`); sfx.duck(); }
   return o;
 }
 function retirer(s, annonce) {
   const o = net.autres.get(s); if (!o) return;
-  scene.remove(o.g); net.autres.delete(s); majUI();
-  if (annonce) toast(`${ANIMAUX[s][0]} ${ANIMAUX[s][1]} est parti.`);
+  const nom = nomJoueur(s); scene.remove(o.g); if (o.boat) scene.remove(o.boat); libererPersonnage(o.g); net.autres.delete(s); net.profils.delete(s); majUI();
+  if (annonce) toast(`${ANIMAUX[s][0]} ${nom} est parti.`);
 }
 // En partie, on porte la couleur de son animal (comme les autres nous voient).
 function monLabel(text, bg, shirt) {
-  player.remove(myLbl); myLbl = text ? label(text, bg, "#ffffff", .6) : pLbl; myLbl.position.y = 2.95; player.add(myLbl);
-  player.userData.shirt.color.setHex(shirt ?? 0x2e86de);
+  player.remove(myLbl); if (myLbl !== pLbl) effacerLabel(myLbl);
+  myLbl = text ? label(text, bg, "#ffffff", .6) : pLbl; myLbl.position.y = 2.95; player.add(myLbl);
+  player.userData.clothes.shirt = shirt ?? 0x2e86de; setOutfit(player, wearing);
+}
+// repère 📍 au-dessus du lieu du rendez-vous (et sur la carte), pendant une minute et demie
+function poserRdv(r) {
+  if (net.rdv) { scene.remove(net.rdv.sp); effacerLabel(net.rdv.sp); }
+  const sp = label("📍 Rendez-vous", "#ff3b30", "#ffffff", 2.2); sp.material.depthTest = false; sp.renderOrder = 11; sp.position.set(r.x, r.h, r.z); scene.add(sp);
+  net.rdv = { x: r.x, z: r.z, h: r.h, t: 90, sp };
 }
 function dire(s, i) {
   const a = ANIMAUX[s], phrase = PHRASES[i];
+  if (i >= RDV0) poserRdv(RDV[i - RDV0]);
   if (s === net.s) { poserBulle(net.moi, player, phrase); sfx.talk(); return; }
   const o = net.autres.get(s) || ajouter(s, false); poserBulle(o, o.g, phrase); sfx.talk();
-  toast(`${a[0]} ${a[1]} : ${phrase}`, 3200);
+  toast(`${a[0]} ${nomJoueur(s)} : ${phrase}`, 3200);
 }
 
 function connecter(code, creer) {
   if (!RELAIS) { msg("Le jeu à plusieurs n'est pas encore installé sur ce site."); return; }
+  const pseudo = filtrerSurnom($("pseudoIn").value);
+  if (pseudo === null) { msg("Choisis un surnom gentil de 2 à 16 caractères : lettres, chiffres, espaces, tirets ou apostrophes."); $("pseudoIn").focus(); return; }
+  $("pseudoIn").value = pseudo;
+  const sexe = document.querySelector('input[name="personnage"]:checked').value;
   if (net) quitter();
+  choisirPersonnage(sexe);
   let ws; try { ws = new WebSocket(`${RELAIS}/salle/${code}${creer ? "?creer=1" : ""}`); } catch (e) { msg("Impossible de joindre le serveur."); return; }
-  net = { ws, code, s: -1, autres: new Map(), moi: { bub: null, bubT: 0 }, sendT: 0, hb: 0, last: null };
+  net = { ws, code, pseudo, sexe, profils: new Map(), s: -1, autres: new Map(), moi: { bub: null, bubT: 0 }, sendT: 0, hb: 0, last: null };
   msg("Connexion…");
   net.attente = setTimeout(() => { if (net && net.ws === ws && net.s < 0) fin(0); }, 8000);
   ws.onmessage = e => { if (net && net.ws === ws) recevoir(e.data); };
@@ -2236,7 +2385,7 @@ function connecter(code, creer) {
 }
 function fin(code) {
   const etait = net.s >= 0; quitter();
-  msg(code === 4004 ? "Ce code ne marche pas. Vérifie-le : la partie est peut-être finie." : code === 4001 ? "La partie est pleine : 6 joueurs au maximum."
+  msg(code === 4004 ? "Ce code ne marche pas. Vérifie-le : la partie est peut-être finie." : code === 4001 ? "La partie est pleine : 10 joueurs au maximum."
     : etait ? "La connexion est perdue." : "Impossible de joindre le serveur.");
   if (etait) toast("👫 La partie à plusieurs est terminée.");
 }
@@ -2244,13 +2393,16 @@ function recevoir(data) {
   let d; try { d = JSON.parse(data); } catch (e) { return; }
   if (!d || typeof d !== "object") return;
   if (d.t === "refus") { fin(d.c === 4001 ? 4001 : 4004); return; }
+  if (d.t === "profil_refuse") { fin(0); msg("Ce surnom ou ce personnage est refusé. Choisis un autre surnom."); return; }
   const place = v => Number.isInteger(v) && v >= 0 && v < ANIMAUX.length;
   if (!place(d.s)) return;
   if (d.t === "bienvenue") {
-    net.s = d.s; (Array.isArray(d.joueurs) ? d.joueurs : []).filter(place).forEach(s => ajouter(s, false));
-    monLabel("Toi " + ANIMAUX[d.s][0], ANIMAUX[d.s][3], ANIMAUX[d.s][2]); msg(""); majUI(); sfx.duck();
-    toast(net.autres.size ? `Tu as rejoint la partie ! Tu es ${ANIMAUX[d.s][1]}.` : `Partie créée ! Donne le code ${showCode(net.code)} à tes amis.`, 3500);
+    net.s = d.s; net.profils.set(d.s, { pseudo: net.pseudo, sexe: net.sexe, tenue: wearing });
+    (Array.isArray(d.joueurs) ? d.joueurs : []).filter(place).forEach(s => ajouter(s, false));
+    monLabel("Toi " + ANIMAUX[d.s][0] + " " + nomJoueur(d.s), ANIMAUX[d.s][3], ANIMAUX[d.s][2]); msg(""); majUI(); sfx.duck(); envoyerProfil();
+    toast(net.autres.size ? `Tu as rejoint la partie ! Tu es ${nomJoueur(d.s)}.` : `Partie créée ! Donne le code ${showCode(net.code)} à tes amis.`, 3500);
   } else if (net.s < 0) return;
+  else if (d.t === "profil") appliquerProfil(d);
   else if (d.t === "arrive") ajouter(d.s, true);
   else if (d.t === "part") retirer(d.s, true);
   else if (d.t === "p") {
@@ -2263,8 +2415,9 @@ function quitter() {
   if (!net) return;
   const n = net; net = null; clearTimeout(n.attente);
   try { n.ws.close(1000); } catch (e) {}
-  for (const o of n.autres.values()) scene.remove(o.g);
-  if (n.moi.bub) player.remove(n.moi.bub);
+  for (const o of n.autres.values()) { scene.remove(o.g); if (o.boat) scene.remove(o.boat); libererPersonnage(o.g); }
+  if (n.moi.bub) { player.remove(n.moi.bub); effacerLabel(n.moi.bub); }
+  if (n.rdv) { scene.remove(n.rdv.sp); effacerLabel(n.rdv.sp); }
   monLabel(null); majUI();
 }
 function majUI() {
@@ -2274,9 +2427,9 @@ function majUI() {
   if (!on) return;
   $("multiPill").textContent = `👫 ${1 + net.autres.size} · ${showCode(net.code)}`;
   $("codeShow").textContent = showCode(net.code);
-  $("meName").textContent = `${ANIMAUX[net.s][0]} ${ANIMAUX[net.s][1]}`;
+  $("meName").textContent = `${ANIMAUX[net.s][0]} ${nomJoueur(net.s)}`;
   const wl = $("whoList"); wl.textContent = "";
-  for (const s of [net.s, ...[...net.autres.keys()].sort()]) { const sp = document.createElement("span"); sp.style.background = ANIMAUX[s][3]; sp.textContent = `${ANIMAUX[s][0]} ${ANIMAUX[s][1]}${s === net.s ? " (toi)" : ""}`; wl.appendChild(sp); }
+  for (const s of [net.s, ...[...net.autres.keys()].sort((a, b) => a - b)]) { const sp = document.createElement("span"); sp.style.background = ANIMAUX[s][3]; sp.textContent = `${ANIMAUX[s][0]} ${nomJoueur(s)}${s === net.s ? " (toi)" : ""}`; wl.appendChild(sp); }
 }
 
 // Fenêtres : le jeu se met en pause pendant qu'elles sont ouvertes
@@ -2289,13 +2442,17 @@ $("multiClose").onclick = () => { sfx.click(); fermer("multiView"); };
 $("createBtn").onclick = () => { sfx.click(); connecter(nouveauCode(), true); };
 $("codeIn").addEventListener("input", e => { const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8); e.target.value = v.length > 4 ? v.slice(0, 4) + "-" + v.slice(4) : v; });
 $("codeIn").addEventListener("keydown", e => { e.stopPropagation(); if (e.key === "Enter") $("joinBtn").click(); });
+$("pseudoIn").addEventListener("keydown", e => e.stopPropagation());
 $("joinBtn").onclick = () => {
   sfx.click(); const c = $("codeIn").value.replace(/-/g, "");
   if (!CODE_OK.test(c)) { msg("Un code a 8 lettres ou chiffres, par exemple ABCD-EFGH. Il n'y a jamais de I, L, O, 0 ni 1."); return; }
   connecter(c, false);
 };
 $("leaveBtn").onclick = () => { sfx.click(); quitter(); msg("Tu as quitté la partie."); };
-$("phraseList").innerHTML = PHRASES.map((p, i) => `<button class="btn" data-i="${i}">${p}</button>`).join("");
+const phraseBtn = (i, cls = "") => `<button class="btn ${cls}" data-i="${i}">${PHRASES[i]}</button>`;
+$("phraseList").innerHTML = PHRASES.slice(0, RDV0).map((_, i) => phraseBtn(i)).join("")
+  + `<h3>📍 Se donner rendez-vous</h3>` + LIEUX.map((_, k) => phraseBtn(RDV0 + k, "rdv")).join("")
+  + `<h3>🏠 Au cottage n°…</h3><div class="nums">${RDV.slice(LIEUX.length).map((r, k) => `<button class="btn" data-i="${RDV0 + LIEUX.length + k}" aria-label="Rendez-vous au cottage ${r.num}">${r.num}</button>`).join("")}</div>`;
 $("phraseList").onclick = e => { const b = e.target.closest("[data-i]"); if (!b || !net || net.s < 0) return; net.ws.send(JSON.stringify({ t: "m", i: +b.dataset.i })); fermer("sayView"); };
 $("sayBtn").onclick = () => { sfx.click(); ouvrir("sayView"); };
 $("sayClose").onclick = () => { sfx.click(); fermer("sayView"); };
@@ -2309,15 +2466,29 @@ function netTick(dt) {
     if (!o.seen) continue;
     const g = o.g; g.position.x += (o.tx - g.position.x) * k; g.position.y += (o.ty - g.position.y) * k; g.position.z += (o.tz - g.position.z) * k;
     let d = o.tr - g.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); g.rotation.y += d * k;
-    o.walk += dt * 9; animPerson(g, MODES[o.m], o.m === 2 ? time * 4 : o.m === 3 ? time * 9 : o.walk);
+    // vitesse de l'ami (pour faire tourner les pédales et la roue de son pédalo)
+    const vit = Math.hypot(o.tx - g.position.x, o.tz - g.position.z) * 10; o.vit = (o.vit || 0) + (vit - (o.vit || 0)) * Math.min(1, dt * 3);
+    if (o.m === 4 && inWater(o.tx, o.tz)) {
+      // chacun a son pédalo : on dessine celui de l'ami sous lui
+      if (!o.boat) { o.boat = makePedalo(); scene.add(o.boat); }
+      const h = g.rotation.y, sx = -.48, b = o.boat; b.visible = true;
+      b.position.set(g.position.x - Math.cos(h) * sx, Math.sin(time * 1.6 + 1) * .035, g.position.z + Math.sin(h) * sx);
+      b.rotation.set(Math.sin(time * 1.3 + 1) * .015, h, Math.sin(time * 1.1 + 1) * .02);
+      b.userData.wheel.rotation.x -= dt * o.vit * 2.2; b.userData.crank.rotation.x -= dt * o.vit * 2.2;
+      animPerson(g, "pedal", time * (1 + o.vit * 1.6));
+    } else {
+      if (o.boat) o.boat.visible = false;
+      o.walk += dt * 9; animPerson(g, MODES[o.m], o.m === 2 ? time * 4 : o.m === 3 ? time * 9 : o.walk);
+    }
   }
   if (net.moi.bub && (net.moi.bubT -= dt) <= 0) { player.remove(net.moi.bub); net.moi.bub = null; }
+  if (net.rdv) { const r = net.rdv; r.sp.position.y = r.h + Math.sin(time * 3) * .6; if ((r.t -= dt) <= 0) { scene.remove(r.sp); effacerLabel(r.sp); net.rdv = null; } }
   if (net.s < 0 || net.ws.readyState !== 1) return;
   net.hb -= dt; if ((net.sendT -= dt) > 0) return; net.sendT = .1;
   const P = player.position, ry = Math.atan2(Math.sin(player.rotation.y), Math.cos(player.rotation.y));
   const cur = { x: r2(P.x), y: r2(P.y), z: r2(P.z), r: r2(ry) }, L = net.last;
   const bouge = L && Math.hypot(cur.x - L.x, cur.z - L.z) > .02;
-  cur.m = state === "ride" ? 4 : state.startsWith("climb") ? 3 : swimming ? 2 : bouge ? 1 : 0;
+  cur.m = state === "ride" || state === "boat" ? 4 : state.startsWith("climb") ? 3 : swimming ? 2 : bouge ? 1 : 0;
   if (L && L.x === cur.x && L.y === cur.y && L.z === cur.z && L.r === cur.r && L.m === cur.m && net.hb > 0) return;
   net.last = cur; net.hb = 2;
   net.ws.send(JSON.stringify({ t: "p", ...cur }));
@@ -2449,9 +2620,9 @@ function loop() {
   inDome = Math.hypot(P.x - DOME.x, P.z - DOME.z) < DOME.r && state !== "ride" || state === "top" || state.startsWith("climb");
   inCottage = null;
   for (const c of cottages) { const [lx, lz] = c.toLocal(P.x, P.z); if (lx > -5 && lx < 5 && lz > -4 && lz < 4) inCottage = c; }
-  const where = inCottage ? (P.y > 1.8 ? "🛏️ À l'étage" : inCottage.mine ? "🏡 Ton cottage" : "🏠 Un cottage") : state === "boat" ? "🚤 En pédalo" : inDome ? (swimming ? "🏊 Tu nages !" : "🌴 Aquaparc") : state === "drive" ? (veh.kind === "bike" ? "🚲 À vélo" : veh.kind === "pony" ? "🐴 À poney" : lap.t >= 0 ? "⏱️ " + lap.t.toFixed(1).replace(".", ",") + " s" : "🏎️ En kart") : state === "river" ? "🛟 Sur la rivière" : zoneName(P);
+  const where = inCottage ? (P.y > 1.8 ? "🛏️ À l'étage" : inCottage.mine ? `🏡 Ton cottage n°${inCottage.num}` : `🏠 Cottage n°${inCottage.num}`) : state === "boat" ? "🚤 En pédalo" : inDome ? (swimming ? "🏊 Tu nages !" : "🌴 Aquaparc") : state === "drive" ? (veh.kind === "bike" ? "🚲 À vélo" : veh.kind === "pony" ? "🐴 À poney" : lap.t >= 0 ? "⏱️ " + lap.t.toFixed(1).replace(".", ",") + " s" : "🏎️ En kart") : state === "river" ? "🛟 Sur la rivière" : zoneName(P);
   if (where !== lastWhere) { if (where) { $("where").textContent = where; $("where").hidden = false; } else $("where").hidden = true;
-    if (where === "🏡 Ton cottage") toast("Bienvenue dans ton cottage ! 🏡"); if (where === "🌴 Aquaparc" && !lastWhere) toast("Bienvenue à l'Aquaparc ! 🌴"); if (ZTOAST[where] && !seenZ.has(where)) { seenZ.add(where); toast(ZTOAST[where], 3200); } lastWhere = where; }
+    if (where.startsWith("🏡")) toast("Bienvenue dans ton cottage ! 🏡"); if (where === "🌴 Aquaparc" && !lastWhere) toast("Bienvenue à l'Aquaparc ! 🌴"); if (ZTOAST[where] && !seenZ.has(where)) { seenZ.add(where); toast(ZTOAST[where], 3200); } lastWhere = where; }
 
   // intérieur posé dans le cottage le plus proche
   let near = null, nd = 1e9; for (const c of cottages) { const d = Math.hypot(P.x - c.x, P.z - c.z); if (d < nd) { nd = d; near = c; } }
@@ -2562,7 +2733,7 @@ function loop() {
   sun.position.set(P.x + sunDir.x * 120, sunDir.y * 120, P.z + sunDir.z * 120); sun.target.position.set(P.x, 0, P.z);
   renderer.render(scene, camera);
 }
-window.__pins = { get veh() { return veh; }, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, player, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
+window.__pins = { get veh() { return veh; }, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
 loop();
 </script>
 <script>
