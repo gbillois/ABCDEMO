@@ -116,7 +116,7 @@ html.app .site{display:none!important}
 <div id="intro" class="overlay">
   <div class="card">
     <h1>Le Domaine des Pins</h1>
-    <p>Des vacances dans la forêt : ton cottage et sa terrasse, l'Aquaparc et ses toboggans, l'aquarium, la rivière sauvage, la ferme, le poney club, les karts, les vélos, la maison dans les arbres, le lac et son pédalo… et un chat roux qui vient te voir !</p>
+    <p>Des vacances dans la forêt : ton cottage et sa terrasse, l'Aquaparc et ses toboggans, l'aquarium, le Baloba, la rivière sauvage, la ferme, le poney club, les karts, les vélos, la maison dans les arbres, le lac et son pédalo… et un chat roux qui vient te voir !</p>
     <p><b>Mission :</b> 10 canards en plastique se sont échappés. Retrouve-les tous ! 🦆</p>
     <p class="small">Joystick à gauche pour marcher. Glisse ton doigt sur l'écran pour tourner la caméra. Sur ordinateur : flèches ou ZQSD, E pour agir (ouvrir une porte, nager, se changer…), T pour parler. Tu as 4000 € pour la boutique de maillots de bain.</p>
     <div class="row"><button id="startBtn" class="btn">▶ Jouer</button><button id="introMulti" class="btn" style="background:var(--violet)">👫 À plusieurs</button><a class="btn site" style="background:#34495e" href="../index.html">🏠 Accueil</a></div>
@@ -1154,6 +1154,139 @@ function aqCollide(p, prev) {
   const [x, z] = aqW(lp.u, lp.v); p.x = x; p.z = z;
 }
 
+/* ---------- Le Baloba : la salle de jeux couverte (à gauche de l'entrée de l'Aquaparc) ---------- */
+// Repère local : centre de la salle, porte au nord (+z) vers le grand chemin. Structure à étages au fond à gauche,
+// trampolines au fond à droite, piscine à balles devant à droite.
+const BALO = { x: -22, z: 12, hx: 8, hz: 6, h: 6, door: 1.2 };
+const bw = (lx, lz) => [BALO.x + lx, BALO.z + lz];
+const inBaloba = (x, z) => Math.abs(x - BALO.x) < BALO.hx - .2 && Math.abs(z - BALO.z) < BALO.hz - .2;
+path(bw(0, BALO.hz + .3), [BALO.x, 30], 2.6);
+const baloG = new THREE.Group(); baloG.position.set(BALO.x, 0, BALO.z); scene.add(baloG);
+const baloWallTex = tex(512, (x, s) => {
+  x.fillStyle = "#ffffff"; x.fillRect(0, 0, s, s);
+  const cols = ["#ff5a4e", "#ffc93c", "#2e86de", "#27ae60", "#e84393", "#9b59b6"];
+  for (let i = 0; i < 8; i++) { x.fillStyle = cols[i % 6]; x.fillRect(i * 64, s - 90, 64, 90); }
+  for (let i = 0; i < 9; i++) { const bx = 30 + i * 57, by = 120 + (i % 3) * 70, r = 26 + (i % 2) * 10; x.fillStyle = cols[(i + 2) % 6]; x.beginPath(); x.arc(bx, by, r, 0, 7); x.fill(); x.strokeStyle = "rgba(0,0,0,.25)"; x.lineWidth = 2; x.beginPath(); x.moveTo(bx, by + r); x.quadraticCurveTo(bx + 8, by + r + 30, bx - 4, by + r + 60); x.stroke(); x.fillStyle = "rgba(255,255,255,.5)"; x.beginPath(); x.arc(bx - r * .35, by - r * .35, r * .25, 0, 7); x.fill(); }
+}, 2, 1);
+const baloFloorTex = tex(256, (x, s) => { const cols = ["#ff7a6e", "#ffd25e", "#4fa3ec", "#4cc47a"]; for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { x.fillStyle = cols[(i + j * 2) % 4]; x.fillRect(i * 64, j * 64, 64, 64); x.fillStyle = "rgba(0,0,0,.08)"; for (let k = 0; k < 4; k++) { x.fillRect(i * 64 + 8 + k * 14, j * 64 + 4, 6, 6); x.fillRect(i * 64 + 4, j * 64 + 8 + k * 14, 6, 6); } } }, 4, 3);
+{
+  const { hx, hz, h, door } = BALO, wallMat = mat(0xffffff, .7, { map: baloWallTex });
+  const wall = (x1, x2, z1, z2, y0 = 0, y1 = h) => { const w = x2 - x1, d = z2 - z1, hh = y1 - y0, m = new THREE.Mesh(new THREE.BoxGeometry(w, hh, d), wallMat); m.position.set((x1 + x2) / 2, (y0 + y1) / 2, (z1 + z2) / 2); m.receiveShadow = true; baloG.add(m); return m; };
+  wall(-hx, hx, -hz - .15, -hz + .15); wall(-hx - .15, -hx + .15, -hz, hz); wall(hx - .15, hx + .15, -hz, hz);
+  wall(-hx, -door, hz - .15, hz + .15); wall(door, hx, hz - .15, hz + .15); wall(-door, door, hz - .15, hz + .15, 3.2, h);
+  baloG.userData.wallMat = wallMat;
+  const [x1, z1] = bw(-hx, -hz), [x2, z2] = bw(hx, hz);
+  boxes.push({ x1: x1 - .15, x2: x2 + .15, z1: z1 - .15, z2: z1 + .15 }, { x1: x1 - .15, x2: x1 + .15, z1, z2 }, { x1: x2 - .15, x2: x2 + .15, z1, z2 },
+    { x1: x1, x2: BALO.x - door, z1: z2 - .15, z2: z2 + .15 }, { x1: BALO.x + door, x2: x2, z1: z2 - .15, z2: z2 + .15 });
+  // toit arrondi et grosses bulles de couleur posées dessus
+  const roof = new THREE.Group(); baloG.add(roof);
+  const slab = rbox(hx * 2 + .8, .5, hz * 2 + .8, mat(0x2e86de, .5), .25); slab.position.y = h + .25; roof.add(slab);
+  [[-4, -2, 2.2, 0xff5a4e], [1, 1.5, 2.8, 0xffc93c], [5, -2.5, 1.8, 0x27ae60], [-5.5, 3, 1.5, 0xe84393]].forEach(([x, z, r, c]) => { const b = new THREE.Mesh(new THREE.SphereGeometry(r, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), mat(c, .35)); b.position.set(x, h + .5, z); roof.add(b); });
+  shadowAll(roof); baloG.userData.roof = roof;
+  const sign = label("LE BALOBA 🎈", "#e84393", "#ffffff", 2.2); sign.position.set(0, h + 4.4, 0); baloG.add(sign);
+  const awn = rbox(door * 2 + 1.6, .2, 1.4, mat(0xff5a4e, .5), .08); awn.position.set(0, 3.5, hz + .7); awn.castShadow = true; baloG.add(awn);
+  // portes automatiques (coulissent sur les côtés)
+  baloG.userData.doors = [-1, 1].map(s => { const d = new THREE.Mesh(new THREE.BoxGeometry(door, 3.1, .08), glassMat.clone()); d.material.opacity = .45; d.material.color.set(0xffd25e); const fr = new THREE.Mesh(new THREE.BoxGeometry(.08, 3.1, .12), metalMat); fr.position.x = -s * door / 2; d.add(fr); d.position.set(s * door / 2, 1.55, hz); baloG.add(d); return { m: d, s }; });
+  const db = { x1: BALO.x - door, x2: BALO.x + door, z1: z2 - .1, z2: z2 + .1, off: false }; boxes.push(db); baloG.userData.doorBox = db;
+  const fl = new THREE.Mesh(new THREE.PlaneGeometry(hx * 2, hz * 2), mat(0xffffff, .9, { map: baloFloorTex, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 })); fl.rotation.x = -Math.PI / 2; fl.position.y = .03; fl.receiveShadow = true; baloG.add(fl);
+  const lamp = new THREE.PointLight(0xfff1d6, 14, 22, 1.3); lamp.position.set(0, h - .6, 0); baloG.add(lamp);
+}
+// la grande structure en plastique : deux étages, escaliers, tunnel, filets
+const BL1 = { x1: -7.5, x2: -1.5, z1: -5.8, z2: -2.5, y: 1.6 }, BL2 = { x1: -7.5, x2: -4.5, z1: -5.8, z2: -2.5, y: 3.2 };
+const BST1 = { x1: -1.5, x2: 1.7, z1: -5, z2: -3 }, BST2 = { x1: -4.5, x2: -1.8, z1: -5.7, z2: -4.5 };
+const step6 = t => Math.min(1, Math.max(0, Math.floor(t * 6 + 1) / 6));
+{
+  const inR = (r, lx, lz) => lx > r.x1 - .05 && lx < r.x2 + .05 && lz > r.z1 - .05 && lz < r.z2 + .05;
+  SURF.push((x, z) => { const lx = x - BALO.x, lz = z - BALO.z; return inR(BL1, lx, lz) ? BL1.y : null; },
+    (x, z) => { const lx = x - BALO.x, lz = z - BALO.z; return inR(BL2, lx, lz) ? BL2.y : null; },
+    (x, z) => { const lx = x - BALO.x, lz = z - BALO.z; return inR(BST1, lx, lz) ? BL1.y * step6((BST1.x2 - lx) / (BST1.x2 - BST1.x1)) : null; },
+    (x, z) => { const lx = x - BALO.x, lz = z - BALO.z; return inR(BST2, lx, lz) ? BL1.y + (BL2.y - BL1.y) * step6((BST2.x2 - lx) / (BST2.x2 - BST2.x1)) : null; });
+  // on ne passe pas sous la structure, ni sous l'étage du haut
+  WALLS3.push({ x1: BALO.x + BL1.x1, x2: BALO.x + BL1.x2, z1: BALO.z + BL1.z1, z2: BALO.z + BL1.z2, y0: -1, y1: 1.1 },
+    { x1: BALO.x + BL2.x1, x2: BALO.x + BL2.x2, z1: BALO.z + BL2.z1, z2: BALO.z + BL2.z2, y0: 1.1, y1: 2.7 });
+  const g = new THREE.Group();
+  const slab = (r, y, c) => { const m = rbox(r.x2 - r.x1, .3, r.z2 - r.z1, mat(c, .45), .1); m.position.set((r.x1 + r.x2) / 2, y - .15, (r.z1 + r.z2) / 2); g.add(m); };
+  slab(BL1, BL1.y, 0xffc93c); slab(BL2, BL2.y, 0xff5a4e);
+  const post = (x, z, y1, c = 0x2e86de) => { const p = new THREE.Mesh(new THREE.CylinderGeometry(.13, .13, y1, 14), mat(c, .4)); p.position.set(x, y1 / 2, z); g.add(p); const cap = new THREE.Mesh(new THREE.SphereGeometry(.2, 14, 10), mat(0xff5a4e, .4)); cap.position.set(x, y1, z); g.add(cap); };
+  for (const [x, z] of [[-7.4, -5.7], [-1.6, -5.7], [-1.6, -2.6], [-7.4, -2.6], [-4.5, -2.6]]) post(x, z, BL2.y + 1.2);
+  // rambardes rembourrées et filets (le jeu empêche déjà de tomber du bord)
+  const netMat = new THREE.MeshStandardMaterial({ color: 0x2e86de, transparent: true, opacity: .35, side: THREE.DoubleSide, depthWrite: false });
+  const rail = (ax, az, bx, bz, y, c) => { const a = new THREE.Vector3(ax, y, az), b = new THREE.Vector3(bx, y, bz), d = b.clone().sub(a), L = d.length();
+    const r = new THREE.Mesh(new THREE.CapsuleGeometry(.09, L, 4, 10), mat(c, .5)); r.position.copy(a).addScaledVector(d, .5); r.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize()); g.add(r);
+    const net = new THREE.Mesh(new THREE.PlaneGeometry(L, .85), netMat); net.position.set((ax + bx) / 2, y - .45, (az + bz) / 2); net.rotation.y = -Math.atan2(bz - az, bx - ax); g.add(net); };
+  const y1 = BL1.y + .95, y2 = BL2.y + .95, G = 0x27ae60, R = 0xe84393;
+  rail(-4.5, -2.5, -2.4, -2.5, y1, G); rail(-1.5, -5.8, -1.5, -5, y1, G); rail(-1.5, -3, -1.5, -2.5, y1, G); rail(-7.5, -5.8, -7.5, -2.5, y1, G);
+  rail(-7.5, -2.5, -6.5, -2.5, y2, R); rail(-5.5, -2.5, -4.5, -2.5, y2, R); rail(-4.5, -4.5, -4.5, -2.5, y2, R); rail(-7.5, -5.8, -7.5, -2.5, y2, R);
+  // escaliers en marches de mousse
+  const stepCols = [0x27ae60, 0xff8a2b];
+  for (let i = 0; i < 6; i++) { const w = (BST1.x2 - BST1.x1) / 6, hh = BL1.y * (i + 1) / 6, s = rbox(w, hh, BST1.z2 - BST1.z1, mat(stepCols[i % 2], .6), .06); s.position.set(BST1.x2 - w * (i + .5), hh / 2, (BST1.z1 + BST1.z2) / 2); g.add(s); }
+  for (let i = 0; i < 6; i++) { const w = (BST2.x2 - BST2.x1) / 6, hh = (BL2.y - BL1.y) * (i + 1) / 6, s = rbox(w, hh, BST2.z2 - BST2.z1, mat(stepCols[(i + 1) % 2], .6), .06); s.position.set(BST2.x2 - w * (i + .5), BL1.y + hh / 2, (BST2.z1 + BST2.z2) / 2); g.add(s); }
+  // le tunnel transparent sur le premier étage
+  const tun = new THREE.Mesh(new THREE.CylinderGeometry(.85, .85, 2.2, 28, 1, true, 0, Math.PI), new THREE.MeshStandardMaterial({ color: 0x27ae60, transparent: true, opacity: .45, side: THREE.DoubleSide, depthWrite: false }));
+  tun.rotation.z = Math.PI / 2; tun.position.set(-3.1, BL1.y, -3.6); g.add(tun);
+  for (const x of [-4.2, -2]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(.85, .1, 10, 28, Math.PI), mat(0xffc93c, .4)); ring.position.set(x, BL1.y, -3.6); ring.rotation.y = Math.PI / 2; g.add(ring); }
+  // fanions
+  [[-7.4, -2.6, 0xff5a4e], [-4.5, -2.6, 0x2e86de], [-1.6, -2.6, 0xffc93c]].forEach(([x, z, c]) => { const f = new THREE.Mesh(new THREE.ConeGeometry(.3, .6, 3), mat(c, .5)); f.rotation.z = -Math.PI / 2; f.scale.z = .15; f.position.set(x + .35, BL2.y + 1.05, z); g.add(f); });
+  baloG.add(shadowAll(g));
+}
+// les deux toboggans : un en colimaçon depuis le haut, un à vagues depuis le premier étage
+const baloSpiral = (() => { const c = { x: -4.8, z: .6 }, pts = [[-6, BL2.y + .45, -2.45], [-6.05, BL2.y + .2, -1.1]];
+  for (let i = 0; i <= 24; i++) { const a = -Math.PI - i / 24 * Math.PI * 2, y = THREE.MathUtils.lerp(BL2.y - .2, 1.2, i / 24); pts.push([c.x + 1.3 * Math.cos(a), y, c.z + 1.3 * Math.sin(a)]); }
+  pts.push([-6.1, .55, 2.6], [-6.1, .05, 4.2]); return new THREE.CatmullRomCurve3(pts.map(([x, y, z]) => new THREE.Vector3(BALO.x + x, y, BALO.z + z)), false, "centripetal"); })();
+const baloWave = new THREE.CatmullRomCurve3([[-1.9, BL1.y + .45, -2.45], [-1.9, 1.6, -1.3], [-1.9, 1.45, -.5], [-1.9, 1.0, .5], [-1.9, .9, 1.2], [-1.9, .4, 2.3], [-1.9, .05, 3.3]].map(([x, y, z]) => new THREE.Vector3(BALO.x + x, y, BALO.z + z)), false, "centripetal");
+for (const [cv, col] of [[baloSpiral, 0x9b59b6], [baloWave, 0xff8a2b]]) {
+  const sm = new THREE.Mesh(halfPipe(cv, .75, 200, 10), mat(col, .3, { side: THREE.DoubleSide })); sm.castShadow = true; scene.add(sm);
+  for (let t = .1; t < .92; t += .12) { const p = cv.getPointAt(t), h = p.y - .7; if (h < .3) continue; const pole = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, h, 8), mat(0x2e86de, .4)); pole.position.set(p.x, h / 2, p.z); scene.add(pole); }
+}
+// la piscine à balles
+const BPIT = { x1: 2, x2: 7.6, z1: .4, z2: 5.6, gz1: 2, gz2: 3.6 };
+{
+  const pad = (x1, x2, z1, z2, c) => { const m = rbox(x2 - x1, .55, z2 - z1, mat(c, .6), .12); m.position.set((x1 + x2) / 2, .27, (z1 + z2) / 2); baloG.add(m); WALLS3.push({ x1: BALO.x + x1, x2: BALO.x + x2, z1: BALO.z + z1, z2: BALO.z + z2, y0: -1, y1: .5 }); };
+  const { x1, x2, z1, z2, gz1, gz2 } = BPIT;
+  pad(x1, x2, z1 - .3, z1, 0x2e86de); pad(x1, x2, z2, z2 + .3, 0x2e86de); pad(x2, x2 + .3, z1 - .3, z2 + .3, 0xe84393);
+  pad(x1 - .3, x1, z1 - .3, gz1, 0xe84393); pad(x1 - .3, x1, gz2, z2 + .3, 0xe84393);
+}
+const BALLS = 900, ballCols = [0xff5a4e, 0xffc93c, 0x2e86de, 0x27ae60, 0xe84393, 0x9b59b6];
+const ballIM = new THREE.InstancedMesh(new THREE.SphereGeometry(.14, 10, 8), mat(0xffffff, .3), BALLS);
+const balls = Array.from({ length: BALLS }, (_, i) => { const b = { x: BALO.x + BPIT.x1 + .15 + rnd() * (BPIT.x2 - BPIT.x1 - .3), z: BALO.z + BPIT.z1 + .15 + rnd() * (BPIT.z2 - BPIT.z1 - .3), y: .14 + rnd() * .62, dx: 0, dy: 0, dz: 0 }; ballIM.setColorAt(i, new THREE.Color(ballCols[i % 6])); return b; });
+ballIM.receiveShadow = true; scene.add(ballIM);
+{ const m = new THREE.Matrix4(); balls.forEach((b, i) => { m.makeTranslation(b.x, b.y, b.z); ballIM.setMatrixAt(i, m); }); }
+// les trampolines
+const TRAMPS = [[4.3, -4.2, 0x2e86de], [6.5, -4.2, 0xff5a4e], [5.4, -1.9, 0xffc93c]].map(([lx, lz, c]) => {
+  const g = new THREE.Group(); g.position.set(BALO.x + lx, 0, BALO.z + lz); scene.add(g);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(1, .16, 12, 40), mat(c, .5)); ring.rotation.x = Math.PI / 2; ring.position.y = .5; g.add(ring);
+  const bed = new THREE.Mesh(new THREE.CircleGeometry(.88, 32), mat(0x222831, .9)); bed.rotation.x = -Math.PI / 2; bed.position.y = .45; g.add(bed);
+  for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2, l = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, .5, 8), metalMat); l.position.set(Math.cos(a) * .95, .25, Math.sin(a) * .95); g.add(l); }
+  shadowAll(g); return { g, bed, x: BALO.x + lx, z: BALO.z + lz };
+});
+let baloDoorOpen = 0, baloFade = 1, bounceT = 0, bounceLow = true, pitT = 0;
+const ballM = new THREE.Matrix4();
+function updateBaloba(dt, time, P) {
+  const near = Math.abs(P.x - BALO.x) < 45 && Math.abs(P.z - BALO.z) < 45; ballIM.visible = near; if (!near) return false;
+  const inside = inBaloba(P.x, P.z);
+  const want = Math.hypot(P.x - BALO.x, P.z - (BALO.z + BALO.hz)) < 4 ? 1 : 0; if (want && baloDoorOpen < .05) sfx.door();
+  baloDoorOpen += (want - baloDoorOpen) * Math.min(1, dt * 5); for (const d of baloG.userData.doors) d.m.position.x = d.s * (BALO.door / 2 + baloDoorOpen * BALO.door * .95); baloG.userData.doorBox.off = baloDoorOpen > .6;
+  baloFade += ((inside ? .2 : 1) - baloFade) * Math.min(1, dt * 6); const wm = baloG.userData.wallMat, tr = baloFade < .98;
+  if (wm.transparent !== tr) { wm.transparent = tr; wm.depthWrite = !tr; wm.needsUpdate = true; } wm.opacity = baloFade; baloG.userData.roof.visible = !inside;
+  // trampolines : on rebondit tout seul
+  let onT = null; if (state === "walk" && P.y < 3) for (const t of TRAMPS) if (Math.hypot(P.x - t.x, P.z - t.z) < .9) onT = t;
+  for (const t of TRAMPS) t.bed.position.y = .45;
+  if (onT) { bounceT += dt; const s = Math.abs(Math.sin(bounceT * 2.6)); P.y = .5 + s * 2.3; onT.bed.position.y = .45 - Math.max(0, .25 - s) * .9;
+    if (s < .12 && !bounceLow) { bounceLow = true; tone(180, .28, "sine", .16, 260); } else if (s > .3) bounceLow = false; }
+  else bounceT = 0;
+  // la piscine à balles : les balles s'écartent autour de toi
+  const inPit = inside && P.x > BALO.x + BPIT.x1 && P.x < BALO.x + BPIT.x2 && P.z > BALO.z + BPIT.z1 && P.z < BALO.z + BPIT.z2;
+  if (inPit) { pitT -= dt; if (pitT < 0 && Math.hypot(P.x - prev.x, P.z - prev.z) > .01) { pitT = .35; whoosh(.18, .04, 1800, 2600); } }
+  if (inPit || balls.some(b => b.dy > .001)) {
+    balls.forEach((b, i) => { const ddx = b.x - P.x, ddz = b.z - P.z, d = Math.hypot(ddx, ddz);
+      if (inPit && d < .7) { const k = (.7 - d) / .7, f = Math.min(1, dt * 8); b.dx += (ddx / (d + .01) * .5 * k - b.dx) * f; b.dz += (ddz / (d + .01) * .5 * k - b.dz) * f; b.dy += (k * .35 - b.dy) * f; }
+      else { const f = 1 - Math.min(1, dt * 2); b.dx *= f; b.dz *= f; b.dy *= f; }
+      ballM.makeTranslation(b.x + b.dx, b.y + b.dy, b.z + b.dz); ballIM.setMatrixAt(i, ballM); });
+    ballIM.instanceMatrix.needsUpdate = true;
+  }
+  return inside;
+}
+
 /* ---------- Canards ---------- */
 const DUCK_SPOTS = [[3, -18], [-22, -26], [17, -15.5], [48, -20], [70, -48], [-72, 0], [-31, 53.5], [-14.5, 43.5], [14, 18.6], [-16, 53]];
 function duckMesh() {
@@ -1176,6 +1309,7 @@ function blocked(x, z, pad) {
   if (Math.hypot(x, z - 5) < 6 + pad) return true;
   if (Math.hypot(x - LAKE.x, z - LAKE.z) < LAKE.r + 2.5 + pad) return true;
   if (Math.hypot(x - AQU.x, z - AQU.z) < AQU.r + 3 + pad) return true;
+  if (Math.abs(x - BALO.x) < BALO.hx + 2 + pad && Math.abs(z - BALO.z) < BALO.hz + 2 + pad) return true;
   if (cottages.some(c => Math.abs(x - c.x) < 5.5 + pad && (Math.abs(z - c.z) < 4.5 + pad || Math.abs(z - (c.z + c.s * 6.6)) < 2.7 + pad))) return true;
   if (ZONES.some(r => inRect(r, x, z, pad)) || riverNear(x, z).d < RIVER_HW + 3.2 + pad || Math.hypot((x - ARENA.x) / (ARENA.rx + 3), (z - ARENA.z) / (ARENA.rz + 3)) < 1) return true;
   if (boxes.some(b => x > b.x1 - pad && x < b.x2 + pad && z > b.z1 - pad && z < b.z2 + pad)) return true;
@@ -1973,6 +2107,7 @@ const npcs = [
   { name: "Lucas, de la rivière", pos: [RDOCK.x + RDOCK.tx * 3.4 + RDOCK.sx * 1.2, RDOCK.z + RDOCK.tz * 3.4 + RDOCK.sz * 1.2], o: { shirt: 0xff5a4e, pants: 0xffc93c, shorts: true, hair: 0x2d2018, skin: 0xc68e6a, cap: 0xff5a4e }, lines: ["Bienvenue à la rivière sauvage ! 🌊", "Monte dans une bouée sur le ponton, et le courant t'emporte.", "Il y a deux rapides : ça va très vite ! Penche-toi à gauche ou à droite pour te diriger.", "Le tour se termine ici, au ponton. Tu peux sortir avant si tu veux."] },
   { name: "Paul, le garde forestier", pos: [40, -10], o: { shirt: 0x6d8b3a, hair: 0x555555, cap: 0x4b6328, skin: 0xc68e6a }, lines: ["Bonjour, aventurier !", "Au ponton du lac, tu peux prendre le pédalo. Un canard flotte au milieu du lac !", "Ouvre la carte pour voir où ils se cachent. Les points jaunes, ce sont eux !", "Au bout du chemin, il y a l'aquarium ! Va voir Bubulle le requin 🦈"] },
   { name: "Nina, la soigneuse", pos: aqW(-4.4, 3.2), o: { shirt: 0x1f8fae, pants: 0x2d3436, hair: 0x2d2018, long: true, skin: 0xc68e6a }, lines: ["Bienvenue à l'aquarium ! Moi c'est Nina, je m'occupe des poissons.", "Le gros poisson gris, c'est Bubulle le requin. Il est très gentil !", "Tu as vu la tortue de mer ? Elle s'appelle Pistache 🐢", "Les méduses roses brillent dans le grand bassin du milieu.", "Approche-toi du grand bassin et appuie sur Nourrir les poissons 🐟"] },
+  { name: "Tom, l'animateur", pos: bw(-3.6, 4.6), o: { shirt: 0xff8a2b, pants: 0x2e86de, hair: 0x8b4513, cap: 0x27ae60 }, lines: ["Salut ! Bienvenue au Baloba, la salle de jeux ! 🎈", "Monte les marches de la grande structure, passe dans le tunnel et grimpe tout en haut.", "En haut, il y a le toboggan en colimaçon. Au premier étage, le toboggan à vagues !", "Les trampolines sont au fond : saute dessus, tu vas rebondir très haut !", "Et la piscine à balles… plonge dedans ! On rentre par l'ouverture sur le côté."] },
 ];
 npcs.forEach(n => { n.g = person(n.o); n.g.position.set(n.pos[0], 0, n.pos[1]); n.g.rotation.y = rnd() * 6; scene.add(n.g); const lb = label(n.name.split(",")[0], "#8e44ad", "#ffffff", .6 / (n.o.scale ?? .76)); lb.position.y = 2.7; n.g.add(lb); circles.push({ x: n.pos[0], z: n.pos[1], r: .5 }); n.idx = -1; });
 const swimmer = person({ shirt: 0xffffff, pants: 0x00b894, shorts: true, hair: 0x2d3436, skin: 0xd9a27a }); setOutfit(swimmer, "requin"); scene.add(swimmer);
@@ -2223,6 +2358,7 @@ function openChest() {
 const BARN = { x1: -90, x2: -78, z1: -27, z2: -13 };
 function zoneName(P) {
   if (inAqua(P.x, P.z)) return "🐠 Aquarium";
+  if (inBaloba(P.x, P.z)) return "🎈 Le Baloba";
   if (P.y > 3 && inRect(TREEHUT, P.x, P.z)) return "🏠 La cabane dans l'arbre";
   if (P.y > 3 && inRect(TREEH, P.x, P.z)) return "🌳 Maison dans les arbres";
   for (const h of cabRoofs) if (Math.abs(P.x - h.x) < 2 && Math.abs(P.z - h.z) < 2) return "🛖 Une cabane";
@@ -2233,7 +2369,7 @@ function zoneName(P) {
   if (riverNear(P.x, P.z).d < 7) return "🌊 Rivière sauvage";
   return "";
 }
-const ZTOAST = { "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
+const ZTOAST = { "🎈 Le Baloba": "Le Baloba ! Grimpe dans la structure, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
   "🌊 Rivière sauvage": "La rivière sauvage ! Va au ponton pour prendre une bouée 🛟", "🌳 Maison dans les arbres": "Tu es dans les arbres ! Traverse le pont de singe… et descends par le toboggan 🛝", "🛖 Une cabane": "Une petite cabane en rondins 🛖" };
 const seenZ = new Set();
 
@@ -2406,6 +2542,7 @@ let act1 = null, act2 = null, doorNear = null;
 function doAct(a) {
   if (!a) return; sfx.click();
   if (a === "feed") { feedFish(); return; }
+  if (a === "baloslide" || a === "balowave") { state = "ride"; riding = { curve: a === "baloslide" ? baloSpiral : baloWave, u: 0, dry: true, msg: "Youpi ! 🎈" }; $("dialog").hidden = true; talking = null; sfx.slide(); toast("Wiiiiii ! 🛝", 1600); return; }
   if (a === "mount" && mountT) { mountVeh(mountT); return; }
   if (a === "dismount") { dismount(); return; }
   if (a === "pet" && petT) { petAnimal(petT); return; }
@@ -2457,10 +2594,11 @@ function drawMap() {
   mx.textAlign = "center"; mx.textBaseline = "middle"; mx.font = '800 13px "Baloo 2",sans-serif';
   cottages.forEach(c => { mx.fillStyle = c.mine ? "#ff5a4e" : "#8a5a30"; mx.fillRect(X(c.x - 5), Z(c.z - 4), 10 * k, 8 * k); mx.fillStyle = "#ffffff"; mx.fillText(c.num, X(c.x), Z(c.z) + 1); });
   mx.textBaseline = "alphabetic";
+  mx.fillStyle = "#e84393"; mx.fillRect(X(BALO.x - BALO.hx), Z(BALO.z - BALO.hz), BALO.hx * 2 * k, BALO.hz * 2 * k); mx.strokeStyle = "#ffc93c"; mx.lineWidth = 3; mx.strokeRect(X(BALO.x - BALO.hx), Z(BALO.z - BALO.hz), BALO.hx * 2 * k, BALO.hz * 2 * k);
   mx.fillStyle = "#1f8fae"; mx.beginPath(); mx.arc(X(AQU.x), Z(AQU.z), AQU.r * k, 0, 7); mx.fill(); mx.strokeStyle = "#ffffff"; mx.lineWidth = 2; mx.stroke();
   mx.fillStyle = "#e84393"; mx.fillRect(X(11.3), Z(21), 5.4 * k, 2 * k);
   mx.font = '700 13px "Baloo 2",sans-serif'; mx.textAlign = "center"; mx.fillStyle = "#0d3b52";
-  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2));
+  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2)); mx.fillText("Baloba", X(BALO.x), Z(BALO.z - BALO.hz - 2));
   mx.fillText("Ferme", X(-70), Z(-36)); mx.fillText("Poney club", X(ARENA.x), Z(ARENA.z - ARENA.rz - 2)); mx.fillText("Karts", X(0), Z(-80)); mx.fillText("Rivière sauvage", X(-50), Z(75)); mx.fillText("Maison dans les arbres", X(50), Z(84)); mx.fillText("Vélos", X(6), Z(41));
   mx.font = '700 11px "Baloo 2",sans-serif';
   npcs.forEach(n => { const nx = X(n.g.position.x), nz = Z(n.g.position.z); mx.fillStyle = "#8e44ad"; mx.beginPath(); mx.arc(nx, nz, 4, 0, 7); mx.fill(); mx.fillText(n.name.split(",")[0], nx, nz - 7); });
@@ -2807,13 +2945,13 @@ function loop() {
 
   if (state === "ride") {
     const r = riding; r.u += dt * (r.dry ? .3 + .3 * r.u : .1 + .2 * r.u);
-    if (r.u >= 1) { state = "walk"; riding = null; tower = null; const end = r.curve.getPointAt(1); P.set(end.x, 0, end.z); if (r.dry) { toast("Youpi ! 🌳"); whoosh(.3, .08, 600, 300); } else { splash.position.set(end.x, -.15, end.z); splashT = 1; sfx.splash(); toast("PLOUF ! 💦"); } }
+    if (r.u >= 1) { state = "walk"; riding = null; tower = null; const end = r.curve.getPointAt(1); P.set(end.x, 0, end.z); if (r.dry) { toast(r.msg || "Youpi ! 🌳"); whoosh(.3, .08, 600, 300); } else { splash.position.set(end.x, -.15, end.z); splashT = 1; sfx.splash(); toast("PLOUF ! 💦"); } }
     else {
       const pt = r.curve.getPointAt(r.u), tg = r.curve.getTangentAt(r.u), side = tv.crossVectors(tg, new THREE.Vector3(0, 1, 0)).normalize(), down = new THREE.Vector3().crossVectors(tg, side).normalize();
       P.copy(pt).addScaledVector(down, .7 + .84 * player.scale.x); player.rotation.y = Math.atan2(tg.x, tg.z); animPerson(player, "ride", time);
       const back = new THREE.Vector3(tg.x, 0, tg.z).normalize();
       const cp = new THREE.Vector3(P.x - back.x * 2.6, P.y + 3.3, P.z - back.z * 2.6), cr = Math.hypot(cp.x - DOME.x, cp.z - DOME.z), lim = DOME.r - 1.5; // la caméra reste sous la verrière
-      if (cr > lim) { cp.x = DOME.x + (cp.x - DOME.x) * lim / cr; cp.z = DOME.z + (cp.z - DOME.z) * lim / cr; }
+      if (!r.dry && cr > lim) { cp.x = DOME.x + (cp.x - DOME.x) * lim / cr; cp.z = DOME.z + (cp.z - DOME.z) * lim / cr; }
       camera.position.lerp(cp, Math.min(1, dt * 8)); camera.lookAt(P.x + back.x * 1.5, P.y + .3, P.z + back.z * 1.5);
     }
   } else if (state === "climbUp" || state === "climbDown") {
@@ -2885,11 +3023,11 @@ function loop() {
   farmRoofs[0].roof.visible = !inBarn; treeRoof.visible = !inTreeHut; for (const h of cabRoofs) { const i = Math.abs(P.x - h.x) < 2 && Math.abs(P.z - h.z) < 2; h.roof.visible = !i; if (i) inCab = true; }
   const dWant = Math.hypot(P.x, P.z - 7.5) < 5 ? 1 : 0; if (dWant && domeDoorOpen < .05) sfx.door();
   domeDoorOpen += (dWant - domeDoorOpen) * Math.min(1, dt * 5); domeDoors.forEach(d => d.m.position.x = d.s * (1.4 + domeDoorOpen * 2.7)); domeDoorBox.off = domeDoorOpen > .6;
-  const inAq = updateAquarium(dt, time, P);
+  const inAq = updateAquarium(dt, time, P), inBalo = updateBaloba(dt, time, P);
 
   // caméra
   if (state !== "ride") {
-    if (inCottage || inAq) { camDist = 7.5; minPitch = 1.0; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
+    if (inCottage || inAq || inBalo) { camDist = 7.5; minPitch = 1.0; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
     const pt = Math.max(pitch, minPitch); const baseY = state === "top" ? 9.95 : state === "boat" ? .6 : Math.max(P.y, 0);
     const cx = P.x + Math.sin(yaw) * Math.cos(pt) * camDist, cz = P.z + Math.cos(yaw) * Math.cos(pt) * camDist, cy = baseY + 1.5 + Math.sin(pt) * camDist;
     camera.position.lerp(tv.set(cx, Math.max(cy, .6), cz), Math.min(1, dt * 7)); camera.lookAt(P.x, baseY + 1.4, P.z);
@@ -2933,6 +3071,8 @@ function loop() {
       if (Math.hypot(P.x - RDOCK.x, P.z - RDOCK.z) < 2.6) offer("river", "🛟 Descendre la rivière");
     }
     if (state === "walk" && P.y > 4) { if (Math.hypot(P.x - CHEST.x, P.z - CHEST.z) < 1.8) offer("chest", "🎁 Ouvrir le coffre"); if (Math.hypot(P.x - 63.3, P.z - 69) < 1.5) offer("treeslide", "🛝 Glisser !"); }
+    if (state === "walk" && P.y > 2.8 && Math.hypot(P.x - (BALO.x - 6), P.z - (BALO.z - 2.9)) < 1.3) offer("baloslide", "🛝 Toboggan en colimaçon !");
+    if (state === "walk" && P.y > 1.2 && P.y < 2.5 && Math.hypot(P.x - (BALO.x - 1.9), P.z - (BALO.z - 2.9)) < 1.2) offer("balowave", "🛝 Toboggan à vagues !");
     if (state === "drive") offer("dismount", "🧍 Descendre");
     if (state === "river" && (riv.stop || riv.dist > 10 && Math.hypot(P.x - RDOCK.x, P.z - RDOCK.z) < 6)) offer("riverout", "🧍 Sortir sur le ponton");
     if (state === "river" && riv.stop) offer("riveragain", "🔁 Refaire un tour");
