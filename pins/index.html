@@ -1011,6 +1011,11 @@ const rockGeo = new THREE.DodecahedronGeometry(1, 1); { const p = rockGeo.attrib
 instanced(rockGeo, mat(0xffffff, .95), rocks, 0, (t, c) => c.setHSL(.08, .05, .45 + t.c * .15));
 rocks.forEach(r => { if (r.s > .5) circles.push({ x: r.x, z: r.z, r: .8 * r.s }); }); bushes.forEach(b => circles.push({ x: b.x, z: b.z, r: .55 * b.s }));
 /* ================= Personnages ================= */
+// grain de tissu : petites mailles en relief, partagé par tous les vêtements
+const fabricBump = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d");
+  x.fillStyle = "#808080"; x.fillRect(0, 0, 64, 64);
+  for (let i = 0; i < 64; i += 4) for (let j = 0; j < 64; j += 4) { const v = 110 + ((i * 7 + j * 13) % 40); x.fillStyle = `rgb(${v},${v},${v})`; x.fillRect(i, j, 2, 4); x.fillStyle = `rgb(${v + 30},${v + 30},${v + 30})`; x.fillRect(i + 2, j, 2, 2); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(10, 10); return t; })();
 function person(o) {
   // corps humain réaliste : un squelette articulé (hanches, genoux, chevilles, épaules, coudes, poignets, tête),
   // la peau d'un seul tenant, et les vêtements posés par-dessus (on peut les enlever pour le maillot de bain).
@@ -1018,8 +1023,9 @@ function person(o) {
   const female = !!o.long, R = mulberry(o.seed ?? Math.floor(rnd() * 1e6));
   const skinC = new THREE.Color(o.skin ?? 0xf1c6a0), hairC = new THREE.Color(o.hair ?? 0x5a3a22);
   const M = {
-    sk: mat(skinC, .5, { emissive: skinC.clone().multiplyScalar(.06) }),
-    sh: mat(o.shirt, .85), pa: mat(o.pants ?? 0x3a4a63, .8), so: mat(o.shoe ?? 0xf5f5f5, .45), sole: mat(0x2b2b2b, .9),
+    sk: o.lite ? mat(skinC, .5, { emissive: skinC.clone().multiplyScalar(.05) })
+      : new THREE.MeshPhysicalMaterial({ color: skinC, roughness: .46, sheen: .7, sheenRoughness: .45, sheenColor: new THREE.Color(0xff8f7a), clearcoat: .06, clearcoatRoughness: .55, emissive: skinC.clone().lerp(new THREE.Color(0xff6040), .5).multiplyScalar(.035) }),
+    sh: mat(o.shirt, .85, { bumpMap: fabricBump, bumpScale: .9 }), pa: mat(o.pants ?? 0x3a4a63, .8, { bumpMap: fabricBump, bumpScale: .9 }), so: mat(o.shoe ?? 0xf5f5f5, .45), sole: mat(0x2b2b2b, .9),
     hr: mat(hairC, .42), deco: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .3 }),
     sw: mat(0xffffff, .55), // maillot de bain (motif posé par setOutfit)
   };
@@ -1056,7 +1062,7 @@ function person(o) {
   for (const s of [-1, 1]) {
     const sho = new THREE.Group(); sho.position.set(s * .35, 1.55, 0); body.add(sho);
     put(sho, "sk", sph(.11)); put(sho, "sk", lathe([[0, .03], [.098, 0], [.103, -.1], [.088, -.28], [.078, -.35], [0, -.36]]));
-    put(sho, "sh", lathe([[.0, .14], [.1, .12], [.128, .03], [.13, -.08], [.135, -.17], [.138, -.19]], 32)); put(sho, "sh", new THREE.TorusGeometry(.136, .012, 6, 32), [0, -.19, 0], [Math.PI / 2, 0, 0]);
+    put(sho, "sh", lathe([[.0, .125], [.08, .11], [.118, .04], [.126, -.06], [.13, -.16], [.132, -.19]], 32)); // manche près du bras put(sho, "sh", new THREE.TorusGeometry(.136, .012, 6, 32), [0, -.19, 0], [Math.PI / 2, 0, 0]);
     const elb = new THREE.Group(); elb.position.y = -.35; sho.add(elb);
     put(elb, "sk", sph(.078)); put(elb, "sk", lathe([[0, .01], [.077, 0], [.082, -.07], [.066, -.22], [.052, -.31], [0, -.33]]));
     const hand = new THREE.Group(); hand.position.y = -.33; elb.add(hand);
@@ -1070,7 +1076,7 @@ function person(o) {
   put(body, "sk", sph(.27), [0, .97, 0], [0, 0, 0], [1.07, .55, .78]);
   const torsoPts = female ? [[0, 0], [.25, .02], [.22, .2], [.25, .38], [.28, .48], [.27, .58], [.14, .67], [0, .68]] : [[0, 0], [.25, .02], [.25, .18], [.28, .38], [.31, .52], [.29, .62], [.14, .68], [0, .69]];
   put(body, "sk", lathe(torsoPts, 40), [0, .95, 0], [0, 0, 0], [1, 1, .7]);
-  put(body, "sk", new THREE.CylinderGeometry(.082, .098, .24, 24), [0, 1.71, 0]);
+  put(body, "sk", new THREE.CylinderGeometry(.07, .086, .23, 24), [0, 1.7, 0]);
   const shirtPts = torsoPts.slice(1, -1).map(([x, y]) => [x + .028, y]); shirtPts.unshift([.27 + (female ? .02 : 0), -.07]); shirtPts.push([.115, .69]);
   put(body, "sh", lathe(shirtPts, 44), [0, .95, 0], [0, 0, 0], [1, 1, .72]);
   put(body, "sh", new THREE.TorusGeometry(.118, .025, 10, 32), [0, 1.645, 0], [Math.PI / 2, 0, 0]);
@@ -1091,19 +1097,19 @@ function person(o) {
   // ---- tête
   const head = new THREE.Group(); head.position.y = 1.97; body.add(head);
   put(head, "sk", sph(.23, 48, 40), [0, .02, 0], [0, 0, 0], [.9, 1.04, .98]);
-  put(head, "sk", sph(.17, 40, 32), [0, -.1, .05], [0, 0, 0], [1, .82, 1]);
-  put(head, "sk", sph(.07, 24, 18), [0, -.19, .14], [0, 0, 0], [1.2, .85, .9]);
+  put(head, "sk", sph(.17, 40, 32), [0, -.085, .03], [0, 0, 0], [.93, .8, .9]);
+  put(head, "sk", sph(.058, 24, 18), [0, -.178, .122], [0, 0, 0], [1.15, .78, .85]);
   for (const s of [-1, 1]) { // oreilles
     put(head, "sk", sph(.05, 20, 16), [s * .205, -.01, -.005], [0, 0, 0], [.42, 1, .75]);
     put(head, "sk", new THREE.TorusGeometry(.036, .011, 8, 20, Math.PI * 1.4), [s * .214, -.005, -.005], [0, s * Math.PI / 2, -Math.PI * .2]);
   }
   // nez
-  put(head, "sk", cap(.022, .05), [0, .0, .215], [-.35, 0, 0]); put(head, "sk", sph(.032, 20, 16), [0, -.04, .232], [0, 0, 0], [1.05, .9, 1]);
-  for (const s of [-1, 1]) { put(head, "sk", sph(.019, 14, 10), [s * .026, -.05, .218]); put(head, "deco", sph(.008, 8, 6), [s * .015, -.058, .228], [0, 0, 0], [1, .6, 1], 0x6b3a2a); }
+  put(head, "sk", cap(.016, .05), [0, .0, .212], [-.35, 0, 0]); put(head, "sk", sph(.024, 20, 16), [0, -.038, .226], [0, 0, 0], [1.1, .85, .9]);
+  for (const s of [-1, 1]) { put(head, "sk", sph(.014, 14, 10), [s * .02, -.046, .214]); put(head, "deco", sph(.008, 8, 6), [s * .015, -.058, .228], [0, 0, 0], [1, .6, 1], 0x6b3a2a); }
   // bouche
-  const lip = female ? 0xc75c5c : 0xb9746a;
-  put(head, "deco", new THREE.TorusGeometry(.04, .011, 8, 24, Math.PI), [0, -.098, .197], [0, 0, Math.PI], [1, .55, 1], lip);
-  put(head, "deco", sph(.034, 20, 12), [0, -.112, .192], [0, 0, 0], [1.15, .42, .55], lip);
+  const lip = new THREE.Color(skinC).lerp(new THREE.Color(female ? 0xc4525a : 0xa8605a), female ? .6 : .45).getHex();
+  put(head, "deco", new THREE.TorusGeometry(.036, .0075, 8, 24, Math.PI), [0, -.096, .193], [0, 0, Math.PI], [1, .5, 1], lip);
+  put(head, "deco", sph(.028, 20, 12), [0, -.108, .186], [0, 0, 0], [1.1, .36, .5], lip);
   // yeux, paupières, sourcils
   const irisC = o.eyes ?? [0x5b3a1e, 0x3a6a9a, 0x4f7a3a, 0x6b4a2a][Math.floor(R() * 4)];
   for (const s of [-1, 1]) {
@@ -1117,7 +1123,7 @@ function person(o) {
     const lm = new THREE.Mesh(new THREE.SphereGeometry(.043, 24, 12, 0, Math.PI * 2, 0, Math.PI * .5), M.sk); lm.scale.set(1.02, .95, .66); lid.add(lm); lid.rotation.x = -.55; lids.push(lid);
     if (female) put(head, "deco", new THREE.TorusGeometry(.043, .004, 4, 18, Math.PI * .8), [ex, ey + .004, ez + .012], [-.25, 0, Math.PI * .1], [1.05, 1, 1], 0x1a1a1a);
     put(head, "deco", tube([[ex - s * .045, ey + .058, ez + .005], [ex, ey + .072, ez + .022], [ex + s * .045, ey + .062, ez + .01]], .0085, 10), [0, 0, 0], [0, 0, 0], [1, 1, 1], hairC.clone().multiplyScalar(.75).getHex());
-    put(head, "deco", sph(.035, 14, 10), [s * .125, -.06, .17], [0, 0, 0], [1, .7, .35], new THREE.Color(skinC).lerp(new THREE.Color(0xe88a8a), .45).getHex());
+    put(head, "deco", sph(.03, 14, 10), [s * .118, -.058, .165], [0, 0, 0], [1, .65, .22], new THREE.Color(skinC).lerp(new THREE.Color(0xe88a8a), .22).getHex());
   }
   // cheveux
   put(head, "hr", new THREE.SphereGeometry(.243, 48, 24, 0, Math.PI * 2, 0, Math.PI * .5), [0, .045, -.02], [-.35, 0, 0]);
