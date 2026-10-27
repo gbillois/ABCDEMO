@@ -73,7 +73,7 @@ Tests sans réseau : `node --test serveur/arbre-oracle/tests/oracle.test.mjs`.
 
 - **Pas de clé d'API** : Workers AI passe par la liaison `AI` du compte.
 - **Origine** : seuls les sites listés dans `ORIGINES` peuvent appeler `/creer` (CORS et 403).
-- **Texte de l'enfant** (`filtrerTexte`, identique dans le jeu) : 2 à 60 caractères, lettres,
+- **Texte de l'enfant** (`filtrerTexte`, identique dans le jeu) : 2 à 160 caractères, lettres,
   chiffres et ponctuation simple ; refus des gros mots (y compris certaines variantes avec
   chiffres ou espaces) et des mots de violence, d'adultes, de drogue ou d'alcool. Le jeu
   filtre avant d'envoyer, le Worker filtre à nouveau. Ce filtre ne garantit pas de tout bloquer.
@@ -90,14 +90,23 @@ Tests sans réseau : `node --test serveur/arbre-oracle/tests/oracle.test.mjs`.
 - **Modèle** : `@cf/nvidia/nemotron-3-120b-a12b` (NVIDIA Nemotron 3 Super), accessible avec
   Workers Free. Le raisonnement interne est désactivé pour réserver la sortie au JSON et
   réduire l'attente. Les formats `response` et `choices[0].message.content` sont acceptés.
-- **Détails explicites** : `respecterDemande`, commun au jeu et au Worker, garantit la corne
-  des licornes et la couleur arc-en-ciel demandée ; « sans corne » reste respecté. Le jeu
-  applique aussi cette réparation aux animaux déjà enregistrés sur l'appareil.
+- **Bestiaire et détails explicites** : catalogue partagé de plus de 100 profils (animaux réels
+  et mythologiques), 12 silhouettes, 18 accessoires, jusqu'à 7 têtes, 9 queues et 8 pattes.
+  Les noms inventés sont acceptés ; le modèle compose avec les pièces autorisées. Le mode
+  local sait aussi composer des animaux nouveaux. Les caractéristiques d'une espèce connue
+  et les précisions de la description priment sur une omission du modèle.
+- **Filtre** : les mots voisins ne sont jamais collés pour chercher une injure. Le test
+  « une grenouille rouge » doit rester accepté, comme les autres noms d'animaux. Les injures,
+  termes violents et adultes restent refusés, y compris plusieurs écritures détournées.
+  Ce filtre ne garantit pas de reconnaître toutes les formulations : aucun texte libre du
+  modèle ne sort et le rendu ne dispose d'aucune pièce violente ou adulte.
+- **Sauvegarde locale** : la description filtrée reste sur l'appareil, avec la recette et le
+  nom court, pour conserver les détails lors d'un rechargement. Le Worker ne la conserve pas.
 - **Consigne au modèle** : animal toujours mignon et gentil ; toute autre consigne écrite par
   l'enfant est ignorée.
 - **Coût** : avec l'offre Workers Free, Workers AI s'arrête à l'allocation gratuite du jour
-  (10 000 « neurons ») au lieu de facturer. La licorne testée avec Nemotron a consommé environ
-  52 neurons ; le coût varie selon la demande et la réponse. Le quota applicatif de 150
+  (10 000 « neurons ») au lieu de facturer. Le coût varie selon la longueur de la
+  description, du schéma et de la réponse. Le quota applicatif de 150
   créations ne garantit donc pas de rester sous l'allocation, partagée avec les autres
   usages Workers AI du compte. Aucune activation de Workers Paid ni d'AI Gateway.
 - **Pas de journaux** : `[observability] enabled = false`, aucun `console.log`.

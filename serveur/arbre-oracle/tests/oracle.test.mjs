@@ -7,12 +7,12 @@ const source = readFileSync(new URL('../src/index.js', import.meta.url), 'utf8')
 const jeu = readFileSync(new URL('../../../jeux/le-grand-arbre.html', import.meta.url), 'utf8');
 const { default: worker, Quota } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
 const commun = texte => texte.slice(texte.indexOf("// --- Recette d'animal"), texte.indexOf('// --- fin de la partie commune ---'));
-const ctx = vm.runInNewContext(commun(source) + ';({ nettoyerRecette, filtrerTexte, respecterDemande, RECETTE, EXTRAS })');
+const ctx = vm.runInNewContext(commun(source) + ';({ nettoyerRecette, filtrerTexte, respecterDemande, verifierTexte, recetteLocale, lireDescription, ANIMAUX_CONNUS, RECETTE, EXTRAS })');
 const { filtrerTexte, RECETTE, EXTRAS } = ctx, nettoyerRecette = r => JSON.parse(JSON.stringify(ctx.nettoyerRecette(r)));
 
 const ORIGINE = 'https://gbillois.github.io';
 const BONNE = { forme: 'quadrupede', taille: 'petit', corps: 'rond', couleur: 'violet', couleur2: 'rose', motif: 'ventre', tete: 'museau', oreilles: 'longues', cornes: 'deux',
-  ailes: 'chauve_souris', queue: 'dragon', deplacement: 'saute', cri: 'rugit', extras: ['crete'] };
+  ailes: 'chauve_souris', queue: 'dragon', pattes: 'auto', tetes: 'une', queues: 'une', texture: 'lisse', deplacement: 'saute', cri: 'rugit', extras: ['crete'] };
 
 class Stockage { m = new Map(); async get(k) { return structuredClone(this.m.get(k)); } async put(k, v) { this.m.set(k, structuredClone(v)); } }
 function environnement({ reponse = { response: BONNE }, limite = true, quotaJour = '150', quotaAdresse = '30', erreurIA = false } = {}) {
@@ -34,18 +34,18 @@ test('partie commune identique dans le jeu et le Worker', () => {
 test('filtre du texte : animaux acceptés, gros mots, violence et caractères bizarres refusés', () => {
   for (const t of ['un lapin-dragon violet', 'Une licorne arc-en-ciel !', "l'éléphant qui vole", 'une tortue', 'un chat confiture', 'un hérisson tout piquant', 'Un cœur de chat']) assert.ok(filtrerTexte(t), t);
   assert.equal(filtrerTexte('  un   chat  '), 'un chat');
-  for (const t of ['a', 'x'.repeat(61), '<script>', 'un chat {json}', 'un chat qui tue', 'un dragon mort', 'un lapin avec un fusil', 'c0nn4rd', 'un chien de merde', 'un lapin nu', 'FDP', null, 42, '!!!']) assert.equal(filtrerTexte(t), null, String(t));
+  for (const t of ['a', 'x'.repeat(161), '<script>', 'un chat {json}', 'un chat qui tue', 'un dragon mort', 'un lapin avec un fusil', 'c0nn4rd', 'un chien de merde', 'un lapin nu', 'FDP', null, 42, '!!!']) assert.equal(filtrerTexte(t), null, String(t));
 });
 
 test('recette nettoyée : seulement des valeurs des listes, valeurs par défaut sinon', () => {
   assert.deepEqual(nettoyerRecette(BONNE), BONNE);
   const r = nettoyerRecette({ forme: 'Quadrupède', couleur: 'arc-en-ciel', couleur2: 'arc-en-ciel', ailes: '<img>', extras: ['crete', 'crete', 'laser', 'cou long', 'brillant', 'piquants', 'carapace'], phrase: 'texte libre' });
   assert.equal(r.forme, 'quadrupede'); assert.equal(r.couleur, 'arc_en_ciel'); assert.equal(r.couleur2, 'beige'); assert.equal(r.ailes, 'aucune');
-  assert.deepEqual(r.extras, ['crete', 'cou_long', 'brillant', 'piquants']);
+  assert.deepEqual(r.extras, ['crete', 'cou_long', 'brillant', 'piquants', 'carapace']);
   assert.equal(r.phrase, undefined);
   for (const v of [null, 'x', [], 5]) { const d = nettoyerRecette(v); for (const k in RECETTE) assert.ok(RECETTE[k].includes(d[k])); assert.deepEqual(d.extras, []); }
   assert.equal(Object.keys(nettoyerRecette({})).length, Object.keys(RECETTE).length + 1);
-  assert.ok(EXTRAS.length === 8);
+  assert.ok(EXTRAS.includes('branchies') && EXTRAS.includes('pinces'));
 });
 
 test('création : la recette du modèle est nettoyée, rien d\'autre ne sort', async () => {
@@ -54,7 +54,7 @@ test('création : la recette du modèle est nettoyée, rien d\'autre ne sort', a
   assert.equal(r.status, 200);
   assert.equal(r.headers.get('access-control-allow-origin'), ORIGINE);
   const j = await r.json();
-  assert.equal(j.ok, true); assert.equal(j.recette.couleur, 'marron'); assert.equal(j.recette.phrase, undefined);
+  assert.equal(j.ok, true); assert.equal(j.recette.couleur, 'violet'); assert.equal(j.recette.phrase, undefined);
   assert.deepEqual(Object.keys(j), ['ok', 'recette']);
   const { entree } = env.appels[0];
   assert.match(entree.messages[1].content, /un lapin-dragon violet/);
@@ -80,7 +80,7 @@ test('détails explicites : anciennes licornes réparées, hybrides et exception
   assert.equal(ctx.respecterDemande(BONNE, 'un lapin-dragon violet').cornes, 'deux');
   const r = ctx.respecterDemande({ cornes: 'laser', extras: ['texte libre'] }, 'une licorne arc-en-ciel');
   for (const k in RECETTE) assert.ok(RECETTE[k].includes(r[k]));
-  assert.equal(r.extras.length, 0);
+  assert.ok(!r.extras.includes('texte libre')); assert.ok(r.extras.includes('criniere'));
 });
 
 test('origine, méthode, corps et texte contrôlés avant tout appel au modèle', async () => {
@@ -137,4 +137,49 @@ test('le quota ne garde sur disque que le total du jour', async () => {
   for (let i = 0; i < 4; i++) await appel('k' + i, '2026-10-27');
   assert.equal((await appel('z', '2026-10-27')).ok, false);
   assert.equal((await appel('z', '2026-10-28')).ok, true);
+});
+
+test('aucun faux refus à cheval sur les mots : grenouilles, grues et noms imaginaires', () => {
+  for (const t of ['Une grenouille rouge', 'une grue blanche', 'une grèbe bleue', 'une licorne nuee de fleurs', 'une méduse de feu', 'un putois', 'un phoque', 'une biche', 'une chatte', 'un griffon', 'un nuagodon à neuf queues', 'un lapin + un dragon (ailes de papillon)', 'un sanglier roux', 'un ornithorynque', 'un escargot avec une coquille arc-en-ciel']) assert.equal(filtrerTexte(t), t, t);
+  for (const t of ['un connard', 'un connardosaure', 'un dragon qui tue', 'un chat raciste', 'un lapin porno', 'un chien avec une mitraillette', 'c0nn4rd', 'p u t a i n', 'un con-nard', 'un f.u.c.k', 'un animal avec du sang']) assert.equal(filtrerTexte(t), null, t);
+  assert.equal(ctx.verifierTexte('une grenouille').raison, undefined);
+  assert.equal(ctx.verifierTexte('<script>').raison, 'texte');
+  assert.equal(ctx.verifierTexte('un chat qui tue').raison, 'mot');
+});
+
+test('bestiaire partagé : anatomies réelles, mythologies et mélanges, même sans IA', () => {
+  const cases = [
+    ['une grenouille rouge', {forme:'amphibien',couleur:'rouge',tete:'plate',queue:'aucune',oreilles:'aucune'}],
+    ['un axolotl bleu', {forme:'amphibien',couleur:'bleu'}],
+    ['une araignée rose', {forme:'arachnide',pattes:'huit'}],
+    ['un crabe bleu', {forme:'crustace',pattes:'huit'}],
+    ['un kraken', {forme:'poulpe'}],
+    ['un griffon', {forme:'quadrupede',tete:'bec',ailes:'plumes'}],
+    ['un Cerbère', {tetes:'trois'}],
+    ['une hydre', {forme:'serpent',tetes:'cinq'}],
+    ['un kitsune', {queues:'neuf'}],
+    ['un Sleipnir', {pattes:'huit',tete:'cheval'}],
+    ['un centaure', {forme:'centaure'}],
+    ['une grenouille avec des ailes de papillon', {forme:'amphibien',ailes:'papillon',deplacement:'vole'}],
+    ['un dragon sans ailes et sans corne', {ailes:'aucune',cornes:'aucune'}],
+    ['un chat à trois têtes et deux queues', {forme:'quadrupede',tetes:'trois',queues:'deux'}],
+    ['une licorne arc-en-ciel sans corne', {cornes:'aucune',couleur:'arc_en_ciel'}],
+  ];
+  for (const [texte, attendu] of cases) for (const r of [ctx.recetteLocale(texte), ctx.respecterDemande({}, texte)]) {
+    for (const [k,v] of Object.entries(attendu)) assert.equal(r[k], v, texte+': '+k);
+  }
+  assert.ok(Object.keys(ctx.ANIMAUX_CONNUS).length >= 100);
+  for(const nom of Object.keys(ctx.ANIMAUX_CONNUS)) {
+    const r=ctx.recetteLocale(nom);for(const k in RECETTE)assert.ok(RECETTE[k].includes(r[k]),nom+': '+k);
+    assert.ok(r.extras.length<=6);
+  }
+  const inconnu=ctx.recetteLocale('un nuagodon violet à trois têtes');
+  assert.equal(inconnu.couleur,'violet');assert.equal(inconnu.tetes,'trois');
+});
+
+test('Worker : une grenouille atteint réellement le modèle, une injure est arrêtée avant', async () => {
+  const env=environnement();
+  let r=await worker.fetch(demande({texte:'Une grenouille rouge'}),env);
+  assert.equal(r.status,200);const j=await r.json();assert.equal(j.recette.forme,'amphibien');assert.equal(j.recette.couleur,'rouge');assert.equal(env.appels.length,1);
+  r=await worker.fetch(demande({texte:'un dragon qui tue'}),env);assert.equal(r.status,400);assert.equal(env.appels.length,1);
 });
