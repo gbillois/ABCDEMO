@@ -615,10 +615,58 @@ function hut(x1, x2, z1, z2, color, name) {
   const lb = label(name, "#" + color.toString(16).padStart(6, "0"), "#ffffff", 1); lb.position.set(cx, 4.1, z2); g.add(lb);
   g.userData.front = [cx, z2 + 1.2]; scene.add(shadowAll(g)); boxes.push({ x1: x1 - .1, x2: x2 + .1, z1: z1 - .1, z2: z2 - .2 }); return g;
 }
-const locker = hut(-15, -6, -8, -2, 0x2e86de, "Vestiaires"); {
-  for (let k = 0; k < 3; k++) { const x = -13.6 + k * 3, door = rbox(1.2, 2.2, .1, mat([0xff5a4e, 0xffc93c, 0x27ae60][k], .5), .05); door.position.set(x, 1.2, -2.05); locker.add(door); const hd = new THREE.Mesh(new THREE.SphereGeometry(.06, 12, 8), metalMat); hd.position.set(x + .45, 1.15, -1.98); locker.add(hd); }
-  for (let k = 0; k < 2; k++) { const wl = rbox(.15, 2.6, 5.5, mat(0xf7f3ea, .6), .03); wl.position.set(-12.1 + k * 3, 1.4, -5); locker.add(wl); }
-  const bench = rbox(7.5, .12, .5, mat(0x9c6b3c, .6), .04); bench.position.set(-10.5, .5, -1.2); locker.add(bench); for (const sx of [-13.8, -7.2]) { const l = rbox(.1, .45, .45, metalMat, .02); l.position.set(sx, .25, -1.2); locker.add(l); }
+// les vestiaires : un vrai bâtiment avec trois cabines. On entre dans une cabine, la porte se ferme, on se change, on ressort.
+const LOCK = { x1: -15, x2: -6, z1: -8, z2: -2, ent: [-8.3, -6.5], cabZ: -4.6, cabs: [[-14.88, -12.25], [-12.25, -9.65], [-9.65, -7.05]] };
+const locker = new THREE.Group(); scene.add(locker);
+const lockSt = { prompted: -1, changing: -1, t: 0, opened: false, fade: 1, doors: [] };
+{
+  const H = 3, wallM = mat(0xffffff, .7, { map: woodTex }), tileM = mat(0xeaf6fb, .5); locker.userData.wallMat = wallM;
+  const W = (x1, x2, z1, z2, y0 = 0, y1 = H, m = wallM, solid = true) => { const w = x2 - x1, d = z2 - z1, hh = y1 - y0, me = new THREE.Mesh(boxUV(new THREE.BoxGeometry(w, hh, d), w, hh, d, 2.5), m); me.position.set((x1 + x2) / 2, (y0 + y1) / 2, (z1 + z2) / 2); me.castShadow = me.receiveShadow = true; locker.add(me); if (solid) boxes.push({ x1, x2, z1, z2 }); return me; };
+  W(LOCK.x1, LOCK.x2, LOCK.z1 - .12, LOCK.z1 + .12); W(LOCK.x1 - .12, LOCK.x1 + .12, LOCK.z1, LOCK.z2); W(LOCK.x2 - .12, LOCK.x2 + .12, LOCK.z1, LOCK.z2);
+  W(LOCK.x1, LOCK.ent[0], LOCK.z2 - .12, LOCK.z2 + .12); W(LOCK.ent[1], LOCK.x2, LOCK.z2 - .12, LOCK.z2 + .12); W(LOCK.ent[0], LOCK.ent[1], LOCK.z2 - .12, LOCK.z2 + .12, 2.3, H, wallM, false);
+  // cloisons et façades des cabines (en carrelage clair), et le coin fermé à droite
+  for (const x of [-12.25, -9.65, -7.05]) W(x - .07, x + .07, LOCK.z1 + .1, LOCK.cabZ, 0, 2.5, tileM);
+  W(-7.05, LOCK.x2 - .1, LOCK.cabZ - .07, LOCK.cabZ + .07, 0, 2.5, tileM);
+  const DCOL = [0xff5a4e, 0xffc93c, 0x27ae60];
+  LOCK.cabs.forEach(([a, b], k) => { const cx = (a + b) / 2;
+    W(a, cx - .55, LOCK.cabZ - .07, LOCK.cabZ + .07, 0, 2.5, tileM); W(cx + .55, b, LOCK.cabZ - .07, LOCK.cabZ + .07, 0, 2.5, tileM); W(cx - .55, cx + .55, LOCK.cabZ - .07, LOCK.cabZ + .07, 2.15, 2.5, tileM, false);
+    const pivot = new THREE.Group(); pivot.position.set(cx - .55, 0, LOCK.cabZ + .05); locker.add(pivot);
+    const panel = rbox(1.08, 2.1, .07, mat(DCOL[k], .5), .03); panel.position.set(.54, 1.08, 0); pivot.add(panel);
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(.05, 12, 8), metalMat); knob.position.set(.95, 1.05, .07); pivot.add(knob);
+    const num = label(String(k + 1), "#ffffff", "#1d3b2a", .35); num.position.set(.54, 1.75, .1); pivot.add(num);
+    const box = { x1: cx - .55, x2: cx + .55, z1: LOCK.cabZ - .08, z2: LOCK.cabZ + .08, off: false }; boxes.push(box);
+    // dans la cabine : un petit banc, un miroir, des patères
+    const bench = rbox(1.6, .1, .45, mat(0x9c6b3c, .6), .03); bench.position.set(cx, .5, LOCK.z1 + .45); locker.add(bench); boxes.push({ x1: cx - .8, x2: cx + .8, z1: LOCK.z1, z2: LOCK.z1 + .7 });
+    const mir = new THREE.Mesh(new THREE.PlaneGeometry(.7, 1.1), mat(0xdfeef5, .05, { metalness: .9 })); mir.position.set(a + .09, 1.6, (LOCK.z1 + LOCK.cabZ) / 2); mir.rotation.y = Math.PI / 2; locker.add(mir);
+    for (const dx of [-.4, .4]) { const hook = new THREE.Mesh(new THREE.CapsuleGeometry(.025, .1, 4, 6), metalMat); hook.rotation.x = Math.PI / 2; hook.position.set(cx + dx, 1.8, LOCK.z1 + .2); locker.add(hook); }
+    lockSt.doors.push({ pivot, box, open: 0, pt: [cx, LOCK.cabZ + .9] }); });
+  // le couloir : un banc, des casiers, le sol carrelé
+  const bench = rbox(4.6, .12, .45, mat(0x9c6b3c, .6), .04); bench.position.set(-11.9, .48, LOCK.z2 - .45); locker.add(bench); boxes.push({ x1: -14.2, x2: -9.6, z1: LOCK.z2 - .7, z2: LOCK.z2 - .1 });
+  for (let i = 0; i < 4; i++) { const c = rbox(.42, 1.9, .45, mat([0x2e86de, 0x16a085, 0x2e86de, 0x16a085][i], .5), .03); c.position.set(-14.62, .95, -4.15 + i * .47); locker.add(c); }
+  boxes.push({ x1: -14.9, x2: -14.4, z1: -4.4, z2: -2.3 });
+  const fl = new THREE.Mesh(new THREE.PlaneGeometry(9, 6), mat(0xffffff, .5, { map: tileTex.clone(), polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -6 })); fl.material.map.repeat.set(4.5, 3); fl.rotation.x = -Math.PI / 2; fl.position.set(-10.5, .045, -5); locker.add(fl);
+  const roof = rbox(9.8, .3, 6.8, mat(0x2e86de, .5), .1); roof.position.set(-10.5, H + .15, -5); roof.castShadow = true; locker.add(roof); locker.userData.roof = roof;
+  const lb = label("Vestiaires 👕", "#2e86de", "#ffffff", 1); lb.position.set(-10.5, 4.1, -2); locker.add(lb);
+  const lt = new THREE.PointLight(0xfff6e8, 6, 10, 1.4); lt.position.set(-10.5, 2.6, -4.5); locker.add(lt);
+  locker.userData.front = [-7.4, -.9];
+}
+const inLockerRoom = (x, z) => x > LOCK.x1 + .1 && x < LOCK.x2 - .1 && z > LOCK.z1 + .1 && z < LOCK.z2 - .1;
+function updateLocker(dt, P) {
+  if (Math.abs(P.x - (LOCK.x1 + LOCK.x2) / 2) > 30 || Math.abs(P.z - (LOCK.z1 + LOCK.z2) / 2) > 30) return false;
+  const inside = inLockerRoom(P.x, P.z);
+  let inCab = -1; LOCK.cabs.forEach(([a, b], k) => { if (P.x > a + .1 && P.x < b - .1 && P.z < LOCK.cabZ - .6 && P.z > LOCK.z1) inCab = k; });
+  if (inCab < 0) lockSt.prompted = -1;
+  if (inCab >= 0 && lockSt.prompted !== inCab && state === "walk" && lockSt.changing < 0) { lockSt.prompted = inCab; lockSt.changing = inCab; lockSt.t = .8; toast("La porte se ferme… choisis ta tenue ! 👕", 1600); }
+  if (lockSt.changing >= 0 && $("lockerView").hidden) {
+    if (lockSt.t > 0) { lockSt.t -= dt; if (lockSt.t <= 0) { renderLocker(); ouvrir("lockerView"); lockSt.opened = true; } }
+    else if (lockSt.opened) { lockSt.opened = false; lockSt.changing = -1; }
+  }
+  lockSt.doors.forEach((d, k) => { const want = lockSt.changing === k ? 0 : Math.hypot(P.x - d.pt[0], P.z - d.pt[1]) < 1.9 || (inCab === k && lockSt.changing < 0) ? 1 : 0;
+    if (want && d.open < .05) sfx.door(); if (!want && d.open > .95) sfx.door();
+    d.open += (want - d.open) * Math.min(1, dt * 4); d.pivot.rotation.y = d.open * 1.65; d.box.off = d.open > .5; });
+  lockSt.fade += ((inside ? .2 : 1) - lockSt.fade) * Math.min(1, dt * 6); const wm = locker.userData.wallMat, tr = lockSt.fade < .98;
+  if (wm.transparent !== tr) { wm.transparent = tr; wm.depthWrite = !tr; wm.needsUpdate = true; } wm.opacity = lockSt.fade; locker.userData.roof.visible = !inside;
+  return inside;
 }
 const shop = hut(6, 15, -8, -2, 0xe84393, "Boutique"); {
   const counter = rbox(5, 1.1, .9, mat(0xffffff, .6, { map: woodTex }), .08); counter.position.set(10.5, .55, -2.6); shop.add(counter);
@@ -663,6 +711,10 @@ const domeDoorBox = { x1: -2.85, x2: 2.85, z1: 7.35, z2: 7.65, off: false }; box
 let domeDoorOpen = 0;
 
 /* ---------- Toboggans avec échelles ---------- */
+// points de tous les toboggans : un poteau n'est posé que s'il ne traverse aucun autre morceau de toboggan
+const SLIDE_SAMPLES = [], slidePoleQueue = [];
+function addSlideSamples(curve) { const n = Math.ceil(curve.getLength() / .25); for (let i = 0; i <= n; i++) SLIDE_SAMPLES.push(curve.getPointAt(i / n)); }
+function poleClear(x, z, top) { for (const q of SLIDE_SAMPLES) if (q.y < top + .5 && (q.x - x) ** 2 + (q.z - z) ** 2 < 1.6 * 1.6 && q.y > -1) { if (q.y < top - .2) return false; } return true; }
 function halfPipe(curve, R = .85, seg = 320, K = 14, f0 = 0, f1 = 1) {
   const pos = [], idx = [], uv = [], up = new THREE.Vector3(0, 1, 0), len = curve.getLength();
   for (let i = 0; i <= seg; i++) {
@@ -688,7 +740,8 @@ function makeSlide(cx, cz, a0, dir, turns, color, target, name, HR = 3.6) {
   const water = new THREE.Mesh(halfPipe(curve, .8, 320, 8, .28, .72), streamMat); water.renderOrder = 3; scene.add(water);
   const tube = new THREE.Mesh(halfPipe(curve), mat(color, .25, { side: THREE.DoubleSide, envMapIntensity: 1.2 })); tube.castShadow = true; tube.receiveShadow = true; scene.add(tube);
   // poteaux de soutien
-  for (let t = 0.05; t < 0.88; t += 0.055) { const p = curve.getPointAt(t); const h = p.y - .95; if (h < .5) continue; const pole = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, h, 8), metalMat); circles.push({ x: p.x, z: p.z, r: .12 }); pole.position.set(p.x, h / 2, p.z); pole.castShadow = true; scene.add(pole); }
+  addSlideSamples(curve);
+  for (let t = 0.05; t < 0.88; t += 0.055) { const p = curve.getPointAt(t); const h = p.y - .95; if (h < .5) continue; slidePoleQueue.push([p.x, p.z, h]); }
   // tour rayée
   const tower = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.75, 9.8, 32), mat(0xffffff, .5, { map: stripeTex("#ffffff", "#" + color.toString(16).padStart(6, "0"), 2) }));
   tower.material.map.rotation = Math.PI / 2; tower.material.map.repeat.set(1, 4); tower.position.set(cx, 4.9, cz); shadowAll(tower); scene.add(tower);
@@ -713,6 +766,7 @@ makeSlide(5, -52, Math.PI / 2, 1, 1.5, 0x27ae60, [6, -43.5], "Toboggan vert");
 makeSlide(15, -52, Math.PI / 2, -1, 2.5, 0x2e86de, [15, -43.5], "Toboggan bleu");
 makeSlide(-24, -40, Math.atan2(3, 17), 1, 2, 0x8e44ad, [-9.5, -37], "Toboggan violet");
 makeSlide(25, -38, Math.PI - .1, -1, 3, 0xff8a2b, [17.5, -37], "Toboggan orange");
+for (const [x, z, h] of slidePoleQueue) { if (!poleClear(x, z, h)) continue; const pole = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, h, 8), metalMat); circles.push({ x, z, r: .12 }); pole.position.set(x, h / 2, z); pole.castShadow = true; scene.add(pole); }
 
 /* ---------- Cottages ---------- */
 // Plan intérieur (repère local : façade et porte vers +z)
@@ -1321,9 +1375,10 @@ const baloFast = bcurve([[-4.2, BL2.y + .45, -8.45], [-4.2, 2.7, -6.6], [-4.2, 1
 const baloWave = bcurve([[-1.5, BL1.y + .45, -8.45], [-1.5, 1.6, -7.3], [-1.5, 1.4, -6.3], [-1.5, 1.0, -5], [-1.5, .9, -4.2], [-1.5, .4, -2.6], [-1.5, .05, -1.2]]);
 const BSLIDES = [[baloSpiral, -9.6, 4.4, 6, "🛝 Toboggan en colimaçon !", 0x9b59b6], [baloFast, -4.2, 2.8, 4.2, "🛝 Toboggan rapide !", 0x2e86de], [baloWave, -1.5, 1.2, 2.6, "🛝 Toboggan à vagues !", 0xff8a2b]]
   .map(([curve, lx, y0, y1, name, col]) => ({ curve, x: BALO.x + lx, z: BALO.z - 8.9, y0, y1, name, col }));
+BSLIDES.forEach(s => addSlideSamples(s.curve));
 for (const s of BSLIDES) {
   const sm = new THREE.Mesh(halfPipe(s.curve, .75, 260, 10), mat(s.col, .3, { side: THREE.DoubleSide })); sm.castShadow = true; scene.add(sm);
-  for (let t = .06; t < .92; t += .07) { const p = s.curve.getPointAt(t), h = p.y - .7; if (h < .3) continue; const pole = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, h, 8), mat(0x2e86de, .4)); pole.position.set(p.x, h / 2, p.z); scene.add(pole); }
+  for (let t = .06; t < .92; t += .07) { const p = s.curve.getPointAt(t), h = p.y - .7; if (h < .3 || !poleClear(p.x, p.z, h)) continue; const pole = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, h, 8), mat(0x2e86de, .4)); pole.position.set(p.x, h / 2, p.z); scene.add(pole); }
 }
 // la grande piscine à balles
 const BPIT = { x1: 3.5, x2: 10.6, z1: -2.5, z2: 10.5, gz1: 3, gz2: 5 };
@@ -2467,7 +2522,7 @@ let treeRoof, chestLid, treeSlide;
   // le toboggan pour redescendre
   treeSlide = new THREE.CatmullRomCurve3([[64.1, TH + .45, 69], [66.4, TH - .35, 69], [68.9, 3.2, 68.3], [71, 2.0, 66.6], [72.3, 1.05, 64.6], [72.9, .4, 62.6], [73.1, .05, 61.4]].map(p => new THREE.Vector3(...p)), false, "centripetal");
   const sm = new THREE.Mesh(halfPipe(treeSlide, .75, 160, 10), mat(0x27ae60, .3, { side: THREE.DoubleSide })); sm.castShadow = true; scene.add(sm);
-  for (let t = .15; t < .9; t += .14) { const p = treeSlide.getPointAt(t), h = p.y - .7; if (h < .4) continue; const pole = new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, h, 8), wood); pole.position.set(p.x, h / 2, p.z); pole.castShadow = true; scene.add(pole); circles.push({ x: p.x, z: p.z, r: .1 }); }
+  addSlideSamples(treeSlide); for (let t = .15; t < .9; t += .14) { const p = treeSlide.getPointAt(t), h = p.y - .7; if (h < .4 || !poleClear(p.x, p.z, h)) continue; const pole = new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, h, 8), wood); pole.position.set(p.x, h / 2, p.z); pole.castShadow = true; scene.add(pole); circles.push({ x: p.x, z: p.z, r: .1 }); }
   // de grands arbres qui portent la maison
   const crowns = [];
   for (const [x, z, s] of [[51.5, 77.7, 1], [61, 69, .9], [46, 81, 1.1], [68, 76.5, .85], [36, 70, .9]]) {
@@ -3005,6 +3060,7 @@ function zoneName(P) {
   if (inBaloba(P.x, P.z)) return "🎈 Le Baloba";
   if (inGameTown(P.x, P.z)) return "🎮 Game Town";
   if (inBurger(P.x, P.z)) return "🍔 Burger Fast";
+  if (inLockerRoom(P.x, P.z)) return "👕 Vestiaires";
   for (const sh of SHOPS) if (sh.in(P.x, P.z)) return sh.where;
   if (inRect(PARK, P.x, P.z)) return "🅿️ Parking";
   if (P.y > 3 && inRect(TREEHUT, P.x, P.z)) return "🏠 La cabane dans l'arbre";
@@ -3017,7 +3073,7 @@ function zoneName(P) {
   if (riverNear(P.x, P.z).d < 7) return "🌊 Rivière sauvage";
   return "";
 }
-const ZTOAST = { "🏨 Accueil": "L'accueil ! Margot t'explique tout : approche-toi du comptoir 📋", "🥖 Boulangerie": "Ça sent bon le pain chaud ! 🥖", "🛒 Market Speed": "Le Market Speed ! Va à la caisse pour faire tes courses 🛒⚡", "🅿️ Parking": "Le parking ! Approche-toi d'une voiture pour klaxonner 📯. Les vélos sous l'abri, tu peux les prendre 🚲", "🍔 Burger Fast": "Burger Fast ! Va à la caisse pour commander ton menu 🍔🍟", "🎮 Game Town": "Game Town ! Joue aux bornes d'arcade pour gagner des tickets 🎟️", "🎈 Le Baloba": "Le Baloba ! Grimpe dans la structure, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
+const ZTOAST = { "👕 Vestiaires": "Les vestiaires ! Entre dans une cabine pour te changer 👕", "🏨 Accueil": "L'accueil ! Margot t'explique tout : approche-toi du comptoir 📋", "🥖 Boulangerie": "Ça sent bon le pain chaud ! 🥖", "🛒 Market Speed": "Le Market Speed ! Va à la caisse pour faire tes courses 🛒⚡", "🅿️ Parking": "Le parking ! Approche-toi d'une voiture pour klaxonner 📯. Les vélos sous l'abri, tu peux les prendre 🚲", "🍔 Burger Fast": "Burger Fast ! Va à la caisse pour commander ton menu 🍔🍟", "🎮 Game Town": "Game Town ! Joue aux bornes d'arcade pour gagner des tickets 🎟️", "🎈 Le Baloba": "Le Baloba ! Grimpe dans la structure, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
   "🌊 Rivière sauvage": "La rivière sauvage ! Va au ponton pour prendre une bouée 🛟", "🌳 Maison dans les arbres": "Tu es dans les arbres ! Traverse le pont de singe… et descends par le toboggan 🛝", "🛖 Une cabane": "Une petite cabane en rondins 🛖" };
 const seenZ = new Set();
 
@@ -3848,12 +3904,12 @@ function loop() {
   farmRoofs[0].roof.visible = !inBarn; treeRoof.visible = !inTreeHut; for (const h of cabRoofs) { const i = Math.abs(P.x - h.x) < 2 && Math.abs(P.z - h.z) < 2; h.roof.visible = !i; if (i) inCab = true; }
   const dWant = Math.hypot(P.x, P.z - 7.5) < 5 ? 1 : 0; if (dWant && domeDoorOpen < .05) sfx.door();
   domeDoorOpen += (dWant - domeDoorOpen) * Math.min(1, dt * 5); domeDoors.forEach(d => d.m.position.x = d.s * (1.4 + domeDoorOpen * 2.7)); domeDoorBox.off = domeDoorOpen > .6;
-  const inAq = updateAquarium(dt, time, P), inBalo = updateBaloba(dt, time, P), inGT = updateGameTown(dt, time, P), nightK = updateDayNight(dt), inBF = updateBurger(dt, time, P), inShop = updateShops(dt, P);
+  const inAq = updateAquarium(dt, time, P), inBalo = updateBaloba(dt, time, P), inGT = updateGameTown(dt, time, P), nightK = updateDayNight(dt), inBF = updateBurger(dt, time, P), inShop = updateShops(dt, P), inLock = updateLocker(dt, P);
   updateVacationers(dt, time, P);
 
   // caméra
   if (state !== "ride") {
-    if (inCottage || inAq || inBalo || inGT || inBF || inShop) { camDist = 7.5; minPitch = 1.0; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
+    if (inCottage || inAq || inBalo || inGT || inBF || inShop) { camDist = 7.5; minPitch = 1.0; } if (inLock) { camDist = 6.5; minPitch = 1.05; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
     const pt = Math.max(pitch, minPitch); const baseY = state === "top" ? 9.95 : state === "boat" ? .6 : Math.max(P.y, 0);
     const cx = P.x + Math.sin(yaw) * Math.cos(pt) * camDist, cz = P.z + Math.cos(yaw) * Math.cos(pt) * camDist, cy = baseY + 1.5 + Math.sin(pt) * camDist;
     camera.position.lerp(tv.set(cx, Math.max(cy, .6), cz), Math.min(1, dt * 7)); camera.lookAt(P.x, baseY + 1.4, P.z);
@@ -3876,7 +3932,6 @@ function loop() {
     if (state === "top") { act1 = "slide"; t1 = "🛝 Glisser !"; act2 = "down"; t2 = "🪜 Descendre"; }
     if (state === "walk" && inAqua(P.x, P.z) && Math.hypot(P.x - AQU.x, P.z - AQU.z) < AQU.mid + 1.6) { act1 = "feed"; t1 = "🐟 Nourrir les poissons"; }
     if (state === "walk" && swimming) { act1 = "swim"; t1 = swimFast ? "🧍 Arrêter de nager" : "🏊 Nager"; }
-    if (state === "walk" && Math.hypot(P.x - locker.userData.front[0], P.z - locker.userData.front[1]) < 2.6) { act1 = "locker"; t1 = "👕 Se changer"; }
     if (state === "walk" && Math.hypot(P.x - shop.userData.front[0], P.z - shop.userData.front[1]) < 3) { act1 = "shop"; t1 = "🛍️ Boutique"; }
     if (state === "walk" && interiorHost && inCottage === interiorHost) { const [lx, lz] = inCottage.toLocal(P.x, P.z); if ((P.y < 1 && lx > 1.6 && lx < 3.3 && lz < -.6) || (P.y > 3 && lx < -.3 && lz < -1.2)) { act1 = "sleep"; t1 = "😴 Dormir"; } }
     if (state === "walk" && P.y < 1) for (const c of cottages) { const [dx, dz] = c.toWorld(0, 4.05); if (Math.hypot(P.x - dx, P.z - dz) < 2.1) { doorNear = c; const t = c.want ? "🚪 Fermer la porte" : "🚪 Ouvrir la porte"; if (!act1) { act1 = "door"; t1 = t; } else { act2 = "door"; t2 = t; } break; } }
