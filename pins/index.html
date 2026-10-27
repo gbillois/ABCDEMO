@@ -51,6 +51,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#9fc7e0;color:var(--in
 .card h1{margin:0 0 6px;font-size:30px;line-height:1.1;text-wrap:balance;color:var(--leaf)}
 .card p{font-size:18px;line-height:1.35;margin:8px 0}
 .card .small{font-size:15px;opacity:.75}
+.sexe .btn{background:#9aa0b4}.sexe .btn[aria-checked="true"]{background:#e84393;outline:3px solid #ffc93c}.sexe #sexeG[aria-checked="true"]{background:#2e86de}
 .bfmenu h3{margin:10px 0 4px;font-size:17px;text-align:left;color:#1f9e8f}.bfrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.bfrow .btn{font-size:16px;padding:7px 8px;background:#9aa0b4}.bfrow .btn.on{background:#ff7a2f;outline:3px solid #ffc93c}
 .prizes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}.prizes .btn{font-size:17px;line-height:1.15}.prizes small{font-size:13px;opacity:.9}
 #ticketsPill{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:#ff4fd8;color:#fff}
@@ -124,6 +125,8 @@ html.app .site{display:none!important}
     <p>Des vacances dans la forêt : ton cottage et sa terrasse, l'Aquaparc et ses toboggans, l'aquarium, le Baloba, Game Town, Burger Fast, la rivière sauvage, la ferme, le poney club, les karts, les vélos, la maison dans les arbres, le lac et son pédalo… et un chat roux qui vient te voir !</p>
     <p><b>Mission :</b> 10 canards en plastique se sont échappés. Retrouve-les tous ! 🦆</p>
     <p class="small">Joystick à gauche pour marcher. Glisse ton doigt sur l'écran pour tourner la caméra. Sur ordinateur : flèches ou ZQSD, E pour agir (ouvrir une porte, nager, se changer…), T pour parler. Tu as 4000 € pour la boutique de maillots de bain.</p>
+    <p style="margin:10px 0 4px;font-weight:800">Tu joues…</p>
+    <div class="row sexe" role="radiogroup" aria-label="Ton personnage"><button id="sexeF" class="btn" role="radio" data-s="f">👧 une fille</button><button id="sexeG" class="btn" role="radio" data-s="g">👦 un garçon</button></div>
     <div class="row"><button id="startBtn" class="btn">▶ Jouer</button><button id="introMulti" class="btn" style="background:var(--violet)">👫 À plusieurs</button><a class="btn site" style="background:#34495e" href="../index.html">🏠 Accueil</a></div>
     <div class="row"><button id="majBtn" class="btn" style="background:#34495e" hidden>🔄 Mettre à jour</button></div>
     <p id="majMsg" class="small"></p>
@@ -3083,6 +3086,15 @@ function choisirPersonnage(sexe) {
   ancien.remove(myLbl); player.add(myLbl); scene.add(player); scene.remove(ancien); libererPersonnage(ancien);
   setOutfit(player, wearing);
 }
+// choix fille / garçon sur l'écran de départ (gardé sur l'appareil, et repris pour le jeu à plusieurs)
+function choisirSexe(sx, sauver = true) {
+  choisirPersonnage(sx);
+  for (const b of [$("sexeF"), $("sexeG")]) b.setAttribute("aria-checked", b.dataset.s === sx ? "true" : "false");
+  const r = document.querySelector(`input[name="personnage"][value="${sx}"]`); if (r) r.checked = true;
+  if (sauver) { try { localStorage.setItem("pins-sexe", sx); } catch (e) {} }
+}
+for (const b of [$("sexeF"), $("sexeG")]) b.onclick = () => { audioOn(); sfx.click(); choisirSexe(b.dataset.s); };
+{ let sx = "g"; try { const v = localStorage.getItem("pins-sexe"); if (v === "f" || v === "g") sx = v; } catch (e) {} choisirSexe(sx, false); }
 function envoyerProfil() {
   if (!net || net.s < 0 || net.ws.readyState !== 1) return;
   net.ws.send(JSON.stringify({ t: "profil", pseudo: net.pseudo, sexe: net.sexe, tenue: wearing }));
