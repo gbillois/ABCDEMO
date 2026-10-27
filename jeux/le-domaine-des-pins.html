@@ -45,6 +45,16 @@ html,body{height:100%;margin:0;overflow:hidden;background:#9fc7e0;color:var(--in
 #mapc{width:min(84vw,420px);height:auto;aspect-ratio:1;max-width:100%;border-radius:18px;display:block;margin:6px auto;background:#6bb553}
 #fade{position:fixed;inset:0;background:#0b1530;opacity:0;pointer-events:none;transition:opacity 1.2s}
 @media (prefers-reduced-motion:reduce){#fade{transition:none}}
+/* Jeu à plusieurs */
+#multiPill{border:0;background:var(--violet);color:#fff;font-family:var(--ui);font-size:16px;cursor:pointer}
+#sayBtn{background:var(--sun);color:var(--ink)}
+.code{font-size:40px;font-weight:800;letter-spacing:4px;background:#fff3c4;border-radius:16px;padding:4px 16px;display:inline-block;margin:4px 0}
+#codeIn{font-family:var(--ui);font-size:30px;font-weight:800;letter-spacing:3px;text-transform:uppercase;width:min(300px,100%);text-align:center;border:3px solid var(--leaf);border-radius:14px;padding:6px;color:var(--ink);background:#fff;-webkit-user-select:text;user-select:text;touch-action:manipulation}
+#multiMsg{color:#c0392b;font-weight:800;min-height:1.2em}
+.who{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.who span{border-radius:999px;padding:2px 12px;font-weight:800;color:#fff}
+.phrases{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}
+.phrases .btn{font-size:18px;padding:10px 8px;background:var(--water)}
 </style>
 </head>
 <body>
@@ -53,15 +63,18 @@ html,body{height:100%;margin:0;overflow:hidden;background:#9fc7e0;color:var(--in
 <div id="hudL">
   <a class="btn ico" href="../index.html" aria-label="Retour à l'accueil">🏠</a>
   <div id="ducks" class="pill">🦆 0 / 10</div>
+  <button id="multiPill" class="pill" hidden aria-label="Partie à plusieurs"></button>
 </div>
 <div id="hudR">
   <button id="soundBtn" class="btn ico" aria-label="Couper le son">🔊</button>
   <button id="pauseBtn" class="btn ico" aria-label="Pause">⏸️</button>
   <button id="mapBtn" class="btn ico" aria-label="Carte">🗺️</button>
+  <button id="multiBtn" class="btn ico" aria-label="Jouer à plusieurs">👫</button>
 </div>
 <div id="where" class="pill" hidden></div>
 <div id="stick"><div id="knob"></div></div>
 <div id="actions">
+  <button id="sayBtn" class="btn" hidden>🗨️ Dire</button>
   <button id="talkBtn" class="btn" hidden>💬 Parler</button>
   <button id="act2Btn" class="btn" hidden>Action</button>
   <button id="actBtn" class="btn" hidden>Action</button>
@@ -75,7 +88,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#9fc7e0;color:var(--in
     <p>Des vacances dans la forêt : ton cottage à étage, l'Aquaparc avec la piscine et les toboggans, le grand lac et son pédalo, la crêperie.</p>
     <p><b>Mission :</b> 10 canards en plastique se sont échappés. Retrouve-les tous ! 🦆</p>
     <p class="small">Joystick à gauche pour marcher. Glisse ton doigt sur l'écran pour tourner la caméra. Sur ordinateur : flèches ou ZQSD, E pour agir (ouvrir une porte, monter dans le pédalo…), T pour parler.</p>
-    <div class="row"><button id="startBtn" class="btn">▶ Jouer</button><a class="btn" style="background:#34495e" href="../index.html">🏠 Accueil</a></div>
+    <div class="row"><button id="startBtn" class="btn">▶ Jouer</button><button id="introMulti" class="btn" style="background:var(--violet)">👫 À plusieurs</button><a class="btn" style="background:#34495e" href="../index.html">🏠 Accueil</a></div>
   </div>
 </div>
 
@@ -95,7 +108,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#9fc7e0;color:var(--in
   <div class="card">
     <h1>Carte du domaine</h1>
     <canvas id="mapc" width="420" height="420"></canvas>
-    <p class="small">🔺 Toi · 🟡 canards à trouver · 🟣 personnages</p>
+    <p class="small">🔺 Toi · 🟡 canards à trouver · 🟣 personnages · ronds de couleur : tes amis</p>
     <div class="row"><button id="mapClose" class="btn">Fermer</button></div>
   </div>
 </div>
@@ -105,6 +118,36 @@ html,body{height:100%;margin:0;overflow:hidden;background:#9fc7e0;color:var(--in
     <h1>Bravo Théo ! 🏆</h1>
     <p>Tu as retrouvé les 10 canards en plastique. Marco le maître-nageur est super content !</p>
     <div class="row"><button id="winClose" class="btn">Continuer à jouer</button><button id="winReplay" class="btn" style="background:var(--slide)">🔄 Rejouer</button></div>
+  </div>
+</div>
+<div id="multiView" class="overlay" hidden>
+  <div class="card">
+    <h1>Jouer à plusieurs 👫</h1>
+    <div id="multiOff">
+      <p>Crée une partie et donne le code à tes amis, ou tape le code qu'on t'a donné.</p>
+      <div class="row"><button id="createBtn" class="btn">✨ Créer une partie</button></div>
+      <p class="small">ou</p>
+      <input id="codeIn" maxlength="9" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH" aria-label="Code de la partie">
+      <div class="row"><button id="joinBtn" class="btn" style="background:var(--water)">🚪 Rejoindre</button></div>
+    </div>
+    <div id="multiOn" hidden>
+      <p>Le code de la partie :</p>
+      <div class="code" id="codeShow"></div>
+      <p>Tu es <b id="meName"></b>. Dans la partie :</p>
+      <div class="who" id="whoList"></div>
+      <div class="row"><button id="leaveBtn" class="btn" style="background:var(--slide)">Quitter la partie</button></div>
+    </div>
+    <p id="multiMsg"></p>
+    <p class="small">Pas de prénom, pas de compte : chacun est un animal. On ne peut envoyer que des phrases toutes prêtes. Jusqu'à 6 joueurs.</p>
+    <div class="row"><button id="multiClose" class="btn" style="background:#34495e">Fermer</button></div>
+  </div>
+</div>
+
+<div id="sayView" class="overlay" hidden>
+  <div class="card">
+    <h1>Dire quelque chose 🗨️</h1>
+    <div class="phrases" id="phraseList"></div>
+    <div class="row"><button id="sayClose" class="btn" style="background:#34495e">Fermer</button></div>
   </div>
 </div>
 <div id="fade"></div>
@@ -822,7 +865,7 @@ function person(o) {
   const nose = new THREE.Mesh(new THREE.SphereGeometry(.045, 10, 8), sk); nose.position.set(0, 1.98, .3); g.add(nose);
   const mouth = new THREE.Mesh(new THREE.TorusGeometry(.07, .016, 6, 14, Math.PI), mat(0x9a3b2f, .6)); mouth.rotation.z = Math.PI; mouth.position.set(0, 1.9, .27); g.add(mouth);
   if (o.cap) { const c = new THREE.Mesh(new THREE.SphereGeometry(.33, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat(o.cap, .7)); c.position.y = 2.08; c.scale.y = .75; g.add(c); const br = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, .04, 20, 1, false, -Math.PI / 2, Math.PI), mat(o.cap, .7)); br.position.set(0, 2.12, .24); g.add(br); }
-  g.userData = { legs, arms }; return shadowAll(g, true, false);
+  g.userData = { legs, arms, shirt: sh }; return shadowAll(g, true, false);
 }
 function animPerson(g, mode, t) {
   const { legs, arms } = g.userData; let l = 0, a = 0, ar = [0, 0];
@@ -954,8 +997,174 @@ function drawMap() {
   mx.fillText("Aquaparc", X(0), Z(-47)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17));
   npcs.forEach(n => { mx.fillStyle = "#8e44ad"; mx.beginPath(); mx.arc(X(n.g.position.x), Z(n.g.position.z), 4, 0, 7); mx.fill(); });
   ducks.forEach(d => { if (d.got) return; mx.fillStyle = "#ffd23f"; mx.strokeStyle = "#7a5a00"; mx.lineWidth = 1.5; mx.beginPath(); mx.arc(X(d.x), Z(d.z), 5.5, 0, 7); mx.fill(); mx.stroke(); });
+  if (net) for (const [s, o] of net.autres) if (o.seen) { mx.fillStyle = ANIMAUX[s][3]; mx.strokeStyle = "#fff"; mx.lineWidth = 2.5; mx.beginPath(); mx.arc(X(o.g.position.x), Z(o.g.position.z), 6.5, 0, 7); mx.fill(); mx.stroke(); }
   const px = X(player.position.x), pz = Z(player.position.z); mx.save(); mx.translate(px, pz); mx.rotate(-player.rotation.y + Math.PI);
   mx.fillStyle = "#2e86de"; mx.strokeStyle = "#fff"; mx.lineWidth = 2; mx.beginPath(); mx.moveTo(0, -11); mx.lineTo(8, 8); mx.lineTo(-8, 8); mx.closePath(); mx.fill(); mx.stroke(); mx.restore();
+}
+
+/* ================= Jeu à plusieurs ================= */
+// Relais Cloudflare (dossier serveur/pins-relais). À remplir après le déploiement,
+// par exemple "wss://pins-relais.exemple.workers.dev". Vide : le jeu reste en solo.
+const RELAIS_PROD = "";
+const RELAIS = (["localhost", "127.0.0.1"].includes(location.hostname) && new URLSearchParams(location.search).get("relais")) || RELAIS_PROD;
+// Liste fermée : on n'envoie que le numéro de la phrase (le relais refuse tout le reste).
+const PHRASES = ["Coucou ! 👋", "Viens ici !", "Suis-moi !", "Attends-moi !", "On va au toboggan ? 🛝", "On va nager ? 🏊",
+  "On va au lac ? 🦢", "J'ai trouvé un canard ! 🦆", "Bravo ! 🎉", "Oui 👍", "Non 👎", "Au revoir ! 👋"];
+// Pas de prénom : chaque place de la partie est un animal.
+const ANIMAUX = [["🦊", "Renard orange", 0xe67e22, "#e67e22"], ["🐧", "Pingouin bleu", 0x2e86de, "#2e86de"], ["🐰", "Lapin rose", 0xe84393, "#e84393"],
+  ["🐸", "Grenouille verte", 0x27ae60, "#27ae60"], ["🦉", "Hibou violet", 0x8e44ad, "#8e44ad"], ["🐿️", "Écureuil roux", 0xb5532a, "#b5532a"]];
+const LETTRES = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // sans I, L, O, 0, 1 pour ne pas les confondre
+const CODE_OK = new RegExp(`^[${LETTRES}]{8}$`);
+const MODES = ["idle", "walk", "swim", "climb", "ride"];
+let net = null, ovPaused = false, myLbl = pLbl;
+const showCode = c => c.slice(0, 4) + "-" + c.slice(4);
+const r2 = v => Math.round(v * 100) / 100;
+function nouveauCode() { return [...crypto.getRandomValues(new Uint32Array(8))].map(n => LETTRES[n % LETTRES.length]).join(""); }
+function msg(t) { $("multiMsg").textContent = t; }
+
+// Bulle au-dessus d'un joueur
+function bulle(text) {
+  const c = document.createElement("canvas"); c.width = 1024; c.height = 200; const x = c.getContext("2d");
+  x.font = '800 64px "Baloo 2", "Trebuchet MS", sans-serif'; const w = Math.min(1010, x.measureText(text).width + 80);
+  x.fillStyle = "#ffffff"; x.strokeStyle = "#1d3b2a"; x.lineWidth = 7;
+  x.beginPath(); x.roundRect((1024 - w) / 2, 8, w, 134, 52); x.fill(); x.stroke();
+  x.beginPath(); x.moveTo(482, 138); x.lineTo(512, 188); x.lineTo(542, 138); x.fill(); x.beginPath(); x.moveTo(482, 141); x.lineTo(512, 188); x.lineTo(542, 141); x.stroke();
+  x.fillStyle = "#1d3b2a"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(text, 512, 78);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false, depthTest: false, toneMapped: false })); sp.scale.set(5.6, 5.6 * 200 / 1024, 1); sp.renderOrder = 10;
+  sp.position.y = 3.75; return sp;
+}
+function poserBulle(o, g, text) {
+  if (o.bub) { g.remove(o.bub); o.bub.material.map.dispose(); o.bub.material.dispose(); }
+  o.bub = bulle(text); o.bubT = 4.5; g.add(o.bub);
+}
+
+function avatar(s) {
+  const a = ANIMAUX[s], g = person({ shirt: a[2], pants: 0x34495e, shorts: true, cap: a[2], hair: 0x3b2a1a });
+  const lb = label(a[0] + " " + a[1].split(" ")[0], a[3], "#ffffff", .6); lb.position.y = 2.95; g.add(lb);
+  g.visible = false; scene.add(g);
+  return { g, tx: 0, ty: 0, tz: 0, tr: 0, m: 0, walk: 0, bub: null, bubT: 0, seen: false };
+}
+function ajouter(s, annonce) {
+  if (s === net.s) return null;
+  if (net.autres.has(s)) return net.autres.get(s);
+  const o = avatar(s); net.autres.set(s, o); majUI();
+  if (annonce) { toast(`${ANIMAUX[s][0]} ${ANIMAUX[s][1]} arrive dans la partie !`); sfx.duck(); }
+  return o;
+}
+function retirer(s, annonce) {
+  const o = net.autres.get(s); if (!o) return;
+  scene.remove(o.g); net.autres.delete(s); majUI();
+  if (annonce) toast(`${ANIMAUX[s][0]} ${ANIMAUX[s][1]} est parti.`);
+}
+// En partie, on porte la couleur de son animal (comme les autres nous voient).
+function monLabel(text, bg, shirt) {
+  player.remove(myLbl); myLbl = text ? label(text, bg, "#ffffff", .6) : pLbl; myLbl.position.y = 2.95; player.add(myLbl);
+  player.userData.shirt.color.setHex(shirt ?? 0x2e86de);
+}
+function dire(s, i) {
+  const a = ANIMAUX[s], phrase = PHRASES[i];
+  if (s === net.s) { poserBulle(net.moi, player, phrase); sfx.talk(); return; }
+  const o = net.autres.get(s) || ajouter(s, false); poserBulle(o, o.g, phrase); sfx.talk();
+  toast(`${a[0]} ${a[1]} : ${phrase}`, 3200);
+}
+
+function connecter(code, creer) {
+  if (!RELAIS) { msg("Le jeu à plusieurs n'est pas encore installé sur ce site."); return; }
+  if (net) quitter();
+  let ws; try { ws = new WebSocket(`${RELAIS}/salle/${code}${creer ? "?creer=1" : ""}`); } catch (e) { msg("Impossible de joindre le serveur."); return; }
+  net = { ws, code, s: -1, autres: new Map(), moi: { bub: null, bubT: 0 }, sendT: 0, hb: 0, last: null };
+  msg("Connexion…");
+  ws.onmessage = e => { if (net && net.ws === ws) recevoir(e.data); };
+  ws.onclose = e => { if (net && net.ws === ws) fin(e.code); };
+}
+function fin(code) {
+  const etait = net.s >= 0; quitter();
+  msg(code === 4004 ? "Ce code ne marche pas. Vérifie-le : la partie est peut-être finie." : code === 4001 ? "La partie est pleine : 6 joueurs au maximum."
+    : etait ? "La connexion est perdue." : "Impossible de joindre le serveur.");
+  if (etait) toast("👫 La partie à plusieurs est terminée.");
+}
+function recevoir(data) {
+  let d; try { d = JSON.parse(data); } catch (e) { return; }
+  if (!d || typeof d !== "object") return;
+  if (d.t === "refus") { fin(d.c === 4001 ? 4001 : 4004); return; }
+  const place = v => Number.isInteger(v) && v >= 0 && v < ANIMAUX.length;
+  if (!place(d.s)) return;
+  if (d.t === "bienvenue") {
+    net.s = d.s; (Array.isArray(d.joueurs) ? d.joueurs : []).filter(place).forEach(s => ajouter(s, false));
+    monLabel("Toi " + ANIMAUX[d.s][0], ANIMAUX[d.s][3], ANIMAUX[d.s][2]); msg(""); majUI(); sfx.duck();
+    toast(net.autres.size ? `Tu as rejoint la partie ! Tu es ${ANIMAUX[d.s][1]}.` : `Partie créée ! Donne le code ${showCode(net.code)} à tes amis.`, 3500);
+  } else if (net.s < 0) return;
+  else if (d.t === "arrive") ajouter(d.s, true);
+  else if (d.t === "part") retirer(d.s, true);
+  else if (d.t === "p") {
+    const o = ajouter(d.s, false); if (!o || ![d.x, d.y, d.z, d.r].every(Number.isFinite)) return;
+    o.tx = d.x; o.ty = d.y; o.tz = d.z; o.tr = d.r; o.m = Number.isInteger(d.m) && d.m >= 0 && d.m < MODES.length ? d.m : 0;
+    if (!o.seen) { o.seen = true; o.g.position.set(d.x, d.y, d.z); o.g.rotation.y = d.r; o.g.visible = true; }
+  } else if (d.t === "m" && Number.isInteger(d.i) && d.i >= 0 && d.i < PHRASES.length) dire(d.s, d.i);
+}
+function quitter() {
+  if (!net) return;
+  const n = net; net = null;
+  try { n.ws.close(1000); } catch (e) {}
+  for (const o of n.autres.values()) scene.remove(o.g);
+  if (n.moi.bub) player.remove(n.moi.bub);
+  monLabel(null); majUI();
+}
+function majUI() {
+  const on = !!net && net.s >= 0;
+  $("multiPill").hidden = !on; $("sayBtn").hidden = !on;
+  $("multiOff").hidden = on; $("multiOn").hidden = !on;
+  if (!on) return;
+  $("multiPill").textContent = `👫 ${1 + net.autres.size} · ${showCode(net.code)}`;
+  $("codeShow").textContent = showCode(net.code);
+  $("meName").textContent = `${ANIMAUX[net.s][0]} ${ANIMAUX[net.s][1]}`;
+  const wl = $("whoList"); wl.textContent = "";
+  for (const s of [net.s, ...[...net.autres.keys()].sort()]) { const sp = document.createElement("span"); sp.style.background = ANIMAUX[s][3]; sp.textContent = `${ANIMAUX[s][0]} ${ANIMAUX[s][1]}${s === net.s ? " (toi)" : ""}`; wl.appendChild(sp); }
+}
+
+// Fenêtres : le jeu se met en pause pendant qu'elles sont ouvertes
+function ouvrir(id) { if ($(id).hidden) { ovPaused = paused; paused = true; $(id).hidden = false; } }
+function fermer(id) { if (!$(id).hidden) { $(id).hidden = true; paused = ovPaused; } }
+$("multiBtn").onclick = () => { if (!$("intro").hidden) return; sfx.click(); msg(""); majUI(); ouvrir("multiView"); };
+$("multiPill").onclick = () => $("multiBtn").onclick();
+$("introMulti").onclick = () => { audioOn(); sfx.click(); $("intro").hidden = true; paused = false; msg(""); majUI(); ouvrir("multiView"); };
+$("multiClose").onclick = () => { sfx.click(); fermer("multiView"); };
+$("createBtn").onclick = () => { sfx.click(); connecter(nouveauCode(), true); };
+$("codeIn").addEventListener("input", e => { const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8); e.target.value = v.length > 4 ? v.slice(0, 4) + "-" + v.slice(4) : v; });
+$("codeIn").addEventListener("keydown", e => { e.stopPropagation(); if (e.key === "Enter") $("joinBtn").click(); });
+$("joinBtn").onclick = () => {
+  sfx.click(); const c = $("codeIn").value.replace(/-/g, "");
+  if (!CODE_OK.test(c)) { msg("Un code a 8 lettres ou chiffres, par exemple ABCD-EFGH. Il n'y a jamais de I, L, O, 0 ni 1."); return; }
+  connecter(c, false);
+};
+$("leaveBtn").onclick = () => { sfx.click(); quitter(); msg("Tu as quitté la partie."); };
+$("phraseList").innerHTML = PHRASES.map((p, i) => `<button class="btn" data-i="${i}">${p}</button>`).join("");
+$("phraseList").onclick = e => { const b = e.target.closest("[data-i]"); if (!b || !net || net.s < 0) return; net.ws.send(JSON.stringify({ t: "m", i: +b.dataset.i })); fermer("sayView"); };
+$("sayBtn").onclick = () => { sfx.click(); ouvrir("sayView"); };
+$("sayClose").onclick = () => { sfx.click(); fermer("sayView"); };
+
+// À chaque image : on déplace les amis en douceur et on envoie sa position 10 fois par seconde
+function netTick(dt) {
+  if (!net) return;
+  const k = Math.min(1, dt * 10);
+  for (const o of net.autres.values()) {
+    if (o.bub && (o.bubT -= dt) <= 0) { o.g.remove(o.bub); o.bub = null; }
+    if (!o.seen) continue;
+    const g = o.g; g.position.x += (o.tx - g.position.x) * k; g.position.y += (o.ty - g.position.y) * k; g.position.z += (o.tz - g.position.z) * k;
+    let d = o.tr - g.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); g.rotation.y += d * k;
+    o.walk += dt * 9; animPerson(g, MODES[o.m], o.m === 2 ? time * 4 : o.m === 3 ? time * 9 : o.walk);
+  }
+  if (net.moi.bub && (net.moi.bubT -= dt) <= 0) { player.remove(net.moi.bub); net.moi.bub = null; }
+  if (net.s < 0 || net.ws.readyState !== 1) return;
+  net.hb -= dt; if ((net.sendT -= dt) > 0) return; net.sendT = .1;
+  const P = player.position, ry = Math.atan2(Math.sin(player.rotation.y), Math.cos(player.rotation.y));
+  const cur = { x: r2(P.x), y: r2(P.y), z: r2(P.z), r: r2(ry) }, L = net.last;
+  const bouge = L && Math.hypot(cur.x - L.x, cur.z - L.z) > .02;
+  cur.m = state === "ride" ? 4 : state.startsWith("climb") ? 3 : swimming ? 2 : bouge ? 1 : 0;
+  if (L && L.x === cur.x && L.y === cur.y && L.z === cur.z && L.r === cur.r && L.m === cur.m && net.hb > 0) return;
+  net.last = cur; net.hb = 2;
+  net.ws.send(JSON.stringify({ t: "p", ...cur }));
 }
 
 /* ================= Collisions ================= */
@@ -1136,6 +1345,7 @@ function loop() {
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $("toast").hidden = true; }
   if (!paused && !inCottage && !inDome) { birdT -= dt; if (birdT < 0) { birdT = 3 + Math.random() * 6; sfx.bird(); } }
   if (mapOpen) drawMap();
+  netTick(dt);
 
   // le soleil suit le joueur pour des ombres nettes
   sun.position.set(P.x + sunDir.x * 120, sunDir.y * 120, P.z + sunDir.z * 120); sun.target.position.set(P.x, 0, P.z);

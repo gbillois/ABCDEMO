@@ -35,6 +35,18 @@ Structure :
   cdn.jsdelivr.net/npm, unpkg.com. Toujours une version exacte, jamais `@latest`.
   Polices : Google Fonts uniquement.
 
+## Exception : jeu à plusieurs du Domaine des Pins
+
+Accord du propriétaire pour ce seul jeu : `jeux/le-domaine-des-pins.html` peut se connecter
+à un relais WebSocket hébergé sur Cloudflare (code dans `serveur/pins-relais/`).
+- Le jeu reste entièrement jouable seul, sans réseau ; le relais ne sert qu'au mode « À plusieurs ».
+- Aucune donnée personnelle : pas de prénom, pas de compte, chaque joueur est un animal.
+  Le relais ne stocke rien et n'a pas de journaux.
+- Messages en liste fermée uniquement (numéros de `PHRASES`) : jamais de texte libre.
+  Si on change la liste, garder `NB_PHRASES` du relais identique au nombre de phrases.
+- L'adresse du relais se règle dans `RELAIS_PROD` du jeu ; déploiement : `serveur/pins-relais/DEPLOIEMENT.md`.
+- Aucun autre jeu ne doit utiliser le réseau.
+
 ## Publication
 
 Les pages sont servies à deux endroits :
