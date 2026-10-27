@@ -1379,11 +1379,13 @@ loop();
   navigator.serviceWorker.register("sw.js").then(() => { btn.hidden = false; verifier(false); }).catch(() => {});
   async function verifier(installer) {
     try {
+      await navigator.serviceWorker.ready; // la copie du jeu est terminée
       const nom = (await caches.keys()).find(k => k.startsWith("pins-")); if (!nom) return;
       const c = await caches.open(nom), ici = new URL("./", location.href).href;
+      const garde = await c.match(ici); if (!garde) return;
       const frais = f => fetch(new URL(f, ici).href + "?maj=" + Date.now(), { cache: "no-store" });
       const neuf = await frais("./"); if (!neuf.ok) throw new Error();
-      const [a, b] = await Promise.all([neuf.clone().text(), c.match(ici).then(r => r ? r.text() : "")]);
+      const [a, b] = await Promise.all([neuf.clone().text(), garde.text()]);
       if (a === b) { btn.textContent = "🔄 Mettre à jour"; if (installer) info.textContent = "✓ Le jeu est déjà à jour."; return; }
       if (!installer) { btn.textContent = "✨ Mettre à jour"; info.textContent = "Une nouvelle version du jeu est prête !"; return; }
       info.textContent = "Installation de la nouvelle version…";
