@@ -72,6 +72,11 @@ html.app .site{display:none!important}
 .code{font-size:40px;font-weight:800;letter-spacing:4px;background:#fff3c4;border-radius:16px;padding:4px 16px;display:inline-block;margin:4px 0}
 #codeIn{font-family:var(--ui);font-size:30px;font-weight:800;letter-spacing:3px;text-transform:uppercase;width:min(300px,100%);text-align:center;border:3px solid var(--leaf);border-radius:14px;padding:6px;color:var(--ink);background:#fff;-webkit-user-select:text;user-select:text;touch-action:manipulation}
 #multiMsg{color:#c0392b;font-weight:800;min-height:1.2em}
+.profil{border:0;padding:0;margin:12px 0;display:grid;gap:8px;text-align:left}
+.profil legend{font-weight:800;font-size:19px}
+.profil input[type=text]{width:100%;font:inherit;font-size:19px;border:2px solid var(--leaf);border-radius:12px;padding:9px;color:var(--ink);background:#fff;user-select:text;-webkit-user-select:text;touch-action:manipulation}
+.profil .choix{display:flex;gap:12px;flex-wrap:wrap}
+.profil .choix label{background:#fff;border:2px solid var(--leaf);border-radius:12px;padding:8px 12px;cursor:pointer;touch-action:manipulation}
 .who{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
 .who span{border-radius:999px;padding:2px 12px;font-weight:800;color:#fff}
 .phrases{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}
@@ -164,6 +169,16 @@ html.app .site{display:none!important}
   <div class="card">
     <h1>Jouer à plusieurs 👫</h1>
     <div id="multiOff">
+      <fieldset class="profil">
+        <legend>Ton personnage</legend>
+        <div class="choix">
+          <label><input type="radio" name="personnage" value="f"> Fille</label>
+          <label><input type="radio" name="personnage" value="g" checked> Garçon</label>
+        </div>
+        <label for="pseudoIn">Ton surnom (facultatif, 2 à 16 caractères)</label>
+        <input id="pseudoIn" type="text" maxlength="16" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Exemple : Petit Panda" aria-describedby="pseudoAide">
+        <small id="pseudoAide">Choisis un surnom, pas ton vrai prénom. Sans surnom, tu gardes le nom de ton animal. Les insultes sont refusées.</small>
+      </fieldset>
       <p>Crée une partie et donne le code à tes amis, ou tape le code qu'on t'a donné.</p>
       <div class="row"><button id="createBtn" class="btn">✨ Créer une partie</button></div>
       <p class="small">ou</p>
@@ -177,8 +192,8 @@ html.app .site{display:none!important}
       <div class="who" id="whoList"></div>
       <div class="row"><button id="leaveBtn" class="btn" style="background:var(--slide)">Quitter la partie</button></div>
     </div>
-    <p id="multiMsg"></p>
-    <p class="small">Pas de prénom, pas de compte : chacun est un animal. On ne peut envoyer que des phrases toutes prêtes. Jusqu'à 10 joueurs.</p>
+    <p id="multiMsg" role="status" aria-live="polite"></p>
+    <p class="small">Pas de compte. Ton surnom est visible seulement pendant la partie. Pour discuter, on choisit des phrases toutes prêtes. Jusqu'à 10 joueurs.</p>
     <div class="row"><button id="multiClose" class="btn" style="background:#34495e">Fermer</button></div>
   </div>
 </div>
@@ -357,7 +372,7 @@ function label(text, bg = "#fffdf4", fg = "#1d3b2a", scale = 1) {
   const c = document.createElement("canvas"); c.width = 512; c.height = 128; const x = c.getContext("2d");
   x.font = '800 64px "Baloo 2", "Trebuchet MS", sans-serif'; const w = Math.min(500, x.measureText(text).width + 60);
   x.fillStyle = bg; x.beginPath(); x.roundRect((512 - w) / 2, 14, w, 100, 40); x.fill();
-  x.fillStyle = fg; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(text, 256, 68);
+  x.fillStyle = fg; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(text, 256, 68, 440);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false, toneMapped: false })); s.scale.set(4 * scale, scale, 1); return s;
 }
@@ -1139,7 +1154,7 @@ function setOutfit(g, id) {
   }
   u.shirt.needsUpdate = true; u.pants.needsUpdate = true;
 }
-const player = person({ shirt: 0x2e86de, pants: 0xf39c12, shorts: true, cap: 0xff5a4e, shoe: 0xff5a4e, scale: .6 }); scene.add(player);
+let player = person({ shirt: 0x2e86de, pants: 0xf39c12, shorts: true, cap: 0xff5a4e, shoe: 0xff5a4e, scale: .6 }); scene.add(player);
 const pLbl = label("Théo", "#2e86de", "#ffffff", .8); pLbl.position.y = 2.75; player.add(pLbl);
 const SPAWN = { x: -16, z: 35 };
 
@@ -1332,21 +1347,22 @@ const inKids = (x, z) => Math.hypot(x - KIDS.x, z - KIDS.z) < KIDS.r + .2;
 function suitCard(su, btnText, disabled, onClick, sub) {
   const d = document.createElement("div"); d.className = "suit"; const cv = su ? suitCanvas(su, 96, 64) : document.createElement("canvas");
   if (!su) { cv.width = 96; cv.height = 64; const x = cv.getContext("2d"); x.fillStyle = "#2e86de"; x.fillRect(0, 0, 96, 32); x.fillStyle = "#f39c12"; x.fillRect(0, 32, 96, 32); }
-  const b = document.createElement("b"); b.textContent = su ? su.name : "Mes habits"; const pr = document.createElement("span"); pr.className = "price"; pr.textContent = sub;
+  const b = document.createElement("b"); b.textContent = su ? nomMaillot(su) : "Mes habits"; const pr = document.createElement("span"); pr.className = "price"; pr.textContent = sub;
   const bt = document.createElement("button"); bt.className = "btn"; bt.textContent = btnText; bt.disabled = disabled; bt.onclick = onClick; d.append(cv, b, pr, bt); return d;
 }
 function renderShop() {
   updMoney(); const L = $("shopList"); L.textContent = "";
   for (const su of SUITS) { if (!su.price) continue; const has = owned.includes(su.id);
     L.append(suitCard(su, has ? "Déjà à toi ✓" : money < su.price ? "Pas assez" : "Acheter", has || money < su.price, () => {
-      if (owned.includes(su.id) || money < su.price) return; money -= su.price; owned.push(su.id); saveShop(); sfx.duck(); toast(`Tu as acheté : ${su.name} ! Va le mettre aux vestiaires.`, 2800); renderShop(); }, su.price + " €")); }
+      if (owned.includes(su.id) || money < su.price) return; money -= su.price; owned.push(su.id); saveShop(); sfx.duck(); toast(`Tu as acheté : ${nomMaillot(su)} ! Va le mettre aux vestiaires.`, 2800); renderShop(); }, su.price + " €")); }
 }
 function renderLocker() {
   const L = $("lockerList"); L.textContent = "";
   L.append(suitCard(null, wearing ? "Mettre" : "Je les porte ✓", !wearing, () => wear(null), "Pour se promener"));
   for (const id of owned) { const su = SUITS.find(x => x.id === id); L.append(suitCard(su, wearing === id ? "Je le porte ✓" : "Mettre", wearing === id, () => wear(id), su.price ? "Acheté" : "Offert")); }
 }
-function wear(id) { wearing = id; setOutfit(player, id); sfx.click(); whoosh(.4, .06, 800, 300); renderLocker(); toast(id ? "Te voilà en maillot de bain ! 🩳 Direction l'eau !" : "Tu as remis tes habits.", 2400); }
+function nomMaillot(su) { return player.userData.female ? su.name.replace(/^Short/, "Maillot une pièce") : su.name; }
+function wear(id) { wearing = id; setOutfit(player, id); envoyerProfil(); sfx.click(); whoosh(.4, .06, 800, 300); renderLocker(); toast(id ? "Te voilà en maillot de bain ! Direction l'eau !" : "Tu as remis tes habits.", 2400); }
 $("shopClose").onclick = () => { sfx.click(); fermer("shopView"); }; $("lockerClose").onclick = () => { sfx.click(); fermer("lockerView"); };
 updMoney();
 let state = "walk", tower = null, climbT = 0, riding = null, swimming = false, inCottage = null, inDome = false;
@@ -1410,6 +1426,58 @@ const CODE_OK = new RegExp(`^[${LETTRES}]{8}$`);
 // 4 = dans un véhicule : sur le lac c'est le pédalo, ailleurs le toboggan (le relais ne connaît que 0 à 4).
 const MODES = ["idle", "walk", "swim", "climb", "ride"];
 let net = null, ovPaused = false, myLbl = pLbl;
+// Filtre simple, identique dans le jeu et le relais (accents et substitutions courantes).
+function filtrerSurnom(v) {
+  if (typeof v !== "string") return null;
+  const p = v.normalize("NFC").trim().replace(/\s+/g, " ");
+  if (!p) return ""; // sans surnom, on garde le nom de l'animal
+  if (p.length < 2 || p.length > 16 || !/^[A-Za-zÀ-ÖØ-öø-ÿ0-9 _'-]+$/.test(p) || !/[A-Za-zÀ-ÖØ-öø-ÿ0-9]/.test(p)) return null;
+  const simple = p.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/[01345789]/g, c => ({ 0: "o", 1: "i", 3: "e", 4: "a", 5: "s", 7: "t", 8: "b", 9: "g" })[c]);
+  const compact = simple.replace(/[^a-z]/g, "");
+  if (/(connard|connasse|salope|salopard|encul|putain|pute|merde|batard|abruti|debile|idiot|ta?gueule|fuck|shit|bitch|nazi|negro|negre|bougnoule|salejuif)/.test(compact)
+      || /(?:^|[^a-z])(con|cons|pd|fdp|ntm)(?:$|[^a-z])/.test(simple) || /^(con|cons|pd|fdp|ntm)$/.test(compact)) return null;
+  return p;
+}
+function nomJoueur(s) { return net?.profils.get(s)?.pseudo || ANIMAUX[s][1]; }
+function effacerLabel(lb) { lb.material.map.dispose(); lb.material.dispose(); }
+function libererPersonnage(g) {
+  const materiaux = new Set();
+  g.traverse(o => { if (o.isMesh) { o.geometry.dispose(); materiaux.add(o.material); } else if (o.isSprite) effacerLabel(o); });
+  materiaux.forEach(m => m.dispose());
+}
+function choisirPersonnage(sexe) {
+  if (player.userData.female === (sexe === "f")) return;
+  const ancien = player;
+  player = person({ long: sexe === "f", shirt: 0x2e86de, pants: 0xf39c12, shorts: true, cap: 0xff5a4e, shoe: 0xff5a4e, scale: .6 });
+  player.position.copy(ancien.position); player.rotation.copy(ancien.rotation);
+  ancien.remove(myLbl); player.add(myLbl); scene.add(player); scene.remove(ancien); libererPersonnage(ancien);
+  setOutfit(player, wearing);
+}
+function envoyerProfil() {
+  if (!net || net.s < 0 || net.ws.readyState !== 1) return;
+  net.ws.send(JSON.stringify({ t: "profil", pseudo: net.pseudo, sexe: net.sexe, tenue: wearing }));
+}
+function appliquerProfil(d) {
+  const pseudo = filtrerSurnom(d.pseudo);
+  if (pseudo === null || !["f", "g"].includes(d.sexe) || (d.tenue !== null && !SUITS.some(su => su.id === d.tenue))) return;
+  net.profils.set(d.s, { pseudo, sexe: d.sexe, tenue: d.tenue });
+  if (d.s === net.s) monLabel("Toi " + ANIMAUX[d.s][0] + " " + nomJoueur(d.s), ANIMAUX[d.s][3], ANIMAUX[d.s][2]);
+  else {
+    const o = net.autres.get(d.s) || ajouter(d.s, false);
+    if (o.g.userData.female !== (d.sexe === "f")) {
+      const ancien = o.g, neuf = avatar(d.s);
+      neuf.g.position.copy(ancien.position); neuf.g.rotation.copy(ancien.rotation); neuf.g.visible = ancien.visible;
+      if (o.bub) { ancien.remove(o.bub); neuf.g.add(o.bub); }
+      o.g = neuf.g; o.lb = neuf.lb; scene.remove(ancien); libererPersonnage(ancien);
+    } else {
+      o.g.remove(o.lb); effacerLabel(o.lb);
+      o.lb = label(ANIMAUX[d.s][0] + " " + nomJoueur(d.s), ANIMAUX[d.s][3], "#ffffff", .6); o.lb.position.y = 2.95; o.g.add(o.lb);
+    }
+    setOutfit(o.g, d.tenue);
+  }
+  majUI();
+}
 const showCode = c => c.slice(0, 4) + "-" + c.slice(4);
 const r2 = v => Math.round(v * 100) / 100;
 function nouveauCode() { return [...crypto.getRandomValues(new Uint32Array(8))].map(n => LETTRES[n % LETTRES.length]).join(""); }
@@ -1433,40 +1501,47 @@ function poserBulle(o, g, text) {
 }
 
 function avatar(s) {
-  const a = ANIMAUX[s], g = person({ shirt: a[2], pants: 0x34495e, shorts: true, cap: a[2], hair: 0x3b2a1a });
-  const lb = label(a[0] + " " + a[1].split(" ")[0], a[3], "#ffffff", .6); lb.position.y = 2.95; g.add(lb);
+  const a = ANIMAUX[s], profil = net.profils.get(s), g = person({ long: profil?.sexe === "f", shirt: a[2], pants: 0x34495e, shorts: true, cap: a[2], hair: 0x3b2a1a });
+  const lb = label(a[0] + " " + nomJoueur(s), a[3], "#ffffff", .6); lb.position.y = 2.95; g.add(lb);
+  setOutfit(g, profil?.tenue ?? null);
   g.visible = false; scene.add(g);
-  return { g, tx: 0, ty: 0, tz: 0, tr: 0, m: 0, walk: 0, bub: null, bubT: 0, seen: false };
+  return { g, lb, tx: 0, ty: 0, tz: 0, tr: 0, m: 0, walk: 0, bub: null, bubT: 0, seen: false };
 }
 function ajouter(s, annonce) {
   if (s === net.s) return null;
   if (net.autres.has(s)) return net.autres.get(s);
   const o = avatar(s); net.autres.set(s, o); majUI();
-  if (annonce) { toast(`${ANIMAUX[s][0]} ${ANIMAUX[s][1]} arrive dans la partie !`); sfx.duck(); }
+  if (annonce) { toast(`${ANIMAUX[s][0]} ${nomJoueur(s)} arrive dans la partie !`); sfx.duck(); }
   return o;
 }
 function retirer(s, annonce) {
   const o = net.autres.get(s); if (!o) return;
-  scene.remove(o.g); if (o.boat) scene.remove(o.boat); net.autres.delete(s); majUI();
-  if (annonce) toast(`${ANIMAUX[s][0]} ${ANIMAUX[s][1]} est parti.`);
+  const nom = nomJoueur(s); scene.remove(o.g); if (o.boat) scene.remove(o.boat); libererPersonnage(o.g); net.autres.delete(s); net.profils.delete(s); majUI();
+  if (annonce) toast(`${ANIMAUX[s][0]} ${nom} est parti.`);
 }
 // En partie, on porte la couleur de son animal (comme les autres nous voient).
 function monLabel(text, bg, shirt) {
-  player.remove(myLbl); myLbl = text ? label(text, bg, "#ffffff", .6) : pLbl; myLbl.position.y = 2.95; player.add(myLbl);
-  player.userData.shirt.color.setHex(shirt ?? 0x2e86de);
+  player.remove(myLbl); if (myLbl !== pLbl) effacerLabel(myLbl);
+  myLbl = text ? label(text, bg, "#ffffff", .6) : pLbl; myLbl.position.y = 2.95; player.add(myLbl);
+  player.userData.clothes.shirt = shirt ?? 0x2e86de; setOutfit(player, wearing);
 }
 function dire(s, i) {
   const a = ANIMAUX[s], phrase = PHRASES[i];
   if (s === net.s) { poserBulle(net.moi, player, phrase); sfx.talk(); return; }
   const o = net.autres.get(s) || ajouter(s, false); poserBulle(o, o.g, phrase); sfx.talk();
-  toast(`${a[0]} ${a[1]} : ${phrase}`, 3200);
+  toast(`${a[0]} ${nomJoueur(s)} : ${phrase}`, 3200);
 }
 
 function connecter(code, creer) {
   if (!RELAIS) { msg("Le jeu à plusieurs n'est pas encore installé sur ce site."); return; }
+  const pseudo = filtrerSurnom($("pseudoIn").value);
+  if (pseudo === null) { msg("Choisis un surnom gentil de 2 à 16 caractères : lettres, chiffres, espaces, tirets ou apostrophes."); $("pseudoIn").focus(); return; }
+  $("pseudoIn").value = pseudo;
+  const sexe = document.querySelector('input[name="personnage"]:checked').value;
   if (net) quitter();
+  choisirPersonnage(sexe);
   let ws; try { ws = new WebSocket(`${RELAIS}/salle/${code}${creer ? "?creer=1" : ""}`); } catch (e) { msg("Impossible de joindre le serveur."); return; }
-  net = { ws, code, s: -1, autres: new Map(), moi: { bub: null, bubT: 0 }, sendT: 0, hb: 0, last: null };
+  net = { ws, code, pseudo, sexe, profils: new Map(), s: -1, autres: new Map(), moi: { bub: null, bubT: 0 }, sendT: 0, hb: 0, last: null };
   msg("Connexion…");
   net.attente = setTimeout(() => { if (net && net.ws === ws && net.s < 0) fin(0); }, 8000);
   ws.onmessage = e => { if (net && net.ws === ws) recevoir(e.data); };
@@ -1482,13 +1557,16 @@ function recevoir(data) {
   let d; try { d = JSON.parse(data); } catch (e) { return; }
   if (!d || typeof d !== "object") return;
   if (d.t === "refus") { fin(d.c === 4001 ? 4001 : 4004); return; }
+  if (d.t === "profil_refuse") { fin(0); msg("Ce surnom ou ce personnage est refusé. Choisis un autre surnom."); return; }
   const place = v => Number.isInteger(v) && v >= 0 && v < ANIMAUX.length;
   if (!place(d.s)) return;
   if (d.t === "bienvenue") {
-    net.s = d.s; (Array.isArray(d.joueurs) ? d.joueurs : []).filter(place).forEach(s => ajouter(s, false));
-    monLabel("Toi " + ANIMAUX[d.s][0], ANIMAUX[d.s][3], ANIMAUX[d.s][2]); msg(""); majUI(); sfx.duck();
-    toast(net.autres.size ? `Tu as rejoint la partie ! Tu es ${ANIMAUX[d.s][1]}.` : `Partie créée ! Donne le code ${showCode(net.code)} à tes amis.`, 3500);
+    net.s = d.s; net.profils.set(d.s, { pseudo: net.pseudo, sexe: net.sexe, tenue: wearing });
+    (Array.isArray(d.joueurs) ? d.joueurs : []).filter(place).forEach(s => ajouter(s, false));
+    monLabel("Toi " + ANIMAUX[d.s][0] + " " + nomJoueur(d.s), ANIMAUX[d.s][3], ANIMAUX[d.s][2]); msg(""); majUI(); sfx.duck(); envoyerProfil();
+    toast(net.autres.size ? `Tu as rejoint la partie ! Tu es ${nomJoueur(d.s)}.` : `Partie créée ! Donne le code ${showCode(net.code)} à tes amis.`, 3500);
   } else if (net.s < 0) return;
+  else if (d.t === "profil") appliquerProfil(d);
   else if (d.t === "arrive") ajouter(d.s, true);
   else if (d.t === "part") retirer(d.s, true);
   else if (d.t === "p") {
@@ -1501,8 +1579,8 @@ function quitter() {
   if (!net) return;
   const n = net; net = null; clearTimeout(n.attente);
   try { n.ws.close(1000); } catch (e) {}
-  for (const o of n.autres.values()) { scene.remove(o.g); if (o.boat) scene.remove(o.boat); }
-  if (n.moi.bub) player.remove(n.moi.bub);
+  for (const o of n.autres.values()) { scene.remove(o.g); if (o.boat) scene.remove(o.boat); libererPersonnage(o.g); }
+  if (n.moi.bub) { player.remove(n.moi.bub); effacerLabel(n.moi.bub); }
   monLabel(null); majUI();
 }
 function majUI() {
@@ -1512,9 +1590,9 @@ function majUI() {
   if (!on) return;
   $("multiPill").textContent = `👫 ${1 + net.autres.size} · ${showCode(net.code)}`;
   $("codeShow").textContent = showCode(net.code);
-  $("meName").textContent = `${ANIMAUX[net.s][0]} ${ANIMAUX[net.s][1]}`;
+  $("meName").textContent = `${ANIMAUX[net.s][0]} ${nomJoueur(net.s)}`;
   const wl = $("whoList"); wl.textContent = "";
-  for (const s of [net.s, ...[...net.autres.keys()].sort()]) { const sp = document.createElement("span"); sp.style.background = ANIMAUX[s][3]; sp.textContent = `${ANIMAUX[s][0]} ${ANIMAUX[s][1]}${s === net.s ? " (toi)" : ""}`; wl.appendChild(sp); }
+  for (const s of [net.s, ...[...net.autres.keys()].sort((a, b) => a - b)]) { const sp = document.createElement("span"); sp.style.background = ANIMAUX[s][3]; sp.textContent = `${ANIMAUX[s][0]} ${nomJoueur(s)}${s === net.s ? " (toi)" : ""}`; wl.appendChild(sp); }
 }
 
 // Fenêtres : le jeu se met en pause pendant qu'elles sont ouvertes
@@ -1527,6 +1605,7 @@ $("multiClose").onclick = () => { sfx.click(); fermer("multiView"); };
 $("createBtn").onclick = () => { sfx.click(); connecter(nouveauCode(), true); };
 $("codeIn").addEventListener("input", e => { const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8); e.target.value = v.length > 4 ? v.slice(0, 4) + "-" + v.slice(4) : v; });
 $("codeIn").addEventListener("keydown", e => { e.stopPropagation(); if (e.key === "Enter") $("joinBtn").click(); });
+$("pseudoIn").addEventListener("keydown", e => e.stopPropagation());
 $("joinBtn").onclick = () => {
   sfx.click(); const c = $("codeIn").value.replace(/-/g, "");
   if (!CODE_OK.test(c)) { msg("Un code a 8 lettres ou chiffres, par exemple ABCD-EFGH. Il n'y a jamais de I, L, O, 0 ni 1."); return; }
@@ -1778,7 +1857,7 @@ function loop() {
   sun.position.set(P.x + sunDir.x * 120, sunDir.y * 120, P.z + sunDir.z * 120); sun.target.position.set(P.x, 0, P.z);
   renderer.render(scene, camera);
 }
-window.__pins = { camera, npcs, swimmer, setOutfit, player, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
+window.__pins = { camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
 loop();
 </script>
 <script>
