@@ -53,7 +53,25 @@ Accord du propriétaire pour ce seul jeu : `pins/index.html` peut se connecter
   Le sexe et la tenue utilisent des listes fermées. Le surnom et le sexe restent fixes
   pendant la connexion ; le maillot peut changer aux vestiaires et suit le personnage.
 - L'adresse du relais se règle dans `RELAIS_PROD` du jeu ; déploiement : `serveur/pins-relais/DEPLOIEMENT.md`.
-- Aucun autre jeu ne doit utiliser le réseau.
+- Aucun autre jeu ne doit utiliser le réseau (sauf l'Oracle du Grand Arbre, ci-dessous).
+
+## Exception : l'Oracle des animaux du Grand Arbre
+
+Accord du propriétaire pour ce seul jeu : `jeux/le-grand-arbre.html` peut appeler l'oracle,
+un Worker Cloudflare avec Workers AI (code dans `serveur/arbre-oracle/`, sans clé d'API).
+- L'enfant écrit un animal ; le Worker renvoie seulement une « recette » faite de choix dans des
+  listes fermées (`RECETTE`, `EXTRAS`). L'animal est dessiné en code dans le jeu. Le texte libre
+  du modèle n'est jamais renvoyé ni affiché.
+- La partie commune (`RECETTE`, `nettoyerRecette`, `filtrerTexte`) est identique dans le jeu et
+  le Worker (vérifié par `serveur/arbre-oracle/tests/`). Le texte de l'enfant est filtré des deux
+  côtés (court, sans gros mots ni violence).
+- Limiteurs : origine autorisée, 5 créations par minute et par adresse, quota par adresse et
+  total par jour (`QUOTA_JOUR`, `QUOTA_ADRESSE_JOUR`), interrupteur `ACTIF`. Offre Workers Free :
+  au-delà du gratuit, l'oracle s'endort, sans rien payer. Pas de journaux ; seul le total du jour
+  est stocké.
+- Le jeu reste jouable sans réseau : il crée alors l'animal avec les mots qu'il connaît
+  (`recetteLocale`). Les animaux de l'enfant restent dans `localStorage` (6 au plus).
+- L'adresse se règle dans `ORACLE_PROD` du jeu ; déploiement : `serveur/arbre-oracle/DEPLOIEMENT.md`.
 
 ## Exception : Le Domaine des Pins en application (PWA)
 

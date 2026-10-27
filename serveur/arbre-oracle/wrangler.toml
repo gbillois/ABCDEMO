@@ -1,0 +1,41 @@
+# Oracle du Grand Arbre (Cloudflare Worker + Workers AI + Durable Object pour le quota du jour).
+name = "arbre-oracle"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+[vars]
+# Seuls ces sites peuvent appeler l'oracle (séparés par des virgules).
+ORIGINES = "https://gbillois.github.io"
+# Interrupteur : mettre "non" pour endormir l'oracle (le jeu crée alors les animaux tout seul).
+ACTIF = "oui"
+MODELE = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+# Créations par jour : pour tout le monde, et pour une même adresse.
+QUOTA_JOUR = "150"
+QUOTA_ADRESSE_JOUR = "30"
+
+# Workers AI : pas de clé, le compte Cloudflare suffit.
+[ai]
+binding = "AI"
+
+# Au plus 5 créations par minute pour une même adresse.
+[[ratelimits]]
+name = "LIMITE"
+namespace_id = "2601"
+
+  [ratelimits.simple]
+  limit = 5
+  period = 60
+
+[[durable_objects.bindings]]
+name = "QUOTA"
+class_name = "Quota"
+
+# Classe SQLite : disponible avec l'offre gratuite. Elle ne garde que le total du jour.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Quota"]
+
+# Pas de journaux : on ne garde aucune trace des demandes.
+[observability]
+enabled = false

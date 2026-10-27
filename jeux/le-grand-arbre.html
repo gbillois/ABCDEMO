@@ -92,6 +92,23 @@
   #loadBar { height: 100%; width: 0%; background: linear-gradient(90deg, #7fb85a, #f2cf6b); transition: width .2s; }
   #loadTxt { color: var(--muted); font-size: 15px; }
   .quality { display: flex; gap: 8px; justify-content: center; align-items: center; font-size: 14px; color: var(--muted); }
+  /* Oracle des animaux */
+  h3 { margin: 0; font-family: var(--label); font-size: 17px; color: var(--gold); text-align: center; }
+  #oracle .panel { grid-template-columns: minmax(0, 1fr); }
+  .oform { display: flex; gap: 8px; }
+  .oform input { flex: 1; width: 0; min-width: 0; font: 800 18px var(--body); padding: 12px 16px; border-radius: 999px; border: 2px solid var(--edge);
+    background: rgba(0,0,0,.3); color: var(--ink); -webkit-user-select: text; user-select: text; }
+  .oform input::placeholder { color: var(--muted); opacity: .7; }
+  .oform .btn.main { padding: 12px 22px; font-size: 16px; }
+  .btn:disabled { opacity: .55; cursor: default; filter: none; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .chip { font: 700 14px var(--body); padding: 7px 12px; border-radius: 999px; border: 1px solid rgba(242,207,107,.6); background: rgba(0,0,0,.2); color: var(--ink); cursor: pointer; }
+  #oMsg { min-height: 1.5em; text-align: center; color: var(--gold); font-weight: 800; }
+  #oList { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  #oList li { display: flex; align-items: center; gap: 10px; padding: 6px 8px 6px 14px; background: rgba(0,0,0,.18); border-radius: 12px; }
+  #oList li span { flex: 1; font-weight: 800; overflow-wrap: anywhere; }
+  #oList li .btn { font-size: 13px; padding: 7px 12px; }
+  #oVide { text-align: center; color: var(--muted); font-size: 15px; }
   @media (max-width: 440px) { #where { display: none; } #hint { font-size: 14px; } .keys b { min-width: 7.5em; } }
 </style>
 <script type="importmap">
@@ -134,7 +151,7 @@
   <div class="panel card">
     <h1>Le Grand Arbre</h1>
     <p class="sub">La maison de Théo, tout en haut</p>
-    <p>Un arbre immense, plein de cabanes, de ponts de corde et d'elfes. Monte l'escalier qui tourne autour du tronc jusqu'à ta maison, parle aux elfes et trouve les 15 glands dorés cachés partout.</p>
+    <p>Un arbre immense, plein de cabanes, de ponts de corde et d'elfes. Monte l'escalier qui tourne autour du tronc jusqu'à ta maison, parle aux elfes et trouve les 15 glands dorés cachés partout. Près de l'arbre, l'Oracle crée l'animal que tu lui écris !</p>
     <ul class="keys" id="keysDesk">
       <li><b>ZQSD / flèches</b> marcher</li>
       <li><b>Clic + glisser</b> tourner la caméra · molette : zoom</li>
@@ -165,6 +182,23 @@
     </div>
     <div class="quality">Qualité : <button id="bQual" class="btn">Haute</button></div>
     <a class="link" href="../index.html">← Accueil des jeux</a>
+  </div>
+</div>
+
+<div id="oracle" class="screen" hidden>
+  <div class="panel card">
+    <h2>L'Oracle des animaux</h2>
+    <p style="text-align:center">Écris l'animal que tu veux créer. L'Oracle le fait apparaître, et il te suivra partout !</p>
+    <form id="oForm" class="oform" autocomplete="off">
+      <input id="oTxt" maxlength="60" placeholder="un lapin-dragon violet" aria-label="L'animal à créer" enterkeyhint="go" spellcheck="false">
+      <button id="oGo" class="btn main" type="submit">Créer</button>
+    </form>
+    <div class="chips" id="oIdees"></div>
+    <p id="oMsg" aria-live="polite"></p>
+    <h3>Tes animaux (<span id="oNb">0</span>/6)</h3>
+    <ul id="oList"></ul>
+    <p id="oVide">Tu n'as pas encore d'animal.</p>
+    <div class="row"><button id="oClose" class="btn" type="button">Retour au jeu</button></div>
   </div>
 </div>
 
@@ -1209,7 +1243,7 @@ const player = { x: 15, y: 0, z: 6, vy: 0, vx: 0, vz: 0, onGround: true, face: -
 let hero, elves = [], squirrels = [], birds = [], owl, acorns = [], basket, zipHandle, liftRope;
 let found = new Set((store.get('arbre-glands') || []));
 const ELF_DEFS = [
-  { name: 'Faelan', where: 'ground', hair: 0xe8d090, tunic: 0x3a6a3a, cloak: 0x2a4a2a, lines: ["Bienvenue au pied du Grand Arbre, Théo !", "L'escalier tourne autour du tronc. Monte tout en haut : ta maison t'attend !", "Il y a 15 glands dorés cachés dans l'arbre. Sauras-tu tous les trouver ?"] },
+  { name: 'Faelan', where: 'ground', hair: 0xe8d090, tunic: 0x3a6a3a, cloak: 0x2a4a2a, lines: ["Bienvenue au pied du Grand Arbre, Théo !", "L'escalier tourne autour du tronc. Monte tout en haut : ta maison t'attend !", "Il y a 15 glands dorés cachés dans l'arbre. Sauras-tu tous les trouver ?", "Tu as vu la pierre qui brille, là-bas ? C'est l'Oracle : écris-lui l'animal de tes rêves !"] },
   { name: 'Lirael', where: 0, hair: 0xc0c8d8, tunic: 0x5a7a9a, cloak: 0x34506a, lines: ["Bonjour Théo ! Tu entends les oiseaux ? Ils habitent au Nid, juste là.", "Les écureuils montent et descendent le tronc toute la journée."] },
   { name: 'Elowen', cabin: 0, hair: 0x8a3a1a, tunic: 0x8a6a2a, cloak: 0x5a3a1a, lines: ["Ici, c'est l'atelier. Je fabrique les lanternes de tout l'arbre.", "Le soir, elles brillent comme des lucioles."] },
   { name: 'Thranil', where: 1, hair: 0x2a1a10, tunic: 0x6a2a2a, cloak: 0x3a1a1a, lines: ["Tu veux redescendre très vite ? Prends la tyrolienne, au bord de la terrasse !", "Accroche-toi bien… et crie très fort !"] },
@@ -1393,6 +1427,8 @@ function nearestInteract() {
   const atTop = Math.abs(P.y - TOP) < .5, atBot = P.y < 1.5;
   if (!LIFT.moving && Math.hypot(P.x - LIFT.x, P.z - LIFT.z) < 3.2 && ((atTop && LIFT.y < TOP - 1) || (atBot && LIFT.y > 1))) return { type: 'call' };
   if (ZIP.start && Math.hypot(P.x - ZIP.start.x, P.z - ZIP.start.z) < 1.8 && Math.abs(P.y - decks[ZIP.lvl].h) < .5 && player.mode === null) return { type: 'zip' };
+  const od = Math.hypot(P.x - oracle.x, P.z - oracle.z); if (od < 2.5 && od < bd + .5 && Math.abs(P.y - oracle.y) < 1.5) return { type: 'oracle' };
+  if (!best && Math.hypot(player.vx, player.vz) < .3) for (const p of pets) { const d = Math.hypot(p.x - P.x, p.z - P.z); if (d < bd && Math.abs(p.y - P.y) < 2) { bd = d; best = { type: 'pet', p }; } }
   return best;
 }
 function interact() {
@@ -1401,6 +1437,8 @@ function interact() {
   if (it.type === 'elf') { const e = it.e; if (dialogElf === e) e.line = (e.line + 1) % e.def.lines.length; showDialog(e); SFX.elf(); }
   else if (it.type === 'lift') { LIFT.target = LIFT.y > TOP / 2 ? LIFT.bottom : TOP; LIFT.moving = true; player.mode = 'lift'; player.ox = player.x - LIFT.x; player.oz = player.z - LIFT.z; SFX.lift(); toast(LIFT.target === TOP ? "Ça monte !" : "Ça descend !", 1.5); }
   else if (it.type === 'call') { LIFT.target = player.y > TOP / 2 ? TOP : LIFT.bottom; LIFT.moving = true; SFX.lift(); toast("L'ascenseur arrive…", 2); }
+  else if (it.type === 'oracle') ouvrirOracle();
+  else if (it.type === 'pet') caresser(it.p);
   else if (it.type === 'zip') { player.mode = 'zip'; ZIP.s = 0; ZIP.v = 0; hideDialog(); SFX.whoosh(true); toast('Wiiiiii !', 2); }
 }
 
@@ -1418,6 +1456,8 @@ function updateCamera(dt) {
   camera.position.copy(P); camera.lookAt(T);
 }
 addEventListener('keydown', e => {
+  if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+  if (oracle.open) { if (e.code === 'Escape') { fermerOracle(); e.preventDefault(); } return; }
   keys[e.code] = true;
   if (!state.playing) return;
   if (e.code === 'Space') { if (!state.paused) jumpReq = true; e.preventDefault(); }
@@ -1465,6 +1505,469 @@ $('bGround').addEventListener('click', () => { teleport(15, 0, 6, 1.19); toggleP
 $('bTop').addEventListener('click', () => { const c = CABINS[7]; teleport(c.cx + Math.cos(c.doorA) * (c.R - .8), c.h, c.cz + Math.sin(c.doorA) * (c.R - .8), Math.atan2(Math.cos(c.doorA), Math.sin(c.doorA))); togglePause(false); });
 function teleport(x, y, z, yaw) { player.x = x; player.y = y; player.z = z; player.vy = 0; player.vx = player.vz = 0; player.mode = null; player.onGround = true; cam.tx = x; cam.tz = z; cam.ty = y + 1.35; if (yaw !== undefined) cam.yaw = yaw; SFX.whoosh(false); }
 document.addEventListener('visibilitychange', () => { if (document.hidden && state.playing && !state.paused) togglePause(true); });
+
+// ============================================================ Oracle des animaux
+// L'enfant écrit un animal. L'oracle (Worker Cloudflare + Workers AI, voir serveur/arbre-oracle)
+// renvoie une recette faite seulement de choix dans des listes fermées, et l'animal est dessiné
+// ici, en code. Sans réseau (ou si l'oracle est fatigué), le jeu lit lui-même les mots qu'il connaît.
+const ORACLE_PROD = "https://arbre-oracle.gerome-billois.workers.dev";
+const ORACLE_URL = (["localhost", "127.0.0.1"].includes(location.hostname) && new URLSearchParams(location.search).get("oracle")) || ORACLE_PROD;
+const MAX_ANIMAUX = 6;
+
+// --- Recette d'animal (identique dans le jeu et dans le Worker) ---
+const COULEURS = ["marron", "beige", "rouge", "orange", "jaune", "vert", "vert_clair", "bleu", "bleu_ciel", "turquoise", "violet", "rose", "blanc", "gris", "noir", "dore", "argent", "arc_en_ciel"];
+const RECETTE = {
+  forme: ["quadrupede", "bipede", "oiseau", "serpent", "poisson", "insecte"],
+  taille: ["petit", "minuscule", "moyen", "grand", "geant"],
+  corps: ["rond", "allonge", "fin"],
+  couleur: COULEURS,
+  couleur2: COULEURS,
+  motif: ["uni", "ventre", "taches", "rayures"],
+  tete: ["museau", "ronde", "bec", "trompe"],
+  oreilles: ["rondes", "aucune", "pointues", "longues", "tombantes"],
+  cornes: ["aucune", "licorne", "deux", "bois", "antennes"],
+  ailes: ["aucune", "plumes", "chauve_souris", "papillon"],
+  queue: ["courte", "aucune", "longue", "touffue", "poisson", "dragon"],
+  deplacement: ["marche", "saute", "vole", "nage", "rampe"],
+  cri: ["doux", "aigu", "grave", "rugit", "siffle", "ronronne", "coasse"],
+};
+const EXTRAS = ["criniere", "piquants", "carapace", "crete", "moustaches", "defenses", "cou_long", "brillant"];
+// Ne garde que des valeurs connues ; le premier choix de chaque liste sert par défaut.
+function nettoyerRecette(r) {
+  r = r && typeof r === "object" && !Array.isArray(r) ? r : {};
+  const mot = v => typeof v === "string" ? v.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim().replace(/[\s-]+/g, "_") : "";
+  const o = {};
+  for (const k in RECETTE) { const v = mot(r[k]); o[k] = RECETTE[k].includes(v) ? v : RECETTE[k][0]; }
+  if (!RECETTE.couleur2.includes(mot(r.couleur2)) || o.couleur2 === o.couleur) o.couleur2 = o.couleur === "beige" ? "blanc" : "beige";
+  o.extras = Array.isArray(r.extras) ? [...new Set(r.extras.map(mot).filter(v => EXTRAS.includes(v)))].slice(0, 4) : [];
+  return o;
+}
+// Texte écrit par l'enfant : court, lettres simples, sans gros mots ni violence.
+function filtrerTexte(v) {
+  if (typeof v !== "string") return null;
+  const p = v.normalize("NFC").replace(/[’`]/g, "'").trim().replace(/\s+/g, " ");
+  if (p.length < 2 || p.length > 60 || !/^[A-Za-zÀ-ÖØ-öø-ÿŒœÆæ0-9 ,.!?'-]+$/.test(p) || !/[A-Za-zÀ-ÖØ-öø-ÿ]{2}/.test(p)) return null;
+  const simple = p.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/œ/g, "oe").replace(/æ/g, "ae")
+    .replace(/[01345789]/g, c => ({ 0: "o", 1: "i", 3: "e", 4: "a", 5: "s", 7: "t", 8: "b", 9: "g" })[c]);
+  const compact = simple.replace(/[^a-z]/g, "");
+  if (/(connard|connasse|salope|salopard|encul|putain|pute|merde|batard|abruti|debile|ta?gueule|fuck|shit|bitch|nazi|negro|negre|bougnoule|salejuif|suicide|cadavre)/.test(compact)
+      || /(?:^|[^a-z])(con|cons|pd|fdp|ntm|tuer|tue|tues|tuee|tueur|meurtre|mort|morte|morts|mourir|sang|sanglant|arme|armes|fusil|pistolet|couteau|bombe|guerre|sexe|sexy|nu|nue|nus|nues|drogue|alcool|biere|vin|cigarette)(?:$|[^a-z])/.test(simple)) return null;
+  return p;
+}
+// --- fin de la partie commune ---
+
+// Sans l'oracle : les mots que le jeu connaît lui-même.
+const ANIMAUX_CONNUS = {
+  lapin: { oreilles: "longues", deplacement: "saute", couleur: "blanc", couleur2: "rose" },
+  chat: { tete: "ronde", oreilles: "pointues", queue: "longue", cri: "ronronne", couleur: "orange", extras: ["moustaches"] },
+  chien: { oreilles: "tombantes", queue: "longue", cri: "grave" },
+  renard: { corps: "fin", oreilles: "pointues", queue: "touffue", couleur: "orange", couleur2: "blanc", motif: "ventre" },
+  loup: { taille: "moyen", oreilles: "pointues", queue: "touffue", couleur: "gris", couleur2: "blanc", motif: "ventre", cri: "siffle" },
+  ours: { taille: "grand", tete: "ronde", queue: "courte", cri: "grave" },
+  panda: { taille: "moyen", tete: "ronde", couleur: "blanc", couleur2: "noir", motif: "taches" },
+  koala: { tete: "ronde", couleur: "gris", couleur2: "blanc", queue: "aucune" },
+  lion: { taille: "grand", couleur: "dore", couleur2: "marron", queue: "longue", cri: "rugit", extras: ["criniere"] },
+  tigre: { taille: "grand", tete: "ronde", couleur: "orange", couleur2: "noir", motif: "rayures", queue: "longue", cri: "rugit" },
+  zebre: { taille: "grand", corps: "allonge", couleur: "blanc", couleur2: "noir", motif: "rayures", oreilles: "pointues", queue: "touffue", extras: ["criniere"] },
+  cheval: { taille: "grand", corps: "allonge", oreilles: "pointues", queue: "touffue", extras: ["criniere"] },
+  poney: { corps: "allonge", oreilles: "pointues", queue: "touffue", couleur: "beige", extras: ["criniere"] },
+  licorne: { taille: "moyen", corps: "allonge", couleur: "blanc", couleur2: "rose", oreilles: "pointues", cornes: "licorne", queue: "touffue", extras: ["criniere", "brillant"] },
+  pegase: { taille: "moyen", corps: "allonge", couleur: "blanc", couleur2: "bleu_ciel", oreilles: "pointues", ailes: "plumes", queue: "touffue", deplacement: "vole", extras: ["criniere"] },
+  elephant: { taille: "grand", couleur: "gris", tete: "trompe", oreilles: "tombantes", queue: "longue", cri: "grave", extras: ["defenses"] },
+  girafe: { taille: "grand", couleur: "jaune", couleur2: "marron", motif: "taches", cornes: "deux", oreilles: "pointues", queue: "longue", extras: ["cou_long"] },
+  souris: { taille: "minuscule", couleur: "gris", couleur2: "rose", queue: "longue", cri: "aigu" },
+  herisson: { couleur2: "beige", motif: "ventre", extras: ["piquants"] },
+  tortue: { couleur: "vert", couleur2: "marron", tete: "ronde", oreilles: "aucune", extras: ["carapace"] },
+  cerf: { taille: "grand", corps: "allonge", oreilles: "pointues", cornes: "bois" },
+  biche: { corps: "allonge", oreilles: "pointues", motif: "taches", couleur2: "blanc" },
+  vache: { taille: "grand", couleur: "blanc", couleur2: "noir", motif: "taches", cornes: "deux", oreilles: "tombantes", queue: "longue", cri: "grave" },
+  mouton: { couleur: "blanc", couleur2: "noir", tete: "ronde", oreilles: "tombantes" },
+  cochon: { couleur: "rose", oreilles: "pointues" },
+  singe: { forme: "bipede", tete: "ronde", queue: "longue", couleur2: "beige", motif: "ventre", deplacement: "saute", cri: "aigu" },
+  ecureuil: { couleur: "orange", couleur2: "beige", motif: "ventre", oreilles: "pointues", queue: "touffue", deplacement: "saute", cri: "aigu" },
+  dragon: { taille: "grand", couleur: "vert", couleur2: "jaune", motif: "ventre", oreilles: "aucune", cornes: "deux", ailes: "chauve_souris", queue: "dragon", deplacement: "vole", cri: "rugit", extras: ["crete"] },
+  dinosaure: { forme: "bipede", taille: "grand", couleur: "vert", couleur2: "jaune", motif: "ventre", oreilles: "aucune", queue: "dragon", cri: "rugit", extras: ["crete"] },
+  crocodile: { corps: "allonge", couleur: "vert", oreilles: "aucune", queue: "dragon", extras: ["crete"] },
+  chauvesouris: { taille: "minuscule", tete: "ronde", couleur: "noir", couleur2: "violet", oreilles: "pointues", ailes: "chauve_souris", queue: "aucune", deplacement: "vole", cri: "aigu" },
+  oiseau: { forme: "oiseau", taille: "minuscule", couleur: "bleu", couleur2: "jaune", motif: "ventre", tete: "bec", oreilles: "aucune", ailes: "plumes", deplacement: "vole", cri: "siffle" },
+  hibou: { forme: "oiseau", couleur: "marron", couleur2: "beige", motif: "ventre", tete: "bec", oreilles: "pointues", ailes: "plumes", deplacement: "vole" },
+  perroquet: { forme: "oiseau", couleur: "rouge", couleur2: "bleu", tete: "bec", oreilles: "aucune", ailes: "plumes", queue: "longue", deplacement: "vole", cri: "aigu" },
+  canard: { forme: "oiseau", couleur: "jaune", couleur2: "orange", tete: "bec", oreilles: "aucune", ailes: "plumes", deplacement: "nage", cri: "coasse" },
+  poule: { forme: "oiseau", couleur: "blanc", couleur2: "rouge", tete: "bec", oreilles: "aucune", ailes: "plumes", cri: "aigu", extras: ["crete"] },
+  pingouin: { forme: "oiseau", couleur: "noir", couleur2: "blanc", motif: "ventre", tete: "bec", oreilles: "aucune", deplacement: "nage", cri: "aigu" },
+  phenix: { forme: "oiseau", couleur: "rouge", couleur2: "dore", tete: "bec", oreilles: "aucune", ailes: "plumes", queue: "longue", deplacement: "vole", cri: "siffle", extras: ["brillant", "crete"] },
+  poisson: { forme: "poisson", couleur: "orange", couleur2: "blanc", motif: "rayures", tete: "ronde", oreilles: "aucune", queue: "poisson", deplacement: "nage" },
+  requin: { forme: "poisson", taille: "grand", couleur: "gris", couleur2: "blanc", motif: "ventre", oreilles: "aucune", queue: "poisson", deplacement: "nage", cri: "grave" },
+  dauphin: { forme: "poisson", taille: "grand", couleur: "bleu_ciel", couleur2: "blanc", motif: "ventre", oreilles: "aucune", queue: "poisson", deplacement: "nage", cri: "siffle" },
+  baleine: { forme: "poisson", taille: "geant", couleur: "bleu", couleur2: "blanc", motif: "ventre", tete: "ronde", oreilles: "aucune", queue: "poisson", deplacement: "nage", cri: "grave" },
+  serpent: { forme: "serpent", couleur: "vert", couleur2: "jaune", motif: "rayures", tete: "ronde", oreilles: "aucune", queue: "aucune", deplacement: "rampe", cri: "siffle" },
+  papillon: { forme: "insecte", taille: "minuscule", couleur: "bleu", couleur2: "jaune", tete: "ronde", oreilles: "aucune", cornes: "antennes", ailes: "papillon", queue: "aucune", deplacement: "vole", cri: "aigu" },
+  abeille: { forme: "insecte", taille: "minuscule", couleur: "jaune", couleur2: "noir", motif: "rayures", tete: "ronde", oreilles: "aucune", cornes: "antennes", ailes: "papillon", queue: "aucune", deplacement: "vole", cri: "aigu" },
+  coccinelle: { forme: "insecte", taille: "minuscule", couleur: "rouge", couleur2: "noir", motif: "taches", tete: "ronde", oreilles: "aucune", cornes: "antennes", queue: "aucune", cri: "aigu" },
+  fourmi: { forme: "insecte", taille: "minuscule", corps: "fin", couleur: "rouge", couleur2: "noir", tete: "ronde", oreilles: "aucune", cornes: "antennes", queue: "aucune", cri: "aigu" },
+  araignee: { forme: "insecte", taille: "minuscule", couleur: "noir", couleur2: "violet", tete: "ronde", oreilles: "aucune", queue: "aucune", cri: "aigu" },
+  grenouille: { couleur: "vert", couleur2: "jaune", motif: "ventre", tete: "ronde", oreilles: "aucune", queue: "aucune", deplacement: "saute", cri: "coasse" },
+};
+const SYNONYMES = { chaton: "chat", chatte: "chat", minou: "chat", chiot: "chien", chienne: "chien", toutou: "chien", lapine: "lapin", lapinou: "lapin", ourson: "ours", nounours: "ours",
+  lionne: "lion", lionceau: "lion", tigresse: "tigre", jument: "cheval", poulain: "cheval", chevaux: "cheval", souriceau: "souris", dino: "dinosaure", trex: "dinosaure", tyrannosaure: "dinosaure",
+  chouette: "hibou", oisillon: "oiseau", poussin: "poule", coq: "poule", manchot: "pingouin", phoenix: "phenix", alligator: "crocodile", croco: "crocodile", porc: "cochon", cochonnet: "cochon",
+  louve: "loup", renarde: "renard", taureau: "vache", agneau: "mouton", faon: "biche", unicorn: "licorne", poissons: "poisson" };
+const COULEURS_MOTS = { rouge: "rouge", orange: "orange", jaune: "jaune", vert: "vert", verte: "vert", bleu: "bleu", bleue: "bleu", turquoise: "turquoise", violet: "violet", violette: "violet", mauve: "violet", lilas: "violet",
+  rose: "rose", marron: "marron", brun: "marron", brune: "marron", beige: "beige", blanc: "blanc", blanche: "blanc", gris: "gris", grise: "gris", noir: "noir", noire: "noir",
+  dore: "dore", doree: "dore", or: "dore", argent: "argent", argente: "argent", argentee: "argent", multicolore: "arc_en_ciel" };
+const MOTS = { minuscule: ["taille", "minuscule"], mini: ["taille", "minuscule"], bebe: ["taille", "minuscule"], petit: ["taille", "petit"], petite: ["taille", "petit"], moyen: ["taille", "moyen"],
+  grand: ["taille", "grand"], grande: ["taille", "grand"], gros: ["taille", "grand"], grosse: ["taille", "grand"], geant: ["taille", "geant"], geante: ["taille", "geant"], enorme: ["taille", "geant"], gigantesque: ["taille", "geant"],
+  aile: ["ailes", "plumes"], ailes: ["ailes", "plumes"], ailee: ["ailes", "plumes"], volant: ["ailes", "plumes"], volante: ["ailes", "plumes"], vole: ["ailes", "plumes"], corne: ["cornes", "licorne"], cornes: ["cornes", "deux"],
+  nage: ["deplacement", "nage"], nageur: ["deplacement", "nage"], saute: ["deplacement", "saute"], sauteur: ["deplacement", "saute"], rampe: ["deplacement", "rampe"],
+  raye: ["motif", "rayures"], rayee: ["motif", "rayures"], rayures: ["motif", "rayures"], taches: ["motif", "taches"], tachete: ["motif", "taches"], tachetee: ["motif", "taches"], pois: ["motif", "taches"],
+  brillant: ["x", "brillant"], brillante: ["x", "brillant"], magique: ["x", "brillant"], lumineux: ["x", "brillant"], lumineuse: ["x", "brillant"], etincelant: ["x", "brillant"], scintillant: ["x", "brillant"], paillettes: ["x", "brillant"],
+  piquants: ["x", "piquants"], criniere: ["x", "criniere"], carapace: ["x", "carapace"], moustaches: ["x", "moustaches"], defenses: ["x", "defenses"], crete: ["x", "crete"] };
+const sansAccents = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/œ/g, 'oe').replace(/[^a-z0-9]+/g, ' ').trim();
+function trouveAnimal(w) { if (!w) return null; for (const v of [w, w.replace(/[sx]$/, '')]) { if (ANIMAUX_CONNUS[v]) return v; if (SYNONYMES[v]) return SYNONYMES[v]; } return null; }
+function recetteLocale(texte) {
+  const w = sansAccents(texte).split(' '), r = {}, x = new Set(), cols = [], mods = {}; let nb = 0;
+  for (let i = 0; i < w.length; i++) {
+    const a = w[i], b = w[i + 1] || '';
+    const an = trouveAnimal(a + b) ? (i++, trouveAnimal(a + b)) : trouveAnimal(a);
+    if (an) { const d = ANIMAUX_CONNUS[an]; // le premier animal donne tout ; les suivants ajoutent leurs ailes, cornes, queue…
+      for (const k in d) { if (k === 'extras') d.extras.forEach(e => x.add(e)); else if (!nb || (['ailes', 'cornes', 'queue', 'deplacement', 'cri'].includes(k) && d[k] !== 'aucune')) r[k] = d[k]; } nb++; continue; }
+    if (a === 'arc' && b === 'en') { cols.push('arc_en_ciel'); i += 2; continue; }
+    if ((a === 'vert' || a === 'verte') && b === 'clair') { cols.push('vert_clair'); i++; continue; }
+    if ((a === 'bleu' || a === 'bleue') && (b === 'ciel' || b === 'clair')) { cols.push('bleu_ciel'); i++; continue; }
+    if (a === 'tout' && b.startsWith('petit')) { mods.taille = 'minuscule'; i++; continue; }
+    if ((a === 'long' && b === 'cou') || (a === 'cou' && b === 'long')) { x.add('cou_long'); i++; continue; }
+    const c = COULEURS_MOTS[a] || COULEURS_MOTS[a.replace(/s$/, '')]; if (c) { cols.push(c); continue; }
+    const m = MOTS[a]; if (m) { if (m[0] === 'x') x.add(m[1]); else { mods[m[0]] = m[1]; if (m[0] === 'ailes') mods.deplacement = 'vole'; } }
+  }
+  if (!nb) { // animal inconnu : l'oracle en imagine un à partir des lettres
+    let h = 7; for (const ch of texte) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const noms = Object.keys(ANIMAUX_CONNUS), d = ANIMAUX_CONNUS[noms[h % noms.length]]; Object.assign(r, d); (d.extras || []).forEach(e => x.add(e));
+    if (!cols.length) cols.push(COULEURS[2 + (h >>> 8) % (COULEURS.length - 2)]);
+  }
+  Object.assign(r, mods);
+  if (cols[0]) r.couleur = cols[0];
+  if (cols[1]) { r.couleur2 = cols[1]; if (!r.motif || r.motif === 'uni') r.motif = 'ventre'; }
+  r.extras = [...x];
+  return nettoyerRecette(r);
+}
+function nomAnimal(texte) {
+  const t = texte.trim().replace(/^(un|une|des|le|la|les|mon|ma|mes)\s+/i, '').replace(/^l'/i, '').replace(/[.!?]+$/, '');
+  return (t.charAt(0).toUpperCase() + t.slice(1)).slice(0, 28) || 'Mon animal';
+}
+
+// --- Fabrication en code
+const TEINTES = { marron: 0x8a5a32, beige: 0xe8d4b0, rouge: 0xd8423a, orange: 0xf08a2a, jaune: 0xf4cf3a, vert: 0x4f9a3a, vert_clair: 0x9cd060, bleu: 0x3f6ad8, bleu_ciel: 0x8ccaf2,
+  turquoise: 0x3cc0b0, violet: 0x8a52c8, rose: 0xf29ac0, blanc: 0xf2f0ea, gris: 0x9a9aa4, noir: 0x34343c, dore: 0xe8b830, argent: 0xc8ccd6 };
+const TAILLES = { minuscule: .5, petit: .75, moyen: 1.05, grand: 1.5, geant: 2.2 };
+function makeCreature(rec, seed) {
+  const rr = mulberry32(seed | 0), rand = (a, b) => a + (b - a) * rr(); let hue = rr();
+  const teinte = n => n === 'arc_en_ciel' ? new THREE.Color().setHSL(hue = (hue + .17) % 1, .72, .56) : new THREE.Color(TEINTES[n]);
+  const C1 = () => teinte(rec.couleur), C2 = () => teinte(rec.couleur2), dark = c => c.multiplyScalar(.55), light = c => c.lerp(new THREE.Color(1, 1, 1), .45);
+  const X = new Set(rec.extras), F = rec.forme, PINK = 0xf4b0bc, INK = 0x2a1a1a;
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const c = { root, body, legs: [], arms: [], wings: [], segs: [], tail: null, head: null, glow: null, phase: rr() * 10, legKind: F === 'quadrupede' ? 'quad' : F === 'insecte' ? 'insect' : 'two' };
+  const B = [], H = [], k3 = { rond: [1.12, 1.05, .9], allonge: [.9, .9, 1.3], fin: [.75, .8, 1.05] }[rec.corps];
+  // gabarit : ellipsoïde du corps (E), tête, épaules des ailes, base de la queue
+  let E, y0 = 0, hr = .13, head, wingAt, tailAt, legL = 0;
+  if (F === 'quadrupede') {
+    const bx = .16 * k3[0], by = .15 * k3[1], bz = .25 * k3[2]; legL = (rec.corps === 'allonge' ? .22 : .17) + (X.has('cou_long') ? .1 : 0) - (X.has('carapace') ? .06 : 0); y0 = legL + by * .55;
+    if (X.has('carapace')) hr = .095;
+    E = { c: [0, y0, 0], r: [bx, by, bz] }; head = X.has('cou_long') ? [0, y0 + by + .45, bz + .12] : [0, y0 + by * .75, bz + hr * .5]; wingAt = [bx * .7, y0 + by * .75, bz * .1]; tailAt = [0, y0 + by * .25, -bz * .95];
+  } else if (F === 'bipede') {
+    const bx = .15 * k3[0], by = .2 * k3[1], bz = .14 * k3[2]; legL = .18; y0 = legL + by * .75; hr = .14;
+    E = { c: [0, y0, 0], r: [bx, by, bz] }; head = [0, y0 + by + hr * .55, .02]; wingAt = [bx * .45, y0 + by * .5, -bz * .75]; tailAt = [0, y0 - by * .45, -bz * .9];
+  } else if (F === 'oiseau') {
+    const bx = .12 * k3[0], by = .12 * k3[1], bz = .16 * k3[2]; legL = .13; y0 = legL + by * .7; hr = .1;
+    E = { c: [0, y0, 0], r: [bx, by, bz] }; head = [0, y0 + by * .85, bz * .65]; wingAt = [bx * .8, y0 + by * .35, 0]; tailAt = [0, y0 + by * .1, -bz * .9];
+  } else if (F === 'poisson') {
+    const bx = .09 * k3[0], by = .15 * k3[1], bz = .28 * k3[2]; hr = by * .82;
+    E = { c: [0, 0, 0], r: [bx, by, bz] }; head = [0, 0, bz * .55]; wingAt = [bx * .7, by * .45, 0]; tailAt = [0, 0, -bz * .92];
+  } else if (F === 'serpent') {
+    const rs = .075 * k3[0]; y0 = rs; hr = .11;
+    E = { c: [0, y0, -.3], r: [rs, rs, .32] }; head = [0, y0 + .03, .06]; wingAt = [rs * .8, y0 + rs, -.08]; tailAt = null;
+  } else { // insecte
+    const bx = .1 * k3[0], by = .09 * k3[1], bz = .15 * k3[2]; y0 = .15; hr = .085;
+    E = { c: [0, y0 + .01, -bz * .85], r: [bx, by, bz] }; head = [0, y0 + .02, .19]; wingAt = [.03, y0 + .07, .03]; tailAt = null;
+  }
+  const [ex, ey, ez] = E.c, [rx, ry, rz] = E.r, upright = F === 'bipede';
+  const surf = (dx, dy, dz) => { const l = Math.hypot(dx, dy, dz) || 1; return [ex + rx * dx / l, ey + ry * dy / l, ez + rz * dz / l]; };
+  // corps
+  if (F === 'serpent') {
+    const n = 12, sp = .065 * k3[2];
+    for (let i = 0; i < n; i++) { const g = new THREE.Group(), r0 = E.r[0] * (1 - i / n * .65), L = []; g.position.set(0, y0 * (1 - i / n * .5), -i * sp); body.add(g); c.segs.push(g);
+      L.push(prep(new THREE.SphereGeometry(r0, 18, 14), (rec.motif === 'rayures' && i % 3 === 1) ? C2() : C1(), [0, 0, 0], null, [1, .9, 1.25]));
+      if (rec.motif === 'ventre') L.push(prep(new THREE.SphereGeometry(r0 * .85, 14, 10), C2(), [0, -r0 * .2, 0], null, [1, .7, 1.2]));
+      if (rec.motif === 'taches' && i % 2) L.push(prep(new THREE.SphereGeometry(r0 * .35, 10, 8), C2(), [r0 * .5, r0 * .65, 0]));
+      if ((X.has('crete') || X.has('piquants')) && i < n - 1) L.push(prep(new THREE.ConeGeometry(r0 * .35, r0 * .9, 10), X.has('crete') ? C2() : dark(C1()), [0, r0 * 1.1, 0]));
+      g.add(partMesh(L)); }
+  } else {
+    if (F === 'insecte') { B.push(prep(new THREE.SphereGeometry(.075, 24, 18), dark(C1()), [0, y0, .05], null, [1, .9, 1.1])); }
+    B.push(prep(new THREE.SphereGeometry(1, 36, 26), C1(), E.c, null, E.r));
+    if (rec.motif === 'ventre') B.push(upright ? prep(new THREE.SphereGeometry(1, 28, 20), C2(), [ex, ey - ry * .08, ez + rz * .3], null, [rx * .78, ry * .8, rz * .78])
+      : prep(new THREE.SphereGeometry(1, 28, 20), C2(), [ex, ey - ry * .24, ez + rz * .06], null, [rx * .86, ry * .82, rz * .9]));
+    if (rec.motif === 'taches') for (let i = 0; i < 11; i++) { const a = rand(0, TAU), b = rand(-.15, 1); B.push(prep(new THREE.SphereGeometry(Math.min(rx, ry, rz) * rand(.22, .34), 14, 10), C2(), surf(Math.cos(a), b, Math.sin(a) * 1.4))); }
+    if (rec.motif === 'rayures') for (let i = 0; i < 5; i++) { const t = -.62 + i * .31, s = Math.sqrt(1 - t * t), tor = new THREE.TorusGeometry(1, .14, 8, 40);
+      B.push(upright ? prep(tor, C2(), [ex, ey + t * ry, ez], [Math.PI / 2, 0, 0], [rx * s, rz * s, .5]) : prep(tor, C2(), [ex, ey, ez + t * rz], null, [rx * s, ry * s, .5])); }
+    if (X.has('carapace')) { B.push(prep(new THREE.SphereGeometry(1, 30, 14, 0, TAU, 0, Math.PI / 2), C2(), [ex, ey - ry * .05, ez], null, [rx * 1.4, ry * 1.4, rz * 1.3]));
+      for (let i = 0; i < 7; i++) { const a = i / 6 * TAU, rad = i ? .6 : 0; B.push(prep(new THREE.SphereGeometry(1, 14, 8), dark(C2()), [ex + Math.cos(a) * rx * rad, ey + ry * (i ? 1.12 : 1.32), ez + Math.sin(a) * rz * rad], null, [rx * .34, ry * .16, rz * .3])); } }
+    if (X.has('piquants')) for (let i = 0; i < 26; i++) { const a = rand(0, TAU), b = rand(.15, 1), d = [Math.cos(a) * .9, b, Math.sin(a) - .25], p = surf(...d), cone = new THREE.ConeGeometry(.024, .1, 8);
+      cone.translate(0, .04, 0); orientTo(cone, new V3(d[0] / rx, d[1] / ry, d[2] / rz)); B.push(prep(cone, dark(C1()), p)); }
+    if (X.has('crete')) for (let i = 0; i < 6; i++) { const t = .7 - i * .27, s = Math.sqrt(Math.max(0, 1 - t * t));
+      B.push(upright ? prep(new THREE.ConeGeometry(.03, .09, 10), C2(), [ex, ey + t * ry, ez - rz * s - .02], [-Math.PI / 2, 0, 0]) : prep(new THREE.ConeGeometry(.03, .09, 10), C2(), [ex, ey + ry * s + .02, ez + t * rz])); }
+    if (X.has('cou_long') && F === 'quadrupede') B.push(strand([new V3(0, y0 + ry * .3, rz * .55), new V3(0, y0 + ry + .2, rz * .85), new V3(0, head[1] - hr * .4, head[2] - hr * .2)], .07, .055, C1(), 12, 12));
+    if (X.has('criniere') && F === 'quadrupede') for (let i = 0; i < 5; i++) { const t = i / 4, p = X.has('cou_long') ? [0, lerp(y0 + ry * .6, head[1] - hr * .2, t), lerp(rz * .6, head[2] - hr * .6, t)] : [0, lerp(y0 + ry * .9, head[1] + hr * .1, t), lerp(rz * .4, head[2] - hr * .7, t)];
+      B.push(prep(new THREE.SphereGeometry(.055, 12, 10), dark(C2()), [p[0], p[1] + .03, p[2] - .02], null, [.8, 1, 1.2])); }
+    if (F === 'poisson') { // nageoires
+      const fin = new THREE.Shape(); fin.moveTo(0, 0); fin.quadraticCurveTo(.02, .16, -.14, .14); fin.lineTo(-.16, 0); fin.lineTo(0, 0);
+      B.push(prep(new THREE.ShapeGeometry(fin, 8), C2(), [0, ry * .85, rz * .25], [0, Math.PI / 2, 0]));
+      for (const s of [-1, 1]) B.push(prep(new THREE.SphereGeometry(1, 14, 8), C2(), [s * rx * .95, -ry * .35, rz * .15], [0, s * .5, s * .4], [.012, .05, .09]));
+    }
+    if (F === 'bipede') for (const s of [-1, 1]) { const a = new THREE.Group(); a.position.set(s * rx * .92, y0 + ry * .3, 0); body.add(a); c.arms.push(a);
+      a.add(partMesh([prep(new THREE.CapsuleGeometry(.035 * k3[0], .1, 4, 10), C1(), [s * .02, -.07, .02], [0, 0, s * .25]), prep(new THREE.SphereGeometry(.04 * k3[0], 12, 10), dark(C1()), [s * .04, -.14, .03])])); }
+  }
+  // pattes
+  const legCol = F === 'oiseau' ? new THREE.Color(0xe8a040) : F === 'insecte' ? dark(C1()) : C1();
+  if (F === 'quadrupede' || F === 'bipede' || F === 'oiseau') {
+    const spots = F === 'quadrupede' ? [[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([sx, sz]) => [sx * rx * .6, y0 - ry * .25, sz * rz * .58]) : [[-1, 0], [1, 0]].map(([sx]) => [sx * rx * .5, y0 - ry * (F === 'oiseau' ? .5 : .6), 0]);
+    for (const [px, py, pz] of spots) { const g = new THREE.Group(); g.position.set(px, py, pz); body.add(g); c.legs.push(g); const L = [], lr = F === 'oiseau' ? .012 : (F === 'bipede' ? .055 : .048) * k3[0];
+      L.push(prep(new THREE.CapsuleGeometry(lr, Math.max(.01, py - lr * 2), 4, 10), legCol, [0, -py / 2, 0]));
+      if (F === 'oiseau') for (let t = -1; t <= 1; t++) L.push(prep(new THREE.BoxGeometry(.01, .008, .06), legCol, [t * .015, -py + .004, .025], [0, t * .4, 0]));
+      else L.push(prep(new THREE.SphereGeometry(lr * 1.3, 14, 10), rec.motif === 'uni' ? dark(C1()) : C2(), [0, -py + lr * .9, F === 'bipede' ? .03 : .01], null, [1, .7, F === 'bipede' ? 1.6 : 1.25]));
+      g.add(partMesh(L)); }
+  } else if (F === 'insecte') {
+    for (const s of [-1, 1]) for (let k = -1; k <= 1; k++) { const g = new THREE.Group(); g.position.set(s * .05, y0, .05 + k * .045); body.add(g); c.legs.push(g);
+      g.add(partMesh([strand([new V3(0, 0, 0), new V3(s * .1, .06, k * .04), new V3(s * .17, -y0 + .01, k * .08)], .012, .007, legCol, 10, 6)])); }
+    if (rec.cornes === 'aucune' && rec.ailes === 'aucune') for (const s of [-1, 1]) for (let k = 0; k < 1; k++) { const g = new THREE.Group(); g.position.set(s * .06, y0, -.08); body.add(g); c.legs.push(g);
+      g.add(partMesh([strand([new V3(0, 0, 0), new V3(s * .1, .07, -.06), new V3(s * .17, -y0 + .01, -.12)], .012, .007, legCol, 10, 6)])); }
+  }
+  // ailes
+  if (rec.ailes !== 'aucune') {
+    const ws = F === 'insecte' ? 1 : clamp(rx / .12, .8, 1.6) * (F === 'oiseau' ? 1.1 : rec.ailes === 'chauve_souris' ? .85 : 1.2);
+    for (const s of [-1, 1]) { const g = new THREE.Group(); g.position.set(s * wingAt[0], wingAt[1], wingAt[2]); g.userData.side = s; body.add(g); c.wings.push(g); const W = [];
+      if (rec.ailes === 'plumes') for (let f = 0; f < 6; f++) W.push(prep(new THREE.BoxGeometry(.065, .01, .1 + f * .016), f > 3 ? dark(C1()) : C1(), [s * (.035 + f * .042), 0, -.02 - f * .012], [0, s * f * .06, 0]));
+      else if (rec.ailes === 'chauve_souris') { const m = new THREE.Shape(), pts = [[0, .06], [.38, .05], [.45, -.04], [.33, -.08], [.27, -.2], [.18, -.13], [.09, -.2], [0, -.1]];
+        m.moveTo(...pts[0]); for (const p of pts.slice(1)) m.lineTo(...p); m.lineTo(...pts[0]);
+        W.push(prep(new THREE.ShapeGeometry(m), C2(), null, [Math.PI / 2, 0, 0], [s, 1, 1]));
+        for (const t of [[.45, -.04], [.27, -.2], [.09, -.2]]) W.push((strand([new V3(0, .005, .04), new V3(s * t[0] * .5, .02, (t[1] + .04) * .4), new V3(s * t[0], .005, t[1])], .012, .006, dark(C1()), 8, 6)));
+      } else { for (const [r0, px, pz, sc] of [[.15, .14, .05, [1.1, .8, 1]], [.11, .11, -.11, [1, .8, 1]]]) { W.push(prep(new THREE.CircleGeometry(r0, 24), C1(), [s * px, 0, pz], [Math.PI / 2, 0, 0], sc));
+        W.push(prep(new THREE.CircleGeometry(r0 * .38, 16), C2(), [s * px * 1.1, -.003, pz], [Math.PI / 2, 0, 0])); } }
+      g.add(partMesh(W)); g.scale.setScalar(ws); }
+  }
+  // queue
+  if (tailAt && rec.queue !== 'aucune') {
+    const g = new THREE.Group(); g.position.set(...tailAt); body.add(g); c.tail = g; const T = [], q = rec.queue;
+    if (F === 'oiseau' && q !== 'poisson') for (let f = -2; f <= 2; f++) T.push(prep(new THREE.BoxGeometry(.035, .008, q === 'longue' ? .26 : .12), f % 2 ? dark(C1()) : C2(), [f * .016, 0, q === 'longue' ? -.12 : -.05], [.25, f * .14, 0]));
+    else if (q === 'courte') T.push(prep(new THREE.SphereGeometry(.055, 16, 12), light(C1()), [0, .02, -.02]));
+    else if (q === 'longue') T.push((strand([new V3(0, 0, 0), new V3(0, .06, -.12), new V3(0, .16, -.2), new V3(0, .24, -.21)], .028, .012, C1(), 14, 8)));
+    else if (q === 'touffue') { const cv = new THREE.CatmullRomCurve3([new V3(0, 0, 0), new V3(0, .1, -.1), new V3(0, .22, -.12), new V3(0, .3, -.06)]);
+      for (let i = 0; i < 22; i++) { const t = i / 21, p = cv.getPointAt(t); T.push(prep(new THREE.SphereGeometry(.035 + Math.sin(t * Math.PI) * .04, 12, 10), t > .82 ? C2() : C1(), [p.x + rand(-.015, .015), p.y, p.z])); } }
+    else if (q === 'poisson') { const f = new THREE.Shape(); f.moveTo(0, 0); f.lineTo(.2, .16); f.quadraticCurveTo(.12, 0, .2, -.16); f.lineTo(0, 0);
+      T.push(prep(new THREE.ShapeGeometry(f, 8), C2(), null, [0, Math.PI / 2, 0], F === 'poisson' ? [1, 1, 1] : [.6, .6, .6])); }
+    else { T.push((strand([new V3(0, 0, 0), new V3(0, -.05, -.18), new V3(0, -.06, -.36), new V3(0, .02, -.5)], .05, .015, C1(), 16, 10)));
+      const sp = new THREE.Shape(); sp.moveTo(0, 0); sp.lineTo(.05, .06); sp.lineTo(.13, 0); sp.lineTo(.05, -.06); sp.lineTo(0, 0);
+      T.push(prep(new THREE.ShapeGeometry(sp), C2(), [0, .02, -.49], [0, Math.PI / 2, 0])); }
+    g.add(partMesh(T));
+  }
+  // tête
+  const hg = new THREE.Group(); hg.position.set(...head); body.add(hg); c.head = hg;
+  const side = F === 'poisson' || F === 'serpent' || F === 'oiseau';
+  H.push(prep(new THREE.SphereGeometry(hr, 32, 24), C1(), null, null, F === 'poisson' ? [rx / ry * 1.05, 1, 1.05] : rec.tete === 'ronde' ? [1.06, .98, 1] : [1, 1, 1.05]));
+  for (const s of [-1, 1]) {
+    const n = new V3(s * (side ? .62 : .42), .3, side ? .72 : .86).normalize(), sq = F === 'poisson' ? [rx / ry * 1.05, 1, 1.05] : [1, 1, 1];
+    const at = k => [n.x * hr * k * sq[0], n.y * hr * k, n.z * hr * k * sq[2]];
+    H.push(prep(new THREE.SphereGeometry(hr * .3, 18, 14), 0xfaf8f2, at(.86)));
+    H.push(prep(new THREE.SphereGeometry(hr * .19, 16, 12), 0x14141a, at(1.04)));
+    const sh = at(1.16); H.push(prep(new THREE.SphereGeometry(hr * .06, 8, 6), 0xffffff, [sh[0] + hr * .04, sh[1] + hr * .07, sh[2]]));
+    if (!side && F !== 'insecte') H.push(prep(new THREE.SphereGeometry(hr * .14, 12, 8), 0xf6a0b0, [s * hr * .58, -hr * .22, hr * .7], null, [1, .7, .5]));
+  }
+  if (rec.tete === 'museau' && F !== 'poisson') { H.push(prep(new THREE.SphereGeometry(hr * .55, 22, 16), rec.motif === 'ventre' ? C2() : light(C1()), [0, -hr * .3, hr * .8], null, [1, .78, 1.1]));
+    H.push(prep(new THREE.SphereGeometry(hr * .14, 12, 10), INK, [0, -hr * .14, hr * 1.35], null, [1.25, .9, 1])); }
+  else if (rec.tete === 'bec') { const b = new THREE.ConeGeometry(hr * .3, hr * .8, 16); b.rotateX(Math.PI / 2); H.push(prep(b, 0xf0a030, [0, -hr * .18, hr * 1.2], null, [1, .8, 1])); }
+  else if (rec.tete === 'trompe') H.push((strand([new V3(0, -hr * .2, hr * .8), new V3(0, -hr * .55, hr * 1.35), new V3(0, -hr * 1.15, hr * 1.5), new V3(0, -hr * 1.7, hr * 1.65)], hr * .24, hr * .13, C1(), 14, 12)));
+  else { H.push(prep(new THREE.SphereGeometry(hr * .09, 10, 8), 0x7a3a3a, [0, -hr * .1, hr * .99]));
+    H.push(prep(new THREE.TorusGeometry(hr * .13, hr * .025, 6, 16, Math.PI), 0x5a2a2a, [0, -hr * .26, hr * .93], [0, 0, Math.PI])); }
+  for (const s of [-1, 1]) {
+    const o = rec.oreilles, big = rec.tete === 'trompe' ? 1.7 : 1;
+    if (o === 'rondes') { H.push(prep(new THREE.SphereGeometry(hr * .32, 16, 12), rec.motif === 'taches' ? C2() : C1(), [s * hr * .66, hr * .72, -hr * .1], null, [1, 1, .45])); H.push(prep(new THREE.SphereGeometry(hr * .2, 12, 10), PINK, [s * hr * .66, hr * .72, -hr * .04], null, [1, 1, .3])); }
+    else if (o === 'pointues') { H.push(prep(new THREE.ConeGeometry(hr * .28, hr * .72, 14), C1(), [s * hr * .55, hr * .9, -hr * .08], [0, 0, -s * .38], [1, 1, .55])); H.push(prep(new THREE.ConeGeometry(hr * .16, hr * .45, 10), PINK, [s * hr * .55, hr * .86, -hr * .02], [0, 0, -s * .38], [1, 1, .3])); }
+    else if (o === 'longues') { H.push(prep(new THREE.CapsuleGeometry(hr * .17, hr * 1.25, 4, 12), C1(), [s * hr * .36, hr * 1.5, -hr * .15], [0, 0, -s * .16], [1, 1, .5])); H.push(prep(new THREE.CapsuleGeometry(hr * .09, hr * 1.05, 4, 10), PINK, [s * hr * .36, hr * 1.5, -hr * .08], [0, 0, -s * .16], [1, 1, .3])); }
+    else if (o === 'tombantes') H.push(prep(new THREE.SphereGeometry(hr * .36 * big, 16, 12), F === 'quadrupede' && rec.motif === 'taches' ? C2() : dark(C1()).lerp(C1(), .5), [s * hr * (.95 + (big - 1) * .5), -hr * .05, -hr * .1], [0, 0, s * .25], [.32, 1.1, .85]));
+    const cr = rec.cornes;
+    if (cr === 'deux') H.push(prep(new THREE.ConeGeometry(hr * .1, hr * .55, 12), 0xeee2c4, [s * hr * .4, hr * 1.05, 0], [0, 0, -s * .3]));
+    else if (cr === 'bois') { H.push((strand([new V3(s * hr * .35, hr * .8, 0), new V3(s * hr * .7, hr * 1.4, -hr * .1), new V3(s * hr * 1.0, hr * 2.0, -hr * .05)], hr * .07, hr * .04, 0x7a5232, 8, 6)));
+      H.push((strand([new V3(s * hr * .6, hr * 1.3, -hr * .08), new V3(s * hr * .5, hr * 1.7, hr * .15)], hr * .05, hr * .03, 0x7a5232, 6, 6))); H.push((strand([new V3(s * hr * .85, hr * 1.7, -hr * .07), new V3(s * hr * 1.3, hr * 2.0, hr * .05)], hr * .045, hr * .03, 0x7a5232, 6, 6))); }
+    else if (cr === 'antennes') { H.push((strand([new V3(s * hr * .3, hr * .7, hr * .2), new V3(s * hr * .5, hr * 1.4, hr * .5), new V3(s * hr * .7, hr * 1.8, hr * .5)], hr * .05, hr * .035, INK, 8, 6)));
+      H.push(prep(new THREE.SphereGeometry(hr * .14, 10, 8), C2(), [s * hr * .7, hr * 1.8, hr * .5])); }
+    if (X.has('moustaches') && F !== 'insecte') for (let w = -1; w <= 1; w++) H.push(prep(new THREE.CylinderGeometry(.0035, .0035, hr * 1.1, 4), 0xf4f0e8, [s * hr * .62, -hr * .2 + w * hr * .07, hr * .92], [0, 0, s * (Math.PI / 2 - w * .15)]));
+    if (X.has('defenses')) H.push(prep(new THREE.ConeGeometry(hr * .09, hr * .75, 10), 0xf6f0e0, [s * hr * .32, -hr * .55, hr * .9], [Math.PI / 2 + .5, 0, 0]));
+  }
+  if (rec.cornes === 'licorne') { H.push(prep(new THREE.ConeGeometry(hr * .12, hr * .95, 16, 4), 0xf6e090, [0, hr * 1.2, hr * .5], [.45, 0, 0]));
+    for (let i = 0; i < 3; i++) H.push(prep(new THREE.TorusGeometry(hr * (.1 - i * .025), hr * .02, 6, 16), 0xf0c860, [0, hr * (1.0 + i * .2), hr * (.42 + i * .09)], [Math.PI / 2 + .45, 0, 0])); }
+  if (X.has('criniere')) for (let i = 0; i < 9; i++) { const a = -1.4 + i * .35; H.push(prep(new THREE.SphereGeometry(hr * .36, 12, 10), dark(C2()), [Math.sin(a) * hr * .95, hr * .25 + Math.cos(a) * hr * .55, -hr * .4], null, [1, 1, .8])); }
+  if (X.has('crete') && F !== 'serpent') for (let i = 0; i < 3; i++) H.push(prep(new THREE.ConeGeometry(hr * .16, hr * .45, 10), F === 'oiseau' ? 0xd83030 : C2(), [0, hr * 1.02, hr * (.3 - i * .3)], [(.3 - i * .3) * .8, 0, 0], [.5, 1, 1]));
+  hg.add(partMesh(H));
+  if (B.length) body.add(partMesh(B));
+  if (X.has('brillant')) { c.glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: TX.glow, color: teinte(rec.couleur), transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending }));
+    c.glow.position.set(ex, ey + .05, ez); c.glow.scale.setScalar(.9); body.add(c.glow); }
+  return c;
+}
+function animCreature(p, dt, speed, time) {
+  const c = p.c, rec = p.rec, amt = clamp(speed / 2.5, 0, 1); c.phase += dt * (3 + speed * 2.2) / Math.sqrt(p.S);
+  const s = Math.sin(c.phase), vol = rec.deplacement === 'vole';
+  c.legs.forEach((L, i) => { const sg = c.legKind === 'quad' ? (i === 0 || i === 3 ? 1 : -1) : (i % 2 ? 1 : -1);
+    if (c.legKind === 'insect') L.rotation.y = sg * s * .35 * amt; else L.rotation.x = vol ? .5 : sg * s * .65 * amt; });
+  c.arms.forEach((A, i) => { A.rotation.x = (i ? 1 : -1) * s * .6 * amt; });
+  for (const W of c.wings) { const sd = W.userData.side, pap = rec.ailes === 'papillon';
+    const f = vol ? Math.sin(time * (pap ? 9 : 11) + c.phase) * .7 + .15 : pap ? .9 + Math.sin(time * 1.5 + c.phase) * .2 : .25 + Math.sin(time * 1.2) * .05; W.rotation.z = sd * f; }
+  if (c.tail) c.tail.rotation.y = Math.sin(time * (rec.forme === 'poisson' ? 7 : 3 + amt * 4) + c.phase) * (rec.forme === 'poisson' ? .5 : .3 * (.4 + amt));
+  c.segs.forEach((g, i) => { g.position.x = Math.sin(time * (2 + amt * 4) - i * .7) * .05 * (i / c.segs.length + .2) * (.4 + amt); });
+  if (c.head) c.head.rotation.x = Math.sin(time * 1.3 + c.phase * .1) * .07;
+  let by = 0;
+  if (rec.deplacement === 'saute') by = Math.abs(Math.sin(c.phase * .5)) * .22 * amt;
+  if (p.hop > 0) { p.hop -= dt; by += Math.sin(clamp(1 - p.hop / .6, 0, 1) * Math.PI) * .35; }
+  c.body.position.y = by; c.body.rotation.z = rec.forme === 'poisson' || rec.deplacement === 'nage' ? Math.sin(time * 2.2 + c.phase) * .08 : 0;
+  if (c.glow) c.glow.material.opacity = .55 + Math.sin(time * 3 + c.phase) * .25;
+}
+
+// --- Sons de l'oracle et cris des animaux (synthétisés)
+function sonMagie() { if (!AC) return; const t = AC.currentTime; [523, 659, 784, 1047, 1319, 1568, 2093].forEach((f, i) => tone(f, .9, 'sine', .05, t + i * .07, revSend)); noise(1.2, .03, 3000, 'highpass', .7, t); }
+function sonNon() { if (!AC) return; const t = AC.currentTime; tone(330, .2, 'triangle', .08, t); tone(262, .3, 'triangle', .08, t + .16); }
+function cri(type, S) { if (!AC) return; const t = AC.currentTime, k = 1 / Math.sqrt(S || 1);
+  if (type === 'doux') { tone(660 * k, .18, 'sine', .08, t, null, 880 * k); tone(880 * k, .22, 'sine', .07, t + .16, null, 700 * k); }
+  else if (type === 'aigu') { for (let i = 0; i < 3; i++) tone(1900 * k, .07, 'square', .025, t + i * .09, null, 2500 * k); }
+  else if (type === 'grave') { tone(150 * k, .45, 'triangle', .22, t, null, 105 * k); tone(300 * k, .3, 'sine', .05, t, null, 210 * k); }
+  else if (type === 'rugit') { noise(.8, .16, 380 * k, 'lowpass', 2, t); tone(95 * k, .8, 'sawtooth', .07, t, null, 70 * k, .08); }
+  else if (type === 'siffle') { tone(1300 * k, .25, 'sine', .07, t, revSend, 1900 * k); tone(1900 * k, .3, 'sine', .06, t + .28, revSend, 1200 * k); }
+  else if (type === 'ronronne') { for (let i = 0; i < 14; i++) noise(.05, .09, 160, 'lowpass', 1, t + i * .055); tone(55, .8, 'sine', .08, t); }
+  else { for (let i = 0; i < 2; i++) { tone(230 * k, .14, 'square', .05, t + i * .22, null, 160 * k); noise(.12, .05, 700, 'bandpass', 3, t + i * .22); } } }
+
+// --- Pierre de l'oracle, paillettes
+const oracle = { x: 10.5, z: 9.5, y: 0, crystal: null, glow: null, ring: null, busy: false, open: false };
+const sparks = [];
+function buildOracle() {
+  const { x, z } = oracle, y = oracle.y = terrainH(x, z), S = [], g = new THREE.Group(); g.position.set(x, y, z); scene.add(g);
+  S.push(prep(lathe([[0, -.2], [.82, -.2], [.86, .1], [.6, .22], [.44, .5], [.4, .85], [.52, 1.0], [.62, 1.1], [.6, 1.16], [0, 1.16]], 40), 0x8e8a7e));
+  for (let i = 0; i < 9; i++) { const a = i / 9 * TAU + .3, r = R(1.5, 1.9), s = R(.22, .38); S.push(prep(new THREE.IcosahedronGeometry(s, 1), new THREE.Color().setHSL(.1, .06, R(.22, .3)), [Math.cos(a) * r, s * .35, Math.sin(a) * r], [rnd(), rnd(), rnd()], [1.2, .7, 1])); }
+  for (let i = 0; i < 12; i++) { const a = rnd() * TAU, h = R(.1, .9); S.push(prep(new THREE.SphereGeometry(R(.08, .16), 10, 8), 0x4f7a2e, [Math.cos(a) * (.45 + (1 - h) * .2), h, Math.sin(a) * (.45 + (1 - h) * .2)], null, [1, .5, 1])); }
+  const stone = new THREE.Mesh(mergeGeometries(S, false), MAT.rock); stone.castShadow = stone.receiveShadow = true; g.add(stone);
+  const rune = new THREE.MeshStandardMaterial({ color: 0xffe0a0, emissive: 0xffb050, emissiveIntensity: 1.6, roughness: .4 });
+  oracle.ring = new THREE.Mesh(new THREE.TorusGeometry(.48, .025, 8, 48), rune); oracle.ring.position.y = 1.3; oracle.ring.rotation.x = Math.PI / 2; g.add(oracle.ring);
+  for (let i = 0; i < 6; i++) { const a = i / 6 * TAU, m = new THREE.Mesh(new THREE.BoxGeometry(.06, .12, .02), rune); m.position.set(Math.cos(a) * .43, .68, Math.sin(a) * .43); m.rotation.y = -a + Math.PI / 2; g.add(m); }
+  oracle.crystal = new THREE.Mesh(new THREE.OctahedronGeometry(.26, 0), new THREE.MeshStandardMaterial({ color: 0xa8e0ff, emissive: 0x3a90ff, emissiveIntensity: 1.3, roughness: .12, metalness: .1, flatShading: true }));
+  oracle.crystal.scale.set(1, 1.5, 1); oracle.crystal.position.y = 1.85; oracle.crystal.castShadow = true; g.add(oracle.crystal);
+  oracle.glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: TX.glow, color: 0x8ad0ff, transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending })); oracle.glow.position.y = 1.85; oracle.glow.scale.setScalar(2.2); g.add(oracle.glow);
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 1.3 * 150 / 512), new THREE.MeshStandardMaterial({ map: signTexture("L'Oracle"), roughness: .8 }));
+  const post = new THREE.Mesh(prep(new THREE.CylinderGeometry(.05, .06, 1.2, 8), 0x6a4a2a), MAT.wood); const sa = Math.atan2(15 - x, 6 - z);
+  post.position.set(x + Math.sin(sa) * 1.35 + Math.cos(sa) * .9, y + .6, z + Math.cos(sa) * 1.35 - Math.sin(sa) * .9); post.castShadow = true; scene.add(post);
+  sign.position.set(post.position.x + Math.sin(sa) * .07, y + 1.08, post.position.z + Math.cos(sa) * .07); sign.rotation.y = sa; sign.castShadow = true; scene.add(sign);
+  walls.push({ type: 'circle', cx: x, cz: z, r: .9, y0: -5, y1: y + 2.5, gaps: null });
+}
+function paillettes(pos, col, n, spread) {
+  for (let i = 0; i < n; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: TX.glow, color: col, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    sp.position.copy(pos); sp.scale.setScalar(.2 + Math.random() * .25); scene.add(sp); const a = Math.random() * TAU, v = (spread || 1) * (.6 + Math.random() * 1.6);
+    sparks.push({ sp, v: new V3(Math.cos(a) * v, .6 + Math.random() * 2.2, Math.sin(a) * v), t: 0, life: .7 + Math.random() * .8 }); }
+}
+
+// --- Les animaux de Théo : ils suivent ses pas, en file
+let pets = [];
+const trail = [];
+function recordTrail() { const L = trail[trail.length - 1], d = L ? Math.hypot(player.x - L.x, player.y - L.y, player.z - L.z) : 1;
+  if (d > 4) trail.length = 0; // saut d'un coup (téléportation) : on repart de zéro
+  if (d > .12) { trail.push({ x: player.x, y: player.y, z: player.z }); if (trail.length > 700) trail.shift(); } }
+function trailPoint(dist) {
+  let px = player.x, py = player.y, pz = player.z, acc = 0;
+  for (let i = trail.length - 1; i >= 0; i--) { const t = trail[i], d = Math.hypot(t.x - px, t.y - py, t.z - pz);
+    if (d > 0 && acc + d >= dist) { const k = (dist - acc) / d; return { x: px + (t.x - px) * k, y: py + (t.y - py) * k, z: pz + (t.z - pz) * k }; } acc += d; px = t.x; py = t.y; pz = t.z; }
+  const r = dist - acc; return { x: px - Math.sin(player.face) * r, y: py, z: pz - Math.cos(player.face) * r }; // pas encore de traces : derrière Théo
+}
+function ajouterAnimal(def, apparition) {
+  const rec = nettoyerRecette(def.r), c = makeCreature(rec, def.g), S = TAILLES[rec.taille];
+  const p = { def, rec, c, S, nom: def.n, x: player.x, y: player.y, z: player.z, face: player.face, hop: 0, appear: apparition ? 0 : 1, space: .35 + .45 * S, chirp: 4 + Math.random() * 8 };
+  if (apparition) { p.x = oracle.x; p.y = oracle.y + 1.5; p.z = oracle.z; }
+  c.root.scale.setScalar(apparition ? .01 : S); c.root.position.set(p.x, p.y, p.z); scene.add(c.root); pets.push(p); return p;
+}
+function retirerAnimal(p) {
+  paillettes(new V3(p.x, p.y + .4 * p.S, p.z), 0xfff0c0, 18); scene.remove(p.c.root);
+  p.c.root.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material && o.material !== MAT.char) o.material.dispose(); });
+  pets = pets.filter(q => q !== p);
+}
+function sauverAnimaux() { store.set('arbre-animaux', pets.map(p => p.def)); }
+function chargerAnimaux() {
+  const liste = store.get('arbre-animaux'); if (!Array.isArray(liste)) return;
+  for (const d of liste.slice(-MAX_ANIMAUX)) { if (!d || typeof d !== 'object') continue; const n = filtrerTexte(d.n); if (!n) continue;
+    ajouterAnimal({ n, r: nettoyerRecette(d.r), g: Number.isInteger(d.g) ? d.g : 1 }, false); }
+}
+function updatePets(dt, time) {
+  recordTrail();
+  let dist = .9;
+  for (const p of pets) {
+    dist += p.space; const T = trailPoint(dist); dist += p.space;
+    const fly = p.rec.deplacement === 'vole', swim = p.rec.forme === 'poisson' || p.rec.deplacement === 'nage';
+    const lift = fly ? 1.1 + p.S * .3 + Math.sin(time * 2 + p.def.g) * .15 : swim ? .45 + Math.sin(time * 1.6 + p.def.g) * .08 : 0;
+    const ty = T.y + lift, dx = T.x - p.x, dy = ty - p.y, dz = T.z - p.z, d = Math.hypot(dx, dy, dz);
+    let speed = 0;
+    if (p.appear >= 1 && d > 14) { paillettes(new V3(T.x, ty + .3, T.z), 0xfff0c0, 8); p.x = T.x; p.y = ty; p.z = T.z; }
+    else if (d > .05) { const step = Math.min(d, Math.max(d * 3, 1) * dt * (p.appear < 1 ? .6 : 1) * 2.2); p.x += dx / d * step; p.y += dy / d * step; p.z += dz / d * step; speed = Math.hypot(dx, dz) / d * step / dt; }
+    const want = speed > .3 ? Math.atan2(dx, dz) : Math.atan2(player.x - p.x, player.z - p.z);
+    p.face += angDiff(want, p.face) * Math.min(1, dt * (speed > .3 ? 8 : 3));
+    if (p.appear < 1) { p.appear = Math.min(1, p.appear + dt * .9); const a = p.appear, e = 1 + 2.70158 * Math.pow(a - 1, 3) + 1.70158 * Math.pow(a - 1, 2); p.c.root.scale.setScalar(Math.max(.01, p.S * e)); }
+    p.c.root.position.set(p.x, p.y, p.z); p.c.root.rotation.y = p.face;
+    animCreature(p, dt, speed, time);
+    p.chirp -= dt; if (p.chirp <= 0) { p.chirp = 9 + Math.random() * 14; if (Math.hypot(p.x - player.x, p.z - player.z) < 6) cri(p.rec.cri, p.S); }
+  }
+  for (let i = sparks.length - 1; i >= 0; i--) { const s = sparks[i]; s.t += dt; s.v.y -= 1.6 * dt; s.sp.position.addScaledVector(s.v, dt); s.sp.material.opacity = Math.max(0, 1 - s.t / s.life);
+    if (s.t >= s.life) { scene.remove(s.sp); s.sp.material.dispose(); sparks.splice(i, 1); } }
+  if (oracle.crystal) { oracle.crystal.rotation.y += dt * (oracle.busy ? 5 : .7); oracle.crystal.position.y = 1.85 + Math.sin(time * 1.4) * .08; oracle.glow.position.y = oracle.crystal.position.y;
+    oracle.glow.scale.setScalar(2.1 + Math.sin(time * 2.3) * .25 + (oracle.busy ? .8 : 0)); oracle.ring.rotation.z += dt * .4; }
+}
+function caresser(p) { p.hop = .6; cri(p.rec.cri, p.S); paillettes(new V3(p.x, p.y + .5 * p.S, p.z), 0xff90c0, 10, .5); toast(`${p.nom} est tout content !`, 1.8); }
+
+// --- Écran de l'oracle
+const IDEES = ["un lapin-dragon violet", "une licorne arc-en-ciel", "un éléphant qui vole", "une tortue géante dorée", "un chat à rayures bleues", "un poisson magique"];
+function oMsg(t) { $('oMsg').textContent = t; }
+function listeAnimaux() {
+  const ul = $('oList'); ul.textContent = ''; $('oNb').textContent = pets.length; $('oVide').hidden = pets.length > 0;
+  for (const p of pets) { const li = document.createElement('li'), sp = document.createElement('span'), b = document.createElement('button');
+    sp.textContent = p.nom; b.className = 'btn'; b.type = 'button'; b.textContent = 'Libérer';
+    b.addEventListener('click', () => { retirerAnimal(p); sauverAnimaux(); listeAnimaux(); oMsg(`${p.nom} est reparti dans la forêt. Au revoir !`); });
+    li.append(sp, b); ul.append(li); }
+}
+function ouvrirOracle() {
+  if (oracle.open) return; oracle.open = true; state.paused = true; for (const k in keys) keys[k] = false; touchIn.x = touchIn.y = 0;
+  hideDialog(); setHint(''); $('oracle').hidden = false; listeAnimaux(); if (!oracle.busy) oMsg(''); SFX.elf();
+  const ch = $('oIdees'); ch.textContent = ''; for (const t of [...IDEES].sort(() => Math.random() - .5).slice(0, 3)) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = t; b.addEventListener('click', () => { $('oTxt').value = t; $('oTxt').focus(); }); ch.append(b); }
+  if (!document.body.classList.contains('touch')) setTimeout(() => $('oTxt').focus(), 50);
+}
+function fermerOracle() { if (!oracle.open) return; oracle.open = false; $('oracle').hidden = true; $('oTxt').blur(); state.paused = false; canvas.focus(); }
+async function demanderOracle(texte) {
+  if (!ORACLE_URL) return { raison: 'dort' };
+  const ac = new AbortController(), to = setTimeout(() => ac.abort(), 15000);
+  try {
+    const r = await fetch(ORACLE_URL + '/creer', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ texte }), signal: ac.signal });
+    const j = await r.json().catch(() => null);
+    if (j && j.ok && j.recette) return { recette: nettoyerRecette(j.recette) };
+    return { raison: j && typeof j.raison === 'string' ? j.raison : 'dort' };
+  } catch (e) { return { raison: 'dort' }; } finally { clearTimeout(to); }
+}
+async function creerAnimal() {
+  if (oracle.busy) return;
+  const texte = filtrerTexte($('oTxt').value);
+  if (!texte) { oMsg("L'Oracle ne connaît pas ce mot-là. Écris un autre animal !"); sonNon(); return; }
+  oracle.busy = true; $('oGo').disabled = true; oMsg("L'Oracle réfléchit…"); sonMagie();
+  const rep = await demanderOracle(texte);
+  oracle.busy = false; $('oGo').disabled = false;
+  if (rep.raison === 'mot') { oMsg("L'Oracle ne connaît pas ce mot-là. Écris un autre animal !"); sonNon(); return; }
+  const def = { n: nomAnimal(texte), r: rep.recette || recetteLocale(texte), g: (Math.random() * 2 ** 31) | 0 };
+  if (pets.length >= MAX_ANIMAUX) retirerAnimal(pets[0]);
+  const p = ajouterAnimal(def, true); sauverAnimaux(); $('oTxt').value = '';
+  fermerOracle();
+  paillettes(new V3(oracle.x, oracle.y + 1.85, oracle.z), 0xa8e0ff, 30, 1.2); sonMagie(); setTimeout(() => cri(p.rec.cri, p.S), 700);
+  toast(rep.recette ? `Voici ${p.nom} !` : `Voici ${p.nom} ! (L'Oracle s'est reposé : il a fait de son mieux avec les mots qu'il connaît.)`, 4);
+}
+$('oForm').addEventListener('submit', e => { e.preventDefault(); creerAnimal(); });
+$('oClose').addEventListener('click', fermerOracle);
+$('oTxt').addEventListener('keydown', e => { if (e.key === 'Escape') { fermerOracle(); e.preventDefault(); } });
+const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 
 // ============================================================ Boucle
 let composer = null, bloom = null;
@@ -1561,6 +2064,8 @@ function update(dt, time) {
   for (const a of acorns) { if (!a.visible) continue; a.rotation.y = time * 1.6; a.position.y = a.userData.base + Math.sin(time * 2 + a.userData.id) * .08;
     if (a.position.distanceTo(new V3(player.x, player.y + .6, player.z)) < 1.0) { a.visible = false; found.add(a.userData.id); store.set('arbre-glands', [...found]); updateCount(); SFX.acorn();
       if (found.size === acorns.length) { toast('Incroyable ! Tu as trouvé tous les glands dorés ! Les elfes sont très fiers de toi.', 5); SFX.yay(); } else toast(`Gland doré ! (${found.size}/${acorns.length})`, 2); } }
+  // animaux de l'oracle
+  updatePets(dt, time);
   // ambiance
   birdT -= dt; if (birdT <= 0) { birdT = R(1.2, 4); SFX.chirp(R(-.8, .8)); }
   if (AC && windGain) { const hk = clamp(player.y / 60, 0, 1); windGain.gain.setTargetAtTime(.025 + .04 * (.5 + .5 * Math.sin(time * .23) * Math.sin(time * .071)) + hk * .05, AC.currentTime, .4); windFilt.frequency.setTargetAtTime(300 + hk * 500 + 150 * Math.sin(time * .17), AC.currentTime, .4); }
@@ -1568,6 +2073,7 @@ function update(dt, time) {
   const it = nearestInteract(), T = document.body.classList.contains('touch') ? 'Action' : 'E';
   if (!it || player.mode) setHint(''); else if (it.type === 'elf') setHint(`<b>${T}</b> : parler à ${it.e.def.name}`); else if (it.type === 'lift') setHint(`<b>${T}</b> : ${LIFT.y > TOP / 2 ? 'descendre' : 'monter'} avec l'ascenseur`);
   else if (it.type === 'call') setHint(`<b>${T}</b> : appeler l'ascenseur`); else if (it.type === 'zip') setHint(`<b>${T}</b> : prendre la tyrolienne`);
+  else if (it.type === 'oracle') setHint(`<b>${T}</b> : parler à l'Oracle`); else if (it.type === 'pet') setHint(`<b>${T}</b> : caresser ${esc(it.p.nom)}`);
   $('where').textContent = whereName(player.y);
 }
 function frame(now) {
@@ -1611,7 +2117,7 @@ async function build() {
   await progress(.76, "L'herbe, la mare et la forêt…");
   buildGround(); buildLanternsAndSigns(); buildNatureDetails(); buildMountains();
   await progress(.86, 'Les elfes et les animaux…');
-  buildCreatures();
+  buildCreatures(); buildOracle(); chargerAnimaux();
   addMerged(GEO.bark, MAT.bark); addMerged(GEO.wood, MAT.wood); addMerged(GEO.roof, MAT.roof); addMerged(GEO.rope, MAT.rope, true);
   addMerged(GEO.deco, MAT.deco); addMerged(GEO.metal, MAT.metal); addMerged(GEO.rock, MAT.rock);
   if (renderer.capabilities.isWebGL2) {
@@ -1629,7 +2135,8 @@ $('bPlay').addEventListener('click', () => {
   initAudio(); $('title').hidden = true; $('hud').hidden = false; state.playing = true; if (document.body.classList.contains('touch')) $('touch').hidden = false;
   teleport(player.x, player.y, player.z, cam.yaw); canvas.focus(); toast("Monte l'escalier qui tourne autour du tronc !", 3.5);
 });
-window.__game = { camera, player, LIFT, ZIP, CABINS, decks, teleport, cam, state, acorns, stepPlayer, supportAt, interact, rt };
+window.__game = { camera, player, LIFT, ZIP, CABINS, decks, teleport, cam, state, acorns, stepPlayer, supportAt, interact, rt,
+  oracle: { oracle, get pets() { return pets; }, makeCreature, recetteLocale, nettoyerRecette, filtrerTexte, ajouterAnimal, retirerAnimal, ouvrirOracle } };
 build();
 </script>
 </body>
