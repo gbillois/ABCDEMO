@@ -2902,11 +2902,11 @@ function loop() {
     if (r.u >= 1) { state = "walk"; riding = null; tower = null; const end = r.curve.getPointAt(1); P.set(end.x, 0, end.z); if (r.dry) { toast("Youpi ! 🌳"); whoosh(.3, .08, 600, 300); } else { splash.position.set(end.x, -.15, end.z); splashT = 1; sfx.splash(); toast("PLOUF ! 💦"); } }
     else {
       const pt = r.curve.getPointAt(r.u), tg = r.curve.getTangentAt(r.u), side = tv.crossVectors(tg, new THREE.Vector3(0, 1, 0)).normalize(), down = new THREE.Vector3().crossVectors(tg, side).normalize();
-      P.copy(pt).addScaledVector(down, .8 + .84 * player.scale.x); player.rotation.y = Math.atan2(tg.x, tg.z); animPerson(player, "ride", time);
+      P.copy(pt).addScaledVector(down, .7 + .84 * player.scale.x); player.rotation.y = Math.atan2(tg.x, tg.z); animPerson(player, "ride", time);
       const back = new THREE.Vector3(tg.x, 0, tg.z).normalize();
-      const cp = new THREE.Vector3(P.x - back.x * 3.4, P.y + 2.1, P.z - back.z * 3.4), cr = Math.hypot(cp.x - DOME.x, cp.z - DOME.z), lim = DOME.r - 1.5; // la caméra reste sous la verrière
+      const cp = new THREE.Vector3(P.x - back.x * 2.6, P.y + 3.3, P.z - back.z * 2.6), cr = Math.hypot(cp.x - DOME.x, cp.z - DOME.z), lim = DOME.r - 1.5; // la caméra reste sous la verrière
       if (cr > lim) { cp.x = DOME.x + (cp.x - DOME.x) * lim / cr; cp.z = DOME.z + (cp.z - DOME.z) * lim / cr; }
-      camera.position.lerp(cp, Math.min(1, dt * 8)); camera.lookAt(P.x + back.x * 2, P.y + .6, P.z + back.z * 2);
+      camera.position.lerp(cp, Math.min(1, dt * 8)); camera.lookAt(P.x + back.x * 1.5, P.y + .3, P.z + back.z * 1.5);
     }
   } else if (state === "climbUp" || state === "climbDown") {
     climbT += (state === "climbUp" ? 1 : -1) * dt / 2.6;
@@ -3071,7 +3071,7 @@ function loop() {
   sun.position.set(P.x + sunDir.x * 120, sunDir.y * 120, P.z + sunDir.z * 120); sun.target.position.set(P.x, 0, P.z);
   renderer.render(scene, camera);
 }
-window.__pins = { wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
+window.__pins = { animPerson, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
 loop();
 </script>
 <script>
