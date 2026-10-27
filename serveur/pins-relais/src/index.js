@@ -6,7 +6,7 @@
 // refuse tout texte libre : les messages sont des numéros d'une liste fermée.
 
 const MAX_JOUEURS = 10;
-const NB_PHRASES = 12;        // doit correspondre à la liste PHRASES du jeu
+const NB_PHRASES = 64;        // au plus 64 phrases dans la liste PHRASES du jeu (phrases + rendez-vous)
 const TAILLE_MAX = 160;       // octets par message reçu
 const POS_PAR_SECONDE = 15;   // positions acceptées par joueur et par seconde
 const PHRASE_DELAI_MS = 1500; // délai minimal entre deux phrases d'un même joueur

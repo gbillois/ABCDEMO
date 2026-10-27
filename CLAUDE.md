@@ -44,7 +44,8 @@ Accord du propriétaire pour ce seul jeu : `pins/index.html` peut se connecter
 - Aucune donnée personnelle : pas de prénom, pas de compte, chaque joueur est un animal.
   Le relais ne stocke rien et n'a pas de journaux.
 - Messages en liste fermée uniquement (numéros de `PHRASES`) : jamais de texte libre.
-  Si on change la liste, garder `NB_PHRASES` du relais identique au nombre de phrases.
+  La liste compte les phrases, puis les rendez-vous (lieux et numéros de cottages) : `NB_PHRASES`
+  du relais (64) doit rester supérieur ou égal au nombre total de phrases.
 - L'adresse du relais se règle dans `RELAIS_PROD` du jeu ; déploiement : `serveur/pins-relais/DEPLOIEMENT.md`.
 - Aucun autre jeu ne doit utiliser le réseau.
 

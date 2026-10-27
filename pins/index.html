@@ -76,6 +76,10 @@ html.app .site{display:none!important}
 .who span{border-radius:999px;padding:2px 12px;font-weight:800;color:#fff}
 .phrases{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}
 .phrases .btn{font-size:18px;padding:10px 8px;background:var(--water)}
+.phrases h3{grid-column:1/-1;margin:10px 0 0;font-size:19px;color:var(--leaf);text-align:left}
+.phrases .rdv{background:#e67e22}
+.phrases .nums{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.phrases .nums .btn{background:#8a5a30;font-size:26px;padding:8px 0}
 </style>
 </head>
 <body>
@@ -593,7 +597,17 @@ const stairH = lz => UP * Math.max(0, Math.min(1, (ST.zBot - lz) / (ST.zBot - ST
 const cottages = [];
 const roofGeo = (() => { const s = new THREE.Shape(); s.moveTo(-5.9, 0); s.lineTo(5.9, 0); s.lineTo(0, 2.9); s.lineTo(-5.9, 0); const g = new THREE.ExtrudeGeometry(s, { depth: 9.2, bevelEnabled: true, bevelThickness: .12, bevelSize: .12, bevelSegments: 2 }); g.translate(0, 0, -4.6); return g; })();
 const roofMat = mat(0xffffff, .85, { map: shingleTex.clone() }); roofMat.map.repeat.set(.45, .45);
-function cottage(cx, cz, rot, mine) {
+// plaque de numéro émaillée (bleue à bord blanc), dessinée en code ; « sub » ajoute un mot au-dessus
+function numTex(num, sub) {
+  const c = document.createElement("canvas"); c.width = 256; c.height = sub ? 220 : 180; const x = c.getContext("2d");
+  x.fillStyle = "#1f4e9e"; x.beginPath(); x.roundRect(6, 6, 244, c.height - 12, 26); x.fill();
+  x.strokeStyle = "#ffffff"; x.lineWidth = 8; x.beginPath(); x.roundRect(18, 18, 220, c.height - 36, 18); x.stroke();
+  x.fillStyle = "#ffffff"; x.textAlign = "center"; x.textBaseline = "middle";
+  if (sub) { x.font = '800 40px "Baloo 2", "Trebuchet MS", sans-serif'; x.fillText(sub, 128, 62); x.font = '800 104px "Baloo 2", "Trebuchet MS", sans-serif'; x.fillText(num, 128, 142); }
+  else { x.font = '800 120px "Baloo 2", "Trebuchet MS", sans-serif'; x.fillText(num, 128, 96); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
+function cottage(cx, cz, rot, mine, num) {
   const g = new THREE.Group(); g.position.set(cx, 0, cz); g.rotation.y = rot; scene.add(g);
   const wallMat = mat(0xffffff, .85, { map: woodTex, transparent: false });
   const floor = new THREE.Mesh(boxUV(new THREE.BoxGeometry(10.3, .16, 8.3), 10.3, .16, 8.3, 2), mat(0xffffff, .7, { map: floorTex })); floor.position.y = .08; floor.receiveShadow = true; g.add(floor);
@@ -652,13 +666,22 @@ function cottage(cx, cz, rot, mine) {
   if (mine) {
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, 7.5, 10), metalMat); pole.position.set(4.6, 3.75, 6.2); g.add(pole);
     const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1, 8, 1), mat(0xff5a4e, .7, { side: THREE.DoubleSide })); flag.position.set(5.4, 7, 6.2); g.add(flag);
-    const lb = label("Ton cottage", "#ff5a4e", "#ffffff", 1.3); lb.position.set(0, 11.6, 0); g.add(lb);
+    const lb = label(`Ton cottage n°${num}`, "#ff5a4e", "#ffffff", 1.3); lb.position.set(0, 11.6, 0); g.add(lb);
     g.userData.flag = flag;
   }
+  // numéro du cottage : plaque à côté de la porte (pour se donner rendez-vous)
+  const plaque = new THREE.Mesh(new THREE.PlaneGeometry(.62, .44), new THREE.MeshStandardMaterial({ map: numTex(num), roughness: .3, metalness: .1 }));
+  plaque.position.set(1.45, 2.05, 4.21); g.add(plaque);
   const s = rot ? -1 : 1;
-  const c = { g, x: cx, z: cz, s, mine, wallMat, roof, door, upper, open: 0, want: 0, fade: 1 };
+  const c = { g, x: cx, z: cz, s, mine, num, wallMat, roof, door, upper, open: 0, want: 0, fade: 1 };
   c.toLocal = (px, pz) => [(px - cx) * s, (pz - cz) * s];
   c.toWorld = (lx, lz) => [cx + lx * s, cz + lz * s];
+  // panneau en bois au début de l'allée, lisible depuis le grand chemin
+  { const post = new THREE.Group(), wood = mat(0x8a5a35, .8);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(.07, .08, 1.36, 10), wood); pole.position.y = .68; post.add(pole); // s'arrête sous le panneau
+    const board = rbox(1.06, .92, .08, wood, .03); board.position.y = 1.78; post.add(board);
+    for (const side of [1, -1]) { const face = new THREE.Mesh(new THREE.PlaneGeometry(.92, .8), new THREE.MeshStandardMaterial({ map: numTex(num, "Cottage"), roughness: .4 })); face.position.set(0, 1.78, side * .046); if (side < 0) face.rotation.y = Math.PI; post.add(face); }
+    const [px, pz] = c.toWorld(2.6, 9.6); post.position.set(px, 0, pz); post.rotation.y = rot; shadowAll(post); scene.add(post); circles.push({ x: px, z: pz, r: .25 }); }
   cottages.push(c); return c;
 }
 
@@ -746,8 +769,8 @@ let fireLight, flames = [];
 }
 
 /* ---------- Placement des cottages ---------- */
-[-64, -48, -32, -16, 16, 32, 48, 64].forEach(x => { cottage(x, 44, Math.PI, x === -16); path([x, 30], [x, 38.2], 1.8); });
-[-56, -40, 40, 56].forEach(x => { cottage(x, 16, 0, false); path([x, 30], [x, 21.8], 1.8); });
+[-64, -48, -32, -16, 16, 32, 48, 64].forEach((x, i) => { cottage(x, 44, Math.PI, x === -16, i + 1); path([x, 30], [x, 38.2], 1.8); });
+[-56, -40, 40, 56].forEach((x, i) => { cottage(x, 16, 0, false, 9 + i); path([x, 30], [x, 21.8], 1.8); });
 const myCottage = cottages.find(c => c.mine);
 let interiorHost = null;
 
@@ -1382,13 +1405,20 @@ function drawMap() {
   mx.fillStyle = "#e3cf9f"; mx.beginPath(); mx.arc(X(LAKE.x), Z(LAKE.z), (LAKE.r + 2) * k, 0, 7); mx.fill(); mx.fillStyle = "#2a6f8f"; mx.beginPath(); mx.arc(X(LAKE.x), Z(LAKE.z), LAKE.r * k, 0, 7); mx.fill();
   mx.strokeStyle = "#a8763e"; mx.lineWidth = 2.4 * k; mx.beginPath(); mx.moveTo(X(LAKE.x + DOCK.ux * DOCK.u0), Z(LAKE.z + DOCK.uz * DOCK.u0)); mx.lineTo(X(LAKE.x + DOCK.ux * DOCK.u1), Z(LAKE.z + DOCK.uz * DOCK.u1)); mx.stroke();
   mx.fillStyle = "#ffffff"; mx.beginPath(); mx.arc(X(pedalo.g.position.x), Z(pedalo.g.position.z), 4, 0, 7); mx.fill();
-  cottages.forEach(c => { mx.fillStyle = c.mine ? "#ff5a4e" : "#8a5a30"; mx.fillRect(X(c.x - 5), Z(c.z - 4), 10 * k, 8 * k); });
+  mx.textAlign = "center"; mx.textBaseline = "middle"; mx.font = '800 13px "Baloo 2",sans-serif';
+  cottages.forEach(c => { mx.fillStyle = c.mine ? "#ff5a4e" : "#8a5a30"; mx.fillRect(X(c.x - 5), Z(c.z - 4), 10 * k, 8 * k); mx.fillStyle = "#ffffff"; mx.fillText(c.num, X(c.x), Z(c.z) + 1); });
+  mx.textBaseline = "alphabetic";
   mx.fillStyle = "#e84393"; mx.fillRect(X(11.3), Z(21), 5.4 * k, 2 * k);
   mx.font = '700 13px "Baloo 2",sans-serif'; mx.textAlign = "center"; mx.fillStyle = "#0d3b52";
   mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17));
-  npcs.forEach(n => { mx.fillStyle = "#8e44ad"; mx.beginPath(); mx.arc(X(n.g.position.x), Z(n.g.position.z), 4, 0, 7); mx.fill(); });
+  mx.font = '700 11px "Baloo 2",sans-serif';
+  npcs.forEach(n => { const nx = X(n.g.position.x), nz = Z(n.g.position.z); mx.fillStyle = "#8e44ad"; mx.beginPath(); mx.arc(nx, nz, 4, 0, 7); mx.fill(); mx.fillText(n.name.split(",")[0], nx, nz - 7); });
   ducks.forEach(d => { if (d.got) return; mx.fillStyle = "#ffd23f"; mx.strokeStyle = "#7a5a00"; mx.lineWidth = 1.5; mx.beginPath(); mx.arc(X(d.x), Z(d.z), 5.5, 0, 7); mx.fill(); mx.stroke(); });
-  if (net) for (const [s, o] of net.autres) if (o.seen) { mx.fillStyle = ANIMAUX[s][3]; mx.strokeStyle = "#fff"; mx.lineWidth = 2.5; mx.beginPath(); mx.arc(X(o.g.position.x), Z(o.g.position.z), 6.5, 0, 7); mx.fill(); mx.stroke(); }
+  if (net && net.rdv) { const rx = X(net.rdv.x), rz = Z(net.rdv.z), pul = 10 + Math.sin(time * 5) * 3; mx.strokeStyle = "#ff3b30"; mx.lineWidth = 3; mx.beginPath(); mx.arc(rx, rz, pul, 0, 7); mx.stroke(); mx.font = '22px sans-serif'; mx.fillText("📍", rx, rz - 6); }
+  if (net) for (const [s, o] of net.autres) if (o.seen) { // les amis : rond à leur couleur, leur animal et son nom
+    const fx = X(o.g.position.x), fz = Z(o.g.position.z); mx.fillStyle = ANIMAUX[s][3]; mx.strokeStyle = "#fff"; mx.lineWidth = 3; mx.beginPath(); mx.arc(fx, fz, 10, 0, 7); mx.fill(); mx.stroke();
+    mx.textBaseline = "middle"; mx.font = '13px sans-serif'; mx.fillText(ANIMAUX[s][0], fx, fz + 1); mx.textBaseline = "alphabetic";
+    mx.font = '800 12px "Baloo 2",sans-serif'; mx.lineWidth = 3; mx.strokeStyle = "#fff"; mx.strokeText(ANIMAUX[s][1].split(" ")[0], fx, fz - 14); mx.fillStyle = ANIMAUX[s][3]; mx.fillText(ANIMAUX[s][1].split(" ")[0], fx, fz - 14); }
   const px = X(player.position.x), pz = Z(player.position.z); mx.save(); mx.translate(px, pz); mx.rotate(-player.rotation.y + Math.PI);
   mx.fillStyle = "#2e86de"; mx.strokeStyle = "#fff"; mx.lineWidth = 2; mx.beginPath(); mx.moveTo(0, -11); mx.lineTo(8, 8); mx.lineTo(-8, 8); mx.closePath(); mx.fill(); mx.stroke(); mx.restore();
 }
@@ -1401,6 +1431,12 @@ const RELAIS = (["localhost", "127.0.0.1"].includes(location.hostname) && new UR
 // Liste fermée : on n'envoie que le numéro de la phrase (le relais refuse tout le reste).
 const PHRASES = ["Coucou ! 👋", "Viens ici !", "Suis-moi !", "Attends-moi !", "On va au toboggan ? 🛝", "On va nager ? 🏊",
   "On va au lac ? 🦢", "J'ai trouvé un canard ! 🦆", "Bravo ! 🎉", "Oui 👍", "Non 👎", "Au revoir ! 👋"];
+// Rendez-vous : trois lieux, puis un numéro par cottage (les enfants touchent le chiffre).
+const LIEUX = [["Rendez-vous à l'Aquaparc ! 🌴", DOME.x, DOME.z, DOME.r + 4], ["Rendez-vous au lac ! 🚤", LAKE.x, LAKE.z, 7], ["Rendez-vous à la crêperie ! 🥞", 14, 22, 7]];
+const RDV0 = PHRASES.length;
+const RDV = [...LIEUX.map(([t, x, z, h]) => ({ t, x, z, h })),
+  ...[...cottages].sort((a, b) => a.num - b.num).map(c => ({ t: `Rendez-vous au cottage n°${c.num} ! 🏠`, x: c.x, z: c.z, h: 13.5, num: c.num }))];
+PHRASES.push(...RDV.map(r => r.t)); // le relais accepte jusqu'à 64 phrases
 // Pas de prénom : chaque place de la partie est un animal.
 const ANIMAUX = [["🦊", "Renard orange", 0xe67e22, "#e67e22"], ["🐧", "Pingouin bleu", 0x2e86de, "#2e86de"], ["🐰", "Lapin rose", 0xe84393, "#e84393"],
   ["🐸", "Grenouille verte", 0x27ae60, "#27ae60"], ["🦉", "Hibou violet", 0x8e44ad, "#8e44ad"], ["🐿️", "Écureuil roux", 0xb5532a, "#b5532a"],
@@ -1455,8 +1491,15 @@ function monLabel(text, bg, shirt) {
   player.remove(myLbl); myLbl = text ? label(text, bg, "#ffffff", .6) : pLbl; myLbl.position.y = 2.95; player.add(myLbl);
   player.userData.shirt.color.setHex(shirt ?? 0x2e86de);
 }
+// repère 📍 au-dessus du lieu du rendez-vous (et sur la carte), pendant une minute et demie
+function poserRdv(r) {
+  if (net.rdv) scene.remove(net.rdv.sp);
+  const sp = label("📍 Rendez-vous", "#ff3b30", "#ffffff", 2.2); sp.material.depthTest = false; sp.renderOrder = 11; sp.position.set(r.x, r.h, r.z); scene.add(sp);
+  net.rdv = { x: r.x, z: r.z, h: r.h, t: 90, sp };
+}
 function dire(s, i) {
   const a = ANIMAUX[s], phrase = PHRASES[i];
+  if (i >= RDV0) poserRdv(RDV[i - RDV0]);
   if (s === net.s) { poserBulle(net.moi, player, phrase); sfx.talk(); return; }
   const o = net.autres.get(s) || ajouter(s, false); poserBulle(o, o.g, phrase); sfx.talk();
   toast(`${a[0]} ${a[1]} : ${phrase}`, 3200);
@@ -1503,6 +1546,7 @@ function quitter() {
   try { n.ws.close(1000); } catch (e) {}
   for (const o of n.autres.values()) { scene.remove(o.g); if (o.boat) scene.remove(o.boat); }
   if (n.moi.bub) player.remove(n.moi.bub);
+  if (n.rdv) scene.remove(n.rdv.sp);
   monLabel(null); majUI();
 }
 function majUI() {
@@ -1533,7 +1577,10 @@ $("joinBtn").onclick = () => {
   connecter(c, false);
 };
 $("leaveBtn").onclick = () => { sfx.click(); quitter(); msg("Tu as quitté la partie."); };
-$("phraseList").innerHTML = PHRASES.map((p, i) => `<button class="btn" data-i="${i}">${p}</button>`).join("");
+const phraseBtn = (i, cls = "") => `<button class="btn ${cls}" data-i="${i}">${PHRASES[i]}</button>`;
+$("phraseList").innerHTML = PHRASES.slice(0, RDV0).map((_, i) => phraseBtn(i)).join("")
+  + `<h3>📍 Se donner rendez-vous</h3>` + LIEUX.map((_, k) => phraseBtn(RDV0 + k, "rdv")).join("")
+  + `<h3>🏠 Au cottage n°…</h3><div class="nums">${RDV.slice(LIEUX.length).map((r, k) => `<button class="btn" data-i="${RDV0 + LIEUX.length + k}" aria-label="Rendez-vous au cottage ${r.num}">${r.num}</button>`).join("")}</div>`;
 $("phraseList").onclick = e => { const b = e.target.closest("[data-i]"); if (!b || !net || net.s < 0) return; net.ws.send(JSON.stringify({ t: "m", i: +b.dataset.i })); fermer("sayView"); };
 $("sayBtn").onclick = () => { sfx.click(); ouvrir("sayView"); };
 $("sayClose").onclick = () => { sfx.click(); fermer("sayView"); };
@@ -1563,6 +1610,7 @@ function netTick(dt) {
     }
   }
   if (net.moi.bub && (net.moi.bubT -= dt) <= 0) { player.remove(net.moi.bub); net.moi.bub = null; }
+  if (net.rdv) { const r = net.rdv; r.sp.position.y = r.h + Math.sin(time * 3) * .6; if ((r.t -= dt) <= 0) { scene.remove(r.sp); net.rdv = null; } }
   if (net.s < 0 || net.ws.readyState !== 1) return;
   net.hb -= dt; if ((net.sendT -= dt) > 0) return; net.sendT = .1;
   const P = player.position, ry = Math.atan2(Math.sin(player.rotation.y), Math.cos(player.rotation.y));
@@ -1690,9 +1738,9 @@ function loop() {
   inDome = Math.hypot(P.x - DOME.x, P.z - DOME.z) < DOME.r && state !== "ride" || state === "top" || state.startsWith("climb");
   inCottage = null;
   for (const c of cottages) { const [lx, lz] = c.toLocal(P.x, P.z); if (lx > -5 && lx < 5 && lz > -4 && lz < 4) inCottage = c; }
-  const where = inCottage ? (P.y > 1.8 ? "🛏️ À l'étage" : inCottage.mine ? "🏡 Ton cottage" : "🏠 Un cottage") : state === "boat" ? "🚤 En pédalo" : inDome ? (swimming ? "🏊 Tu nages !" : "🌴 Aquaparc") : "";
+  const where = inCottage ? (P.y > 1.8 ? "🛏️ À l'étage" : inCottage.mine ? `🏡 Ton cottage n°${inCottage.num}` : `🏠 Cottage n°${inCottage.num}`) : state === "boat" ? "🚤 En pédalo" : inDome ? (swimming ? "🏊 Tu nages !" : "🌴 Aquaparc") : "";
   if (where !== lastWhere) { if (where) { $("where").textContent = where; $("where").hidden = false; } else $("where").hidden = true;
-    if (where === "🏡 Ton cottage") toast("Bienvenue dans ton cottage ! 🏡"); if (where === "🌴 Aquaparc" && !lastWhere) toast("Bienvenue à l'Aquaparc ! 🌴"); lastWhere = where; }
+    if (where.startsWith("🏡")) toast("Bienvenue dans ton cottage ! 🏡"); if (where === "🌴 Aquaparc" && !lastWhere) toast("Bienvenue à l'Aquaparc ! 🌴"); lastWhere = where; }
 
   // intérieur posé dans le cottage le plus proche
   let near = null, nd = 1e9; for (const c of cottages) { const d = Math.hypot(P.x - c.x, P.z - c.z); if (d < nd) { nd = d; near = c; } }

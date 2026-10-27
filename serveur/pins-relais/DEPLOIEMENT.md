@@ -66,5 +66,5 @@ Le paramètre `?relais=` n'est accepté que sur `localhost`.
   n'existe que tant qu'au moins un joueur y est : le code ne sert plus ensuite.
 - 10 joueurs au maximum par salle.
 - Messages acceptés : position (nombres bornés, 15 par seconde au plus) ou numéro de
-  phrase (0 à 11, une toutes les 1,5 s). Tout autre champ est ignoré, tout message de
+  phrase (0 à 63, une toutes les 1,5 s). Tout autre champ est ignoré, tout message de
   plus de 160 octets ferme la connexion. Aucun texte libre n'est jamais retransmis.
