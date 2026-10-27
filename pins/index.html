@@ -1650,8 +1650,8 @@ function person(o) {
   // ---- bras et mains
   for (const s of [-1, 1]) {
     const sho = new THREE.Group(); sho.position.set(s * .35, 1.55, 0); body.add(sho);
-    put(sho, "sk", sph(.11)); put(sho, "sk", lathe([[0, .03], [.098, 0], [.103, -.1], [.088, -.28], [.078, -.35], [0, -.36]]));
-    put(sho, "sh", lathe([[.0, .118], [.08, .104], [.112, .04], [.116, -.06], [.119, -.16], [.12, -.19]], 32)); // manche près du bras put(sho, "sh", new THREE.TorusGeometry(.136, .012, 6, 32), [0, -.19, 0], [Math.PI / 2, 0, 0]);
+    put(sho, "sk", sph(.082)); put(sho, "sk", lathe([[0, .03], [.094, 0], [.1, -.1], [.088, -.28], [.078, -.35], [0, -.36]]));
+    put(sho, "sh", lathe([[.0, .05], [.075, .045], [.108, .01], [.114, -.06], [.117, -.16], [.118, -.19]], 32)); // manche près du bras put(sho, "sh", new THREE.TorusGeometry(.136, .012, 6, 32), [0, -.19, 0], [Math.PI / 2, 0, 0]);
     const elb = new THREE.Group(); elb.position.y = -.35; sho.add(elb);
     put(elb, "sk", sph(.078)); put(elb, "sk", lathe([[0, .01], [.077, 0], [.082, -.07], [.066, -.22], [.052, -.31], [0, -.33]]));
     const hand = new THREE.Group(); hand.position.y = -.33; elb.add(hand);
@@ -1662,9 +1662,12 @@ function person(o) {
   }
   // ---- tronc, vêtements du haut, cou
   put(body, "sk", sph(.27), [0, .97, 0], [0, 0, 0], [.98, .55, .72]); // ventre : reste sous le t-shirt
-  const torsoPts = female ? [[0, 0], [.25, .02], [.22, .2], [.25, .38], [.28, .48], [.27, .58], [.14, .67], [0, .68]] : [[0, 0], [.25, .02], [.25, .18], [.28, .38], [.31, .52], [.29, .62], [.14, .68], [0, .69]];
+  const torsoPts = female ? [[0, 0], [.25, .02], [.22, .2], [.25, .38], [.27, .5], [.25, .59], [.17, .65], [.09, .68], [0, .69]] : [[0, 0], [.25, .02], [.25, .18], [.28, .38], [.3, .5], [.27, .59], [.18, .66], [.1, .69], [0, .7]];
   put(body, "sk", lathe(torsoPts, 40), [0, .95, 0], [0, 0, 0], [1, 1, .7]);
   put(body, "sk", new THREE.CylinderGeometry(.07, .086, .23, 24), [0, 1.7, 0]);
+  // épaules : une pente douce du cou jusqu'au bras (peau dessous, t-shirt dessus)
+  for (const s of [-1, 1]) { const pts = [[s * .06, 1.655, 0], [s * .2, 1.625, 0], [s * .35, 1.552, 0]];
+    put(body, "sk", tube(pts, .072, 12)); put(body, "sh", tube([...pts.map(([x, y, z]) => [x, y + .01, z]), [s * .4, 1.52, 0]], .09, 14)); }
   const shirtPts = torsoPts.slice(1, -1).map(([x, y]) => [x + .028, y]); shirtPts.unshift([.3 + (female ? .01 : 0), -.075]); shirtPts.push([.115, .69]);
   put(body, "sh", lathe(shirtPts, 44), [0, .95, 0], [0, 0, 0], [1, 1, .78]);
   put(body, "sh", new THREE.TorusGeometry(.118, .025, 10, 32), [0, 1.645, 0], [Math.PI / 2, 0, 0]);
