@@ -178,7 +178,7 @@ html.app .site{display:none!important}
       <div class="row"><button id="leaveBtn" class="btn" style="background:var(--slide)">Quitter la partie</button></div>
     </div>
     <p id="multiMsg"></p>
-    <p class="small">Pas de prénom, pas de compte : chacun est un animal. On ne peut envoyer que des phrases toutes prêtes. Jusqu'à 6 joueurs.</p>
+    <p class="small">Pas de prénom, pas de compte : chacun est un animal. On ne peut envoyer que des phrases toutes prêtes. Jusqu'à 10 joueurs.</p>
     <div class="row"><button id="multiClose" class="btn" style="background:#34495e">Fermer</button></div>
   </div>
 </div>
@@ -1380,7 +1380,8 @@ const PHRASES = ["Coucou ! 👋", "Viens ici !", "Suis-moi !", "Attends-moi !", 
   "On va au lac ? 🦢", "J'ai trouvé un canard ! 🦆", "Bravo ! 🎉", "Oui 👍", "Non 👎", "Au revoir ! 👋"];
 // Pas de prénom : chaque place de la partie est un animal.
 const ANIMAUX = [["🦊", "Renard orange", 0xe67e22, "#e67e22"], ["🐧", "Pingouin bleu", 0x2e86de, "#2e86de"], ["🐰", "Lapin rose", 0xe84393, "#e84393"],
-  ["🐸", "Grenouille verte", 0x27ae60, "#27ae60"], ["🦉", "Hibou violet", 0x8e44ad, "#8e44ad"], ["🐿️", "Écureuil roux", 0xb5532a, "#b5532a"]];
+  ["🐸", "Grenouille verte", 0x27ae60, "#27ae60"], ["🦉", "Hibou violet", 0x8e44ad, "#8e44ad"], ["🐿️", "Écureuil roux", 0xb5532a, "#b5532a"],
+  ["🐻", "Ours brun", 0x795548, "#795548"], ["🐨", "Koala gris", 0x607d8b, "#607d8b"], ["🦁", "Lion doré", 0xb8860b, "#b8860b"], ["🐬", "Dauphin turquoise", 0x00838f, "#00838f"]];
 const LETTRES = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // sans I, L, O, 0, 1 pour ne pas les confondre
 const CODE_OK = new RegExp(`^[${LETTRES}]{8}$`);
 // 4 = dans un véhicule : sur le lac c'est le pédalo, ailleurs le toboggan (le relais ne connaît que 0 à 4).
@@ -1450,7 +1451,7 @@ function connecter(code, creer) {
 }
 function fin(code) {
   const etait = net.s >= 0; quitter();
-  msg(code === 4004 ? "Ce code ne marche pas. Vérifie-le : la partie est peut-être finie." : code === 4001 ? "La partie est pleine : 6 joueurs au maximum."
+  msg(code === 4004 ? "Ce code ne marche pas. Vérifie-le : la partie est peut-être finie." : code === 4001 ? "La partie est pleine : 10 joueurs au maximum."
     : etait ? "La connexion est perdue." : "Impossible de joindre le serveur.");
   if (etait) toast("👫 La partie à plusieurs est terminée.");
 }

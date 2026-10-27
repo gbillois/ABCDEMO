@@ -5,7 +5,7 @@
 // joueurs d'une même salle. Il n'écrit rien sur disque, ne connaît aucun prénom, et
 // refuse tout texte libre : les messages sont des numéros d'une liste fermée.
 
-const MAX_JOUEURS = 6;
+const MAX_JOUEURS = 10;
 const NB_PHRASES = 12;        // doit correspondre à la liste PHRASES du jeu
 const TAILLE_MAX = 160;       // octets par message reçu
 const POS_PAR_SECONDE = 15;   // positions acceptées par joueur et par seconde

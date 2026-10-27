@@ -2,7 +2,7 @@
 
 Le relais est un Cloudflare Worker avec un Durable Object (`Salle`). Une partie = un code
 de 8 caractères = une salle en mémoire. Il transmet seulement des positions et des numéros
-de phrases entre 6 joueurs au maximum, n'écrit rien sur disque et n'a pas de journaux.
+de phrases entre 10 joueurs au maximum, n'écrit rien sur disque et n'a pas de journaux.
 
 ## Prompt à donner à une IA qui gère Cloudflare
 
@@ -64,7 +64,7 @@ Le paramètre `?relais=` n'est accepté que sur `localhost`.
 - Connexions acceptées seulement depuis les sites listés dans `ORIGINES`.
 - Code de partie : 8 caractères parmi `ABCDEFGHJKMNPQRSTUVWXYZ23456789`. Une salle
   n'existe que tant qu'au moins un joueur y est : le code ne sert plus ensuite.
-- 6 joueurs au maximum par salle.
+- 10 joueurs au maximum par salle.
 - Messages acceptés : position (nombres bornés, 15 par seconde au plus) ou numéro de
   phrase (0 à 11, une toutes les 1,5 s). Tout autre champ est ignoré, tout message de
   plus de 160 octets ferme la connexion. Aucun texte libre n'est jamais retransmis.
