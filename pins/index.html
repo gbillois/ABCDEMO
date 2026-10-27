@@ -907,7 +907,7 @@ const swimmer = person({ shirt: 0xf1c6a0, pants: 0x00b894, shorts: true, hair: 0
 /* ================= Sons faits maison ================= */
 let actx = null, master = null, muted = false;
 try { muted = localStorage.getItem("pins-muet") === "1"; } catch (e) {}
-function audioOn() { try { if (!actx) { actx = new (window.AudioContext || window.webkitAudioContext)(); master = actx.createGain(); master.gain.value = .45; master.connect(actx.destination); } if (actx.state === "suspended") actx.resume(); } catch (e) {} }
+function audioOn() { try { if (!actx) { actx = new (window.AudioContext || window.webkitAudioContext)(); master = actx.createGain(); master.gain.value = .45; master.connect(actx.destination); musicInit(); } if (actx.state === "suspended") actx.resume(); } catch (e) {} }
 function tone(f, dur, type = "sine", vol = .25, slide = 0, delay = 0) {
   if (!actx || muted) return; const t = actx.currentTime + delay, o = actx.createOscillator(), g = actx.createGain();
   o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, f + slide), t + dur);
@@ -932,6 +932,44 @@ const sfx = {
   bird() { const f = 2200 + Math.random() * 900; tone(f, .09, "sine", .045, 700); tone(f * 1.1, .08, "sine", .04, 600, .13); },
   click() { tone(880, .05, "triangle", .08); },
 };
+/* ---------- Musique de forêt, faite maison : harpe, flûte et nappe douce en ré majeur, avec de l'écho ---------- */
+let musBus = null, musT = 0, musStep = 0;
+function musicInit() {
+  if (musBus || !actx) return;
+  musBus = actx.createGain(); musBus.gain.value = 0;
+  const len = actx.sampleRate * 3, ir = actx.createBuffer(2, len, actx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
+  const rev = actx.createConvolver(), wet = actx.createGain(); rev.buffer = ir; wet.gain.value = .6;
+  musBus.connect(master); musBus.connect(wet); wet.connect(rev); rev.connect(master); musT = actx.currentTime + .4;
+}
+function mNote(f, t, dur, type, vol, att, vib) {
+  const o = actx.createOscillator(), g = actx.createGain(), lp = actx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2600;
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  if (vib) { const l = actx.createOscillator(), lg = actx.createGain(); l.frequency.value = 5; lg.gain.value = f * .006; l.connect(lg).connect(o.frequency); l.start(t); l.stop(t + dur + .1); }
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + att); g.gain.exponentialRampToValueAtTime(.0005, t + dur);
+  o.connect(lp).connect(g).connect(musBus); o.start(t); o.stop(t + dur + .1);
+}
+const mf = m => 440 * Math.pow(2, (m - 69) / 12);
+const PROG = [[62, 66, 69], [59, 62, 66], [55, 59, 62], [57, 61, 64], [55, 59, 62], [62, 66, 69], [52, 55, 59], [57, 61, 64]]; // Ré, Si m, Sol, La, Sol, Ré, Mi m, La
+const MEL = [74, 0, 0, 76, 78, 0, 76, 0, 74, 0, 71, 0, 0, 0, 0, 0, 71, 0, 0, 74, 79, 0, 78, 0, 76, 0, 0, 0, 0, 0, 0, 0,
+  79, 0, 78, 0, 76, 0, 74, 0, 78, 0, 0, 76, 74, 0, 0, 0, 71, 0, 74, 0, 76, 0, 79, 0, 76, 0, 0, 0, 73, 0, 0, 0];
+function scheduleMusic() {
+  if (!actx || !musBus) return;
+  musBus.gain.setTargetAtTime(muted ? 0 : paused ? .22 : .42, actx.currentTime, .4);
+  if (muted) { musT = actx.currentTime + .2; return; }
+  if (musT < actx.currentTime - .5) musT = actx.currentTime + .1;
+  const E = .32;
+  while (musT < actx.currentTime + .4) {
+    const st = musStep % 8, ch = PROG[Math.floor(musStep / 8) % PROG.length], loop = Math.floor(musStep / 64);
+    if (st === 0) { mNote(mf(ch[0] - 24), musT, E * 8.5, "triangle", .09, .3); for (const m of ch) mNote(mf(m - 12), musT, E * 8.4, "sine", .022, 1.2); }
+    const arp = [ch[0], ch[1], ch[2], ch[0] + 12, ch[1] + 12, ch[0] + 12, ch[2], ch[1]];
+    if (loop % 4 !== 3 || st % 2 === 0) mNote(mf(arp[st]), musT, 1.8, "triangle", .045, .004);
+    const m = MEL[musStep % 64];
+    if (m && loop % 2 === 0) { let k = 1; while (k < 8 && !MEL[(musStep + k) % 64]) k++; mNote(mf(m), musT, E * k + .25, "sine", .05, .07, true); mNote(mf(m) * 2, musT, E * k, "sine", .008, .07); }
+    if (m && loop % 2 === 1 && st % 4 === 0) mNote(mf(m + 12), musT, 2.2, "sine", .02, .003);
+    musT += E; musStep++;
+  }
+}
 function setMuteIcon() { $("soundBtn").textContent = muted ? "🔇" : "🔊"; $("soundBtn").setAttribute("aria-label", muted ? "Remettre le son" : "Couper le son"); }
 setMuteIcon();
 $("soundBtn").onclick = () => { muted = !muted; try { localStorage.setItem("pins-muet", muted ? "1" : "0"); } catch (e) {} setMuteIcon(); audioOn(); sfx.click(); };
@@ -1358,6 +1396,7 @@ function loop() {
   fireLight.intensity = 5 + Math.sin(time * 13) * 1 + Math.sin(time * 29) * .6;
   if (splashT > 0) { splashT -= dt; splash.scale.setScalar(1 + (1 - splashT) * 4); splash.material.opacity = Math.max(0, splashT); }
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $("toast").hidden = true; }
+  scheduleMusic();
   if (!paused && !inCottage && !inDome) { birdT -= dt; if (birdT < 0) { birdT = 3 + Math.random() * 6; sfx.bird(); } }
   if (mapOpen) drawMap();
   netTick(dt);
