@@ -116,7 +116,7 @@ html.app .site{display:none!important}
 <div id="intro" class="overlay">
   <div class="card">
     <h1>Le Domaine des Pins</h1>
-    <p>Des vacances dans la forêt : ton cottage et sa terrasse, l'Aquaparc et ses toboggans, la rivière sauvage, la ferme, le poney club, les karts, les vélos, la maison dans les arbres, le lac et son pédalo… et un chat roux qui vient te voir !</p>
+    <p>Des vacances dans la forêt : ton cottage et sa terrasse, l'Aquaparc et ses toboggans, l'aquarium, la rivière sauvage, la ferme, le poney club, les karts, les vélos, la maison dans les arbres, le lac et son pédalo… et un chat roux qui vient te voir !</p>
     <p><b>Mission :</b> 10 canards en plastique se sont échappés. Retrouve-les tous ! 🦆</p>
     <p class="small">Joystick à gauche pour marcher. Glisse ton doigt sur l'écran pour tourner la caméra. Sur ordinateur : flèches ou ZQSD, E pour agir (ouvrir une porte, nager, se changer…), T pour parler. Tu as 4000 € pour la boutique de maillots de bain.</p>
     <div class="row"><button id="startBtn" class="btn">▶ Jouer</button><button id="introMulti" class="btn" style="background:var(--violet)">👫 À plusieurs</button><a class="btn site" style="background:#34495e" href="../index.html">🏠 Accueil</a></div>
@@ -972,6 +972,188 @@ const lampPos = [];
 [-60, -36, -12, 12, 36, 60].forEach(x => lampPos.push([x, 27.6])); [[2.6, 20], [2.6, 10], [28, 8], [42, -24]].forEach(p => lampPos.push(p));
 lampPos.forEach(([x, z]) => { const g = new THREE.Group(); const pole = new THREE.Mesh(new THREE.CylinderGeometry(.07, .1, 3.8, 10), mat(0x2f4f3f, .5, { metalness: .4 })); pole.position.y = 1.9; const lamp = new THREE.Mesh(new THREE.SphereGeometry(.25, 16, 12), new THREE.MeshStandardMaterial({ color: 0xfff1c8, emissive: 0xffd27a, emissiveIntensity: .6 })); lamp.position.y = 3.9; const hat = new THREE.Mesh(new THREE.ConeGeometry(.35, .3, 16), mat(0x2f4f3f, .5)); hat.position.y = 4.2; g.add(pole, lamp, hat); g.position.set(x, 0, z); shadowAll(g); scene.add(g); circles.push({ x, z, r: .2 }); });
 
+/* ---------- L'aquarium (à côté de l'Aquaparc, au bout du chemin du lac) ---------- */
+// Repère local : u vers la porte, v sur le côté. Bassins tout autour du mur, grand bassin rond au milieu.
+const AQU = { x: 58, z: -6, r: 9, a: Math.PI, tank: 6.5, back: 8.6, mid: 2.8 };
+const aqCos = Math.cos(AQU.a), aqSin = Math.sin(AQU.a);
+const aqLocal = (x, z) => { const dx = x - AQU.x, dz = z - AQU.z; return { u: dx * aqCos + dz * aqSin, v: -dx * aqSin + dz * aqCos }; };
+const aqW = (u, v) => [AQU.x + u * aqCos - v * aqSin, AQU.z + u * aqSin + v * aqCos];
+const inAqua = (x, z) => { const l = aqLocal(x, z); return Math.hypot(l.u, l.v) < AQU.r - .3; };
+path(LAKE_PATH, aqW(AQU.r + .3, 0), 2.6);
+const aqG = new THREE.Group(); aqG.position.set(AQU.x, 0, AQU.z); aqG.rotation.y = -AQU.a; scene.add(aqG);
+const AQ_GAP = Math.asin(1.4 / AQU.r), TANK_GAP = .22; // ouverture de la porte, et du couloir entre les bassins
+const aqWallTex = tex(512, (x, s) => {
+  const g = x.createLinearGradient(0, 0, 0, s); g.addColorStop(0, "#2b9fc0"); g.addColorStop(1, "#14506e"); x.fillStyle = g; x.fillRect(0, 0, s, s);
+  x.strokeStyle = "rgba(255,255,255,.85)"; x.lineWidth = 10; x.beginPath(); for (let i = 0; i <= 64; i++) { const px = i / 64 * s; x.lineTo(px, 60 + Math.sin(i / 64 * Math.PI * 8) * 14); } x.stroke();
+  const fishS = (fx, fy, sz, c) => { x.fillStyle = c; x.beginPath(); x.ellipse(fx, fy, sz, sz * .5, 0, 0, 7); x.fill(); x.beginPath(); x.moveTo(fx - sz * .8, fy); x.lineTo(fx - sz * 1.6, fy - sz * .55); x.lineTo(fx - sz * 1.6, fy + sz * .55); x.fill(); };
+  fishS(130, 220, 34, "#ffb03a"); fishS(330, 300, 26, "#ffe066"); fishS(420, 190, 20, "#7fe3ff"); fishS(220, 380, 40, "rgba(255,255,255,.35)");
+  x.fillStyle = "rgba(255,255,255,.4)"; for (let i = 0; i < 14; i++) { x.beginPath(); x.arc(40 + i * 37, 470 - (i % 4) * 40, 4 + (i % 3) * 3, 0, 7); x.fill(); }
+}, 4, 1);
+const oceanTex = tex(256, (x, s) => {
+  const g = x.createLinearGradient(0, 0, 0, s); g.addColorStop(0, "#7fd8f2"); g.addColorStop(.45, "#2386b8"); g.addColorStop(1, "#0b3a5c"); x.fillStyle = g; x.fillRect(0, 0, s, s);
+  for (let i = 0; i < 7; i++) { const px = rnd() * s, w = 10 + rnd() * 18; const r = x.createLinearGradient(0, 0, 0, s * .8); r.addColorStop(0, "rgba(255,255,255,.28)"); r.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = r; x.beginPath(); x.moveTo(px, 0); x.lineTo(px + w, 0); x.lineTo(px + w * 2.5 + 20, s * .8); x.lineTo(px + 20, s * .8); x.fill(); }
+}, 3, 1);
+{
+  const W = AQU.r, H = 4.6, thS = Math.PI / 2 + AQ_GAP, thL = Math.PI * 2 - AQ_GAP * 2;
+  const wallMat = mat(0xffffff, .7, { map: aqWallTex, side: THREE.DoubleSide });
+  const wall = new THREE.Mesh(new THREE.CylinderGeometry(W, W, H, 96, 1, true, thS, thL), wallMat); wall.position.y = H / 2; wall.receiveShadow = true; aqG.add(wall);
+  const top = new THREE.Mesh(new THREE.TorusGeometry(W, .2, 10, 120), mat(0xffffff, .4)); top.rotation.x = Math.PI / 2; top.position.y = H; aqG.add(top);
+  aqG.userData.wallMat = wallMat;
+  // toit en coupole et poisson géant qui tourne au sommet
+  const roof = new THREE.Group(); aqG.add(roof);
+  const cup = new THREE.Mesh(new THREE.SphereGeometry(W + .25, 64, 20, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x1f8fae, .35, { metalness: .2 })); cup.scale.y = .42; cup.position.y = H; cup.castShadow = true; roof.add(cup);
+  for (let k = 0; k < 12; k++) { const rib = new THREE.Mesh(new THREE.TorusGeometry(W + .27, .07, 6, 60, Math.PI), mat(0xffffff, .4)); rib.rotation.y = k * Math.PI / 12; rib.scale.y = .42; rib.position.y = H; roof.add(rib); }
+  aqG.userData.roof = roof;
+  // entrée : piliers, fronton, panneau
+  for (const s of [-1, 1]) { const p = rbox(.5, 4.2, .5, mat(0xffffff, .5), .1); p.position.set(W + .15, 2.1, s * 1.75); p.castShadow = true; aqG.add(p); }
+  const lintel = rbox(1, .7, 4.2, mat(0xffffff, .5), .15); lintel.position.set(W + .15, 4.1, 0); lintel.castShadow = true; aqG.add(lintel);
+  const sign = label("AQUARIUM 🐠", "#1f8fae", "#ffffff", 2.2); sign.position.set(0, 9.6, 0); aqG.add(sign);
+  // portes vitrées automatiques
+  aqG.userData.doors = [-1, 1].map(s => { const d = new THREE.Mesh(new THREE.BoxGeometry(.08, 3.1, 1.42), glassMat.clone()); d.material.opacity = .4; const fr = new THREE.Mesh(new THREE.BoxGeometry(.12, 3.1, .08), metalMat); fr.position.z = -s * .69; d.add(fr); d.position.set(W + .02, 1.6, s * .7); aqG.add(d); return { m: d, s }; });
+  // sol intérieur
+  const fl = new THREE.Mesh(new THREE.CircleGeometry(W, 64), mat(0x2c4a5e, .6, { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 })); fl.rotation.x = -Math.PI / 2; fl.position.y = .03; fl.receiveShadow = true; aqG.add(fl);
+  const runner = new THREE.Mesh(new THREE.PlaneGeometry(W - 3, 2.2), mat(0x1f8fae, .9, { polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -6 })); runner.rotation.x = -Math.PI / 2; runner.position.set((W + 3) / 2, .04, 0); aqG.add(runner);
+  // couloir d'entrée entre les bassins
+  for (const s of [-1, 1]) { const cw = rbox(AQU.r - AQU.tank + .2, H - .2, .25, mat(0x163f57, .7), .06); cw.position.set((AQU.r + AQU.tank) / 2, (H - .2) / 2, s * 1.5); aqG.add(cw); }
+}
+// les bassins tout autour : fond peint, sable, vitre, surface de l'eau
+const aqInside = new THREE.Group(); aqG.add(aqInside);
+{
+  const tS = Math.PI / 2 + TANK_GAP, tL = Math.PI * 2 - TANK_GAP * 2, H = 3.9;
+  const back = new THREE.Mesh(new THREE.CylinderGeometry(AQU.back, AQU.back, H, 96, 1, true, tS, tL), new THREE.MeshBasicMaterial({ map: oceanTex, side: THREE.BackSide })); back.position.y = H / 2; aqInside.add(back);
+  const sand = new THREE.Mesh(new THREE.RingGeometry(AQU.tank, AQU.back, 96, 1, TANK_GAP, Math.PI * 2 - TANK_GAP * 2), mat(0xffffff, .95, { map: sandTex })); sand.rotation.x = -Math.PI / 2; sand.position.y = .08; aqInside.add(sand);
+  const glass = new THREE.Mesh(new THREE.CylinderGeometry(AQU.tank, AQU.tank, H, 96, 1, true, tS, tL), new THREE.MeshStandardMaterial({ color: 0x9fe3ff, roughness: .05, transparent: true, opacity: .2, depthWrite: false, side: THREE.DoubleSide }));
+  glass.position.y = H / 2; glass.renderOrder = 3; aqInside.add(glass);
+  const rail = new THREE.Mesh(new THREE.TorusGeometry(AQU.tank - .05, .06, 8, 120, tL), metalMat); rail.rotation.x = Math.PI / 2; rail.position.y = 1.0; aqInside.add(rail);
+  for (const y of [.02, H]) { const edge = new THREE.Mesh(new THREE.TorusGeometry(AQU.tank, .1, 8, 120, tL), mat(0x163f57, .6)); edge.rotation.x = Math.PI / 2; edge.rotation.z = TANK_GAP; edge.position.y = y; aqInside.add(edge); }
+  rail.rotation.z = TANK_GAP;
+  const surfN = waterNormal.clone(); surfN.repeat.set(3, 3); aqG.userData.surfN = surfN;
+  const surf = new THREE.Mesh(new THREE.RingGeometry(AQU.tank, AQU.back, 96, 1, TANK_GAP, Math.PI * 2 - TANK_GAP * 2), new THREE.MeshStandardMaterial({ color: 0x6fd6f5, roughness: .05, transparent: true, opacity: .35, depthWrite: false, normalMap: surfN, normalScale: new THREE.Vector2(.3, .3) }));
+  surf.rotation.x = -Math.PI / 2; surf.position.y = H - .25; surf.renderOrder = 3; aqInside.add(surf);
+  // le grand bassin rond du milieu
+  const ped = new THREE.Mesh(new THREE.CylinderGeometry(AQU.mid + .2, AQU.mid + .3, .45, 64), mat(0x163f57, .6)); ped.position.y = .22; aqInside.add(ped);
+  const msand = new THREE.Mesh(new THREE.CircleGeometry(AQU.mid, 48), mat(0xffffff, .95, { map: sandTex })); msand.rotation.x = -Math.PI / 2; msand.position.y = .47; aqInside.add(msand);
+  const mglass = new THREE.Mesh(new THREE.CylinderGeometry(AQU.mid, AQU.mid, 3.8, 64, 1, true), glass.material); mglass.position.y = .45 + 1.9; mglass.renderOrder = 3; aqInside.add(mglass);
+  const mrim = new THREE.Mesh(new THREE.TorusGeometry(AQU.mid, .1, 8, 64), metalMat); mrim.rotation.x = Math.PI / 2; mrim.position.y = 4.25; aqInside.add(mrim);
+  const msurf = new THREE.Mesh(new THREE.CircleGeometry(AQU.mid, 48), surf.material); msurf.rotation.x = -Math.PI / 2; msurf.position.y = 4.0; msurf.renderOrder = 3; aqInside.add(msurf);
+  const aqLight = new THREE.PointLight(0x7fd8ff, 10, 16, 1.4); aqLight.position.set(0, 4.2, 0); aqInside.add(aqLight);
+}
+// décor des bassins : coraux, algues, rochers, coffre au trésor
+const aqWeeds = [];
+{
+  const ringPos = (a, r) => [Math.cos(a) * r, -Math.sin(a) * r]; // même sens que l'anneau de sable
+  const coralCols = [0xff6f61, 0xff9ff3, 0xffd166, 0xc56cf0, 0xff8a5c, 0x7bed9f];
+  for (let i = 0; i < 18; i++) {
+    const a = TANK_GAP + .15 + (i + rnd() * .6) / 18 * (Math.PI * 2 - TANK_GAP * 2 - .3), r = AQU.tank + .5 + rnd() * 1.4, [x, z] = ringPos(a, r), c = coralCols[i % 6];
+    const g = new THREE.Group(); g.position.set(x, .08, z);
+    if (i % 3 === 0) { const b = new THREE.Mesh(blobGeo(.45 + rnd() * .25, 2, .3, i), mat(c, .8)); b.scale.y = .7; b.position.y = .25; g.add(b); }
+    else for (let k = 0; k < 5; k++) { const br = new THREE.Mesh(new THREE.CapsuleGeometry(.07, .5 + rnd() * .6, 4, 8), mat(c, .7)); br.position.set((rnd() - .5) * .5, .4, (rnd() - .5) * .5); br.rotation.set((rnd() - .5) * .9, 0, (rnd() - .5) * .9); g.add(br); }
+    aqInside.add(g);
+  }
+  for (let i = 0; i < 20; i++) {
+    const a = TANK_GAP + .1 + rnd() * (Math.PI * 2 - TANK_GAP * 2 - .2), r = AQU.tank + .4 + rnd() * 1.7, [x, z] = ringPos(a, r), h = 1.6 + rnd() * 1.8;
+    const pts = []; for (let k = 0; k <= 6; k++) pts.push(new THREE.Vector3(Math.sin(k * .9 + i) * .15, k / 6 * h, 0));
+    const w = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 12, .06, 5), mat(rnd() < .5 ? 0x2e9e5b : 0x58c26b, .8));
+    w.position.set(x, .08, z); aqInside.add(w); aqWeeds.push({ m: w, ph: rnd() * 6 });
+  }
+  for (let i = 0; i < 9; i++) { const a = TANK_GAP + .2 + rnd() * (Math.PI * 2 - TANK_GAP * 2 - .4), [x, z] = ringPos(a, AQU.back - .5 - rnd() * .6); const rk = new THREE.Mesh(blobGeo(.5 + rnd() * .4, 2, .3, i), mat(0x7d7f86, .95)); rk.scale.y = .65; rk.position.set(x, .2, z); aqInside.add(rk); }
+  // coffre au trésor entrouvert
+  const [cx, cz] = ringPos(Math.PI, AQU.back - 1); const chest = new THREE.Group(); chest.position.set(cx, .08, cz); chest.rotation.y = Math.PI / 2;
+  const body = rbox(.9, .5, .55, mat(0x8a5a35, .7), .05); body.position.y = .25; const lid = rbox(.9, .14, .55, mat(0x8a5a35, .7), .05); lid.position.set(0, .55, -.2); lid.rotation.x = -.7;
+  const gold = new THREE.Mesh(new THREE.SphereGeometry(.3, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xffd23f, .3, { metalness: .8 })); gold.scale.set(1.3, .5, .8); gold.position.y = .48; chest.add(body, lid, gold); aqInside.add(chest);
+  // centre : un arc de rocher et des coraux
+  const arch = new THREE.Mesh(new THREE.TorusGeometry(.8, .28, 10, 20, Math.PI), mat(0x8d8f96, .95)); arch.position.set(-.3, .47, .2); arch.rotation.y = .6; aqInside.add(arch);
+  for (let i = 0; i < 6; i++) { const b = new THREE.Mesh(blobGeo(.25 + rnd() * .2, 2, .3, i), mat(coralCols[i], .8)); const a = i / 6 * Math.PI * 2; b.position.set(Math.cos(a) * 1.7, .6, Math.sin(a) * 1.7); aqInside.add(b); }
+}
+// les poissons
+function fishMesh(body, fin, s, kind = "") {
+  const g = new THREE.Group(), bm = mat(body, .35), fm = mat(fin, .5, { side: THREE.DoubleSide });
+  const b = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), bm); b.scale.set(1, kind === "requin" ? .42 : .55, kind === "requin" ? .4 : .32); g.add(b);
+  if (kind === "requin") { const belly = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), mat(0xf2f2f2, .4)); belly.scale.set(.98, .4, .38); belly.position.y = -.02; g.add(belly); }
+  if (kind === "clown") for (const x of [-.3, .35]) { const st = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, .09, 20), mat(0xffffff, .4)); st.rotation.z = Math.PI / 2; st.scale.set(.56 * Math.sqrt(1 - x * x), 1, .33 * Math.sqrt(1 - x * x)); st.position.x = x; g.add(st); }
+  const tail = new THREE.Group(); tail.position.x = -.9; g.add(tail);
+  const tf = new THREE.Mesh(new THREE.ConeGeometry(.45, .7, 3), fm); tf.rotation.z = Math.PI / 2; tf.scale.z = .15; tf.position.x = -.3; tail.add(tf);
+  const dorsal = new THREE.Mesh(new THREE.ConeGeometry(kind === "requin" ? .22 : .25, kind === "requin" ? .55 : .35, 3), fm); dorsal.scale.z = .15; dorsal.position.set(kind === "requin" ? 0 : -.1, kind === "requin" ? .55 : .55, 0); dorsal.rotation.z = -.3; g.add(dorsal);
+  for (const z of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(.09, 10, 8), mat(0xffffff, .3)); e.position.set(.62, .12, z * (kind === "requin" ? .26 : .2)); const p = new THREE.Mesh(new THREE.SphereGeometry(.05, 8, 6), mat(0x111111, .2)); p.position.set(.67, .12, z * (kind === "requin" ? .31 : .25)); g.add(e, p); }
+  g.scale.setScalar(s); g.userData.tail = tail; return g;
+}
+function turtleMesh() {
+  const g = new THREE.Group(), skin = mat(0x8fbf6a, .6);
+  const shell = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x6b8e3a, .5)); shell.scale.set(1, .45, .8); g.add(shell);
+  const plast = new THREE.Mesh(new THREE.CircleGeometry(1, 20), mat(0xd9c68a, .7)); plast.rotation.x = Math.PI / 2; plast.scale.set(1, .8, 1); g.add(plast);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(.28, 14, 10), skin); head.position.set(1.05, .05, 0); g.add(head);
+  for (const z of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(.05, 8, 6), mat(0x111111, .2)); e.position.set(1.25, .12, z * .13); g.add(e); }
+  const flips = []; for (const [x, z] of [[.5, 1], [.5, -1], [-.6, .8], [-.6, -.8]]) { const f = new THREE.Mesh(new THREE.SphereGeometry(.4, 12, 8), skin); f.scale.set(.6, .12, 1); f.position.set(x, 0, z * .85); g.add(f); flips.push(f); }
+  g.userData.flips = flips; g.scale.setScalar(.55); return g;
+}
+const aqFish = [];
+{
+  const KINDS = [[0xff7a1a, 0x222222, "clown"], [0x2b6fe0, 0xffd23f, ""], [0xffd84a, 0xffb000, ""], [0xff5d8f, 0xff9fbf, ""], [0x9b59b6, 0xffd23f, ""], [0x7fe3ff, 0x2b6fe0, ""]];
+  for (let i = 0; i < 26; i++) { const [b, f, k] = KINDS[i % 6]; const m = fishMesh(b, f, .2 + rnd() * .1, k); aqInside.add(m); aqFish.push({ m, ring: true, r: AQU.tank + .5 + rnd() * 1.6, y: .7 + rnd() * 2.6, w: .05 + rnd() * .1, ph: rnd() * 6, amp: Math.PI - TANK_GAP - .75 - rnd() * 1.2, mid: Math.PI + (rnd() - .5) * .8, wag: 12 + rnd() * 6 }); }
+  const shark = fishMesh(0x7f8c99, 0x6b7785, .75, "requin"); aqInside.add(shark); aqFish.push({ m: shark, ring: true, r: AQU.tank + 1.05, y: 1.9, w: .035, ph: 0, amp: Math.PI - TANK_GAP - .45, mid: Math.PI, wag: 4 });
+  const turtle = turtleMesh(); aqInside.add(turtle); aqFish.push({ m: turtle, ring: true, turtle: true, r: AQU.tank + 1.0, y: 1.2, w: .025, ph: 2, amp: Math.PI - TANK_GAP - .5, mid: Math.PI, wag: 3 });
+  // petits poissons néon du grand bassin
+  for (let i = 0; i < 14; i++) { const m = fishMesh(i % 2 ? 0x2fd3ff : 0xff3b5c, 0x2fd3ff, .13, ""); aqInside.add(m); aqFish.push({ m, ring: false, r: .9 + rnd() * 1.4, y: 1.2 + rnd() * 2.4, w: (.5 + rnd() * .4) * (i % 2 ? 1 : -1), ph: rnd() * 6, wag: 18 }); }
+}
+// méduses lumineuses dans le grand bassin
+const aqJelly = [];
+for (let i = 0; i < 5; i++) {
+  const g = new THREE.Group(), jm = new THREE.MeshStandardMaterial({ color: 0xffa6d9, emissive: 0xff5fb8, emissiveIntensity: .7, transparent: true, opacity: .75, roughness: .2 });
+  const bell = new THREE.Mesh(new THREE.SphereGeometry(.28, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), jm); g.add(bell);
+  for (let k = 0; k < 6; k++) { const t = new THREE.Mesh(new THREE.CylinderGeometry(.015, .01, .6, 4), jm); const a = k / 6 * Math.PI * 2; t.position.set(Math.cos(a) * .16, -.3, Math.sin(a) * .16); g.add(t); }
+  const a = i / 5 * Math.PI * 2; g.position.set(Math.cos(a) * 1.6, 1.5, Math.sin(a) * 1.6); aqInside.add(g); aqJelly.push({ g, bell, base: 1.2 + i * .45, ph: i * 1.3 });
+}
+// bulles et nourriture
+const AQ_BUB = 36, aqBub = new THREE.InstancedMesh(new THREE.SphereGeometry(.05, 8, 6), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: .6, roughness: .1 }), AQ_BUB);
+const aqBubs = Array.from({ length: AQ_BUB }, (_, i) => ({ x: (rnd() - .5) * .5 + (i % 2 ? .9 : -.6), z: (rnd() - .5) * .5, y: .5 + rnd() * 3.5, s: .6 + rnd() * .8 })); aqInside.add(aqBub);
+const AQ_FOOD = 24, aqFood = new THREE.InstancedMesh(new THREE.SphereGeometry(.04, 6, 4), mat(0xb5651d, .9), AQ_FOOD); aqFood.visible = false; aqInside.add(aqFood);
+const aqFoods = Array.from({ length: AQ_FOOD }, () => ({ x: (rnd() - .5) * 3.4, z: (rnd() - .5) * 3.4, y: 4, v: .25 + rnd() * .35 }));
+let aqDoorOpen = 0, aqFeedT = 0, aqFade = 1;
+circles.push({ x: AQU.x, z: AQU.z, r: AQU.mid + .25 });
+const aqM = new THREE.Matrix4(), aqQ = new THREE.Quaternion(), aqV = new THREE.Vector3(), aqS = new THREE.Vector3();
+function updateAquarium(dt, time, P) {
+  const near = Math.hypot(P.x - AQU.x, P.z - AQU.z) < 60; aqInside.visible = near; if (!near) return false;
+  const l = aqLocal(P.x, P.z), inside = Math.hypot(l.u, l.v) < AQU.r - .3;
+  // porte automatique
+  const want = Math.hypot(l.u - AQU.r, l.v) < 4.2 ? 1 : 0; if (want && aqDoorOpen < .05) sfx.door();
+  aqDoorOpen += (want - aqDoorOpen) * Math.min(1, dt * 5); for (const d of aqG.userData.doors) d.m.position.z = d.s * (.7 + aqDoorOpen * 1.45);
+  // on voit l'intérieur quand on y est
+  aqFade += ((inside ? .15 : 1) - aqFade) * Math.min(1, dt * 6); const wm = aqG.userData.wallMat, tr = aqFade < .98;
+  if (wm.transparent !== tr) { wm.transparent = tr; wm.depthWrite = !tr; wm.needsUpdate = true; } wm.opacity = aqFade; aqG.userData.roof.visible = !inside;
+  aqG.userData.surfN.offset.set(time * .02, time * .015);
+  if (aqFeedT > 0) aqFeedT -= dt; const feed = Math.max(0, Math.min(1, aqFeedT * 1.5, (6 - aqFeedT) * 1.5));
+  for (const f of aqFish) {
+    let x, y, z, x2, z2;
+    if (f.ring) { const at = t => f.mid + f.amp * Math.sin(f.w * t + f.ph); const a = at(time), a2 = at(time + .05); x = Math.cos(a) * f.r; z = -Math.sin(a) * f.r; x2 = Math.cos(a2) * f.r; z2 = -Math.sin(a2) * f.r; y = f.y + Math.sin(time * .7 + f.ph) * .25; }
+    else { const r = f.r * (1 - feed * .5), a = f.w * time + f.ph, a2 = a + f.w * .05; x = Math.cos(a) * r; z = Math.sin(a) * r; x2 = Math.cos(a2) * r; z2 = Math.sin(a2) * r; y = THREE.MathUtils.lerp(f.y, 3.6, feed) + Math.sin(time * 1.3 + f.ph) * .15; }
+    f.m.position.set(x, y, z);
+    const target = Math.atan2(-(z2 - z), x2 - x); let df = target - f.m.rotation.y; df = Math.atan2(Math.sin(df), Math.cos(df)); f.m.rotation.y += df * Math.min(1, dt * 4);
+    if (f.turtle) f.m.userData.flips.forEach((p, k) => p.rotation.y = Math.sin(time * 2 + k) * .4); else f.m.userData.tail.rotation.y = Math.sin(time * f.wag + f.ph) * .45;
+  }
+  for (const j of aqJelly) { const k = (Math.sin(time * 2 + j.ph) + 1) / 2; j.bell.scale.set(1 + k * .15, 1 - k * .2, 1 + k * .15); j.g.position.y = j.base + Math.sin(time * .5 + j.ph) * .4; }
+  for (const w of aqWeeds) w.m.rotation.z = Math.sin(time * 1.2 + w.ph) * .12;
+  aqBubs.forEach((b, i) => { b.y += dt * .7 * b.s; if (b.y > 3.95) b.y = .5; aqV.set(b.x + Math.sin(time * 3 + i) * .04, b.y, b.z); aqS.setScalar(b.s); aqM.compose(aqV, aqQ, aqS); aqBub.setMatrixAt(i, aqM); }); aqBub.instanceMatrix.needsUpdate = true;
+  aqFood.visible = aqFeedT > 0; if (aqFood.visible) { aqFoods.forEach((f, i) => { f.y = Math.max(.55, f.y - f.v * dt); aqV.set(f.x * .7, f.y, f.z * .7); aqS.setScalar(1); aqM.compose(aqV, aqQ, aqS); aqFood.setMatrixAt(i, aqM); }); aqFood.instanceMatrix.needsUpdate = true; }
+  return inside;
+}
+function feedFish() { aqFeedT = 6; aqFoods.forEach(f => { f.y = 3.9 + Math.random() * .4; }); [880, 990, 1170, 1320].forEach((f, i) => tone(f, .12, "sine", .1, 300, i * .09)); toast("Miam ! Les poissons montent manger 🐟", 2200); }
+// murs de l'aquarium : on entre par la porte, les bassins arrêtent le passage
+function aqCollide(p, prev) {
+  const lp = aqLocal(p.x, p.z), lq = aqLocal(prev.x, prev.z); let d = Math.hypot(lp.u, lp.v); const pd = Math.hypot(lq.u, lq.v);
+  if (d > AQU.r + 1.5 && pd > AQU.r + 1.5) return;
+  const corr = q => Math.abs(q.v) < 1.0 && q.u > 0;
+  if (!(corr(lp) && (aqDoorOpen > .6 || pd < AQU.r))) {
+    if (pd < AQU.r && d > AQU.r - .5) { const k = (AQU.r - .5) / d; lp.u *= k; lp.v *= k; }
+    else if (pd >= AQU.r && d < AQU.r + .5) { const k = (AQU.r + .5) / Math.max(d, 1e-4); lp.u *= k; lp.v *= k; }
+  }
+  d = Math.hypot(lp.u, lp.v);
+  if (d > AQU.tank - .4 && d < AQU.r && !corr(lp)) {
+    if (corr(lq) && pd > AQU.tank - .5) lp.v = Math.sign(lp.v) * 1.0;
+    else { const k = (AQU.tank - .4) / d; lp.u *= k; lp.v *= k; }
+  }
+  const [x, z] = aqW(lp.u, lp.v); p.x = x; p.z = z;
+}
+
 /* ---------- Canards ---------- */
 const DUCK_SPOTS = [[3, -18], [-22, -26], [17, -15.5], [48, -20], [70, -48], [-72, 0], [-31, 53.5], [-14.5, 43.5], [14, 18.6], [-16, 53]];
 function duckMesh() {
@@ -993,6 +1175,7 @@ function blocked(x, z, pad) {
   if (Math.hypot(x - DOME.x, z - DOME.z) < DOME.r + pad + 2) return true;
   if (Math.hypot(x, z - 5) < 6 + pad) return true;
   if (Math.hypot(x - LAKE.x, z - LAKE.z) < LAKE.r + 2.5 + pad) return true;
+  if (Math.hypot(x - AQU.x, z - AQU.z) < AQU.r + 3 + pad) return true;
   if (cottages.some(c => Math.abs(x - c.x) < 5.5 + pad && (Math.abs(z - c.z) < 4.5 + pad || Math.abs(z - (c.z + c.s * 6.6)) < 2.7 + pad))) return true;
   if (ZONES.some(r => inRect(r, x, z, pad)) || riverNear(x, z).d < RIVER_HW + 3.2 + pad || Math.hypot((x - ARENA.x) / (ARENA.rx + 3), (z - ARENA.z) / (ARENA.rz + 3)) < 1) return true;
   if (boxes.some(b => x > b.x1 - pad && x < b.x2 + pad && z > b.z1 - pad && z < b.z2 + pad)) return true;
@@ -1788,7 +1971,8 @@ const npcs = [
   { name: "Clara, du poney club", pos: [-51.5, -55.2], o: { shirt: 0xe84393, pants: 0x2d3436, hair: 0xd4a017, long: true, shoe: 0x3b2a1a }, lines: ["Salut ! Je suis Clara, la monitrice du poney club.", "Caramel, le poney avec la selle, t'attend juste là. Monte dessus !", "À poney, tu peux te promener partout dans le domaine.", "Dans le manège, fonce vers les petites barres : Caramel saute tout seul !"] },
   { name: "Nico, du circuit", pos: [11.5, -65.5], o: { shirt: 0x222f3e, pants: 0x222f3e, hair: 0x111111, cap: 0xff5a4e }, lines: ["Salut pilote ! Prends un kart et fais le tour du circuit.", "Passe la ligne à damier pour lancer le chrono. Essaie de battre ton record !", "Attention aux pneus dans les virages… et aux deux karts qui roulent déjà !"] },
   { name: "Lucas, de la rivière", pos: [RDOCK.x + RDOCK.tx * 3.4 + RDOCK.sx * 1.2, RDOCK.z + RDOCK.tz * 3.4 + RDOCK.sz * 1.2], o: { shirt: 0xff5a4e, pants: 0xffc93c, shorts: true, hair: 0x2d2018, skin: 0xc68e6a, cap: 0xff5a4e }, lines: ["Bienvenue à la rivière sauvage ! 🌊", "Monte dans une bouée sur le ponton, et le courant t'emporte.", "Il y a deux rapides : ça va très vite ! Penche-toi à gauche ou à droite pour te diriger.", "Le tour se termine ici, au ponton. Tu peux sortir avant si tu veux."] },
-  { name: "Paul, le garde forestier", pos: [40, -10], o: { shirt: 0x6d8b3a, hair: 0x555555, cap: 0x4b6328, skin: 0xc68e6a }, lines: ["Bonjour, aventurier !", "Au ponton du lac, tu peux prendre le pédalo. Un canard flotte au milieu du lac !", "Ouvre la carte pour voir où ils se cachent. Les points jaunes, ce sont eux !"] },
+  { name: "Paul, le garde forestier", pos: [40, -10], o: { shirt: 0x6d8b3a, hair: 0x555555, cap: 0x4b6328, skin: 0xc68e6a }, lines: ["Bonjour, aventurier !", "Au ponton du lac, tu peux prendre le pédalo. Un canard flotte au milieu du lac !", "Ouvre la carte pour voir où ils se cachent. Les points jaunes, ce sont eux !", "Au bout du chemin, il y a l'aquarium ! Va voir Bubulle le requin 🦈"] },
+  { name: "Nina, la soigneuse", pos: aqW(-4.4, 3.2), o: { shirt: 0x1f8fae, pants: 0x2d3436, hair: 0x2d2018, long: true, skin: 0xc68e6a }, lines: ["Bienvenue à l'aquarium ! Moi c'est Nina, je m'occupe des poissons.", "Le gros poisson gris, c'est Bubulle le requin. Il est très gentil !", "Tu as vu la tortue de mer ? Elle s'appelle Pistache 🐢", "Les méduses roses brillent dans le grand bassin du milieu.", "Approche-toi du grand bassin et appuie sur Nourrir les poissons 🐟"] },
 ];
 npcs.forEach(n => { n.g = person(n.o); n.g.position.set(n.pos[0], 0, n.pos[1]); n.g.rotation.y = rnd() * 6; scene.add(n.g); const lb = label(n.name.split(",")[0], "#8e44ad", "#ffffff", .6 / (n.o.scale ?? .76)); lb.position.y = 2.7; n.g.add(lb); circles.push({ x: n.pos[0], z: n.pos[1], r: .5 }); n.idx = -1; });
 const swimmer = person({ shirt: 0xffffff, pants: 0x00b894, shorts: true, hair: 0x2d3436, skin: 0xd9a27a }); setOutfit(swimmer, "requin"); scene.add(swimmer);
@@ -2038,6 +2222,7 @@ function openChest() {
 // ---------- où suis-je dans les nouveaux coins ----------
 const BARN = { x1: -90, x2: -78, z1: -27, z2: -13 };
 function zoneName(P) {
+  if (inAqua(P.x, P.z)) return "🐠 Aquarium";
   if (P.y > 3 && inRect(TREEHUT, P.x, P.z)) return "🏠 La cabane dans l'arbre";
   if (P.y > 3 && inRect(TREEH, P.x, P.z)) return "🌳 Maison dans les arbres";
   for (const h of cabRoofs) if (Math.abs(P.x - h.x) < 2 && Math.abs(P.z - h.z) < 2) return "🛖 Une cabane";
@@ -2048,7 +2233,7 @@ function zoneName(P) {
   if (riverNear(P.x, P.z).d < 7) return "🌊 Rivière sauvage";
   return "";
 }
-const ZTOAST = { "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
+const ZTOAST = { "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
   "🌊 Rivière sauvage": "La rivière sauvage ! Va au ponton pour prendre une bouée 🛟", "🌳 Maison dans les arbres": "Tu es dans les arbres ! Traverse le pont de singe… et descends par le toboggan 🛝", "🛖 Une cabane": "Une petite cabane en rondins 🛖" };
 const seenZ = new Set();
 
@@ -2220,6 +2405,7 @@ let state = "walk", tower = null, climbT = 0, riding = null, swimming = false, i
 let act1 = null, act2 = null, doorNear = null;
 function doAct(a) {
   if (!a) return; sfx.click();
+  if (a === "feed") { feedFish(); return; }
   if (a === "mount" && mountT) { mountVeh(mountT); return; }
   if (a === "dismount") { dismount(); return; }
   if (a === "pet" && petT) { petAnimal(petT); return; }
@@ -2271,9 +2457,10 @@ function drawMap() {
   mx.textAlign = "center"; mx.textBaseline = "middle"; mx.font = '800 13px "Baloo 2",sans-serif';
   cottages.forEach(c => { mx.fillStyle = c.mine ? "#ff5a4e" : "#8a5a30"; mx.fillRect(X(c.x - 5), Z(c.z - 4), 10 * k, 8 * k); mx.fillStyle = "#ffffff"; mx.fillText(c.num, X(c.x), Z(c.z) + 1); });
   mx.textBaseline = "alphabetic";
+  mx.fillStyle = "#1f8fae"; mx.beginPath(); mx.arc(X(AQU.x), Z(AQU.z), AQU.r * k, 0, 7); mx.fill(); mx.strokeStyle = "#ffffff"; mx.lineWidth = 2; mx.stroke();
   mx.fillStyle = "#e84393"; mx.fillRect(X(11.3), Z(21), 5.4 * k, 2 * k);
   mx.font = '700 13px "Baloo 2",sans-serif'; mx.textAlign = "center"; mx.fillStyle = "#0d3b52";
-  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17));
+  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2));
   mx.fillText("Ferme", X(-70), Z(-36)); mx.fillText("Poney club", X(ARENA.x), Z(ARENA.z - ARENA.rz - 2)); mx.fillText("Karts", X(0), Z(-80)); mx.fillText("Rivière sauvage", X(-50), Z(75)); mx.fillText("Maison dans les arbres", X(50), Z(84)); mx.fillText("Vélos", X(6), Z(41));
   mx.font = '700 11px "Baloo 2",sans-serif';
   npcs.forEach(n => { const nx = X(n.g.position.x), nz = Z(n.g.position.z); mx.fillStyle = "#8e44ad"; mx.beginPath(); mx.arc(nx, nz, 4, 0, 7); mx.fill(); mx.fillText(n.name.split(",")[0], nx, nz - 7); });
@@ -2579,6 +2766,7 @@ function resolve(p, prev, who) {
     if (pd < DOME.r && d > DOME.r - .5) { p.x = DOME.x + (p.x - DOME.x) / d * (DOME.r - .5); p.z = DOME.z + (p.z - DOME.z) / d * (DOME.r - .5); }
     else if (pd >= DOME.r && d < DOME.r + .5) { p.x = DOME.x + (p.x - DOME.x) / d * (DOME.r + .5); p.z = DOME.z + (p.z - DOME.z) / d * (DOME.r + .5); }
   }
+  aqCollide(p, prev);
   // le lac : on ne marche que sur le ponton
   if (!wearing && !who) { const wp = (x, z) => inPoolRect(x, z, 0) || inKids(x, z); if (wp(p.x, p.z)) { if (!wp(p.x, prev.z)) p.z = prev.z; else if (!wp(prev.x, p.z)) p.x = prev.x; else { p.x = prev.x; p.z = prev.z; } if (time - suitToastT > 4) { suitToastT = time; toast("Il faut un maillot de bain : va aux vestiaires ! 👕", 2600); } } }
   const wet = (x, z) => inWater(x, z) && !onDock(x, z);
@@ -2697,10 +2885,11 @@ function loop() {
   farmRoofs[0].roof.visible = !inBarn; treeRoof.visible = !inTreeHut; for (const h of cabRoofs) { const i = Math.abs(P.x - h.x) < 2 && Math.abs(P.z - h.z) < 2; h.roof.visible = !i; if (i) inCab = true; }
   const dWant = Math.hypot(P.x, P.z - 7.5) < 5 ? 1 : 0; if (dWant && domeDoorOpen < .05) sfx.door();
   domeDoorOpen += (dWant - domeDoorOpen) * Math.min(1, dt * 5); domeDoors.forEach(d => d.m.position.x = d.s * (1.4 + domeDoorOpen * 2.7)); domeDoorBox.off = domeDoorOpen > .6;
+  const inAq = updateAquarium(dt, time, P);
 
   // caméra
   if (state !== "ride") {
-    if (inCottage) { camDist = 7.5; minPitch = 1.0; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
+    if (inCottage || inAq) { camDist = 7.5; minPitch = 1.0; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
     const pt = Math.max(pitch, minPitch); const baseY = state === "top" ? 9.95 : state === "boat" ? .6 : Math.max(P.y, 0);
     const cx = P.x + Math.sin(yaw) * Math.cos(pt) * camDist, cz = P.z + Math.cos(yaw) * Math.cos(pt) * camDist, cy = baseY + 1.5 + Math.sin(pt) * camDist;
     camera.position.lerp(tv.set(cx, Math.max(cy, .6), cz), Math.min(1, dt * 7)); camera.lookAt(P.x, baseY + 1.4, P.z);
@@ -2721,6 +2910,7 @@ function loop() {
   if (!paused) {
     if (state === "walk") for (const s of slides) if (Math.hypot(P.x - s.base.x, P.z - s.base.z) < 1.8) { tower = s; act1 = "climb"; t1 = "🪜 Monter l'échelle"; }
     if (state === "top") { act1 = "slide"; t1 = "🛝 Glisser !"; act2 = "down"; t2 = "🪜 Descendre"; }
+    if (state === "walk" && inAqua(P.x, P.z) && Math.hypot(P.x - AQU.x, P.z - AQU.z) < AQU.mid + 1.6) { act1 = "feed"; t1 = "🐟 Nourrir les poissons"; }
     if (state === "walk" && swimming) { act1 = "swim"; t1 = swimFast ? "🧍 Arrêter de nager" : "🏊 Nager"; }
     if (state === "walk" && Math.hypot(P.x - locker.userData.front[0], P.z - locker.userData.front[1]) < 2.6) { act1 = "locker"; t1 = "👕 Se changer"; }
     if (state === "walk" && Math.hypot(P.x - shop.userData.front[0], P.z - shop.userData.front[1]) < 3) { act1 = "shop"; t1 = "🛍️ Boutique"; }
