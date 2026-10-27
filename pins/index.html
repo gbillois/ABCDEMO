@@ -1936,10 +1936,11 @@ function onRiver(o, dt, steer) { // avance une bouée le long du courant
 function startRiver() { state = "river"; riv = { u: RDOCK.u, lat: 0, spin: 0, dist: 0, rap: false }; myBuoy.visible = true; $("dialog").hidden = true; talking = null; sfx.splash(); toast("C'est parti sur la rivière ! 🛟 Gauche / droite pour te diriger.", 2800); }
 function endRiver() { state = "walk"; riv = null; myBuoy.visible = false; player.position.set(RDOCK.x, .24, RDOCK.z); player.rotation.set(0, Math.atan2(RDOCK.sx, RDOCK.sz), 0); whoosh(.4, .1, 900, 300); toast("Quel tour ! 🌊", 2000); }
 function riverTick(dt, P) {
-  const [ix] = inp(), o = onRiver(riv, dt, ix); riv.dist += o.sp * dt;
+  // au retour au ponton, la bouée s'arrête et attend : on sort, ou on refait un tour
+  const [ix] = inp(), o = onRiver(riv, riv.stop ? 0 : dt, ix); if (!riv.stop) riv.dist += o.sp * dt;
   myBuoy.position.set(o.x, o.y, o.z); myBuoy.rotation.y = riv.spin; P.set(o.x, o.y - .62, o.z); player.rotation.y = riv.spin; animPerson(player, "buoy", time);
   if (o.rap && !riv.rap) { whoosh(1.6, .22, 300, 1500); toast("Les rapides ! 🌊 Accroche-toi !", 1800); } riv.rap = o.rap;
-  if (riv.dist > RIVER_LEN - 1.5) endRiver();
+  if (!riv.stop && riv.dist > RIVER_LEN - .3) { riv.stop = true; riv.u = RDOCK.u; riv.lat = 0; toast("Te revoilà au ponton ! Tu sors, ou tu refais un tour ? 🛟", 3000); }
 }
 function updateFloaters(dt) { const P = player.position, on = Math.abs(P.x + 50) < 95 && Math.abs(P.z - 74) < 80;
   for (const f of floaters) { if (f.b.visible !== on) f.b.visible = on; if (!on) continue; const o = onRiver(f, dt); f.b.position.set(o.x, o.y, o.z); f.b.rotation.y = f.spin; animPerson(f.g, "buoy", time + f.u * 9); } }
@@ -2174,6 +2175,7 @@ function doAct(a) {
   if (a === "getup") { standUp(); return; }
   if (a === "river") { startRiver(); return; }
   if (a === "riverout") { endRiver(); return; }
+  if (a === "riveragain") { riv.stop = false; riv.dist = 0; toast("C'est reparti ! 🌊", 1600); return; }
   if (a === "chest") { openChest(); return; }
   if (a === "treeslide") { state = "ride"; riding = { curve: treeSlide, u: 0, dry: true }; $("dialog").hidden = true; talking = null; sfx.slide(); toast("Wiiiiii ! 🛝", 1600); return; }
   if (a === "climb" && !wearing) { toast("Il faut un maillot de bain pour le toboggan : va aux vestiaires ! 👕", 2600); return; }
@@ -2688,7 +2690,8 @@ function loop() {
     }
     if (state === "walk" && P.y > 4) { if (Math.hypot(P.x - CHEST.x, P.z - CHEST.z) < 1.8) offer("chest", "🎁 Ouvrir le coffre"); if (Math.hypot(P.x - 63.3, P.z - 69) < 1.5) offer("treeslide", "🛝 Glisser !"); }
     if (state === "drive") offer("dismount", "🧍 Descendre");
-    if (state === "river" && riv.dist > 10 && Math.hypot(P.x - RDOCK.x, P.z - RDOCK.z) < 6) offer("riverout", "🧍 Sortir sur le ponton");
+    if (state === "river" && (riv.stop || riv.dist > 10 && Math.hypot(P.x - RDOCK.x, P.z - RDOCK.z) < 6)) offer("riverout", "🧍 Sortir sur le ponton");
+    if (state === "river" && riv.stop) offer("riveragain", "🔁 Refaire un tour");
     if (state === "lie" || state === "eat") offer("getup", "🧍 Se lever");
   }
   setBtn($("actBtn"), t1); setBtn($("act2Btn"), t2);
@@ -2734,7 +2737,7 @@ function loop() {
   sun.position.set(P.x + sunDir.x * 120, sunDir.y * 120, P.z + sunDir.z * 120); sun.target.position.set(P.x, 0, P.z);
   renderer.render(scene, camera);
 }
-window.__pins = { get veh() { return veh; }, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
+window.__pins = { get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
 loop();
 </script>
 <script>
