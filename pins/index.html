@@ -311,7 +311,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, PETIT ? 1.3 : LOWQ ? 1.5 : 1.7
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.85;
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = LOWQ ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap; // ombres douces plus coûteuses : seulement sur ordinateur
 $("game").appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(58, 1, 0.1, 3000);
@@ -2640,7 +2640,10 @@ function atlasVisage(iris, sourcil, f) {
 // ombres en aplats doux, comme dans les dessins animés, et contour foncé autour des personnages
 const RAMPE = (() => { const t = new THREE.DataTexture(new Uint8Array([165, 165, 165, 255, 175, 175, 175, 255, 255, 255, 255, 255, 255, 255, 255, 255]), 4, 1); t.magFilter = t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; t.needsUpdate = true; return t; })();
 // le côté à l'ombre garde un peu de sa couleur (lumière du ciel), comme dans un dessin animé
-const eclaircir = sh => { sh.fragmentShader = sh.fragmentShader.replace("vec3 outgoingLight =", "totalEmissiveRadiance += diffuseColor.rgb * .3;\n\tvec3 outgoingLight ="); };
+// et un contre-jour doux sur les bords (comme dans les dessins animés)
+const eclaircir = sh => { sh.fragmentShader = sh.fragmentShader.replace("vec3 outgoingLight =", "totalEmissiveRadiance += diffuseColor.rgb * .3;\n\t{ float rim = 1. - max(dot(normalize(vViewPosition), normal), 0.); totalEmissiveRadiance += diffuseColor.rgb * pow(rim, 3.) * .45; }\n\tvec3 outgoingLight ="); };
+// cheveux : un reflet brillant en anneau sur le dessus de la tête
+const eclaircirCheveux = sh => { eclaircir(sh); sh.fragmentShader = sh.fragmentShader.replace("vec3 outgoingLight =", "{ float an = smoothstep(.42, .58, normal.y) * (1. - smoothstep(.66, .82, normal.y)); totalEmissiveRadiance += (diffuseColor.rgb * .9 + .12) * an * .55; }\n\tvec3 outgoingLight ="); };
 const toon = (color, x = {}) => { const m = new THREE.MeshToonMaterial({ color, gradientMap: RAMPE, ...x }); m.onBeforeCompile = eclaircir; return m; };
 const matContour = new THREE.MeshBasicMaterial({ color: 0x2b1d18, side: THREE.BackSide });
 matContour.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\ntransformed += normalize(normal) * .011;"); };
@@ -2663,7 +2666,7 @@ function person(o) {
   const M = {
     sk: toon(skinC, { emissive: skinC.clone().lerp(new THREE.Color(0xff7050), .5).multiplyScalar(.06) }),
     sh: toon(o.shirt, { bumpMap: fabricBump, bumpScale: .6 }), pa: toon(o.pants ?? 0x3a4a63, { bumpMap: fabricBump, bumpScale: .6 }), so: toon(o.shoe ?? 0xf5f5f5), sole: toon(0x2b2b2b),
-    hr: toon(hairC), deco: toon(0xffffff, { vertexColors: true }),
+    hr: Object.assign(toon(hairC), { onBeforeCompile: eclaircirCheveux }), deco: toon(0xffffff, { vertexColors: true }),
     sw: toon(0xffffff), // maillot de bain (motif posé par setOutfit)
   };
   const bins = new Map();
