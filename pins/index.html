@@ -126,7 +126,7 @@ html.app .site{display:none!important}
 <div id="intro" class="overlay">
   <div class="card">
     <h1>Le Domaine des Pins</h1>
-    <p>Des vacances dans la forêt : ton cottage et sa terrasse, l'Aquaparc et ses toboggans, l'aquarium, le Baloba, Game Town, Burger Fast, l'accueil, la boulangerie, le Market, la rivière sauvage, la ferme, le poney club, les karts, les vélos, la maison dans les arbres, le lac et son pédalo… et un chat roux qui vient te voir !</p>
+    <p>Des vacances dans la forêt : ton cottage et sa terrasse, l'Aquaparc et ses toboggans, l'aquarium, le Baloba, Game Town, Burger Fast, l'accueil, la boulangerie, le Market Speed, la rivière sauvage, la ferme, le poney club, les karts, les vélos, la maison dans les arbres, le lac et son pédalo… et un chat roux qui vient te voir !</p>
     <p><b>Mission :</b> 10 canards en plastique se sont échappés. Retrouve-les tous ! 🦆</p>
     <p class="small">Joystick à gauche pour marcher. Glisse ton doigt sur l'écran pour tourner la caméra. Sur ordinateur : flèches ou ZQSD, E pour agir (ouvrir une porte, nager, se changer…), T pour parler, J pour sauter, Maj pour courir. Tu as 4000 € pour la boutique de maillots de bain.</p>
     <p style="margin:10px 0 4px;font-weight:800">Tu joues…</p>
@@ -208,10 +208,10 @@ html.app .site{display:none!important}
     <h1 style="color:#2e86de">Bienvenue ! ℹ️</h1>
     <h3>Ce qui va se passer pendant tes vacances</h3>
     <ul>
-      <li>🌴 <b>Le jour</b>, tu peux aller à l'Aquaparc (n'oublie pas ton maillot !), à l'aquarium, au Baloba, à Game Town, chez Burger Fast, à la boulangerie, au Market, à la ferme, au poney club, aux karts, à la rivière sauvage et dans la maison dans les arbres.</li>
+      <li>🌴 <b>Le jour</b>, tu peux aller à l'Aquaparc (n'oublie pas ton maillot !), à l'aquarium, au Baloba, à Game Town, chez Burger Fast, à la boulangerie, au Market Speed, à la ferme, au poney club, aux karts, à la rivière sauvage et dans la maison dans les arbres.</li>
       <li>🌙 <b>La nuit</b> tombe toutes les 8 minutes : la lune et les étoiles arrivent, les lampadaires s'allument. Dors dans ton cottage pour te réveiller le matin.</li>
       <li>🦆 <b>Ta mission</b> : retrouver les 10 canards en plastique cachés dans le domaine.</li>
-      <li>💶 Tu as de l'argent pour la boutique de maillots, la boulangerie et le Market. À Game Town, tu gagnes des tickets 🎟️.</li>
+      <li>💶 Tu as de l'argent pour la boutique de maillots, la boulangerie et le Market Speed. À Game Town, tu gagnes des tickets 🎟️.</li>
     </ul>
     <h3>Si tu as un problème</h3>
     <ul>
@@ -1879,7 +1879,7 @@ const BOULANGERIE = makeShop({ name: "Boulangerie", x: -76, z: 36.5, hx: 4, hz: 
 boxes.push({ x1: -76 - 3.1, x2: -76 + 3.1, z1: 36.5 + .3, z2: 36.5 + 3.5 });
 // --- le Market ---
 const MARKET = makeShop({ name: "Market", x: -84, z: 48.5, hx: 9, hz: 4.5, door: 1.4, side: -1, wallTex: shopWall("#27ae60", "#ffc93c"), floorTex: tileFloor("#eef2ee", "#dfe8df"), roofCol: 0x1e8449, awnA: "#27ae60", awnB: "#ffffff",
-  sign: "MARKET 🛒", signBg: "#27ae60", signFg: "#ffffff", signScale: 2, build(g) {
+  sign: "MARKET SPEED 🛒⚡", signBg: "#27ae60", signFg: "#ffffff", signScale: 2, build(g) {
     const cols = [0xff5a4e, 0xffc93c, 0x2e86de, 0x27ae60, 0xe84393, 0x8e44ad, 0xff8a2b, 0xffffff];
     // trois rayons pleins de produits
     const prod = new THREE.InstancedMesh(new THREE.BoxGeometry(.22, .3, .18), mat(0xffffff, .6), 3 * 2 * 4 * 22); let k = 0; const m4 = new THREE.Matrix4(), cc = new THREE.Color();
@@ -1902,7 +1902,7 @@ boxes.push({ x1: -84 - 7.4, x2: -84 - .5, z1: 48.5 - 4.5, z2: 48.5 - 3.7 }, { x1
 // acheter : boulangerie et Market partagent la même fenêtre
 const BUY = {
   boul: { title: "La boulangerie 🥖", items: [["🥐", "Croissant", 1], ["🍫", "Pain au chocolat", 1], ["🥖", "Baguette", 1], ["🍬", "Chouquettes", 2], ["🧁", "Éclair au chocolat", 3], ["🍓", "Tarte aux fraises", 4]] },
-  market: { title: "Le Market 🛒", items: [["🍎", "Pommes", 2], ["🥛", "Lait", 1], ["🥣", "Céréales", 3], ["🍕", "Pizza", 5], ["🍬", "Bonbons", 2], ["🧃", "Jus de fruits", 2], ["🧴", "Crème solaire", 6], ["⚽", "Ballon", 8], ["🍦", "Glaces", 4], ["🦆", "Petit canard en plastique", 3]] },
+  market: { title: "Le Market Speed 🛒⚡", items: [["🍎", "Pommes", 2], ["🥛", "Lait", 1], ["🥣", "Céréales", 3], ["🍕", "Pizza", 5], ["🍬", "Bonbons", 2], ["🧃", "Jus de fruits", 2], ["🧴", "Crème solaire", 6], ["⚽", "Ballon", 8], ["🍦", "Glaces", 4], ["🦆", "Petit canard en plastique", 3]] },
 };
 let bag = []; try { const b = JSON.parse(localStorage.getItem("pins-sac") || "[]"); if (Array.isArray(b)) bag = b.filter(x => typeof x === "string").slice(-60); } catch (e) {}
 let buyShop = null;
@@ -1920,7 +1920,7 @@ $("buyList").addEventListener("click", e => { const b = e.target.closest("button
 $("buyClose").onclick = () => fermer("buyView");
 function openBuy(k) { buyShop = k; renderBuy(); ouvrir("buyView"); }
 $("progClose").onclick = () => fermer("progView");
-ACCUEIL.where = "🏨 Accueil"; BOULANGERIE.where = "🥖 Boulangerie"; MARKET.where = "🛒 Market";
+ACCUEIL.where = "🏨 Accueil"; BOULANGERIE.where = "🥖 Boulangerie"; MARKET.where = "🛒 Market Speed";
 
 /* ---------- Canards ---------- */
 const DUCK_SPOTS = [[3, -18], [-22, -26], [17, -15.5], [48, -20], [70, -48], [-72, 0], [-31, 53.5], [-14.5, 43.5], [14, 18.6], [-16, 53]];
@@ -2751,7 +2751,7 @@ const npcs = [
   { name: "Zoé, de Burger Fast", pos: fw(-1.2, -4.4), o: { shirt: 0xff7a2f, pants: 0x1f9e8f, hair: 0x5a3a22, long: true, cap: 0xff7a2f }, lines: ["Bienvenue chez Burger Fast ! 🍔", "Approche-toi de la caisse et appuie sur Commander pour choisir ton menu.", "Quand ta commande est prête, viens chercher ton plateau au bout du comptoir.", "Ensuite, va t'asseoir à une table pour manger. Bon appétit ! 😋"] },
   { name: "Margot, de l'accueil", pos: ACCUEIL.w(0, 2.3), o: { shirt: 0x2e86de, pants: 0x2d3436, hair: 0xd4a017, long: true }, lines: ["Bonjour et bienvenue au Domaine des Pins ! 😊", "Ici, je t'explique ce qui va se passer pendant tes vacances, et quoi faire si tu as un problème.", "Approche-toi du comptoir et appuie sur Le programme pour tout lire.", "Le grand plan du domaine est accroché au mur, derrière moi !"] },
   { name: "Bernard, le boulanger", pos: BOULANGERIE.w(0, 2), o: { shirt: 0xffffff, pants: 0xf3e2c3, hair: 0x9a9a9a, cap: 0xffffff, skin: 0xe0ac85 }, lines: ["Bonjour ! Mes croissants sortent du four 🥐", "J'ai des baguettes, des pains au chocolat, des chouquettes, des éclairs et des tartes aux fraises.", "Approche-toi de la vitrine et appuie sur Acheter !"] },
-  { name: "Inès, du Market", pos: MARKET.w(5.6, 2.7), o: { shirt: 0x27ae60, pants: 0x2d3436, hair: 0x2d2018, long: true, skin: 0x8d5a3b }, lines: ["Bienvenue au Market ! 🛒", "On a des fruits, des céréales, des pizzas, des bonbons, de la crème solaire, des ballons…", "Viens à la caisse et appuie sur Faire les courses."] },
+  { name: "Inès, du Market Speed", pos: MARKET.w(5.6, 2.7), o: { shirt: 0x27ae60, pants: 0x2d3436, hair: 0x2d2018, long: true, skin: 0x8d5a3b }, lines: ["Bienvenue au Market Speed ! 🛒⚡", "On a des fruits, des céréales, des pizzas, des bonbons, de la crème solaire, des ballons…", "Viens à la caisse et appuie sur Faire les courses."] },
 ];
 npcs.forEach(n => { n.g = person(n.o); n.g.position.set(n.pos[0], 0, n.pos[1]); n.g.rotation.y = rnd() * 6; scene.add(n.g); const lb = label(n.name.split(",")[0], "#8e44ad", "#ffffff", .6 / (n.o.scale ?? .76)); lb.position.y = 2.7; n.g.add(lb); circles.push({ x: n.pos[0], z: n.pos[1], r: .5 }); n.idx = -1; });
 const swimmer = person({ shirt: 0xffffff, pants: 0x00b894, shorts: true, hair: 0x2d3436, skin: 0xd9a27a }); setOutfit(swimmer, "requin"); scene.add(swimmer);
@@ -3017,7 +3017,7 @@ function zoneName(P) {
   if (riverNear(P.x, P.z).d < 7) return "🌊 Rivière sauvage";
   return "";
 }
-const ZTOAST = { "🏨 Accueil": "L'accueil ! Margot t'explique tout : approche-toi du comptoir 📋", "🥖 Boulangerie": "Ça sent bon le pain chaud ! 🥖", "🛒 Market": "Le Market ! Va à la caisse pour faire tes courses 🛒", "🅿️ Parking": "Le parking ! Approche-toi d'une voiture pour klaxonner 📯. Les vélos sous l'abri, tu peux les prendre 🚲", "🍔 Burger Fast": "Burger Fast ! Va à la caisse pour commander ton menu 🍔🍟", "🎮 Game Town": "Game Town ! Joue aux bornes d'arcade pour gagner des tickets 🎟️", "🎈 Le Baloba": "Le Baloba ! Grimpe dans la structure, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
+const ZTOAST = { "🏨 Accueil": "L'accueil ! Margot t'explique tout : approche-toi du comptoir 📋", "🥖 Boulangerie": "Ça sent bon le pain chaud ! 🥖", "🛒 Market Speed": "Le Market Speed ! Va à la caisse pour faire tes courses 🛒⚡", "🅿️ Parking": "Le parking ! Approche-toi d'une voiture pour klaxonner 📯. Les vélos sous l'abri, tu peux les prendre 🚲", "🍔 Burger Fast": "Burger Fast ! Va à la caisse pour commander ton menu 🍔🍟", "🎮 Game Town": "Game Town ! Joue aux bornes d'arcade pour gagner des tickets 🎟️", "🎈 Le Baloba": "Le Baloba ! Grimpe dans la structure, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
   "🌊 Rivière sauvage": "La rivière sauvage ! Va au ponton pour prendre une bouée 🛟", "🌳 Maison dans les arbres": "Tu es dans les arbres ! Traverse le pont de singe… et descends par le toboggan 🛝", "🛖 Une cabane": "Une petite cabane en rondins 🛖" };
 const seenZ = new Set();
 
@@ -3257,7 +3257,7 @@ function drawMap() {
   mx.fillStyle = "#1f8fae"; mx.beginPath(); mx.arc(X(AQU.x), Z(AQU.z), AQU.r * k, 0, 7); mx.fill(); mx.strokeStyle = "#ffffff"; mx.lineWidth = 2; mx.stroke();
   mx.fillStyle = "#e84393"; mx.fillRect(X(11.3), Z(21), 5.4 * k, 2 * k);
   mx.font = '700 13px "Baloo 2",sans-serif'; mx.textAlign = "center"; mx.fillStyle = "#0d3b52";
-  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2)); mx.fillText("Baloba", X(BALO.x), Z(BALO.z - BALO.hz - 2)); mx.fillText("Game Town", X(GTW.x), Z(GTW.z - GTW.hz - 2)); mx.fillText("Burger Fast", X(BFW.x), Z(BFW.z - BFW.hz - 2)); mx.fillText("Accueil", X(ACCUEIL.x), Z(ACCUEIL.z - 5.5)); mx.fillText("Boulangerie", X(BOULANGERIE.x + 1), Z(BOULANGERIE.z - 5)); mx.fillText("Market", X(MARKET.x), Z(MARKET.z + 6.5)); mx.fillStyle = "#ffffff"; mx.fillText("P Parking", X((PARK.x1 + PARK.x2) / 2), Z((PARK.z1 + PARK.z2) / 2)); mx.fillStyle = "#1d3b2a";
+  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2)); mx.fillText("Baloba", X(BALO.x), Z(BALO.z - BALO.hz - 2)); mx.fillText("Game Town", X(GTW.x), Z(GTW.z - GTW.hz - 2)); mx.fillText("Burger Fast", X(BFW.x), Z(BFW.z - BFW.hz - 2)); mx.fillText("Accueil", X(ACCUEIL.x), Z(ACCUEIL.z - 5.5)); mx.fillText("Boulangerie", X(BOULANGERIE.x + 1), Z(BOULANGERIE.z - 5)); mx.fillText("Market Speed", X(MARKET.x), Z(MARKET.z + 6.5)); mx.fillStyle = "#ffffff"; mx.fillText("P Parking", X((PARK.x1 + PARK.x2) / 2), Z((PARK.z1 + PARK.z2) / 2)); mx.fillStyle = "#1d3b2a";
   mx.fillText("Ferme", X(-70), Z(-36)); mx.fillText("Poney club", X(ARENA.x), Z(ARENA.z - ARENA.rz - 2)); mx.fillText("Karts", X(0), Z(-80)); mx.fillText("Rivière sauvage", X(-50), Z(75)); mx.fillText("Maison dans les arbres", X(50), Z(84)); mx.fillText("Vélos", X(6), Z(41));
   mx.font = '700 11px "Baloo 2",sans-serif';
   npcs.forEach(n => { const nx = X(n.g.position.x), nz = Z(n.g.position.z); mx.fillStyle = "#8e44ad"; mx.beginPath(); mx.arc(nx, nz, 4, 0, 7); mx.fill(); mx.fillText(n.name.split(",")[0], nx, nz - 7); });
