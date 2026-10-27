@@ -2,7 +2,9 @@
 
 Le relais est un Cloudflare Worker avec un Durable Object (`Salle`). Une partie = un code
 de 8 caractères = une salle en mémoire. Il transmet seulement des positions et des numéros
-de phrases entre 10 joueurs au maximum, n'écrit rien sur disque et n'a pas de journaux.
+de phrases et les profils entre 10 joueurs au maximum, n'écrit rien sur disque et n'a
+pas de journaux. À la connexion, chaque joueur choisit fille/garçon et, s'il le veut,
+un surnom court filtré. Aucun vrai prénom n'est demandé.
 
 ## Prompt à donner à une IA qui gère Cloudflare
 
@@ -65,6 +67,18 @@ Le paramètre `?relais=` n'est accepté que sur `localhost`.
 - Code de partie : 8 caractères parmi `ABCDEFGHJKMNPQRSTUVWXYZ23456789`. Une salle
   n'existe que tant qu'au moins un joueur y est : le code ne sert plus ensuite.
 - 10 joueurs au maximum par salle.
+- Profil : `{ "t": "profil", "pseudo": "Petit Panda", "sexe": "f", "tenue": null }`.
+  `sexe` vaut `f` ou `g` ; `tenue` vaut `null` (habits) ou l'un des identifiants de
+  `MAILLOTS`. Le surnom (facultatif) contient 2 à 16 caractères autorisés ; un filtre
+  simple refuse les insultes usuelles, y compris certaines variantes avec accents,
+  espaces ou chiffres. Ce filtre ne garantit pas de bloquer toutes les insultes.
+  Un profil invalide reçoit `{ "t": "profil_refuse" }` et n'est pas diffusé.
+  Le relais renvoie le profil validé avec le numéro `s` à tous les joueurs, et les
+  profils déjà présents à chaque nouvel arrivant, après le message `bienvenue`.
+  Surnom et sexe sont fixes pendant la connexion ; la tenue peut changer. Les profils
+  restent uniquement dans les pièces jointes des WebSockets de la salle, sans base de
+  données ni journal. Les anciens clients sans profil gardent leur identité d'animal.
 - Messages acceptés : position (nombres bornés, 15 par seconde au plus) ou numéro de
   phrase (0 à 63, une toutes les 1,5 s). Tout autre champ est ignoré, tout message de
-  plus de 160 octets ferme la connexion. Aucun texte libre n'est jamais retransmis.
+  plus de 160 caractères ferme la connexion. Seul le surnom validé peut contenir du
+  texte libre ; les phrases de discussion restent une liste fermée.
