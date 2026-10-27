@@ -417,7 +417,8 @@ const PCX = (POOL.x1 + POOL.x2) / 2, PCZ = (POOL.z1 + POOL.z2) / 2, PW = POOL.x2
 const FARM = { x1: -94, x2: -46, z1: -34, z2: 9 }, PONYZ = { x1: -95, x2: -44, z1: -70, z2: -46 }, KARTZ = { x1: -31, x2: 31, z1: -94, z2: -64 };
 const ARENA = { x: -68, z: -58, rx: 14, rz: 9 }, KART = { x: 0, z: -80, rx: 23, rz: 7 }, RACK = { x1: 2, x2: 10, z1: 34.5, z2: 38.5 };
 const TREEH = { x1: 38, x2: 76, z1: 56.5, z2: 78 }, HUTS = [[28, 63], [58, 60.5], [75, 82]];
-const ZONES = [FARM, PONYZ, KARTZ, RACK, TREEH, ...HUTS.map(([x, z]) => ({ x1: x - 3.5, x2: x + 3.5, z1: z - 3.5, z2: z + 3.5 }))];
+const ENTREE = { x1: -13, x2: 13, z1: 3, z2: 26 }; // dégagé devant l'entrée de l'Aquaparc
+const ZONES = [FARM, PONYZ, KARTZ, RACK, TREEH, ENTREE, ...HUTS.map(([x, z]) => ({ x1: x - 3.5, x2: x + 3.5, z1: z - 3.5, z2: z + 3.5 }))];
 const inRect = (r, x, z, m = 0) => x > r.x1 - m && x < r.x2 + m && z > r.z1 - m && z < r.z2 + m;
 const RIVER_HW = 1.8, RAPIDS = [[.27, .36], [.76, .85]];
 const river = new THREE.CatmullRomCurve3([[-80, 62], [-60, 58], [-40, 62], [-22, 60], [-16, 72], [-26, 86], [-48, 88], [-62, 80], [-78, 86], [-86, 74]].map(([x, z]) => new THREE.Vector3(x, 0, z)), true, "centripetal");
