@@ -2668,7 +2668,27 @@ function matVisage(iris, sourcil, f) {
   const m = toon(0xffffff, { map: atlasVisage(iris, sourcil, f), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   m.userData.partage = true; return MAT_VISAGE[key] = m;
 }
-const PERSO_GEO = new Map();
+const PERSO_GEO = new Map(), VISAGE_GEO = new Map(), PERSO_UNE = new Map();
+// foule : tout le corps en un seul maillage et un seul matériau ; la couleur de chaque partie (peau, t-shirt, short…)
+// et ce qui est caché (habits ou maillot) sont choisis dans le shader
+const PARTIES = ["sk", "skl", "sh", "pa", "so", "sole", "hr", "deco", "sw", "cap"];
+const BLANC1 = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1); BLANC1.needsUpdate = true;
+const toonUneCompile = sh => { eclaircir(sh);
+  sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute float pk; attribute vec2 uvs; uniform float vis[10]; flat varying float vPk; varying vec2 vUvs;")
+    .replace("#include <begin_vertex>", "#include <begin_vertex>\nvPk = pk; vUvs = uvs; if (vis[int(pk + .5)] < .5) transformed = vec3(0.);");
+  sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform vec3 pal[10]; uniform float texK; uniform sampler2D suitMap; flat varying float vPk; varying vec2 vUvs;")
+    .replace("vec4 diffuseColor = vec4( diffuse, opacity );", "vec3 pc = pal[int(vPk + .5)]; if (abs(vPk - texK) < .5) pc = texture2D(suitMap, vUvs).rgb;\nvec4 diffuseColor = vec4( diffuse * pc, opacity );"); };
+function toonUne() {
+  const m = new THREE.MeshToonMaterial({ gradientMap: RAMPE, vertexColors: true });
+  const u = { pal: { value: PARTIES.map(() => new THREE.Color(1, 1, 1)) }, vis: { value: new Float32Array(10).fill(1) }, texK: { value: -1 }, suitMap: { value: BLANC1 } };
+  m.onBeforeCompile = sh => { Object.assign(sh.uniforms, u); toonUneCompile(sh); }; m.customProgramCacheKey = () => "toon-une"; m.userData.u = u; return m;
+}
+function geoUne(geos) {
+  const l = []; for (const [k, geo] of Object.entries(geos)) { const g = geo.clone(), n = g.attributes.position.count, pk = new Float32Array(n).fill(PARTIES.indexOf(k));
+    g.setAttribute("pk", new THREE.BufferAttribute(pk, 1)); g.setAttribute("uvs", g.attributes.uv.clone());
+    if (!g.attributes.color) g.setAttribute("color", new THREE.BufferAttribute(new Float32Array(n * 3).fill(1), 3)); l.push(g); }
+  const m = mergeGeometries(l); m.userData.partage = true; l.forEach(x => x.dispose()); return m;
+}
 function person(o) {
   // corps humain réaliste : un squelette articulé (hanches, genoux, chevilles, épaules, coudes, poignets, tête),
   // la peau d'un seul tenant, et les vêtements posés par-dessus (on peut les enlever pour le maillot de bain).
@@ -2772,11 +2792,15 @@ function person(o) {
       pos.push(X - cx, Y - cy, surf(X, Y) + .003 - cz); uv.push((u0 + (mir ? 1 - a : a) * du) / 512, 1 - (v0 + (1 - b) * dv) / 256); }
     for (let j = 0; j < nD; j++) for (let i = 0; i < nD; i++) { const p = j * (nD + 1) + i; idx.push(p, p + 1, p + nD + 2, p, p + nD + 2, p + nD + 1); }
     const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals();
-    const m = new THREE.Mesh(geo, fm); m.position.set(cx, cy, cz); m.renderOrder = 1; head.add(m); return m;
+    return { geo, c: new THREE.Vector3(cx, cy, cz) };
   };
-  for (const s of [-1, 1]) lids.push(decal(s * .082, .018, .13, .13, 0, 0, 256, 256, s < 0));
-  decal(0, -.105, .1, .05, 256, 0, 256, 128, false);
-  for (const s of [-1, 1]) decal(s * .118, -.06, .075, .0375, 256, 128, 256, 128, false);
+  // une seule géométrie pour tous les visages ; les yeux à part (ils clignent), sauf pour la foule
+  const vk = o.lite ? "l" : "p"; let VG = VISAGE_GEO.get(vk);
+  if (!VG) { const yeux = [-1, 1].map(s => decal(s * .082, .018, .13, .13, 0, 0, 256, 256, s < 0)), reste = [decal(0, -.105, .1, .05, 256, 0, 256, 128, false), ...[-1, 1].map(s => decal(s * .118, -.06, .075, .0375, 256, 128, 256, 128, false))];
+    const fusion = l => { const m = mergeGeometries(l.map(d => d.geo.translate(d.c.x, d.c.y, d.c.z))); m.userData.partage = true; return m; };
+    VG = o.lite ? { tout: fusion([...yeux, ...reste]) } : { yeux: yeux.map(d => { d.geo.userData.partage = true; return d; }), reste: fusion(reste) }; VISAGE_GEO.set(vk, VG); }
+  const pose = (geo, c) => { const m = new THREE.Mesh(geo, fm); if (c) m.position.copy(c); m.renderOrder = 1; head.add(m); return m; };
+  if (o.lite) pose(VG.tout); else { for (const d of VG.yeux) lids.push(pose(d.geo, d.c)); pose(VG.reste); }
   // cheveux
   put(head, "hr", new THREE.SphereGeometry(.243, 48, 24, 0, Math.PI * 2, 0, Math.PI * .5), [0, .045, -.02], [-.35, 0, 0]);
   put(head, "hr", sph(.232, 40, 28), [0, .01, -.055], [0, 0, 0], [.98, .97, .9]);
@@ -2803,6 +2827,13 @@ function person(o) {
     PERSO_GEO.set(ckey, geos); }
   const skel = new THREE.Skeleton(bones), parts = { sh: [], pa: [], so: [], sole: [], hr: [], sw: [] }, top = [], sleeves = [], zone = new THREE.Sphere(new THREE.Vector3(0, 1.1, 0), 1.8);
   M.skl = M.sk;
+  if (o.lite) { // la foule : un seul maillage
+    let une = PERSO_UNE.get(ckey); if (!une) { une = geoUne(PERSO_GEO.get(ckey)); PERSO_UNE.set(ckey, une); }
+    const mu = toonUne(), mesh = new THREE.SkinnedMesh(une, mu); mesh.bind(skel, new THREE.Matrix4()); mesh.boundingSphere = zone; mesh.receiveShadow = true; g.add(mesh);
+    g.scale.setScalar(o.scale ?? .76); g.rotation.order = "YXZ";
+    g.userData = { une: mu.userData.u, female, legs, arms, knees, elbows, head, lids, blink: 2 + R() * 4, skinColor: skinC.getHex(), hairColor: hairC.getHex(), capColor: o.cap, clothes: { shirt: o.shirt, pants: o.pants ?? 0x3a4a63, shoe: o.shoe ?? 0xf5f5f5 } };
+    setOutfit(g, null); return g;
+  }
   for (const [key, geo] of Object.entries(PERSO_GEO.get(ckey))) { const mesh = new THREE.SkinnedMesh(geo, M[key]); mesh.bind(skel, new THREE.Matrix4()); mesh.boundingSphere = zone;
     mesh.castShadow = !o.lite; mesh.receiveShadow = true; g.add(mesh); if (parts[key]) parts[key].push(mesh); if (key === "sh") top.push(mesh);
     // contour foncé (pas sur la peau des bras et des jambes : il dessinerait les articulations)
@@ -2838,6 +2869,13 @@ function animPerson(g, mode, t) {
 // tenue : habits ou maillot de bain
 function setOutfit(g, id) {
   const u = g.userData, su = SUITS.find(x => x.id === id), show = (arr, v) => arr.forEach(m => m.visible = v);
+  if (u.une) { // la foule : couleurs et parties visibles dans le shader
+    const P = u.une.pal.value, Vi = u.une.vis.value, I = k => PARTIES.indexOf(k), col = (k, c) => P[I(k)].set(c), vis = (ks, v) => ks.forEach(k => Vi[I(k)] = v ? 1 : 0);
+    col("sk", u.skinColor); col("skl", u.skinColor); col("hr", u.hairColor); col("sole", 0x2b2b2b); col("cap", u.capColor ?? 0xffffff);
+    col("sh", su?.full ? su.a : u.clothes.shirt); col("pa", u.clothes.pants); col("so", u.clothes.shoe);
+    vis(["sh", "pa"], !su || su.full); vis(["so", "sole"], !su); vis(["sw"], !!su && !su.full);
+    u.une.texK.value = su ? I(su.full ? "pa" : "sw") : -1; u.une.suitMap.value = su ? suitTex(su) : BLANC1; return;
+  }
   show(u.swim, !!su && !su.full);
   if (!su) { // habits
     show(u.shirtParts, true); show(u.pantsParts, true); show(u.shoeParts, true);
@@ -3907,7 +3945,8 @@ const TRI = [], LAMPES = [];
   for (const o of scene.children) {
     if (o === player || o.isLight || o.isCamera) continue;
     b3.setFromObject(o); if (b3.isEmpty()) continue; b3.getBoundingSphere(sp); if (sp.radius > 26 && !o.userData.loin) continue;
-    TRI.push({ o, lc: o.worldToLocal(sp.center.clone()), far: (o.userData.loin ?? ((LOWQ ? 30 : 40) + sp.radius * (LOWQ ? 10 : 13))) + (o.userData.loin ? sp.radius : 0), off: false });
+    o.traverse(x => { if (x.isMesh) x.userData.cs0 = x.castShadow; });
+    TRI.push({ o, lc: o.worldToLocal(sp.center.clone()), far: (o.userData.loin ?? ((LOWQ ? 30 : 40) + sp.radius * (LOWQ ? 10 : 13))) + (o.userData.loin ? sp.radius : 0), ombre: (LOWQ ? 22 : 30) + sp.radius, off: false, omb: true });
   }
   scene.traverse(o => {
     if (o.isPointLight) { LAMPES.push(o); o.visible = false; }
@@ -3927,7 +3966,10 @@ function trier(dt) {
   triT -= dt; if (triT > 0) return; triT = .25;
   const C = camera.position;
   for (const t of TRI) { const o = t.o; if (!o.parent) continue; _tv.copy(t.lc).applyMatrix4(o.matrixWorld); const off = _tv.distanceTo(C) > t.far;
-    if (off !== t.off) { t.off = off; o.traverse(x => { if (!x.isLight) x.layers.set(off ? 1 : 0); }); } }
+    if (off !== t.off) { t.off = off; o.traverse(x => { if (!x.isLight) x.layers.set(off ? 1 : 0); }); }
+    // au-delà de quelques dizaines de mètres, l'ombre ne se voit plus : on ne la calcule pas
+    const omb = !off && _tv.distanceTo(player.position) < t.ombre;
+    if (omb !== t.omb) { t.omb = omb; o.traverse(x => { if (x.isMesh && x.userData.cs0 !== undefined) x.castShadow = omb && x.userData.cs0; }); } }
   // les 2 lumières les plus proches (dans les 30 m)
   const près = LAMPES.filter(l => l.parent).map(l => [l, l.getWorldPosition(_tv).distanceTo(C)]).filter(([, d]) => d < 30).sort((a, b) => a[1] - b[1]).slice(0, 2).map(([l]) => l);
   for (const l of LAMPES) l.visible = près.includes(l);
