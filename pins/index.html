@@ -438,7 +438,7 @@ function bake(src) {
     for (const k of Object.keys(g.attributes)) if (!["position", "normal", "uv"].includes(k)) g.deleteAttribute(k);
     if (!g.attributes.uv) g.setAttribute("uv", new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
     if (!by.has(m.material)) by.set(m.material, []); by.get(m.material).push(g); });
-  const out = new THREE.Group(); for (const [m, gs] of by) { const me = new THREE.Mesh(mergeGeometries(gs), m); me.castShadow = me.receiveShadow = true; out.add(me); } return out;
+  const out = new THREE.Group(); out.position.copy(src.position); out.quaternion.copy(src.quaternion); out.scale.copy(src.scale); for (const [m, gs] of by) { const me = new THREE.Mesh(mergeGeometries(gs), m); me.castShadow = me.receiveShadow = true; out.add(me); } return out;
 }
 // un seul maillage à couleurs par sommet : [géométrie, couleur, position, rotation, échelle]
 const VC = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .85 });
@@ -563,7 +563,7 @@ function palm(x, z, h = 6) {
   for (let i = 0; i < 3; i++) { const c = new THREE.Mesh(new THREE.SphereGeometry(.17, 12, 10), mat(0x6b4a2a, .8)); c.position.set(top.x + Math.cos(i * 2) * .25, top.y - .2, top.z + Math.sin(i * 2) * .25); g.add(c); }
   g.position.set(x, 0, z); shadowAll(g); scene.add(g); circles.push({ x, z, r: .45 });
 }
-[[-25, -8], [24, -10], [-26, -50], [24, -50], [0, -61], [-3, -14], [26, -26]].forEach(p => palm(p[0], p[1], 6 + rnd() * 2));
+[[-25, -8], [24, -10], [-26, -50], [24, -50], [0, -61], [-18, -11], [26, -26]].forEach(p => palm(p[0], p[1], 6 + rnd() * 2));
 // transats
 function lounger(x, z, ry) {
   const g = new THREE.Group(); const frame = rbox(.75, .12, 1.9, mat(0xffffff, .4), .05); frame.position.y = .38; const cushion = rbox(.68, .1, 1.3, mat(0x2fa7d6, .8), .05); cushion.position.set(0, .48, .25);
