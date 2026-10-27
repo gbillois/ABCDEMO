@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Vintage Parc</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+/* Vintage Parc : la toute première version du Domaine des Pins (27 octobre 2026), gardée telle quelle en souvenir. */
+*{box-sizing:border-box}[hidden]{display:none!important}
+#homeBtn{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:calc(130px + env(safe-area-inset-right,0px));background:#34495e;text-decoration:none}
+/* Layout : jeu 3D plein écran, commandes flottantes dans les coins */
+:root{
+  --sky:#9fd8f0; --ink:#1d3b2a; --panel:#fffdf4; --leaf:#2f8f5b; --water:#1fa5d6; --sun:#ffc93c; --slide:#ff5a4e;
+  --ui:'Baloo 2','Trebuchet MS',system-ui,sans-serif;
+  color-scheme:light;
+}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--sky);color:var(--ink);font-family:var(--ui);touch-action:none;-webkit-user-select:none;user-select:none}
+#game{position:fixed;inset:0}
+#game canvas{display:block;width:100%;height:100%}
+.pill{position:fixed;background:var(--panel);border-radius:999px;padding:6px 16px;font-weight:800;font-size:20px;box-shadow:0 3px 0 rgba(0,0,0,.18)}
+#ducks{top:calc(12px + env(safe-area-inset-top,0px));left:calc(12px + env(safe-area-inset-left,0px))}
+#swim{top:calc(58px + env(safe-area-inset-top,0px));left:calc(12px + env(safe-area-inset-left,0px));background:var(--water);color:#fff;font-size:16px}
+.btn{font-family:var(--ui);font-weight:800;font-size:20px;border:0;border-radius:18px;padding:10px 18px;color:#fff;background:var(--leaf);box-shadow:0 4px 0 rgba(0,0,0,.25);cursor:pointer;touch-action:manipulation}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.25)}
+.btn:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+#mapBtn{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:calc(12px + env(safe-area-inset-right,0px));background:#e67e22}
+#actions{position:fixed;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(22px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px;align-items:flex-end}
+#talkBtn{background:#8e44ad}
+#actBtn{background:var(--slide)}
+#stick{position:fixed;left:calc(20px + env(safe-area-inset-left,0px));bottom:calc(24px + env(safe-area-inset-bottom,0px));width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.35);border:3px solid rgba(255,255,255,.8);touch-action:none}
+#knob{position:absolute;left:50%;top:50%;width:60px;height:60px;margin:-30px 0 0 -30px;border-radius:50%;background:var(--panel);box-shadow:0 3px 0 rgba(0,0,0,.2)}
+#toast{position:fixed;left:50%;top:calc(64px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--sun);font-weight:800;font-size:20px;padding:8px 18px;border-radius:16px;box-shadow:0 3px 0 rgba(0,0,0,.2);text-align:center;max-width:80vw;pointer-events:none}
+#dialog{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(170px + env(safe-area-inset-bottom,0px));width:min(520px,calc(100vw - 32px));background:var(--panel);border-radius:18px;padding:12px 16px;box-shadow:0 4px 0 rgba(0,0,0,.2);box-sizing:border-box}
+#dialog b{display:block;color:#8e44ad;font-size:16px}
+#dialog p{margin:2px 0 0;font-size:19px;line-height:1.3}
+#dialog small{display:block;text-align:right;opacity:.6;font-size:13px}
+.overlay{position:fixed;inset:0;background:rgba(10,40,30,.55);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}
+.card{background:var(--panel);border-radius:24px;padding:20px;max-width:440px;width:100%;box-sizing:border-box;text-align:center;box-shadow:0 6px 0 rgba(0,0,0,.2)}
+.card h1{margin:0 0 6px;font-size:30px;line-height:1.1;text-wrap:balance;color:var(--leaf)}
+.card p{font-size:18px;line-height:1.35;margin:8px 0}
+.card .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+#mapc{width:min(86vw,420px);height:auto;aspect-ratio:1;max-width:100%;border-radius:18px;background:#6bb553;display:block;margin:6px auto}
+#fade{position:fixed;inset:0;background:#0b1530;opacity:0;pointer-events:none;transition:opacity 1.2s}
+@media (prefers-reduced-motion:reduce){#fade{transition:none}}
+</style>
+</head>
+<body>
+
+<div id="game"></div>
+<div id="ducks" class="pill">🦆 0 / 10</div>
+<div id="swim" class="pill" hidden>🏊 Tu nages !</div>
+<button id="mapBtn" class="btn">🗺️ Carte</button>
+<a id="homeBtn" class="btn" href="../index.html" aria-label="Retour à l'accueil">🏠</a>
+<div id="stick"><div id="knob"></div></div>
+<div id="actions">
+  <button id="talkBtn" class="btn" hidden>💬 Parler</button>
+  <button id="actBtn" class="btn" hidden>Action</button>
+</div>
+<div id="toast" hidden></div>
+<div id="dialog" hidden><b id="dName"></b><p id="dText"></p><small>Appuie encore sur Parler pour continuer</small></div>
+
+<div id="intro" class="overlay">
+  <div class="card">
+    <p style="margin:0 0 4px;font-size:14px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#b07a45">🕰️ Vintage Parc</p>
+    <h1>Bienvenue au Domaine des Pins !</h1>
+    <p>Des vacances dans la forêt : ton cottage, l'Aquaparc avec la piscine et les toboggans, le lac et la crêperie.</p>
+    <p><b>Mission :</b> 10 canards en plastique se sont échappés. Retrouve-les tous ! 🦆</p>
+    <p style="font-size:15px;opacity:.75">Joystick à gauche pour marcher · glisse ton doigt sur l'écran pour tourner la caméra · sur ordinateur : flèches ou ZQSD</p>
+    <p style="font-size:14px;opacity:.7">La toute première version du jeu, inventée par Théo le 27 octobre 2026. Gardée en souvenir !</p>
+    <div class="row"><button id="startBtn" class="btn">C'est parti !</button><a class="btn" style="background:#34495e;text-decoration:none" href="../index.html">🏠 Accueil</a></div>
+  </div>
+</div>
+
+<div id="cottage" class="overlay" hidden>
+  <div class="card">
+    <h1>Ton cottage 🏡</h1>
+    <p>Il y a deux chambres, une cheminée qui crépite, un canapé tout doux et une terrasse au milieu des pins.</p>
+    <p id="cottageMsg" style="font-weight:700"></p>
+    <div class="row">
+      <button id="sleepBtn" class="btn" style="background:#34495e">😴 Dormir</button>
+      <button id="outBtn" class="btn">🚪 Sortir</button>
+    </div>
+  </div>
+</div>
+
+<div id="mapView" class="overlay" hidden>
+  <div class="card">
+    <h1>Carte du domaine</h1>
+    <canvas id="mapc" width="420" height="420"></canvas>
+    <p style="font-size:15px">🔺 Toi · 🟡 canards à trouver · 🟣 personnages</p>
+    <div class="row"><button id="mapClose" class="btn">Fermer</button></div>
+  </div>
+</div>
+
+<div id="win" class="overlay" hidden>
+  <div class="card">
+    <h1>Bravo Théo ! 🏆</h1>
+    <p>Tu as retrouvé les 10 canards en plastique. Le maître-nageur Marco est super content !</p>
+    <div class="row"><button id="winClose" class="btn">Continuer à jouer</button></div>
+  </div>
+</div>
+<div id="fade"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+$('game').appendChild(renderer.domElement);
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x9fd8f0);
+scene.fog=new THREE.Fog(0x9fd8f0,70,170);
+const camera=new THREE.PerspectiveCamera(60,1,0.1,400);
+function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
+addEventListener('resize',resize);resize();
+scene.add(new THREE.HemisphereLight(0xffffff,0x4a7a3a,0.85));
+const sunL=new THREE.DirectionalLight(0xfff1d0,0.7);sunL.position.set(40,80,30);scene.add(sunL);
+
+let seed=11;const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646;};
+const M=(c,o={})=>new THREE.MeshLambertMaterial(Object.assign({color:c},o));
+const circles=[],boxes=[];
+
+// ---------- étiquettes ----------
+function label(text,bg='#fffdf4',fg='#1d3b2a',scale=1){
+  const c=document.createElement('canvas');c.width=512;c.height=128;const x=c.getContext('2d');
+  x.font='800 64px "Baloo 2", "Trebuchet MS", sans-serif';const w=Math.min(500,x.measureText(text).width+60);
+  x.fillStyle=bg;x.beginPath();const l=(512-w)/2;x.moveTo(l+30,14);x.arcTo(l+w,14,l+w,114,30);x.arcTo(l+w,114,l,114,30);x.arcTo(l,114,l,14,30);x.arcTo(l,14,l+w,14,30);x.fill();
+  x.fillStyle=fg;x.textAlign='center';x.textBaseline='middle';x.fillText(text,256,68);
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthWrite:false}));
+  s.scale.set(4*scale,1*scale,1);return s;
+}
+
+// ---------- sol et chemins ----------
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(400,400),M(0x6bb553));ground.rotation.x=-Math.PI/2;scene.add(ground);
+const paths=[];
+function path(a,b,w=3.2){
+  const dx=b[0]-a[0],dz=b[1]-a[1],L=Math.hypot(dx,dz);
+  const g=new THREE.Group(),m=new THREE.Mesh(new THREE.PlaneGeometry(w,L),M(0xdcc48e));
+  m.rotation.x=-Math.PI/2;g.add(m);g.rotation.y=Math.atan2(dx,dz);g.position.set((a[0]+b[0])/2,0.02,(a[1]+b[1])/2);scene.add(g);paths.push([a,b,w]);
+}
+path([-70,30],[70,30]);path([0,30],[0,3]);path([0,12],[33,-26]);path([12,30],[12,24]);
+
+// ---------- Aquaparc (bulle) ----------
+const DOME={x:0,z:-20,r:25};
+const floor=new THREE.Mesh(new THREE.CircleGeometry(DOME.r,48),M(0xf3dfb0));floor.rotation.x=-Math.PI/2;floor.position.set(DOME.x,0.03,DOME.z);scene.add(floor);
+const domeGeo=new THREE.SphereGeometry(DOME.r,36,14,0,Math.PI*2,0,Math.PI/2);
+const dome=new THREE.Mesh(domeGeo,new THREE.MeshPhongMaterial({color:0xbfefff,transparent:true,opacity:0.16,side:THREE.DoubleSide,depthWrite:false,shininess:90}));
+dome.position.set(DOME.x,0,DOME.z);scene.add(dome);
+const frame=new THREE.Mesh(domeGeo,new THREE.MeshBasicMaterial({color:0xffffff,wireframe:true,transparent:true,opacity:0.28}));frame.position.copy(dome.position);scene.add(frame);
+const domeLbl=label('AQUAPARC','#1fa5d6','#ffffff',2.4);domeLbl.position.set(0,28,-20);scene.add(domeLbl);
+const POOL={x1:-10,x2:10,z1:-27,z2:-13};
+const water=new THREE.Mesh(new THREE.PlaneGeometry(20,14),new THREE.MeshPhongMaterial({color:0x29c4ee,shininess:120,specular:0xffffff}));
+water.rotation.x=-Math.PI/2;water.position.set(0,0.06,-20);scene.add(water);
+[[0,-27,20.6,0.6],[0,-13,20.6,0.6],[-10,-20,0.6,14],[10,-20,0.6,14]].forEach(([x,z,w,d])=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,0.18,d),M(0xffffff));b.position.set(x,0.09,z);scene.add(b);});
+const kid=new THREE.Mesh(new THREE.CircleGeometry(3.2,28),M(0x7fe0f5));kid.rotation.x=-Math.PI/2;kid.position.set(-15,0.06,-8);scene.add(kid);
+function palm(x,z){const g=new THREE.Group();const t=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.4,5,7),M(0x9b6b3d));t.position.y=2.5;t.rotation.z=0.1;g.add(t);
+  for(let i=0;i<6;i++){const l=new THREE.Mesh(new THREE.BoxGeometry(3.2,0.1,0.8),M(0x2ea65a));const a=i/6*Math.PI*2;l.position.set(Math.cos(a)*1.4,5,Math.sin(a)*1.4);l.rotation.y=-a;l.rotation.z=-0.35;g.add(l);}
+  g.position.set(x,0,z);scene.add(g);circles.push({x,z,r:0.5});}
+[[-20,-12],[20,-12],[-18,-32],[19,-31],[-6,-40],[6,-40],[22,-22]].forEach(p=>palm(...p));
+
+// ---------- toboggans ----------
+const slides=[];
+function makeSlide(cx,cz,a0,dir,turns,color,exit,name){
+  const pts=[];const N=48;
+  for(let i=0;i<=N;i++){const t=i/N,a=a0+dir*t*turns*Math.PI*2;pts.push(new THREE.Vector3(cx+4*Math.cos(a),9.2*(1-t)+1.4*t,cz+4*Math.sin(a)));}
+  exit.forEach(p=>pts.push(new THREE.Vector3(...p)));
+  const curve=new THREE.CatmullRomCurve3(pts);
+  const tube=new THREE.Mesh(new THREE.TubeGeometry(curve,220,0.75,10,false),M(color,{side:THREE.DoubleSide}));scene.add(tube);
+  const tower=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.7,9.5,12),M(0xeeeeee));tower.position.set(cx,4.75,cz);scene.add(tower);
+  const top=new THREE.Mesh(new THREE.CylinderGeometry(2.6,2.6,0.4,16),M(color));top.position.set(cx,9.6,cz);scene.add(top);
+  const roof=new THREE.Mesh(new THREE.ConeGeometry(3,2,16),M(color));roof.position.set(cx,12.3,cz);scene.add(roof);
+  const lb=label(name,'#ffffff','#1d3b2a',1.1);lb.position.set(cx,14.4,cz);scene.add(lb);
+  circles.push({x:cx,z:cz,r:1.8});
+  slides.push({curve,cx,cz,name});
+}
+makeSlide(-13,-31,0,1,2,0xff5a4e,[[-7,0.8,-27],[-5,0.25,-22]],'Toboggan rouge');
+makeSlide(13,-31,Math.PI,-1,3,0xffc93c,[[7,0.8,-27],[5,0.25,-22]],'Toboggan jaune');
+
+// ---------- cottages ----------
+let myDoor=null;
+function cottage(x,z,face,mine){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.BoxGeometry(7,3.4,5.5),M(mine?0xb07a45:0x9c6b3c));body.position.y=1.7;g.add(body);
+  const roof=new THREE.Mesh(new THREE.ConeGeometry(5.6,2.8,4),M(0x3d5a48));roof.rotation.y=Math.PI/4;roof.scale.set(1.15,1,0.92);roof.position.y=4.8;g.add(roof);
+  const door=new THREE.Mesh(new THREE.BoxGeometry(1.2,2.2,0.1),M(0x5a3a22));door.position.set(0,1.1,2.8);g.add(door);
+  [-2.2,2.2].forEach(wx=>{const w=new THREE.Mesh(new THREE.BoxGeometry(1.3,1.1,0.1),M(0xfff3b0));w.position.set(wx,2,2.8);g.add(w);});
+  const deck=new THREE.Mesh(new THREE.BoxGeometry(7,0.2,2.2),M(0xc49a6c));deck.position.set(0,0.1,3.9);g.add(deck);
+  if(mine){const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,5),M(0xdddddd));pole.position.set(3.4,2.5,4.6);g.add(pole);
+    const flag=new THREE.Mesh(new THREE.BoxGeometry(1.6,1,0.05),M(0xff5a4e));flag.position.set(4.2,4.5,4.6);g.add(flag);}
+  g.position.set(x,0,z);g.rotation.y=face;scene.add(g);
+  boxes.push({x1:x-3.7,x2:x+3.7,z1:z-3,z2:z+3});
+  if(mine){const lb=label('Ton cottage','#ff5a4e','#ffffff',1.3);lb.position.set(x,8.2,z);scene.add(lb);myDoor={x,z:z+(face?3.5:-3.5)*-1};}
+}
+const cotList=[[-60,42],[-45,42],[-30,42],[-15,42],[15,42],[30,42],[45,42],[60,42]];
+cotList.forEach(([x,z])=>cottage(x,z,Math.PI,x===-15));
+[[-55,18],[-40,18],[40,18],[55,18]].forEach(([x,z])=>cottage(x,z,0,false));
+myDoor={x:-15,z:38};
+
+// ---------- crêperie ----------
+(function(){const x=12,z=22;const g=new THREE.Group();
+  const c=new THREE.Mesh(new THREE.BoxGeometry(5,1.3,2),M(0xffffff));c.position.y=0.65;g.add(c);
+  for(let i=0;i<5;i++){const s=new THREE.Mesh(new THREE.BoxGeometry(1,0.15,3),M(i%2?0xffffff:0xe84393));s.position.set(-2+i,3.2,0.3);g.add(s);}
+  [-2.3,2.3].forEach(px=>{const p=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,3.2),M(0xffffff));p.position.set(px,1.6,0.9);g.add(p);});
+  g.position.set(x,0,z);scene.add(g);boxes.push({x1:x-2.6,x2:x+2.6,z1:z-1.1,z2:z+1.1});
+  const lb=label('Crêperie','#e84393','#ffffff',1.2);lb.position.set(x,5,z);scene.add(lb);})();
+
+// ---------- lac ----------
+const LAKE={x:50,z:-40,r:16};
+const lake=new THREE.Mesh(new THREE.CircleGeometry(LAKE.r,48),new THREE.MeshPhongMaterial({color:0x2b8fc2,shininess:100}));lake.rotation.x=-Math.PI/2;lake.position.set(LAKE.x,0.05,LAKE.z);scene.add(lake);
+const shore=new THREE.Mesh(new THREE.RingGeometry(LAKE.r,LAKE.r+1.4,48),M(0xdcc48e));shore.rotation.x=-Math.PI/2;shore.position.set(LAKE.x,0.04,LAKE.z);scene.add(shore);
+circles.push({x:LAKE.x,z:LAKE.z,r:LAKE.r});
+const lakeLbl=label('Le lac','#2b8fc2','#ffffff',1.2);lakeLbl.position.set(50,4,-40);scene.add(lakeLbl);
+// petit pédalo
+const boat=new THREE.Group();const hull=new THREE.Mesh(new THREE.BoxGeometry(2.4,0.6,1.4),M(0xffffff));hull.position.y=0.3;boat.add(hull);
+const swan=new THREE.Mesh(new THREE.SphereGeometry(0.5,10,8),M(0xffffff));swan.position.set(1.1,1,0);boat.add(swan);scene.add(boat);
+
+// ---------- canards ----------
+const duckSpots=[[3,-18],[-18,-22],[16,-14],[40,-24],[66,-40],[-70,0],[-35,62],[72,12],[17,22.5],[-15,48]];
+function duckMesh(){const g=new THREE.Group();const y=M(0xffd23f);
+  const b=new THREE.Mesh(new THREE.SphereGeometry(0.45,12,10),y);b.scale.set(1.2,0.85,1);g.add(b);
+  const h=new THREE.Mesh(new THREE.SphereGeometry(0.3,12,10),y);h.position.set(0.38,0.45,0);g.add(h);
+  const k=new THREE.Mesh(new THREE.ConeGeometry(0.1,0.3,8),M(0xff8c1a));k.rotation.z=-Math.PI/2;k.position.set(0.72,0.42,0);g.add(k);
+  return g;}
+const ducks=duckSpots.map(([x,z])=>{const g=duckMesh();g.position.set(x,0.5,z);g.scale.setScalar(1.3);scene.add(g);return {g,x,z,got:false};});
+let found=0;
+
+// ---------- forêt ----------
+function nearPath(x,z){return paths.some(([a,b,w])=>{const dx=b[0]-a[0],dz=b[1]-a[1],L2=dx*dx+dz*dz;let t=((x-a[0])*dx+(z-a[1])*dz)/L2;t=Math.max(0,Math.min(1,t));return Math.hypot(x-(a[0]+t*dx),z-(a[1]+t*dz))<w/2+2;});}
+const trees=[];
+for(let i=0;i<900&&trees.length<330;i++){
+  const x=rnd()*190-95,z=rnd()*190-95;
+  if(Math.hypot(x-DOME.x,z-DOME.z)<DOME.r+4)continue;
+  if(Math.hypot(x-LAKE.x,z-LAKE.z)<LAKE.r+5)continue;
+  if(boxes.some(b=>x>b.x1-3&&x<b.x2+3&&z>b.z1-3&&z<b.z2+3))continue;
+  if(nearPath(x,z))continue;
+  if(duckSpots.some(([dx,dz])=>Math.hypot(x-dx,z-dz)<3.5))continue;
+  if(Math.hypot(x+8,z-33)<6)continue;
+  trees.push({x,z,s:0.8+rnd()*0.7});
+}
+const trunkG=new THREE.CylinderGeometry(0.25,0.35,2,6);trunkG.translate(0,1,0);
+const c1=new THREE.ConeGeometry(2,4.2,8);c1.translate(0,3.8,0);
+const c2=new THREE.ConeGeometry(1.4,3,8);c2.translate(0,5.9,0);
+const iT=new THREE.InstancedMesh(trunkG,M(0x7a5232),trees.length),i1=new THREE.InstancedMesh(c1,M(0x2d7a4a),trees.length),i2=new THREE.InstancedMesh(c2,M(0x3b9459),trees.length);
+const mtx=new THREE.Matrix4(),q=new THREE.Quaternion(),sv=new THREE.Vector3();
+trees.forEach((t,i)=>{sv.set(t.s,t.s,t.s);mtx.compose(new THREE.Vector3(t.x,0,t.z),q,sv);iT.setMatrixAt(i,mtx);i1.setMatrixAt(i,mtx);i2.setMatrixAt(i,mtx);circles.push({x:t.x,z:t.z,r:0.45*t.s});});
+scene.add(iT,i1,i2);
+
+// ---------- personnages ----------
+function person(shirt,{skin=0xf2c9a0,hair=0x5a3a22,pants=0x34495e,cap=null}={}){
+  const g=new THREE.Group();const legs=[];
+  [-0.18,0.18].forEach(x=>{const l=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,0.8,8),M(pants));l.geometry.translate(0,-0.4,0);l.position.set(x,0.8,0);g.add(l);legs.push(l);});
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(0.36,0.42,0.9,12),M(shirt));body.position.y=1.25;g.add(body);
+  [-0.5,0.5].forEach(x=>{const a=new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.11,0.75,8),M(skin));a.position.set(x,1.3,0);a.rotation.z=x>0?0.15:-0.15;g.add(a);});
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.32,14,12),M(skin));head.position.y=1.95;g.add(head);
+  const h=new THREE.Mesh(new THREE.SphereGeometry(0.34,14,8,0,Math.PI*2,0,Math.PI/2),M(hair));h.position.y=2;g.add(h);
+  if(cap){const c=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,0.15,14),M(cap));c.position.y=2.2;g.add(c);const br=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.05,0.35),M(cap));br.position.set(0,2.15,0.38);g.add(br);}
+  [-0.11,0.11].forEach(x=>{const e=new THREE.Mesh(new THREE.SphereGeometry(0.045,6,6),M(0x111111));e.position.set(x,1.98,0.29);g.add(e);});
+  g.userData.legs=legs;return g;
+}
+const player=person(0x2e86de,{cap:0xff5a4e,pants:0xf39c12});scene.add(player);
+const pLbl=label('Théo','#2e86de','#ffffff',0.6);pLbl.position.y=2.9;player.add(pLbl);
+player.position.set(-15,0,33);
+
+const npcs=[
+ {name:'Sophie, de l\'accueil',pos:[-7,34],shirt:0x16a085,hair:0x222222,lines:["Bienvenue au Domaine des Pins, Théo !","Ton cottage, c'est celui avec le drapeau rouge, juste là.","L'Aquaparc, c'est la grande bulle de verre. Suis le chemin tout droit !","Psst… 10 canards en plastique se sont échappés. Tu peux les retrouver ?"]},
+ {name:'Marco, le maître-nageur',pos:[12,-11],shirt:0xff5a4e,hair:0xd4a017,lines:["Salut ! Moi c'est Marco, le maître-nageur.","Les toboggans partent des deux tours, au fond de la bulle.","Approche-toi d'une tour et appuie sur Glisser !","On ne court pas autour de la piscine, hein 😉"]},
+ {name:'Léa',pos:[-12,-11],shirt:0xf78fb3,hair:0x8b4513,lines:["Coucou ! Tu cherches les canards toi aussi ?","J'en ai vu un qui flotte dans la grande piscine !","Le toboggan jaune fait trois tours, c'est le plus long !"]},
+ {name:'Josie, la crêpière',pos:[12,24],shirt:0xffffff,hair:0xc0392b,lines:["Bienvenue à la crêperie !","Tiens, une crêpe au chocolat pour toi ! 🥞","Un petit canard jaune s'est caché juste derrière mon stand…"]},
+ {name:'Paul, le garde forestier',pos:[33,-24],shirt:0x6d8b3a,hair:0x555555,cap:0x4b6328,lines:["Bonjour, aventurier !","Dans la forêt il y a des écureuils… et des canards perdus !","Ouvre la carte pour voir où ils se cachent. Les points jaunes, ce sont eux !"]},
+];
+npcs.forEach(n=>{n.g=person(n.shirt,{hair:n.hair,cap:n.cap||null});n.g.position.set(n.pos[0],0,n.pos[1]);n.g.rotation.y=Math.random()*6;scene.add(n.g);
+  const lb=label(n.name.split(',')[0],'#8e44ad','#ffffff',0.6);lb.position.y=2.9;n.g.add(lb);circles.push({x:n.pos[0],z:n.pos[1],r:0.5});n.idx=-1;});
+
+// ---------- interface ----------
+let toastT=0;function toast(t,ms=2200){$('toast').textContent=t;$('toast').hidden=false;toastT=ms/1000;}
+let paused=true;
+$('startBtn').onclick=()=>{$('intro').hidden=true;paused=false;toast('Va voir Sophie pour dire bonjour !');};
+
+// joystick
+const stick=$('stick'),knob=$('knob');let jid=null,jx=0,jy=0;
+function moveStick(e){const r=stick.getBoundingClientRect();let dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);const m=r.width/2,L=Math.hypot(dx,dy);if(L>m){dx*=m/L;dy*=m/L;}jx=dx/m;jy=dy/m;knob.style.transform=`translate(${dx}px,${dy}px)`;}
+stick.addEventListener('pointerdown',e=>{jid=e.pointerId;stick.setPointerCapture(jid);moveStick(e);});
+stick.addEventListener('pointermove',e=>{if(e.pointerId===jid)moveStick(e);});
+['pointerup','pointercancel'].forEach(ev=>stick.addEventListener(ev,e=>{if(e.pointerId===jid){jid=null;jx=jy=0;knob.style.transform='';}}));
+// caméra
+let yaw=0,pitch=0.4,cid=null,lx=0,ly=0;
+const cv=renderer.domElement;
+cv.addEventListener('pointerdown',e=>{cid=e.pointerId;lx=e.clientX;ly=e.clientY;cv.setPointerCapture(cid);});
+cv.addEventListener('pointermove',e=>{if(e.pointerId!==cid)return;yaw-=(e.clientX-lx)*0.008;pitch=Math.max(0.08,Math.min(1.1,pitch+(e.clientY-ly)*0.005));lx=e.clientX;ly=e.clientY;});
+['pointerup','pointercancel'].forEach(ev=>cv.addEventListener(ev,e=>{if(e.pointerId===cid)cid=null;}));
+// clavier
+const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;});addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
+
+// dialogue
+let talking=null,nearNpc=null;
+$('talkBtn').onclick=()=>{
+  if(!nearNpc)return;const n=nearNpc;
+  if(talking!==n){talking=n;n.idx=0;}else n.idx++;
+  if(n.idx>=n.lines.length){talking=null;n.idx=-1;$('dialog').hidden=true;return;}
+  $('dName').textContent=n.name;$('dText').textContent=n.lines[n.idx];$('dialog').hidden=false;
+};
+
+// action contextuelle
+let action=null,riding=null,swimming=false;
+$('actBtn').onclick=()=>{
+  if(!action)return;
+  if(action.type==='slide'){riding={curve:action.s.curve,u:0};$('dialog').hidden=true;talking=null;toast('Wiiiiii ! 🛝',1800);}
+  if(action.type==='home'){paused=true;$('cottageMsg').textContent='';$('cottage').hidden=false;}
+};
+$('outBtn').onclick=()=>{$('cottage').hidden=true;paused=false;};
+$('sleepBtn').onclick=()=>{const f=$('fade');f.style.opacity=1;setTimeout(()=>{$('cottageMsg').textContent='☀️ Bonjour ! Le soleil se lève sur le domaine.';f.style.opacity=0;},1500);};
+
+// carte
+const mc=$('mapc'),mx=mc.getContext('2d');let mapOpen=false;
+$('mapBtn').onclick=()=>{mapOpen=true;$('mapView').hidden=false;};
+$('mapClose').onclick=()=>{mapOpen=false;$('mapView').hidden=true;};
+$('winClose').onclick=()=>{$('win').hidden=true;paused=false;};
+function drawMap(){
+  const S=420,k=S/200,X=x=>(x+100)*k,Z=z=>(z+100)*k;
+  mx.fillStyle='#6bb553';mx.fillRect(0,0,S,S);
+  mx.fillStyle='#3f8f52';trees.forEach(t=>{mx.beginPath();mx.arc(X(t.x),Z(t.z),2.2,0,7);mx.fill();});
+  mx.strokeStyle='#dcc48e';mx.lineCap='round';paths.forEach(([a,b,w])=>{mx.lineWidth=w*k;mx.beginPath();mx.moveTo(X(a[0]),Z(a[1]));mx.lineTo(X(b[0]),Z(b[1]));mx.stroke();});
+  mx.fillStyle='#cdeefa';mx.beginPath();mx.arc(X(0),Z(-20),25*k,0,7);mx.fill();mx.strokeStyle='#ffffff';mx.lineWidth=2;mx.stroke();
+  mx.fillStyle='#29c4ee';mx.fillRect(X(-10),Z(-27),20*k,14*k);
+  mx.fillStyle='#2b8fc2';mx.beginPath();mx.arc(X(50),Z(-40),16*k,0,7);mx.fill();
+  boxes.forEach(b=>{mx.fillStyle='#8a5a30';mx.fillRect(X(b.x1),Z(b.z1),(b.x2-b.x1)*k,(b.z2-b.z1)*k);});
+  mx.fillStyle='#ff5a4e';mx.fillRect(X(-18.7),Z(39),7.4*k,6*k);
+  mx.font='700 13px "Baloo 2",sans-serif';mx.textAlign='center';mx.fillStyle='#0d3b52';
+  mx.fillText('Aquaparc',X(0),Z(-46)+2);mx.fillText('Lac',X(50),Z(-40)+4);mx.fillStyle='#1d3b2a';mx.fillText('Ton cottage',X(-15),Z(52));mx.fillText('Crêperie',X(12),Z(17));
+  npcs.forEach(n=>{mx.fillStyle='#8e44ad';mx.beginPath();mx.arc(X(n.g.position.x),Z(n.g.position.z),4,0,7);mx.fill();});
+  ducks.forEach(d=>{if(d.got)return;mx.fillStyle='#ffd23f';mx.strokeStyle='#7a5a00';mx.lineWidth=1.5;mx.beginPath();mx.arc(X(d.x),Z(d.z),5.5,0,7);mx.fill();mx.stroke();});
+  const px=X(player.position.x),pz=Z(player.position.z),r=player.rotation.y;
+  mx.save();mx.translate(px,pz);mx.rotate(-r+Math.PI);mx.fillStyle='#2e86de';mx.strokeStyle='#fff';mx.lineWidth=2;
+  mx.beginPath();mx.moveTo(0,-11);mx.lineTo(8,8);mx.lineTo(-8,8);mx.closePath();mx.fill();mx.stroke();mx.restore();
+}
+
+// ---------- collisions ----------
+function resolve(p){
+  for(const c of circles){const dx=p.x-c.x,dz=p.z-c.z,d=Math.hypot(dx,dz),m=c.r+0.45;if(d<m&&d>0.0001){p.x=c.x+dx/d*m;p.z=c.z+dz/d*m;}}
+  for(const b of boxes){const x1=b.x1-0.45,x2=b.x2+0.45,z1=b.z1-0.45,z2=b.z2+0.45;
+    if(p.x>x1&&p.x<x2&&p.z>z1&&p.z<z2){const o=[p.x-x1,x2-p.x,p.z-z1,z2-p.z],mi=Math.min(...o);
+      if(mi===o[0])p.x=x1;else if(mi===o[1])p.x=x2;else if(mi===o[2])p.z=z1;else p.z=z2;}}
+  p.x=Math.max(-95,Math.min(95,p.x));p.z=Math.max(-95,Math.min(95,p.z));
+}
+
+// éclaboussure
+const splash=new THREE.Mesh(new THREE.RingGeometry(0.5,1,24),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,side:THREE.DoubleSide}));splash.rotation.x=-Math.PI/2;scene.add(splash);let splashT=0;
+
+// ---------- boucle ----------
+const clock=new THREE.Clock();let walkT=0,time=0;const tmp=new THREE.Vector3();
+function setBtn(el,txt){if(txt){if(el.textContent!==txt)el.textContent=txt;el.hidden=false;}else el.hidden=true;}
+function loop(){
+  requestAnimationFrame(loop);
+  const dt=Math.min(clock.getDelta(),0.05);time+=dt;
+  const P=player.position;
+  if(riding){
+    const r=riding;r.u+=dt*(0.16+0.22*r.u);
+    if(r.u>=1){riding=null;P.set(-0,0,0);const end=r.curve.getPointAt(1);P.set(end.x,0,end.z);splash.position.set(end.x,0.12,end.z);splashT=1;toast('PLOUF ! 💦');}
+    else{const pt=r.curve.getPointAt(r.u),tg=r.curve.getTangentAt(r.u);P.set(pt.x,pt.y+0.1,pt.z);player.rotation.y=Math.atan2(tg.x,tg.z);
+      camera.position.set(pt.x-tg.x*7,pt.y+4,pt.z-tg.z*7);camera.lookAt(pt.x,pt.y+1,pt.z);}
+  }
+  if(!riding){
+    let ix=jx,iy=jy;
+    if(!paused){if(keys['arrowup']||keys['z']||keys['w'])iy=-1;if(keys['arrowdown']||keys['s'])iy=1;if(keys['arrowleft']||keys['q']||keys['a'])ix=-1;if(keys['arrowright']||keys['d'])ix=1;}
+    else{ix=iy=0;}
+    const fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
+    let mvx=fx*-iy+rx*ix,mvz=fz*-iy+rz*ix;const L=Math.hypot(mvx,mvz);
+    swimming=P.x>POOL.x1+0.3&&P.x<POOL.x2-0.3&&P.z>POOL.z1+0.3&&P.z<POOL.z2-0.3;
+    const sp=swimming?4:7.5;
+    if(L>0.08){const s=Math.min(L,1);mvx/=L;mvz/=L;P.x+=mvx*sp*s*dt;P.z+=mvz*sp*s*dt;
+      const target=Math.atan2(mvx,mvz);let d=target-player.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));player.rotation.y+=d*Math.min(1,dt*12);walkT+=dt*10*s;}
+    else walkT*=0.85;
+    resolve(P);
+    P.y=swimming?-1.15+Math.sin(time*3)*0.05:0;
+    player.userData.legs[0].rotation.x=Math.sin(walkT)*0.7;player.userData.legs[1].rotation.x=-Math.sin(walkT)*0.7;
+    const d=9,cx=P.x+Math.sin(yaw)*Math.cos(pitch)*d,cz=P.z+Math.cos(yaw)*Math.cos(pitch)*d,cy=Math.max(P.y,0)+1.5+Math.sin(pitch)*d;
+    camera.position.lerp(tmp.set(cx,cy,cz),Math.min(1,dt*8));camera.lookAt(P.x,Math.max(P.y,0)+1.5,P.z);
+  }
+  $('swim').hidden=!swimming||!!riding;
+
+  // personnages
+  nearNpc=null;let best=4.2;
+  npcs.forEach((n,i)=>{const g=n.g,dd=Math.hypot(P.x-g.position.x,P.z-g.position.z);g.position.y=Math.abs(Math.sin(time*2+i))*0.06;
+    if(dd<best&&!riding){best=dd;nearNpc=n;}
+    if(dd<6){const t=Math.atan2(P.x-g.position.x,P.z-g.position.z);let df=t-g.rotation.y;df=Math.atan2(Math.sin(df),Math.cos(df));g.rotation.y+=df*Math.min(1,dt*5);}});
+  if(talking&&talking!==nearNpc){talking.idx=-1;talking=null;$('dialog').hidden=true;}
+  setBtn($('talkBtn'),nearNpc&&!paused?'💬 Parler à '+nearNpc.name.split(',')[0]:'');
+
+  // actions
+  action=null;
+  if(!riding&&!paused){
+    for(const s of slides){if(Math.hypot(P.x-s.cx,P.z-s.cz)<4.5)action={type:'slide',s};}
+    if(Math.hypot(P.x-myDoor.x,P.z-myDoor.z)<3.5)action={type:'home'};
+  }
+  setBtn($('actBtn'),action?(action.type==='slide'?'🛝 Glisser !':'🏠 Entrer'):'');
+
+  // canards
+  ducks.forEach((d,i)=>{if(d.got)return;d.g.rotation.y+=dt*1.5;const inWater=d.x>POOL.x1&&d.x<POOL.x2&&d.z>POOL.z1&&d.z<POOL.z2||Math.hypot(d.x-LAKE.x,d.z-LAKE.z)<LAKE.r+0.5;
+    d.g.position.y=(inWater?0.2:0.5)+Math.sin(time*2+i)*0.12;
+    if(Math.hypot(P.x-d.x,P.z-d.z)<1.8){d.got=true;scene.remove(d.g);found++;$('ducks').textContent=`🦆 ${found} / 10`;
+      if(found===10){paused=true;$('win').hidden=false;}else toast(`Canard trouvé ! ${found} / 10`);}});
+
+  // décor animé
+  water.material.color.setHSL(0.53,0.82,0.55+Math.sin(time*1.5)*0.03);
+  const ba=time*0.15;boat.position.set(LAKE.x+Math.cos(ba)*9,0.05,LAKE.z+Math.sin(ba)*9);boat.rotation.y=-ba;
+  if(splashT>0){splashT-=dt;splash.scale.setScalar(1+(1-splashT)*4);splash.material.opacity=Math.max(0,splashT);}
+  if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').hidden=true;}
+  if(mapOpen)drawMap();
+  renderer.render(scene,camera);
+}
+// première image prête derrière l'écran d'accueil
+yaw=Math.PI;camera.position.set(-15,6,24);camera.lookAt(-15,1.5,33);
+loop();
+</script>
+
+</body>
+</html>
