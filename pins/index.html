@@ -53,6 +53,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#9fc7e0;color:var(--in
 .card h1{margin:0 0 6px;font-size:30px;line-height:1.1;text-wrap:balance;color:var(--leaf)}
 .card p{font-size:18px;line-height:1.35;margin:8px 0}
 .card .small{font-size:15px;opacity:.75}
+.prog{text-align:left;max-width:560px}.prog h1{text-align:center}.prog h3{margin:12px 0 4px;color:#1d5fa8}.prog ul{margin:0;padding-left:4px;list-style:none;display:grid;gap:6px;font-size:16px;line-height:1.35}.prog .row{justify-content:center}
 .sexe .btn{background:#9aa0b4}.sexe .btn[aria-checked="true"]{background:#e84393;outline:3px solid #ffc93c}.sexe #sexeG[aria-checked="true"]{background:#2e86de}
 .bfmenu h3{margin:10px 0 4px;font-size:17px;text-align:left;color:#1f9e8f}.bfrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.bfrow .btn{font-size:16px;padding:7px 8px;background:#9aa0b4}.bfrow .btn.on{background:#ff7a2f;outline:3px solid #ffc93c}
 .prizes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}.prizes .btn{font-size:17px;line-height:1.15}.prizes small{font-size:13px;opacity:.9}
@@ -125,7 +126,7 @@ html.app .site{display:none!important}
 <div id="intro" class="overlay">
   <div class="card">
     <h1>Le Domaine des Pins</h1>
-    <p>Des vacances dans la forêt : ton cottage et sa terrasse, l'Aquaparc et ses toboggans, l'aquarium, le Baloba, Game Town, Burger Fast, la rivière sauvage, la ferme, le poney club, les karts, les vélos, la maison dans les arbres, le lac et son pédalo… et un chat roux qui vient te voir !</p>
+    <p>Des vacances dans la forêt : ton cottage et sa terrasse, l'Aquaparc et ses toboggans, l'aquarium, le Baloba, Game Town, Burger Fast, l'accueil, la boulangerie, le Market, la rivière sauvage, la ferme, le poney club, les karts, les vélos, la maison dans les arbres, le lac et son pédalo… et un chat roux qui vient te voir !</p>
     <p><b>Mission :</b> 10 canards en plastique se sont échappés. Retrouve-les tous ! 🦆</p>
     <p class="small">Joystick à gauche pour marcher. Glisse ton doigt sur l'écran pour tourner la caméra. Sur ordinateur : flèches ou ZQSD, E pour agir (ouvrir une porte, nager, se changer…), T pour parler, J pour sauter, Maj pour courir. Tu as 4000 € pour la boutique de maillots de bain.</p>
     <p style="margin:10px 0 4px;font-weight:800">Tu joues…</p>
@@ -191,6 +192,37 @@ html.app .site{display:none!important}
     <div id="bfMenu" class="bfmenu"></div>
     <p id="bfRecap" class="small"></p>
     <div class="row"><button id="bfGo" class="btn" style="background:#ff7a2f">✅ Commander</button><button id="bfClose" class="btn" style="background:#34495e">Fermer</button></div>
+  </div>
+</div>
+<div id="buyView" class="overlay" hidden>
+  <div class="card">
+    <h1 id="buyTitle" style="color:#8a4b2a">Acheter</h1>
+    <p>Tu as <b id="buyMoney">0</b> €.</p>
+    <div id="buyList" class="prizes"></div>
+    <p id="buyBag" class="small"></p>
+    <div class="row"><button id="buyClose" class="btn" style="background:#34495e">Fermer</button></div>
+  </div>
+</div>
+<div id="progView" class="overlay" hidden>
+  <div class="card prog">
+    <h1 style="color:#2e86de">Bienvenue ! ℹ️</h1>
+    <h3>Ce qui va se passer pendant tes vacances</h3>
+    <ul>
+      <li>🌴 <b>Le jour</b>, tu peux aller à l'Aquaparc (n'oublie pas ton maillot !), à l'aquarium, au Baloba, à Game Town, chez Burger Fast, à la boulangerie, au Market, à la ferme, au poney club, aux karts, à la rivière sauvage et dans la maison dans les arbres.</li>
+      <li>🌙 <b>La nuit</b> tombe toutes les 8 minutes : la lune et les étoiles arrivent, les lampadaires s'allument. Dors dans ton cottage pour te réveiller le matin.</li>
+      <li>🦆 <b>Ta mission</b> : retrouver les 10 canards en plastique cachés dans le domaine.</li>
+      <li>💶 Tu as de l'argent pour la boutique de maillots, la boulangerie et le Market. À Game Town, tu gagnes des tickets 🎟️.</li>
+    </ul>
+    <h3>Si tu as un problème</h3>
+    <ul>
+      <li>🗺️ <b>Tu es perdu ?</b> Ouvre la carte, ou reviens ici, à l'accueil.</li>
+      <li>👕 <b>Tu ne peux pas aller dans l'eau ?</b> Il faut un maillot : va aux vestiaires de l'Aquaparc.</li>
+      <li>🌑 <b>Il fait trop noir ?</b> Appuie sur ☀️ en haut de l'écran pour revenir au jour.</li>
+      <li>🚧 <b>Tu es coincé ?</b> Appuie sur ⏸️, puis sur Rejouer.</li>
+      <li>💰 <b>Plus d'argent ?</b> Un coffre au trésor se cache dans la maison dans les arbres…</li>
+      <li>🤕 <b>Dans la vraie vie</b>, si quelqu'un se fait mal, préviens tout de suite un adulte. En cas d'urgence, les grands appellent le 112.</li>
+    </ul>
+    <div class="row"><button id="progClose" class="btn" style="background:#2e86de">J'ai compris !</button></div>
   </div>
 </div>
 <div id="lockerView" class="overlay" hidden>
@@ -1755,6 +1787,141 @@ function makeCar(col, seed) {
 function honk(c) { c.flash = 1.2; tone(392, .22, "square", .09); tone(330, .22, "square", .09, 0, .02); tone(392, .3, "square", .09, 0, .3); tone(330, .3, "square", .09, 0, .32); }
 let honkCar = null;
 
+/* ---------- Le village, à l'ouest au bout du grand chemin : l'accueil, la boulangerie et le Market ---------- */
+// Un bâtiment = murs, porte automatique côté chemin (side = -1 : porte au sud, vers le grand chemin), toit, enseigne, sol, lumière.
+const SHOPS = [];
+function makeShop(c) {
+  const { x, z, hx, hz, h = 4.2, door = 1.2, side = -1 } = c, g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+  const wallMat = mat(0xffffff, .75, { map: c.wallTex });
+  const wall = (x1, x2, z1, z2, y0 = 0, y1 = h) => { const w = x2 - x1, d = z2 - z1, hh = y1 - y0, m = new THREE.Mesh(new THREE.BoxGeometry(w, hh, d), wallMat); m.position.set((x1 + x2) / 2, (y0 + y1) / 2, (z1 + z2) / 2); m.receiveShadow = true; g.add(m); };
+  const dz = side * hz, oz = -dz;
+  wall(-hx, hx, oz - .15, oz + .15); wall(-hx - .15, -hx + .15, -hz, hz); wall(hx - .15, hx + .15, -hz, hz);
+  wall(-hx, -door, dz - .15, dz + .15, 0, .9); wall(door, hx, dz - .15, dz + .15, 0, .9); wall(-hx, hx, dz - .15, dz + .15, 3.1, h);
+  for (const px of [-hx, -door, door, hx]) wall(px - .15, px + .15, dz - .15, dz + .15, .9, 3.1);
+  const winM = mat(0xbfe6f0, .05, { metalness: .3, transparent: true, opacity: .35 }); winMats.push(winM);
+  for (const [a, b] of [[-hx, -door], [door, hx]]) if (b - a > .8) { const gl = new THREE.Mesh(new THREE.BoxGeometry(b - a - .3, 2.2, .06), winM); gl.position.set((a + b) / 2, 2, dz); g.add(gl); }
+  boxes.push({ x1: x - hx, x2: x + hx, z1: z + oz - .15, z2: z + oz + .15 }, { x1: x - hx - .15, x2: x - hx + .15, z1: z - hz, z2: z + hz }, { x1: x + hx - .15, x2: x + hx + .15, z1: z - hz, z2: z + hz },
+    { x1: x - hx, x2: x - door, z1: z + dz - .15, z2: z + dz + .15 }, { x1: x + door, x2: x + hx, z1: z + dz - .15, z2: z + dz + .15 });
+  const db = { x1: x - door, x2: x + door, z1: z + dz - .1, z2: z + dz + .1, off: false }; boxes.push(db);
+  const doors = [-1, 1].map(s => { const d = new THREE.Mesh(new THREE.BoxGeometry(door, 3, .08), glassMat.clone()); d.material.opacity = .4; d.position.set(s * door / 2, 1.5, dz + side * .02); g.add(d); return { m: d, s }; });
+  const awn = new THREE.Mesh(new THREE.CylinderGeometry(.8, .8, hx * 2 + .4, 24, 1, true, 0, Math.PI), mat(0xffffff, .7, { map: stripeTex(c.awnA, c.awnB, 10), side: THREE.DoubleSide }));
+  awn.rotation.set(0, 0, Math.PI / 2); awn.position.set(0, 3.15, dz + side * .2); g.add(awn);
+  const roof = new THREE.Group(); g.add(roof);
+  const slab = rbox(hx * 2 + .6, .4, hz * 2 + .6, mat(c.roofCol, .6), .2); slab.position.y = h + .2; roof.add(slab);
+  const tri = new THREE.Shape(); tri.moveTo(-hz - .3, 0); tri.lineTo(hz + .3, 0); tri.lineTo(0, 1.7); tri.lineTo(-hz - .3, 0); const pg = new THREE.ExtrudeGeometry(tri, { depth: hx * 2 + .6, bevelEnabled: false }); pg.translate(0, 0, -hx - .3); const peak = new THREE.Mesh(pg, mat(c.roofCol, .6)); peak.rotation.y = Math.PI / 2; peak.position.y = h + .4; roof.add(peak);
+  shadowAll(roof);
+  const sign = label(c.sign, c.signBg, c.signFg, c.signScale ?? 1.7); sign.position.set(0, h + 2.8, 0); g.add(sign);
+  const fl = new THREE.Mesh(new THREE.PlaneGeometry(hx * 2, hz * 2), mat(0xffffff, .6, { map: c.floorTex, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 })); fl.rotation.x = -Math.PI / 2; fl.position.y = .03; fl.receiveShadow = true; g.add(fl);
+  const light = new THREE.PointLight(0xfff3dd, 10, 16, 1.3); light.position.set(0, h - .5, 0); g.add(light);
+  const inner = new THREE.Group(); g.add(inner); c.build(inner, c);
+  shadowAll(inner, true, true);
+  const s = Object.assign(c, { g, wallMat, roof, doors, db, open: 0, fade: 1, doorPt: [x, z + dz + side * .5], inside: false });
+  s.in = (px, pz) => Math.abs(px - x) < hx - .2 && Math.abs(pz - z) < hz - .2;
+  s.w = (lx, lz) => [x + lx, z + lz];
+  SHOPS.push(s); return s;
+}
+function updateShops(dt, P) {
+  let inAny = null;
+  for (const s of SHOPS) {
+    if (Math.abs(P.x - s.x) > 45 || Math.abs(P.z - s.z) > 45) continue;
+    const inside = s.in(P.x, P.z); if (inside) inAny = s;
+    const want = Math.hypot(P.x - s.doorPt[0], P.z - s.doorPt[1]) < 3.6 ? 1 : 0; if (want && s.open < .05) sfx.door();
+    s.open += (want - s.open) * Math.min(1, dt * 5); for (const d of s.doors) d.m.position.x = d.s * (s.door / 2 + s.open * s.door * .95); s.db.off = s.open > .6;
+    s.fade += ((inside ? .2 : 1) - s.fade) * Math.min(1, dt * 6); const tr = s.fade < .98;
+    if (s.wallMat.transparent !== tr) { s.wallMat.transparent = tr; s.wallMat.depthWrite = !tr; s.wallMat.needsUpdate = true; } s.wallMat.opacity = s.fade; s.roof.visible = !inside;
+    if (inside && s.onInside) s.onInside(s);
+  }
+  return inAny;
+}
+const shopWall = (base, band) => tex(512, (x, s) => { x.fillStyle = base; x.fillRect(0, 0, s, s); x.fillStyle = band; x.fillRect(0, 0, s, 60); for (let i = 0; i < 16; i++) for (let j = 0; j < 14; j++) { x.fillStyle = (i + j) % 2 ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.05)"; x.fillRect(i * 32 + (j % 2) * 16, 60 + j * 32, 32, 32); } }, 2, 1);
+const tileFloor = (a, b) => tex(256, (x, s) => { for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { x.fillStyle = (i + j) % 2 ? a : b; x.fillRect(i * 32, j * 32, 32, 32); } }, 3, 3);
+const VILLAGE_PATHS = () => { path([-74, 30], [-91, 30], 3.4); path([-81.5, 30], [-81.5, 42.4], 2.6); path([-81.5, 42.4], [-84, 42.4], 2.6); path([-88, 30], [-88, 32.6], 2.4); path([-76, 30], [-76, 32.6], 2.4); };
+VILLAGE_PATHS();
+ZONES.push({ x1: -94, x2: -71, z1: 31.5, z2: 54 });
+// --- l'accueil ---
+const ACCUEIL_MAP = { mesh: null, done: false };
+const ACCUEIL = makeShop({ name: "Accueil", x: -88, z: 37, hx: 5, hz: 4, side: -1, wallTex: shopWall("#2e86de", "#ffffff"), floorTex: tileFloor("#f4efe6", "#d8e6f2"), roofCol: 0x1d5fa8, awnA: "#2e86de", awnB: "#ffffff",
+  sign: "ACCUEIL ℹ️", signBg: "#2e86de", signFg: "#ffffff", build(g) {
+    const desk = rbox(5, 1.1, .8, mat(0xffffff, .4, { map: woodTex }), .1); desk.position.set(0, .55, .9); g.add(desk);
+    const top = rbox(5.2, .08, 1, mat(0x2e86de, .4), .03); top.position.set(0, 1.13, .9); g.add(top);
+    const bell = new THREE.Mesh(new THREE.SphereGeometry(.09, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xd4af37, .3, { metalness: .8 })); bell.position.set(1.2, 1.18, .7); g.add(bell);
+    const scr = rbox(.6, .4, .05, mat(0x222222, .4), .02); scr.position.set(-1, 1.45, 1.1); g.add(scr);
+    // le grand plan du domaine (dessiné quand on entre)
+    const frame = rbox(3.4, 2.4, .08, mat(0x8a5a35, .6), .04); frame.position.set(0, 2.4, 3.86); g.add(frame);
+    ACCUEIL_MAP.mesh = new THREE.Mesh(new THREE.PlaneGeometry(3.1, 2.1), new THREE.MeshBasicMaterial({ color: 0x6bb553 })); ACCUEIL_MAP.mesh.position.set(0, 2.4, 3.81); ACCUEIL_MAP.mesh.rotation.y = Math.PI; g.add(ACCUEIL_MAP.mesh);
+    // présentoir à brochures, plantes, fauteuils
+    const rack = rbox(.9, 1.6, .4, mat(0xffffff, .5), .05); rack.position.set(-4.3, .8, 2.5); g.add(rack);
+    for (let i = 0; i < 6; i++) { const b = new THREE.Mesh(new THREE.BoxGeometry(.22, .3, .03), mat([0xff5a4e, 0x27ae60, 0xffc93c, 0x8e44ad, 0x1f9e8f, 0xff8a2b][i], .6)); b.position.set(-4.6 + (i % 3) * .3, .7 + Math.floor(i / 3) * .5, 2.28); g.add(b); }
+    for (const px of [-4.2, 4.2]) { const pot = new THREE.Mesh(new THREE.CylinderGeometry(.3, .22, .5, 20), mat(0xd9d4c7, .7)); pot.position.set(px, .25, -3.2); g.add(pot); const pl = new THREE.Mesh(blobGeo(.5, 3, .25), mat(0x3f8f45, .8)); pl.position.set(px, .9, -3.2); g.add(pl); }
+    for (const px of [2.8, 4]) { const ch = rbox(1, .5, .9, mat(0xff8a2b, .9), .2); ch.position.set(px, .3, -2.4); g.add(ch); const bk = rbox(1, .7, .2, mat(0xff8a2b, .9), .1); bk.position.set(px, .7, -2.0); g.add(bk); }
+  } });
+boxes.push({ x1: -88 - 2.6, x2: -88 + 2.6, z1: 37 + .45, z2: 37 + 4 });
+for (const px of [2.8, 4]) boxes.push({ x1: -88 + px - .5, x2: -88 + px + .5, z1: 37 - 2.9, z2: 37 - 1.9 });
+ACCUEIL.onInside = () => { if (!ACCUEIL_MAP.done && typeof drawMap === "function") { ACCUEIL_MAP.done = true; drawMap(); const t = new THREE.CanvasTexture(mc); t.colorSpace = THREE.SRGBColorSpace; ACCUEIL_MAP.mesh.material.map = t; ACCUEIL_MAP.mesh.material.color.set(0xffffff); ACCUEIL_MAP.mesh.material.needsUpdate = true; } };
+// --- la boulangerie ---
+const BREADS = [];
+const BOULANGERIE = makeShop({ name: "Boulangerie", x: -76, z: 36.5, hx: 4, hz: 3.5, side: -1, wallTex: shopWall("#f3e2c3", "#8a4b2a"), floorTex: tileFloor("#8a5a35", "#a8724a"), roofCol: 0x8a4b2a, awnA: "#8a4b2a", awnB: "#f3e2c3",
+  sign: "BOULANGERIE 🥖", signBg: "#8a4b2a", signFg: "#ffffff", signScale: 1.5, build(g) {
+    const vit = rbox(6, 1, .9, mat(0xf3e2c3, .5), .08); vit.position.set(0, .5, .8); g.add(vit);
+    const glass = new THREE.Mesh(new THREE.BoxGeometry(5.8, .55, .8), new THREE.MeshStandardMaterial({ color: 0xcfeefa, transparent: true, opacity: .25, roughness: .05, depthWrite: false })); glass.position.set(0, 1.3, .8); g.add(glass);
+    const gold = mat(0xd9a05b, .6), dark = mat(0x7a4a22, .6), choc = mat(0x4a2a14, .6), pink = mat(0xff8fb1, .4);
+    for (let i = 0; i < 5; i++) { const c = new THREE.Mesh(new THREE.TorusGeometry(.12, .055, 8, 14, Math.PI * 1.3), gold); c.rotation.x = -Math.PI / 2; c.position.set(-2.6 + i * .3, 1.08, .65); g.add(c); }
+    for (let i = 0; i < 4; i++) { const p = rbox(.24, .08, .14, gold, .03); p.position.set(-.9 + i * .3, 1.06, .7); g.add(p); }
+    for (let i = 0; i < 3; i++) { const e = new THREE.Mesh(new THREE.CapsuleGeometry(.05, .25, 4, 8), choc); e.rotation.z = Math.PI / 2; e.position.set(.5 + i * .35, 1.07, .75); g.add(e); }
+    for (let i = 0; i < 3; i++) { const t = new THREE.Mesh(new THREE.CylinderGeometry(.16, .16, .1, 20), i === 1 ? pink : dark); t.position.set(1.8 + i * .4, 1.07, .75); g.add(t); }
+    // les baguettes et les pains derrière
+    const shelf = rbox(6.5, 2.4, .5, mat(0xa8724a, .7), .05); shelf.position.set(0, 1.2, -3.1); g.add(shelf);
+    for (let i = 0; i < 14; i++) { const b = new THREE.Mesh(new THREE.CapsuleGeometry(.05, .6, 4, 8), gold); b.position.set(-3 + i * .2, 2.65, -3.0); b.rotation.z = .25; g.add(b); }
+    for (let y of [.8, 1.6]) for (let i = 0; i < 6; i++) { const b = new THREE.Mesh(new THREE.SphereGeometry(.2, 14, 10), i % 2 ? dark : gold); b.scale.set(1.3, .7, 1); b.position.set(-2.6 + i * 1, y, -2.8); g.add(b); }
+    const oven = rbox(1.6, 1.8, .2, mat(0x5a3a22, .6), .1); oven.position.set(2.9, 1.2, -3.35); g.add(oven);
+    const fire = new THREE.Mesh(new THREE.PlaneGeometry(.8, .5), new THREE.MeshBasicMaterial({ color: 0xff8a2b })); fire.position.set(2.9, .9, -3.24); g.add(fire);
+  } });
+boxes.push({ x1: -76 - 3.1, x2: -76 + 3.1, z1: 36.5 + .3, z2: 36.5 + 3.5 });
+// --- le Market ---
+const MARKET = makeShop({ name: "Market", x: -84, z: 48.5, hx: 9, hz: 4.5, door: 1.4, side: -1, wallTex: shopWall("#27ae60", "#ffc93c"), floorTex: tileFloor("#eef2ee", "#dfe8df"), roofCol: 0x1e8449, awnA: "#27ae60", awnB: "#ffffff",
+  sign: "MARKET 🛒", signBg: "#27ae60", signFg: "#ffffff", signScale: 2, build(g) {
+    const cols = [0xff5a4e, 0xffc93c, 0x2e86de, 0x27ae60, 0xe84393, 0x8e44ad, 0xff8a2b, 0xffffff];
+    // trois rayons pleins de produits
+    const prod = new THREE.InstancedMesh(new THREE.BoxGeometry(.22, .3, .18), mat(0xffffff, .6), 3 * 2 * 4 * 22); let k = 0; const m4 = new THREE.Matrix4(), cc = new THREE.Color();
+    for (let r = 0; r < 3; r++) { const sx = -5 + r * 3.4; const shelf = rbox(.8, 1.9, 5, mat(0xf4f4f4, .5), .04); shelf.position.set(sx, .95, -.8); g.add(shelf);
+      for (const side of [-1, 1]) for (let lv = 0; lv < 4; lv++) for (let i = 0; i < 22; i++) { m4.makeTranslation(sx + side * .44, .25 + lv * .45, -3.1 + i * .21); prod.setMatrixAt(k, m4); prod.setColorAt(k, cc.set(cols[(i + lv * 3 + r) % 8])); k++; } }
+    g.add(prod);
+    // les frigos lumineux au fond
+    for (let i = 0; i < 4; i++) { const f = rbox(1.6, 2.2, .7, mat(0xdfe6ea, .3, { metalness: .4 }), .06); f.position.set(-6.5 + i * 1.7, 1.1, -4.05); g.add(f); const glow = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 1.8), new THREE.MeshStandardMaterial({ color: 0xbfe6ff, emissive: 0x8fd0ff, emissiveIntensity: .5 })); glow.position.set(-6.5 + i * 1.7, 1.15, -3.69); g.add(glow); }
+    // les fruits et légumes
+    const crate = rbox(2.4, .7, 1.2, mat(0xa8724a, .8), .05); crate.position.set(6.3, .35, -2.6); g.add(crate);
+    [[0xe74c3c, .12], [0xffc93c, .11], [0x27ae60, .12], [0xff8a2b, .11]].forEach(([c, r], j) => { for (let i = 0; i < 6; i++) { const f = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 8), mat(c, .5)); f.position.set(5.4 + j * .6 + (i % 2) * .2, .8, -3 + Math.floor(i / 2) * .35); g.add(f); } });
+    // la caisse et les chariots
+    const till = rbox(2.4, 1, .8, mat(0x27ae60, .5), .06); till.position.set(5.6, .5, 1.6); g.add(till);
+    const belt = new THREE.Mesh(new THREE.BoxGeometry(2.2, .03, .6), mat(0x222222, .6)); belt.position.set(5.6, 1.02, 1.6); g.add(belt);
+    const reg = rbox(.5, .35, .4, mat(0x333333, .4), .05); reg.position.set(6.4, 1.2, 1.4); g.add(reg);
+    for (let i = 0; i < 3; i++) { const cart = new THREE.Group(); const basket = rbox(.6, .45, .9, mat(0xc0c7cc, .3, { metalness: .6 }), .04); basket.position.y = .75; cart.add(basket); for (const sx of [-.25, .25]) for (const sz of [-.35, .35]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, .05, 12), mat(0x222222, .7)); w.rotation.z = Math.PI / 2; w.position.set(sx, .07, sz); cart.add(w); } const handle = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .6, 8), mat(0xe74c3c, .5)); handle.rotation.z = Math.PI / 2; handle.position.set(0, 1.05, .5); cart.add(handle); cart.position.set(-7.6 + i * .3, 0, 2.6 + i * .15); cart.rotation.y = .2; g.add(cart); }
+  } });
+for (let r = 0; r < 3; r++) boxes.push({ x1: -84 - 5 + r * 3.4 - .45, x2: -84 - 5 + r * 3.4 + .45, z1: 48.5 - 3.3, z2: 48.5 + 1.7 });
+boxes.push({ x1: -84 - 7.4, x2: -84 - .5, z1: 48.5 - 4.5, z2: 48.5 - 3.7 }, { x1: -84 + 5.1, x2: -84 + 7.5, z1: 48.5 - 3.2, z2: 48.5 - 2 }, { x1: -84 + 4.4, x2: -84 + 6.8, z1: 48.5 + 1.2, z2: 48.5 + 2 });
+// acheter : boulangerie et Market partagent la même fenêtre
+const BUY = {
+  boul: { title: "La boulangerie 🥖", items: [["🥐", "Croissant", 1], ["🍫", "Pain au chocolat", 1], ["🥖", "Baguette", 1], ["🍬", "Chouquettes", 2], ["🧁", "Éclair au chocolat", 3], ["🍓", "Tarte aux fraises", 4]] },
+  market: { title: "Le Market 🛒", items: [["🍎", "Pommes", 2], ["🥛", "Lait", 1], ["🥣", "Céréales", 3], ["🍕", "Pizza", 5], ["🍬", "Bonbons", 2], ["🧃", "Jus de fruits", 2], ["🧴", "Crème solaire", 6], ["⚽", "Ballon", 8], ["🍦", "Glaces", 4], ["🦆", "Petit canard en plastique", 3]] },
+};
+let bag = []; try { const b = JSON.parse(localStorage.getItem("pins-sac") || "[]"); if (Array.isArray(b)) bag = b.filter(x => typeof x === "string").slice(-60); } catch (e) {}
+let buyShop = null;
+function renderBuy() {
+  const sh = BUY[buyShop]; $("buyTitle").textContent = sh.title; $("buyMoney").textContent = money;
+  $("buyList").innerHTML = sh.items.map(([e, n, p], i) => `<button class="btn" data-b="${i}" style="background:${money >= p ? "#8a4b2a" : "#9aa0b4"}">${e} ${n}<br><small>${p} €</small></button>`).join("");
+  const counts = {}; bag.forEach(o => counts[o] = (counts[o] || 0) + 1);
+  $("buyBag").textContent = bag.length ? "Dans ton sac : " + Object.entries(counts).map(([o, n]) => n > 1 ? `${o} ×${n}` : o).join(", ") : "Ton sac est vide.";
+}
+$("buyList").addEventListener("click", e => { const b = e.target.closest("button[data-b]"); if (!b) return; const [em, n, p] = BUY[buyShop].items[+b.dataset.b];
+  if (money < p) { $("buyBag").textContent = `Il te manque ${p - money} € pour ${em} ${n}.`; return; }
+  money -= p; saveShop(); updMoney(); const food = buyShop === "boul" && !/Baguette/.test(n);
+  if (food) { tone(160, .07, "square", .05); tone(150, .07, "square", .05, 0, .15); tone(170, .07, "square", .05, 0, .3); renderBuy(); $("buyBag").textContent = `Miam ! Tu as mangé : ${em} ${n} 😋`; }
+  else { bag.push(em + " " + n); try { localStorage.setItem("pins-sac", JSON.stringify(bag.slice(-60))); } catch (e) {} sfx.duck(); renderBuy(); } });
+$("buyClose").onclick = () => fermer("buyView");
+function openBuy(k) { buyShop = k; renderBuy(); ouvrir("buyView"); }
+$("progClose").onclick = () => fermer("progView");
+ACCUEIL.where = "🏨 Accueil"; BOULANGERIE.where = "🥖 Boulangerie"; MARKET.where = "🛒 Market";
+
 /* ---------- Canards ---------- */
 const DUCK_SPOTS = [[3, -18], [-22, -26], [17, -15.5], [48, -20], [70, -48], [-72, 0], [-31, 53.5], [-14.5, 43.5], [14, 18.6], [-16, 53]];
 function duckMesh() {
@@ -2582,6 +2749,9 @@ const npcs = [
   { name: "Tom, l'animateur", pos: bw(-3, 9.5), o: { shirt: 0xff8a2b, pants: 0x2e86de, hair: 0x8b4513, cap: 0x27ae60 }, lines: ["Salut ! Bienvenue au Baloba, la salle de jeux ! 🎈", "Monte les marches de la grande structure, passe dans le tunnel et grimpe tout en haut.", "Il y a trois toboggans : le colimaçon tout en haut, le toboggan rapide au 2e étage et le toboggan à vagues au 1er !", "Les six trampolines sont au fond : saute dessus, tu vas rebondir très haut !", "Si tu as soif, va au bar à goûter ! 🧃", "Et la piscine à balles… plonge dedans ! On rentre par l'ouverture sur le côté."] },
   { name: "Léon, de Game Town", pos: gw(6.5, -2.6), o: { shirt: 0x8e44ad, pants: 0x1b1035, hair: 0x111111, cap: 0xff4fd8, skin: 0xd9a27a }, lines: ["Bienvenue à Game Town ! 🎮", "Approche-toi d'une borne et appuie sur Jouer. Il y a Tape-Taupe, Panier Magique et Attrape-Étoiles !", "Chaque partie te fait gagner des tickets 🎟️.", "Avec 3 tickets, tu peux essayer la machine à pince… si tu as de la chance, tu gagnes une peluche !", "Au comptoir des cadeaux, au fond, tu échanges tes tickets contre des cadeaux 🎁"] },
   { name: "Zoé, de Burger Fast", pos: fw(-1.2, -4.4), o: { shirt: 0xff7a2f, pants: 0x1f9e8f, hair: 0x5a3a22, long: true, cap: 0xff7a2f }, lines: ["Bienvenue chez Burger Fast ! 🍔", "Approche-toi de la caisse et appuie sur Commander pour choisir ton menu.", "Quand ta commande est prête, viens chercher ton plateau au bout du comptoir.", "Ensuite, va t'asseoir à une table pour manger. Bon appétit ! 😋"] },
+  { name: "Margot, de l'accueil", pos: ACCUEIL.w(0, 2.3), o: { shirt: 0x2e86de, pants: 0x2d3436, hair: 0xd4a017, long: true }, lines: ["Bonjour et bienvenue au Domaine des Pins ! 😊", "Ici, je t'explique ce qui va se passer pendant tes vacances, et quoi faire si tu as un problème.", "Approche-toi du comptoir et appuie sur Le programme pour tout lire.", "Le grand plan du domaine est accroché au mur, derrière moi !"] },
+  { name: "Bernard, le boulanger", pos: BOULANGERIE.w(0, 2), o: { shirt: 0xffffff, pants: 0xf3e2c3, hair: 0x9a9a9a, cap: 0xffffff, skin: 0xe0ac85 }, lines: ["Bonjour ! Mes croissants sortent du four 🥐", "J'ai des baguettes, des pains au chocolat, des chouquettes, des éclairs et des tartes aux fraises.", "Approche-toi de la vitrine et appuie sur Acheter !"] },
+  { name: "Inès, du Market", pos: MARKET.w(5.6, 2.7), o: { shirt: 0x27ae60, pants: 0x2d3436, hair: 0x2d2018, long: true, skin: 0x8d5a3b }, lines: ["Bienvenue au Market ! 🛒", "On a des fruits, des céréales, des pizzas, des bonbons, de la crème solaire, des ballons…", "Viens à la caisse et appuie sur Faire les courses."] },
 ];
 npcs.forEach(n => { n.g = person(n.o); n.g.position.set(n.pos[0], 0, n.pos[1]); n.g.rotation.y = rnd() * 6; scene.add(n.g); const lb = label(n.name.split(",")[0], "#8e44ad", "#ffffff", .6 / (n.o.scale ?? .76)); lb.position.y = 2.7; n.g.add(lb); circles.push({ x: n.pos[0], z: n.pos[1], r: .5 }); n.idx = -1; });
 const swimmer = person({ shirt: 0xffffff, pants: 0x00b894, shorts: true, hair: 0x2d3436, skin: 0xd9a27a }); setOutfit(swimmer, "requin"); scene.add(swimmer);
@@ -2835,6 +3005,7 @@ function zoneName(P) {
   if (inBaloba(P.x, P.z)) return "🎈 Le Baloba";
   if (inGameTown(P.x, P.z)) return "🎮 Game Town";
   if (inBurger(P.x, P.z)) return "🍔 Burger Fast";
+  for (const sh of SHOPS) if (sh.in(P.x, P.z)) return sh.where;
   if (inRect(PARK, P.x, P.z)) return "🅿️ Parking";
   if (P.y > 3 && inRect(TREEHUT, P.x, P.z)) return "🏠 La cabane dans l'arbre";
   if (P.y > 3 && inRect(TREEH, P.x, P.z)) return "🌳 Maison dans les arbres";
@@ -2846,7 +3017,7 @@ function zoneName(P) {
   if (riverNear(P.x, P.z).d < 7) return "🌊 Rivière sauvage";
   return "";
 }
-const ZTOAST = { "🅿️ Parking": "Le parking ! Approche-toi d'une voiture pour klaxonner 📯. Les vélos sous l'abri, tu peux les prendre 🚲", "🍔 Burger Fast": "Burger Fast ! Va à la caisse pour commander ton menu 🍔🍟", "🎮 Game Town": "Game Town ! Joue aux bornes d'arcade pour gagner des tickets 🎟️", "🎈 Le Baloba": "Le Baloba ! Grimpe dans la structure, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
+const ZTOAST = { "🏨 Accueil": "L'accueil ! Margot t'explique tout : approche-toi du comptoir 📋", "🥖 Boulangerie": "Ça sent bon le pain chaud ! 🥖", "🛒 Market": "Le Market ! Va à la caisse pour faire tes courses 🛒", "🅿️ Parking": "Le parking ! Approche-toi d'une voiture pour klaxonner 📯. Les vélos sous l'abri, tu peux les prendre 🚲", "🍔 Burger Fast": "Burger Fast ! Va à la caisse pour commander ton menu 🍔🍟", "🎮 Game Town": "Game Town ! Joue aux bornes d'arcade pour gagner des tickets 🎟️", "🎈 Le Baloba": "Le Baloba ! Grimpe dans la structure, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
   "🌊 Rivière sauvage": "La rivière sauvage ! Va au ponton pour prendre une bouée 🛟", "🌳 Maison dans les arbres": "Tu es dans les arbres ! Traverse le pont de singe… et descends par le toboggan 🛝", "🛖 Une cabane": "Une petite cabane en rondins 🛖" };
 const seenZ = new Set();
 
@@ -3019,6 +3190,8 @@ let act1 = null, act2 = null, doorNear = null;
 function doAct(a) {
   if (!a) return; sfx.click();
   if (a === "feed") { feedFish(); return; }
+  if (a === "prog") { ouvrir("progView"); return; }
+  if (a === "boul" || a === "market") { openBuy(a); return; }
   if (a === "honk" && honkCar) { honk(honkCar); return; }
   if (/^bf(order|pick|eat)$/.test(a)) { bfAct(a); return; }
   if (/^gt\d$/.test(a)) { openArcade(GT_CABS[+a.slice(2)].k); return; }
@@ -3079,11 +3252,12 @@ function drawMap() {
   mx.fillStyle = "#e84393"; mx.fillRect(X(BALO.x - BALO.hx), Z(BALO.z - BALO.hz), BALO.hx * 2 * k, BALO.hz * 2 * k); mx.strokeStyle = "#ffc93c"; mx.lineWidth = 3; mx.strokeRect(X(BALO.x - BALO.hx), Z(BALO.z - BALO.hz), BALO.hx * 2 * k, BALO.hz * 2 * k);
   mx.fillStyle = "#3b2a7a"; mx.fillRect(X(GTW.x - GTW.hx), Z(GTW.z - GTW.hz), GTW.hx * 2 * k, GTW.hz * 2 * k); mx.strokeStyle = "#ff4fd8"; mx.lineWidth = 3; mx.strokeRect(X(GTW.x - GTW.hx), Z(GTW.z - GTW.hz), GTW.hx * 2 * k, GTW.hz * 2 * k);
   mx.fillStyle = "#5a5e64"; mx.fillRect(X(PARK.x1), Z(PARK.z1), (PARK.x2 - PARK.x1) * k, (PARK.z2 - PARK.z1) * k);
+  for (const sh of SHOPS) { mx.fillStyle = sh === ACCUEIL ? "#2e86de" : sh === MARKET ? "#27ae60" : "#8a4b2a"; mx.fillRect(X(sh.x - sh.hx), Z(sh.z - sh.hz), sh.hx * 2 * k, sh.hz * 2 * k); }
   mx.fillStyle = "#ff7a2f"; mx.fillRect(X(BFW.x - BFW.hx), Z(BFW.z - BFW.hz), BFW.hx * 2 * k, BFW.hz * 2 * k);
   mx.fillStyle = "#1f8fae"; mx.beginPath(); mx.arc(X(AQU.x), Z(AQU.z), AQU.r * k, 0, 7); mx.fill(); mx.strokeStyle = "#ffffff"; mx.lineWidth = 2; mx.stroke();
   mx.fillStyle = "#e84393"; mx.fillRect(X(11.3), Z(21), 5.4 * k, 2 * k);
   mx.font = '700 13px "Baloo 2",sans-serif'; mx.textAlign = "center"; mx.fillStyle = "#0d3b52";
-  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2)); mx.fillText("Baloba", X(BALO.x), Z(BALO.z - BALO.hz - 2)); mx.fillText("Game Town", X(GTW.x), Z(GTW.z - GTW.hz - 2)); mx.fillText("Burger Fast", X(BFW.x), Z(BFW.z - BFW.hz - 2)); mx.fillStyle = "#ffffff"; mx.fillText("P Parking", X((PARK.x1 + PARK.x2) / 2), Z((PARK.z1 + PARK.z2) / 2)); mx.fillStyle = "#1d3b2a";
+  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2)); mx.fillText("Baloba", X(BALO.x), Z(BALO.z - BALO.hz - 2)); mx.fillText("Game Town", X(GTW.x), Z(GTW.z - GTW.hz - 2)); mx.fillText("Burger Fast", X(BFW.x), Z(BFW.z - BFW.hz - 2)); mx.fillText("Accueil", X(ACCUEIL.x), Z(ACCUEIL.z - 5.5)); mx.fillText("Boulangerie", X(BOULANGERIE.x + 1), Z(BOULANGERIE.z - 5)); mx.fillText("Market", X(MARKET.x), Z(MARKET.z + 6.5)); mx.fillStyle = "#ffffff"; mx.fillText("P Parking", X((PARK.x1 + PARK.x2) / 2), Z((PARK.z1 + PARK.z2) / 2)); mx.fillStyle = "#1d3b2a";
   mx.fillText("Ferme", X(-70), Z(-36)); mx.fillText("Poney club", X(ARENA.x), Z(ARENA.z - ARENA.rz - 2)); mx.fillText("Karts", X(0), Z(-80)); mx.fillText("Rivière sauvage", X(-50), Z(75)); mx.fillText("Maison dans les arbres", X(50), Z(84)); mx.fillText("Vélos", X(6), Z(41));
   mx.font = '700 11px "Baloo 2",sans-serif';
   npcs.forEach(n => { const nx = X(n.g.position.x), nz = Z(n.g.position.z); mx.fillStyle = "#8e44ad"; mx.beginPath(); mx.arc(nx, nz, 4, 0, 7); mx.fill(); mx.fillText(n.name.split(",")[0], nx, nz - 7); });
@@ -3436,6 +3610,7 @@ const PLACES = [
   { e: -70, pts: [[-70, GTW.z], [GTW.x + GTW.hx + .6, GTW.z]], hide: true }, { e: 24, pts: [[44, -6], [AQU.x - AQU.r - .6, AQU.z]], hide: true },
   { e: 14, pts: [[14, 24.6]], hide: false }, { e: 83.4, pts: [[83, 40], [80, 44]], hide: true }, { e: 6, pts: [[6, 33.2]], hide: false },
   { e: 24, pts: [[40, -1]], hide: false }, { e: -70, pts: [[-70, 4]], hide: false }, { e: -16, pts: [[-16, 35]], hide: true }, { e: 32, pts: [[32, 35]], hide: true },
+  { e: -88, pts: [[-88, 32.5]], hide: true }, { e: -76, pts: [[-76, 32.5]], hide: true }, { e: -81.5, pts: [[-81.5, 42.4], [-84, 43.4]], hide: true },
 ];
 const walkers = [];
 for (let i = 0; i < 12; i++) {
@@ -3673,12 +3848,12 @@ function loop() {
   farmRoofs[0].roof.visible = !inBarn; treeRoof.visible = !inTreeHut; for (const h of cabRoofs) { const i = Math.abs(P.x - h.x) < 2 && Math.abs(P.z - h.z) < 2; h.roof.visible = !i; if (i) inCab = true; }
   const dWant = Math.hypot(P.x, P.z - 7.5) < 5 ? 1 : 0; if (dWant && domeDoorOpen < .05) sfx.door();
   domeDoorOpen += (dWant - domeDoorOpen) * Math.min(1, dt * 5); domeDoors.forEach(d => d.m.position.x = d.s * (1.4 + domeDoorOpen * 2.7)); domeDoorBox.off = domeDoorOpen > .6;
-  const inAq = updateAquarium(dt, time, P), inBalo = updateBaloba(dt, time, P), inGT = updateGameTown(dt, time, P), nightK = updateDayNight(dt), inBF = updateBurger(dt, time, P);
+  const inAq = updateAquarium(dt, time, P), inBalo = updateBaloba(dt, time, P), inGT = updateGameTown(dt, time, P), nightK = updateDayNight(dt), inBF = updateBurger(dt, time, P), inShop = updateShops(dt, P);
   updateVacationers(dt, time, P);
 
   // caméra
   if (state !== "ride") {
-    if (inCottage || inAq || inBalo || inGT || inBF) { camDist = 7.5; minPitch = 1.0; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
+    if (inCottage || inAq || inBalo || inGT || inBF || inShop) { camDist = 7.5; minPitch = 1.0; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
     const pt = Math.max(pitch, minPitch); const baseY = state === "top" ? 9.95 : state === "boat" ? .6 : Math.max(P.y, 0);
     const cx = P.x + Math.sin(yaw) * Math.cos(pt) * camDist, cz = P.z + Math.cos(yaw) * Math.cos(pt) * camDist, cy = baseY + 1.5 + Math.sin(pt) * camDist;
     camera.position.lerp(tv.set(cx, Math.max(cy, .6), cz), Math.min(1, dt * 7)); camera.lookAt(P.x, baseY + 1.4, P.z);
@@ -3727,6 +3902,9 @@ function loop() {
       if (Math.hypot(P.x - gtClaw.front[0], P.z - gtClaw.front[1]) < 1.3) offer("claw", "🧸 Pince à peluches (3 🎟️)");
       if (Math.hypot(P.x - (GTW.x - 6.8), P.z - GTW.z) < 2.2) offer("prizes", "🎁 Échanger mes tickets"); }
     honkCar = null; if (state === "walk" && P.y < 1 && inRect(PARK, P.x, P.z)) { honkCar = PARK_CARS.find(c => Math.hypot(P.x - c.x, P.z - c.z) < 2.9) || null; if (honkCar) offer("honk", "📯 Klaxonner"); }
+    if (state === "walk" && P.y < 1) { if (ACCUEIL.in(P.x, P.z) && Math.hypot(P.x - ACCUEIL.x, P.z - (ACCUEIL.z - .1)) < 1.9) offer("prog", "📋 Le programme");
+      if (BOULANGERIE.in(P.x, P.z) && Math.hypot(P.x - BOULANGERIE.x, P.z - (BOULANGERIE.z - .4)) < 2.6) offer("boul", "🥐 Acheter");
+      if (MARKET.in(P.x, P.z) && Math.hypot(P.x - (MARKET.x + 5.6), P.z - (MARKET.z + .6)) < 1.7) offer("market", "🛒 Faire les courses"); }
     if (state === "walk" && P.y < 1 && inBurger(P.x, P.z)) { if (Math.hypot(P.x - BF_ORDER[0], P.z - BF_ORDER[1]) < 1.4) offer("bforder", "🍔 Commander");
       if (bf.state === "ready" && Math.hypot(P.x - BF_PICK[0], P.z - BF_PICK[1]) < 1.5) offer("bfpick", "🍽️ Prendre mon plateau");
       if (bf.state === "carry") { const t = BF_TABLES.find(t => Math.hypot(P.x - t.x, P.z - t.z) < 2); if (t) { bf.table = t; offer("bfeat", "😋 Manger ici"); } } }
