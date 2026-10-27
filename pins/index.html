@@ -418,7 +418,8 @@ const PCX = (POOL.x1 + POOL.x2) / 2, PCZ = (POOL.z1 + POOL.z2) / 2, PW = POOL.x2
 const FARM = { x1: -94, x2: -46, z1: -34, z2: 9 }, PONYZ = { x1: -95, x2: -44, z1: -70, z2: -46 }, KARTZ = { x1: -31, x2: 31, z1: -94, z2: -64 };
 const ARENA = { x: -68, z: -58, rx: 14, rz: 9 }, KART = { x: 0, z: -80, rx: 23, rz: 7 }, RACK = { x1: 2, x2: 10, z1: 34.5, z2: 38.5 };
 const TREEH = { x1: 38, x2: 76, z1: 56.5, z2: 78 }, HUTS = [[28, 63], [58, 60.5], [75, 82]];
-const ZONES = [FARM, PONYZ, KARTZ, RACK, TREEH, ...HUTS.map(([x, z]) => ({ x1: x - 3.5, x2: x + 3.5, z1: z - 3.5, z2: z + 3.5 }))];
+const ENTREE = { x1: -13, x2: 13, z1: 3, z2: 26 }; // dégagé devant l'entrée de l'Aquaparc
+const ZONES = [FARM, PONYZ, KARTZ, RACK, TREEH, ENTREE, ...HUTS.map(([x, z]) => ({ x1: x - 3.5, x2: x + 3.5, z1: z - 3.5, z2: z + 3.5 }))];
 const inRect = (r, x, z, m = 0) => x > r.x1 - m && x < r.x2 + m && z > r.z1 - m && z < r.z2 + m;
 const RIVER_HW = 1.8, RAPIDS = [[.27, .36], [.76, .85]];
 const river = new THREE.CatmullRomCurve3([[-80, 62], [-60, 58], [-40, 62], [-22, 60], [-16, 72], [-26, 86], [-48, 88], [-62, 80], [-78, 86], [-86, 74]].map(([x, z]) => new THREE.Vector3(x, 0, z)), true, "centripetal");
@@ -438,7 +439,7 @@ function bake(src) {
     for (const k of Object.keys(g.attributes)) if (!["position", "normal", "uv"].includes(k)) g.deleteAttribute(k);
     if (!g.attributes.uv) g.setAttribute("uv", new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
     if (!by.has(m.material)) by.set(m.material, []); by.get(m.material).push(g); });
-  const out = new THREE.Group(); for (const [m, gs] of by) { const me = new THREE.Mesh(mergeGeometries(gs), m); me.castShadow = me.receiveShadow = true; out.add(me); } return out;
+  const out = new THREE.Group(); out.position.copy(src.position); out.quaternion.copy(src.quaternion); out.scale.copy(src.scale); for (const [m, gs] of by) { const me = new THREE.Mesh(mergeGeometries(gs), m); me.castShadow = me.receiveShadow = true; out.add(me); } return out;
 }
 // un seul maillage à couleurs par sommet : [géométrie, couleur, position, rotation, échelle]
 const VC = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .85 });
@@ -563,7 +564,7 @@ function palm(x, z, h = 6) {
   for (let i = 0; i < 3; i++) { const c = new THREE.Mesh(new THREE.SphereGeometry(.17, 12, 10), mat(0x6b4a2a, .8)); c.position.set(top.x + Math.cos(i * 2) * .25, top.y - .2, top.z + Math.sin(i * 2) * .25); g.add(c); }
   g.position.set(x, 0, z); shadowAll(g); scene.add(g); circles.push({ x, z, r: .45 });
 }
-[[-25, -8], [24, -10], [-26, -50], [24, -50], [0, -61], [-3, -14], [26, -26]].forEach(p => palm(p[0], p[1], 6 + rnd() * 2));
+[[-25, -8], [24, -10], [-26, -50], [24, -50], [0, -61], [-18, -11], [26, -26]].forEach(p => palm(p[0], p[1], 6 + rnd() * 2));
 // transats
 function lounger(x, z, ry) {
   const g = new THREE.Group(); const frame = rbox(.75, .12, 1.9, mat(0xffffff, .4), .05); frame.position.y = .38; const cushion = rbox(.68, .1, 1.3, mat(0x2fa7d6, .8), .05); cushion.position.set(0, .48, .25);
@@ -2260,10 +2261,11 @@ function onRiver(o, dt, steer) { // avance une bouée le long du courant
 function startRiver() { state = "river"; riv = { u: RDOCK.u, lat: 0, spin: 0, dist: 0, rap: false }; myBuoy.visible = true; $("dialog").hidden = true; talking = null; sfx.splash(); toast("C'est parti sur la rivière ! 🛟 Gauche / droite pour te diriger.", 2800); }
 function endRiver() { state = "walk"; riv = null; myBuoy.visible = false; player.position.set(RDOCK.x, .24, RDOCK.z); player.rotation.set(0, Math.atan2(RDOCK.sx, RDOCK.sz), 0); whoosh(.4, .1, 900, 300); toast("Quel tour ! 🌊", 2000); }
 function riverTick(dt, P) {
-  const [ix] = inp(), o = onRiver(riv, dt, ix); riv.dist += o.sp * dt;
+  // au retour au ponton, la bouée s'arrête et attend : on sort, ou on refait un tour
+  const [ix] = inp(), o = onRiver(riv, riv.stop ? 0 : dt, ix); if (!riv.stop) riv.dist += o.sp * dt;
   myBuoy.position.set(o.x, o.y, o.z); myBuoy.rotation.y = riv.spin; P.set(o.x, o.y - .62, o.z); player.rotation.y = riv.spin; animPerson(player, "buoy", time);
   if (o.rap && !riv.rap) { whoosh(1.6, .22, 300, 1500); toast("Les rapides ! 🌊 Accroche-toi !", 1800); } riv.rap = o.rap;
-  if (riv.dist > RIVER_LEN - 1.5) endRiver();
+  if (!riv.stop && riv.dist > RIVER_LEN - .3) { riv.stop = true; riv.u = RDOCK.u; riv.lat = 0; toast("Te revoilà au ponton ! Tu sors, ou tu refais un tour ? 🛟", 3000); }
 }
 function updateFloaters(dt) { const P = player.position, on = Math.abs(P.x + 50) < 95 && Math.abs(P.z - 74) < 80;
   for (const f of floaters) { if (f.b.visible !== on) f.b.visible = on; if (!on) continue; const o = onRiver(f, dt); f.b.position.set(o.x, o.y, o.z); f.b.rotation.y = f.spin; animPerson(f.g, "buoy", time + f.u * 9); } }
@@ -2498,6 +2500,7 @@ function doAct(a) {
   if (a === "getup") { standUp(); return; }
   if (a === "river") { startRiver(); return; }
   if (a === "riverout") { endRiver(); return; }
+  if (a === "riveragain") { riv.stop = false; riv.dist = 0; toast("C'est reparti ! 🌊", 1600); return; }
   if (a === "chest") { openChest(); return; }
   if (a === "treeslide") { state = "ride"; riding = { curve: treeSlide, u: 0, dry: true }; $("dialog").hidden = true; talking = null; sfx.slide(); toast("Wiiiiii ! 🛝", 1600); return; }
   if (a === "climb" && !wearing) { toast("Il faut un maillot de bain pour le toboggan : va aux vestiaires ! 👕", 2600); return; }
@@ -3012,7 +3015,8 @@ function loop() {
     }
     if (state === "walk" && P.y > 4) { if (Math.hypot(P.x - CHEST.x, P.z - CHEST.z) < 1.8) offer("chest", "🎁 Ouvrir le coffre"); if (Math.hypot(P.x - 63.3, P.z - 69) < 1.5) offer("treeslide", "🛝 Glisser !"); }
     if (state === "drive") offer("dismount", "🧍 Descendre");
-    if (state === "river" && riv.dist > 10 && Math.hypot(P.x - RDOCK.x, P.z - RDOCK.z) < 6) offer("riverout", "🧍 Sortir sur le ponton");
+    if (state === "river" && (riv.stop || riv.dist > 10 && Math.hypot(P.x - RDOCK.x, P.z - RDOCK.z) < 6)) offer("riverout", "🧍 Sortir sur le ponton");
+    if (state === "river" && riv.stop) offer("riveragain", "🔁 Refaire un tour");
     if (state === "lie" || state === "eat") offer("getup", "🧍 Se lever");
   }
   setBtn($("actBtn"), t1); setBtn($("act2Btn"), t2);
@@ -3058,7 +3062,7 @@ function loop() {
   sun.position.set(P.x + sunDir.x * 120, sunDir.y * 120, P.z + sunDir.z * 120); sun.target.position.set(P.x, 0, P.z);
   renderer.render(scene, camera);
 }
-window.__pins = { get veh() { return veh; }, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
+window.__pins = { get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
 loop();
 </script>
 <script>
