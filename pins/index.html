@@ -113,12 +113,13 @@ html.app .site{display:none!important}
 </div>
 <div id="where" class="pill" hidden></div>
 <div id="stick"><div id="knob"></div></div>
-<div id="moveBtns"><button id="jumpBtn" class="btn round" aria-label="Sauter">🦘<small>Sauter</small></button><button id="runBtn" class="btn round" aria-pressed="false" aria-label="Courir">🏃<small>Courir</small></button></div>
+<div id="moveBtns"><button id="runBtn" class="btn round" aria-pressed="false" aria-label="Courir">🏃<small>Courir</small></button></div>
 <div id="actions">
   <button id="sayBtn" class="btn" hidden>🗨️ Dire</button>
   <button id="talkBtn" class="btn" hidden>💬 Parler</button>
   <button id="act2Btn" class="btn" hidden>Action</button>
   <button id="actBtn" class="btn" hidden>Action</button>
+  <button id="jumpBtn" class="btn round" aria-label="Sauter">🦘<small>Sauter</small></button>
 </div>
 <div id="toast" hidden></div>
 <div id="dialog" hidden><b id="dName"></b><p id="dText"></p><small>Appuie encore sur Parler pour continuer</small></div>
@@ -131,6 +132,9 @@ html.app .site{display:none!important}
     <p class="small">Joystick à gauche pour marcher. Glisse ton doigt sur l'écran pour tourner la caméra. Sur ordinateur : flèches ou ZQSD, E pour agir (ouvrir une porte, nager, se changer…), T pour parler, J pour sauter, Maj pour courir. Tu as 4000 € pour la boutique de maillots de bain.</p>
     <p style="margin:10px 0 4px;font-weight:800">Tu joues…</p>
     <div class="row sexe" role="radiogroup" aria-label="Ton personnage"><button id="sexeF" class="btn" role="radio" data-s="f">👧 une fille</button><button id="sexeG" class="btn" role="radio" data-s="g">👦 un garçon</button></div>
+    <p style="margin:10px 0 4px;font-weight:800">Ton nom dans le jeu</p>
+    <div class="row"><input id="nomIn" type="text" maxlength="16" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Théo" aria-describedby="nomMsg" style="font:inherit;font-size:18px;padding:10px 14px;border-radius:14px;border:3px solid #1d3b2a;width:min(260px,70vw);text-align:center;background:#fff;color:#1d3b2a;user-select:text;-webkit-user-select:text;touch-action:manipulation"></div>
+    <p id="nomMsg" class="small">Un prénom ou un surnom, comme tu veux. Il reste sur cet appareil.</p>
     <div class="row"><button id="glassesBtn" class="btn" style="background:#34495e" aria-pressed="false">👓 Sans lunettes</button></div>
     <div class="row"><button id="startBtn" class="btn">▶ Jouer</button><button id="introMulti" class="btn" style="background:var(--violet)">👫 À plusieurs</button><a class="btn site" style="background:#34495e" href="../index.html">🏠 Accueil</a></div>
     <div class="row"><button id="majBtn" class="btn" style="background:#34495e" hidden>🔄 Mettre à jour</button></div>
@@ -1041,6 +1045,9 @@ let lake;
 if (!LOWQ) { // vraie eau : reflets du ciel, des arbres et du pédalo
   lake = new Water(new THREE.CircleGeometry(LAKE.r + .4, 128), { textureWidth: 512, textureHeight: 512, waterNormals: lakeN, sunDirection: sunDir.clone(), sunColor: 0xfff0d6, waterColor: 0x183f4a, distortionScale: .45, fog: true });
   lake.material.uniforms.size.value = 7;
+  // le reflet redessine toute la scène : seulement quand le lac est proche, une image sur deux
+  const refl = lake.onBeforeRender; let reflN = 0;
+  lake.onBeforeRender = (r, sc, cam) => { if (cam.position.distanceTo(lake.position) < 75 && (reflN++ & 1) === 0) refl.call(lake, r, sc, cam); };
 } else lake = new THREE.Mesh(new THREE.CircleGeometry(LAKE.r + .4, 96), new THREE.MeshStandardMaterial({ color: 0x245f78, roughness: .03, metalness: .1, normalMap: lakeN, normalScale: new THREE.Vector2(.45, .45) }));
 lake.rotation.x = -Math.PI / 2; lake.position.set(LAKE.x, .06, LAKE.z); scene.add(lake);
 const lakeLbl = label("Le lac", "#2a6f8f", "#ffffff", 1.4); lakeLbl.position.set(LAKE.x, 5, LAKE.z); scene.add(lakeLbl);
@@ -1411,7 +1418,7 @@ const BPIT = { x1: 3.5, x2: 10.6, z1: -2.5, z2: 10.5, gz1: 3, gz2: 5 };
   pad(x1 - .3, x1, z1 - .3, gz1, 0xe84393); pad(x1 - .3, x1, gz2, z2 + .3, 0xe84393);
 }
 const BALLS = 2600, ballCols = [0xff5a4e, 0xffc93c, 0x2e86de, 0x27ae60, 0xe84393, 0x9b59b6];
-const ballIM = new THREE.InstancedMesh(new THREE.SphereGeometry(.14, 10, 8), mat(0xffffff, .3), BALLS);
+const ballIM = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.14, 1), mat(0xffffff, .3), BALLS);
 const balls = Array.from({ length: BALLS }, (_, i) => { const b = { x: BALO.x + BPIT.x1 + .15 + rnd() * (BPIT.x2 - BPIT.x1 - .3), z: BALO.z + BPIT.z1 + .15 + rnd() * (BPIT.z2 - BPIT.z1 - .3), y: .14 + rnd() * .62, dx: 0, dy: 0, dz: 0 }; ballIM.setColorAt(i, new THREE.Color(ballCols[i % 6])); return b; });
 ballIM.receiveShadow = true; scene.add(ballIM);
 { const m = new THREE.Matrix4(); balls.forEach((b, i) => { m.makeTranslation(b.x, b.y, b.z); ballIM.setMatrixAt(i, m); }); }
@@ -2042,6 +2049,11 @@ function instanced(geo, material, list, y, colorFn) {
   list.forEach((t, i) => { q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), t.r); m.compose(new THREE.Vector3(t.x, (y || 0) * t.s, t.z), q, new THREE.Vector3(t.s, t.s, t.s)); im.setMatrixAt(i, m); if (colorFn) im.setColorAt(i, colorFn(t, c)); });
   im.castShadow = true; im.receiveShadow = true; scene.add(im); return im;
 }
+// même chose, découpé en cases : chaque case n'est dessinée que si elle est dans l'écran et assez proche (userData.loin)
+function instancedParCase(geo, material, list, colorFn, cell, loin) {
+  const cases = new Map(); for (const t of list) { const k = Math.floor(t.x / cell) + "," + Math.floor(t.z / cell); if (!cases.has(k)) cases.set(k, []); cases.get(k).push(t); }
+  return [...cases.values()].map(l => { const im = instanced(geo, material, l, 0, colorFn); im.userData.loin = loin; return im; });
+}
 // arbres : branches et feuilles en « cartes » peintes (aiguilles de pin, bouquets de feuilles), qui bougent au vent
 const uTime = { value: 0 };
 function foliage(map, at) {
@@ -2100,12 +2112,12 @@ pines.concat(leafy).forEach(t => circles.push({ x: t.x, z: t.z, r: .4 * t.s }));
 // buissons, fleurs, herbes, rochers
 const bushes = [], flowers = [], tufts = [], rocks = [];
 for (let i = 0; i < 2500 && bushes.length < 220; i++) { const x = rnd() * 190 - 95, z = rnd() * 190 - 95; if (!blocked(x, z, 1)) bushes.push({ x, z, s: .6 + rnd() * .9, r: rnd() * 6, c: rnd() }); }
-{ const im = instanced(clusterGeo(30, .9).translate(0, .55, 0), leafMat2, bushes, 0, (t, c) => c.setRGB(.55 + t.c * .2, .65 + t.c * .2, .45 + t.c * .15)); im.customDepthMaterial = depthOf(leafTex2, .45); }
+{ const bd = depthOf(leafTex2, .45); for (const im of instancedParCase(clusterGeo(30, .9).translate(0, .55, 0), leafMat2, bushes, (t, c) => c.setRGB(.55 + t.c * .2, .65 + t.c * .2, .45 + t.c * .15), 32, LOWQ ? 70 : 100)) im.customDepthMaterial = bd; }
 for (let i = 0; i < 6000 && flowers.length < 900; i++) { const x = rnd() * 190 - 95, z = rnd() * 190 - 95; if (!blocked(x, z, .3)) flowers.push({ x, z, s: .7 + rnd() * .6, r: 0, c: rnd() }); }
 const fCols = [0xffffff, 0xffe066, 0xff8fb1, 0xb39ddb, 0xff6b6b];
-{ const parts = []; for (let k = 0; k < 6; k++) { const pg = new THREE.SphereGeometry(.06, 10, 6); pg.scale(1.3, .22, .55); pg.translate(.07, 0, 0); pg.rotateY(k / 6 * Math.PI * 2); pg.translate(0, .24, 0); parts.push(pg); }
-  const ctr = new THREE.SphereGeometry(.035, 10, 8); ctr.scale(1, .6, 1); ctr.translate(0, .25, 0); parts.push(ctr); const stem = new THREE.CylinderGeometry(.006, .008, .24, 6); stem.translate(0, .12, 0); parts.push(stem);
-  instanced(mergeGeometries(parts.map(g => g.index ? g.toNonIndexed() : g)), mat(0xffffff, .7), flowers, 0, (t, c) => c.set(fCols[Math.floor(t.c * 5)])); }
+{ const parts = []; for (let k = 0; k < 6; k++) { const pg = new THREE.SphereGeometry(.06, 6, 3); pg.scale(1.3, .22, .55); pg.translate(.07, 0, 0); pg.rotateY(k / 6 * Math.PI * 2); pg.translate(0, .24, 0); parts.push(pg); }
+  const ctr = new THREE.SphereGeometry(.035, 6, 4); ctr.scale(1, .6, 1); ctr.translate(0, .25, 0); parts.push(ctr); const stem = new THREE.CylinderGeometry(.006, .008, .24, 3); stem.translate(0, .12, 0); parts.push(stem);
+  for (const im of instancedParCase(mergeGeometries(parts.map(g => g.index ? g.toNonIndexed() : g)), mat(0xffffff, .7), flowers, (t, c) => c.set(fCols[Math.floor(t.c * 5)]), 24, LOWQ ? 40 : 60)) im.castShadow = false; }
 for (let i = 0; i < 60000 && tufts.length < (LOWQ ? 9000 : 26000); i++) { const x = rnd() * 190 - 95, z = rnd() * 190 - 95; if (!blocked(x, z, 0)) tufts.push({ x, z, s: .6 + rnd() * .9, r: rnd() * 6, c: rnd() }); }
 const tuftGeo = (() => { const pos = [], col = [], nor = [], idx = [], dark = new THREE.Color(0x24401a), light = new THREE.Color(0x9cc050);
   for (let b = 0; b < 3; b++) { const a = b / 3 * 6.28 + rnd(), lean = .08 + rnd() * .2, h = .22 + rnd() * .22, ox = (rnd() - .5) * .12, oz = (rnd() - .5) * .12, base = pos.length / 3, S = 3;
@@ -2119,7 +2131,7 @@ grassM.onBeforeCompile = sh => { sh.uniforms.uTime = uTime; sh.vertexShader = "u
     vec3 ip = vec3(instanceMatrix[3][0], instanceMatrix[3][1], instanceMatrix[3][2]); float k = position.y * position.y * 2.5;
     transformed.x += sin(uTime * 1.9 + ip.x * .3 + ip.z * .21) * .12 * k; transformed.z += cos(uTime * 1.5 + ip.x * .17 + ip.z * .33) * .08 * k;
   #endif`); };
-const tm = instanced(tuftGeo, grassM, tufts, 0, (t, c) => c.setRGB(.75 + t.c * .4, .85 + t.c * .25, .7 + t.c * .25)); tm.castShadow = false;
+for (const tm of instancedParCase(tuftGeo, grassM, tufts, (t, c) => c.setRGB(.75 + t.c * .4, .85 + t.c * .25, .7 + t.c * .25), 20, LOWQ ? 36 : 55)) tm.castShadow = false;
 for (let i = 0; i < 26; i++) { const a = i / 26 * 6.28 + rnd() * .2, r = LAKE.r + 1.4 + rnd() * 1.2; rocks.push({ x: LAKE.x + Math.cos(a) * r, z: LAKE.z + Math.sin(a) * r, s: .4 + rnd() * .5, r: rnd() * 6, c: rnd() }); }
 for (let i = 0; i < 400 && rocks.length < 60; i++) { const x = rnd() * 190 - 95, z = rnd() * 190 - 95; if (!blocked(x, z, 1)) rocks.push({ x, z, s: .5 + rnd() * .9, r: rnd() * 6, c: rnd() }); }
 const rockGeo = new THREE.DodecahedronGeometry(1, 1); { const p = rockGeo.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i); const f = 1 + .25 * Math.sin(x * 4 + y * 3) * Math.cos(z * 3.5 + x); p.setXYZ(i, x * f, y * f * .6, z * f); } rockGeo.computeVertexNormals(); rockGeo.translate(0, .15, 0); }
@@ -3212,7 +3224,7 @@ $("soundBtn").onclick = () => { muted = !muted; try { localStorage.setItem("pins
 /* ================= Interface ================= */
 let toastT = 0; function toast(t, ms = 2200) { $("toast").textContent = t; $("toast").hidden = false; toastT = ms / 1000; }
 let paused = true;
-$("startBtn").onclick = () => { audioOn(); sfx.click(); $("intro").hidden = true; paused = false; toast("Va voir Sophie pour dire bonjour !"); };
+$("startBtn").onclick = () => { if (!nommer($("nomIn").value, true)) { sfx.click(); $("nomIn").focus(); return; } audioOn(); sfx.click(); $("intro").hidden = true; paused = false; toast("Va voir Sophie pour dire bonjour !"); };
 $("pauseBtn").onclick = () => { if (!$("intro").hidden) return; sfx.click(); paused = true; $("pauseCount").textContent = found; $("pauseView").hidden = false; };
 $("resumeBtn").onclick = () => { sfx.click(); $("pauseView").hidden = true; paused = false; };
 function replay() {
@@ -3245,7 +3257,7 @@ $("talkBtn").onclick = () => {
   if (!nearNpc) return; const n = nearNpc; sfx.talk();
   if (talking !== n) { talking = n; n.idx = 0; } else n.idx++;
   if (n.idx >= n.lines.length) { talking = null; n.idx = -1; $("dialog").hidden = true; return; }
-  $("dName").textContent = n.name; $("dText").textContent = n.lines[n.idx]; $("dialog").hidden = false;
+  $("dName").textContent = n.name; $("dText").textContent = n.lines[n.idx].replace(/Théo/g, monNom); $("dialog").hidden = false;
 };
 
 // états du joueur : walk, climbUp, climbDown, top, ride, boat
@@ -3414,6 +3426,19 @@ function choisirPersonnage(sexe) {
   ancien.remove(myLbl); player.add(myLbl); scene.add(player); scene.remove(ancien); libererPersonnage(ancien);
   setOutfit(player, wearing);
 }
+// nom affiché au-dessus du personnage (écran de départ ; gardé sur l'appareil) ; les animateurs l'appellent par ce nom
+let monNom = "Théo";
+function nommer(v, sauver) {
+  const p = filtrerSurnom(v ?? "");
+  if (p === null) { $("nomMsg").textContent = "Ce nom ne marche pas : de 2 à 16 lettres, sans gros mot."; return false; }
+  monNom = p || "Théo"; $("nomMsg").textContent = "Un prénom ou un surnom, comme tu veux. Il reste sur cet appareil.";
+  const n = label(monNom, "#2e86de", "#ffffff", .8); pLbl.material.map.dispose(); pLbl.material.dispose(); pLbl.material = n.material; pLbl.scale.copy(n.scale);
+  if (sauver) { try { localStorage.setItem("pins-nom", p); } catch (e) {} }
+  return true;
+}
+$("nomIn").addEventListener("change", () => nommer($("nomIn").value, true));
+$("nomIn").addEventListener("keydown", e => { e.stopPropagation(); if (e.key === "Enter") $("startBtn").click(); });
+{ let v = ""; try { v = localStorage.getItem("pins-nom") || ""; } catch (e) {} $("nomIn").value = v; nommer(v, false); }
 // choix fille / garçon sur l'écran de départ (gardé sur l'appareil, et repris pour le jeu à plusieurs)
 function choisirSexe(sx, sauver = true) {
   choisirPersonnage(sx);
@@ -3864,8 +3889,8 @@ const TRI = [], LAMPES = [];
   scene.updateMatrixWorld(true);
   for (const o of scene.children) {
     if (o === player || o.isLight || o.isCamera) continue;
-    b3.setFromObject(o); if (b3.isEmpty()) continue; b3.getBoundingSphere(sp); if (sp.radius > 26) continue;
-    TRI.push({ o, lc: o.worldToLocal(sp.center.clone()), far: (LOWQ ? 30 : 40) + sp.radius * (LOWQ ? 10 : 13), off: false });
+    b3.setFromObject(o); if (b3.isEmpty()) continue; b3.getBoundingSphere(sp); if (sp.radius > 26 && !o.userData.loin) continue;
+    TRI.push({ o, lc: o.worldToLocal(sp.center.clone()), far: (o.userData.loin ?? ((LOWQ ? 30 : 40) + sp.radius * (LOWQ ? 10 : 13))) + (o.userData.loin ? sp.radius : 0), off: false });
   }
   scene.traverse(o => {
     if (o.isPointLight) { LAMPES.push(o); o.visible = false; }
