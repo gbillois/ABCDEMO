@@ -51,6 +51,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#9fc7e0;color:var(--in
 .card h1{margin:0 0 6px;font-size:30px;line-height:1.1;text-wrap:balance;color:var(--leaf)}
 .card p{font-size:18px;line-height:1.35;margin:8px 0}
 .card .small{font-size:15px;opacity:.75}
+.bfmenu h3{margin:10px 0 4px;font-size:17px;text-align:left;color:#1f9e8f}.bfrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.bfrow .btn{font-size:16px;padding:7px 8px;background:#9aa0b4}.bfrow .btn.on{background:#ff7a2f;outline:3px solid #ffc93c}
 .prizes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}.prizes .btn{font-size:17px;line-height:1.15}.prizes small{font-size:13px;opacity:.9}
 #ticketsPill{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:#ff4fd8;color:#fff}
 .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px}
@@ -120,7 +121,7 @@ html.app .site{display:none!important}
 <div id="intro" class="overlay">
   <div class="card">
     <h1>Le Domaine des Pins</h1>
-    <p>Des vacances dans la forêt : ton cottage et sa terrasse, l'Aquaparc et ses toboggans, l'aquarium, le Baloba, Game Town, la rivière sauvage, la ferme, le poney club, les karts, les vélos, la maison dans les arbres, le lac et son pédalo… et un chat roux qui vient te voir !</p>
+    <p>Des vacances dans la forêt : ton cottage et sa terrasse, l'Aquaparc et ses toboggans, l'aquarium, le Baloba, Game Town, Burger Fast, la rivière sauvage, la ferme, le poney club, les karts, les vélos, la maison dans les arbres, le lac et son pédalo… et un chat roux qui vient te voir !</p>
     <p><b>Mission :</b> 10 canards en plastique se sont échappés. Retrouve-les tous ! 🦆</p>
     <p class="small">Joystick à gauche pour marcher. Glisse ton doigt sur l'écran pour tourner la caméra. Sur ordinateur : flèches ou ZQSD, E pour agir (ouvrir une porte, nager, se changer…), T pour parler. Tu as 4000 € pour la boutique de maillots de bain.</p>
     <div class="row"><button id="startBtn" class="btn">▶ Jouer</button><button id="introMulti" class="btn" style="background:var(--violet)">👫 À plusieurs</button><a class="btn site" style="background:#34495e" href="../index.html">🏠 Accueil</a></div>
@@ -176,6 +177,15 @@ html.app .site{display:none!important}
   </div>
 </div>
 <div id="ticketsPill" class="pill" hidden>🎟️ 0</div>
+<div id="orderView" class="overlay" hidden>
+  <div class="card">
+    <h1 style="color:#ff7a2f">Burger Fast 🍔</h1>
+    <p class="small">Choisis un plat dans chaque famille (ou rien), puis commande !</p>
+    <div id="bfMenu" class="bfmenu"></div>
+    <p id="bfRecap" class="small"></p>
+    <div class="row"><button id="bfGo" class="btn" style="background:#ff7a2f">✅ Commander</button><button id="bfClose" class="btn" style="background:#34495e">Fermer</button></div>
+  </div>
+</div>
 <div id="lockerView" class="overlay" hidden>
   <div class="card">
     <h1>Vestiaires 👕</h1>
@@ -1536,6 +1546,155 @@ function arcLoop(now) {
 $("arcAgain").onclick = () => { const k = arc ? arc.k : 0; fermer("arcadeView"); openArcade(k); };
 $("arcClose").onclick = () => { fermer("arcadeView"); arc = null; };
 
+/* ---------- Burger Fast : le restaurant (au bord du grand chemin, entre les cottages et le Baloba) ---------- */
+// Repère local : centre de la salle, porte au nord (+z) vers le grand chemin. Comptoir et cuisine au fond, tables à gauche et à droite.
+const BFW = { x: 71.5, z: 20, hx: 7.5, hz: 5.5, h: 4.6, door: 1.2 };
+const fw = (lx, lz) => [BFW.x + lx, BFW.z + lz];
+const inBurger = (x, z) => Math.abs(x - BFW.x) < BFW.hx - .2 && Math.abs(z - BFW.z) < BFW.hz - .2;
+path(fw(0, BFW.hz + .3), [BFW.x, 30], 2.6);
+const bfG = new THREE.Group(); bfG.position.set(BFW.x, 0, BFW.z); scene.add(bfG);
+const bfWallTex = tex(512, (x, s) => {
+  x.fillStyle = "#1f9e8f"; x.fillRect(0, 0, s, s);
+  x.fillStyle = "#ff7a2f"; x.fillRect(0, 0, s, 70); x.fillStyle = "#ffffff"; x.fillRect(0, 70, s, 12);
+  for (let i = 0; i < 16; i++) for (let j = 0; j < 12; j++) { x.fillStyle = (i + j) % 2 ? "rgba(255,255,255,.06)" : "rgba(0,0,0,.05)"; x.fillRect(i * 32, 82 + j * 36, 32, 36); }
+}, 3, 1);
+const bfFloorTex = tex(256, (x, s) => { for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { x.fillStyle = (i + j) % 2 ? "#f4efe6" : "#d94f2b"; x.fillRect(i * 32, j * 32, 32, 32); } }, 3.75, 2.75);
+const bfMenuTex = (() => {
+  const c = document.createElement("canvas"); c.width = 512; c.height = 160; const x = c.getContext("2d");
+  x.fillStyle = "#1b1b1b"; x.fillRect(0, 0, 512, 160);
+  const items = [["🍔", "Burgers"], ["🍟", "Frites"], ["🥤", "Boissons"], ["🍦", "Desserts"]];
+  items.forEach(([e, n], i) => { x.fillStyle = ["#ff7a2f", "#ffc93c", "#2fd3ff", "#ff8fb1"][i]; x.fillRect(8 + i * 126, 8, 118, 144); x.fillStyle = "#1b1b1b"; x.fillRect(14 + i * 126, 14, 106, 132);
+    x.font = "58px sans-serif"; x.textAlign = "center"; x.fillText(e, 67 + i * 126, 80); x.fillStyle = "#ffffff"; x.font = "bold 20px sans-serif"; x.fillText(n, 67 + i * 126, 128); });
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+{
+  const { hx, hz, h, door } = BFW, wallMat = mat(0xffffff, .75, { map: bfWallTex });
+  const wall = (x1, x2, z1, z2, y0 = 0, y1 = h) => { const w = x2 - x1, d = z2 - z1, hh = y1 - y0, m = new THREE.Mesh(new THREE.BoxGeometry(w, hh, d), wallMat); m.position.set((x1 + x2) / 2, (y0 + y1) / 2, (z1 + z2) / 2); m.receiveShadow = true; bfG.add(m); };
+  wall(-hx, hx, -hz - .15, -hz + .15); wall(-hx - .15, -hx + .15, -hz, hz); wall(hx - .15, hx + .15, -hz, hz);
+  // façade : grandes vitres de chaque côté de la porte
+  wall(-hx, -door, hz - .15, hz + .15, 0, .9); wall(door, hx, hz - .15, hz + .15, 0, .9); wall(-hx, hx, hz - .15, hz + .15, 3.2, h);
+  for (const x of [-hx, -door, door, hx]) wall(x - .15, x + .15, hz - .15, hz + .15, .9, 3.2);
+  const winM = mat(0xbfe6f0, .05, { metalness: .3, transparent: true, opacity: .35 }); winMats.push(winM);
+  for (const [a, b] of [[-hx, -door], [door, hx]]) { const g = new THREE.Mesh(new THREE.BoxGeometry(b - a - .3, 2.3, .06), winM); g.position.set((a + b) / 2, 2.05, hz); bfG.add(g); }
+  bfG.userData.wallMat = wallMat; bfG.userData.winM = winM;
+  const [x1, z1] = fw(-hx, -hz), [x2, z2] = fw(hx, hz);
+  boxes.push({ x1, x2, z1: z1 - .15, z2: z1 + .15 }, { x1: x1 - .15, x2: x1 + .15, z1, z2 }, { x1: x2 - .15, x2: x2 + .15, z1, z2 },
+    { x1, x2: BFW.x - door, z1: z2 - .15, z2: z2 + .15 }, { x1: BFW.x + door, x2, z1: z2 - .15, z2: z2 + .15 });
+  const db = { x1: BFW.x - door, x2: BFW.x + door, z1: z2 - .1, z2: z2 + .1, off: false }; boxes.push(db); bfG.userData.doorBox = db;
+  bfG.userData.doors = [-1, 1].map(s => { const d = new THREE.Mesh(new THREE.BoxGeometry(door, 3, .08), glassMat.clone()); d.material.opacity = .4; d.position.set(s * door / 2, 1.5, hz + .02); bfG.add(d); return { m: d, s }; });
+  const awn = new THREE.Mesh(new THREE.CylinderGeometry(.9, .9, hx * 2 + .6, 24, 1, true, 0, Math.PI), mat(0xffffff, .7, { map: stripeTex("#ff7a2f", "#ffffff", 12), side: THREE.DoubleSide }));
+  awn.rotation.set(0, 0, Math.PI / 2); awn.position.set(0, 3.25, hz + .2); bfG.add(awn);
+  // toit et gros burger géant
+  const roof = new THREE.Group(); bfG.add(roof);
+  const slab = rbox(hx * 2 + .6, .4, hz * 2 + .6, mat(0xff7a2f, .5), .2); slab.position.y = h + .2; roof.add(slab);
+  const big = new THREE.Group(); big.position.set(0, h + .4, 0); roof.add(big);
+  const bun = mat(0xe0a050, .6), bot = new THREE.Mesh(new THREE.CylinderGeometry(2, 1.9, .7, 40), bun); bot.position.y = .35; big.add(bot);
+  const patty = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.1, .5, 40), mat(0x6b3b1f, .8)); patty.position.y = .95; big.add(patty);
+  const cheese = new THREE.Mesh(new THREE.BoxGeometry(3.4, .12, 3.4), mat(0xffcc33, .5)); cheese.position.y = 1.25; cheese.rotation.y = .4; big.add(cheese);
+  const salad = new THREE.Mesh(new THREE.CylinderGeometry(2.25, 2.25, .15, 14), mat(0x5cbf4a, .7)); salad.position.y = 1.38; big.add(salad);
+  const top = new THREE.Mesh(new THREE.SphereGeometry(2, 40, 16, 0, Math.PI * 2, 0, Math.PI / 2), bun); top.scale.y = .7; top.position.y = 1.45; big.add(top);
+  for (let i = 0; i < 14; i++) { const sd = new THREE.Mesh(new THREE.SphereGeometry(.09, 8, 6), mat(0xfff3d0, .6)); const a = rnd() * 6.28, r = .4 + rnd() * 1.3; sd.position.set(Math.cos(a) * r, 1.45 + Math.sqrt(Math.max(0, 1 - (r / 2) ** 2)) * 1.4, Math.sin(a) * r); sd.scale.set(1, .5, 1.6); big.add(sd); }
+  shadowAll(roof); bfG.userData.roof = roof; bfG.userData.big = big;
+  const sign = label("BURGER FAST 🍔", "#ff7a2f", "#ffffff", 2.4); sign.position.set(0, h + 4.6, 0); bfG.add(sign);
+  const fl = new THREE.Mesh(new THREE.PlaneGeometry(hx * 2, hz * 2), mat(0xffffff, .5, { map: bfFloorTex, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 })); fl.rotation.x = -Math.PI / 2; fl.position.y = .03; fl.receiveShadow = true; bfG.add(fl);
+  const light = new THREE.PointLight(0xfff3dd, 12, 18, 1.3); light.position.set(0, h - .5, 0); bfG.add(light);
+}
+// comptoir, cuisine, panneaux du menu
+const BF_ORDER = fw(-1.2, -2.1), BF_PICK = fw(2.2, -2.1);
+{
+  const g = new THREE.Group(); bfG.add(g);
+  const counter = rbox(9, 1.1, .8, mat(0xff7a2f, .5), .08); counter.position.set(-.5, .55, -3.4); g.add(counter);
+  const ctop = rbox(9.2, .08, 1, mat(0xf4f1ea, .3), .03); ctop.position.set(-.5, 1.14, -3.4); g.add(ctop);
+  for (const x of [-6.5, 5.7]) { const side = rbox(2 - (x > 0 ? .4 : 0), 1.1, .8, mat(0x1f9e8f, .6), .06); side.position.set(x, .55, -3.4); g.add(side); }
+  const cash = rbox(.5, .35, .4, mat(0x333333, .4), .05); cash.position.set(-1.2, 1.35, -3.3); g.add(cash);
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(.4, .25), new THREE.MeshBasicMaterial({ color: 0x2fd3ff })); scr.position.set(-1.2, 1.55, -3.09); scr.rotation.x = -.3; g.add(scr);
+  // cuisine : grill, friteuse, machine à boissons
+  const grill = rbox(1.6, 1, .9, metalMat, .05); grill.position.set(-4.5, .5, -4.9); g.add(grill);
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(1.5, .04, .8), mat(0x222222, .4)); plate.position.set(-4.5, 1.02, -4.9); g.add(plate);
+  for (let i = 0; i < 3; i++) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .08, 16), mat(0x6b3b1f, .8)); p.position.set(-5 + i * .5, 1.08, -4.9); g.add(p); }
+  const fry = rbox(1.2, 1, .9, metalMat, .05); fry.position.set(-2.3, .5, -4.9); g.add(fry);
+  const oil = new THREE.Mesh(new THREE.BoxGeometry(1, .03, .7), mat(0xd9a520, .2)); oil.position.set(-2.3, 1.0, -4.9); g.add(oil);
+  const soda = rbox(1.4, 1.8, .8, mat(0xcc2b2b, .4), .08); soda.position.set(.6, .9, -4.95); g.add(soda);
+  for (let i = 0; i < 3; i++) { const n = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, .15, 8), metalMat); n.position.set(.2 + i * .4, 1.2, -4.5); g.add(n); }
+  const ice = rbox(1.2, 1.4, .8, mat(0xffffff, .4), .08); ice.position.set(3, .7, -4.95); g.add(ice);
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(.12, .3, 12), mat(0xe8b878, .7)); cone.rotation.x = Math.PI; cone.position.set(3, 1.6, -4.95); g.add(cone);
+  const swirl = new THREE.Mesh(new THREE.ConeGeometry(.13, .25, 12), mat(0xfff3f6, .5)); swirl.position.set(3, 1.85, -4.95); g.add(swirl);
+  const board = new THREE.Mesh(new THREE.PlaneGeometry(6, 1.9), new THREE.MeshBasicMaterial({ map: bfMenuTex })); board.position.set(-1, 3.3, -5.33); g.add(board);
+  shadowAll(g);
+  const [ax, az] = fw(-7.5, -5.5), [bx] = fw(7.5, 0); boxes.push({ x1: ax, x2: bx, z1: az, z2: BFW.z - 3 });
+}
+// tables et tabourets
+const BF_TABLES = [[-5, .3], [-5, 3.2], [5, -.3], [5, 2.6]].map(([lx, lz]) => {
+  const g = new THREE.Group(); g.position.set(lx, 0, lz); bfG.add(g);
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(.75, .75, .07, 28), mat(0xffffff, .3)); top.position.y = .85; g.add(top);
+  const leg = new THREE.Mesh(new THREE.CylinderGeometry(.06, .3, .85, 14), metalMat); leg.position.y = .42; g.add(leg);
+  for (const a of [0, 2.1, 4.2]) { const s = new THREE.Group(); const seat = new THREE.Mesh(new THREE.CylinderGeometry(.25, .25, .12, 18), mat(0xff7a2f, .5)); seat.position.y = .55; const l = new THREE.Mesh(new THREE.CylinderGeometry(.04, .12, .55, 10), metalMat); l.position.y = .27; s.add(seat, l); s.position.set(Math.cos(a) * 1.05, 0, Math.sin(a) * 1.05); g.add(s); }
+  shadowAll(g); const [x, z] = fw(lx, lz); circles.push({ x, z, r: .8 }); return { x, z, g };
+});
+// le menu et les plats en 3D
+const BF_MENU = [
+  ["Burgers", [["cheese", "🍔", "Cheeseburger"], ["double", "🍔", "Double burger"], ["chicken", "🐔", "Burger poulet"], ["wrap", "🌯", "Wrap"]]],
+  ["À côté", [["fries", "🍟", "Frites"], ["nuggets", "🍗", "Nuggets"], ["salad", "🥗", "Petite salade"]]],
+  ["Boissons", [["soda", "🥤", "Soda"], ["juice", "🧃", "Jus d'orange"], ["water", "💧", "Eau"], ["shake", "🥛", "Milkshake"]]],
+  ["Desserts", [["icecream", "🍦", "Glace"], ["donut", "🍩", "Donut"], ["cookie", "🍪", "Cookie"]]],
+];
+function foodMesh(id) {
+  const g = new THREE.Group(), bunM = mat(0xe0a050, .6);
+  if (id === "cheese" || id === "double" || id === "chicken") {
+    const b = new THREE.Mesh(new THREE.CylinderGeometry(.13, .12, .05, 20), bunM); b.position.y = .025; g.add(b);
+    const layers = id === "double" ? 2 : 1; let y = .05;
+    for (let i = 0; i < layers; i++) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.135, .135, .04, 20), mat(id === "chicken" ? 0xd99a4e : 0x6b3b1f, .8)); p.position.y = y + .02; g.add(p); y += .04; if (id !== "chicken") { const c = new THREE.Mesh(new THREE.BoxGeometry(.22, .01, .22), mat(0xffcc33, .5)); c.position.y = y + .005; c.rotation.y = .5; g.add(c); y += .01; } }
+    const s = new THREE.Mesh(new THREE.CylinderGeometry(.145, .145, .015, 12), mat(0x5cbf4a, .7)); s.position.y = y + .008; g.add(s); y += .015;
+    const t = new THREE.Mesh(new THREE.SphereGeometry(.13, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), bunM); t.scale.y = .7; t.position.y = y; g.add(t);
+  } else if (id === "wrap") { const w = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, .28, 14), mat(0xf0deb0, .7)); w.rotation.z = Math.PI / 2; w.position.y = .06; g.add(w); }
+  else if (id === "fries") { const box = new THREE.Mesh(new THREE.CylinderGeometry(.09, .07, .15, 4), mat(0xd62d20, .5)); box.rotation.y = Math.PI / 4; box.position.y = .075; g.add(box); for (let i = 0; i < 9; i++) { const f = new THREE.Mesh(new THREE.BoxGeometry(.018, .14, .018), mat(0xffd34d, .6)); f.position.set((i % 3 - 1) * .035, .19, (Math.floor(i / 3) - 1) * .03); f.rotation.z = (i % 2 - .5) * .2; g.add(f); } }
+  else if (id === "nuggets") { const box = rbox(.2, .07, .14, mat(0xffc93c, .5), .02); box.position.y = .035; g.add(box); for (let i = 0; i < 4; i++) { const n = new THREE.Mesh(new THREE.SphereGeometry(.035, 10, 8), mat(0xd99a4e, .8)); n.scale.y = .6; n.position.set(-.06 + i * .04, .085, 0); g.add(n); } }
+  else if (id === "salad") { const bowl = new THREE.Mesh(new THREE.SphereGeometry(.1, 16, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), mat(0xffffff, .4, { side: THREE.DoubleSide })); bowl.position.y = .1; g.add(bowl); const l = new THREE.Mesh(blobGeo(.08, 2, .3), mat(0x5cbf4a, .7)); l.scale.y = .5; l.position.y = .1; g.add(l); const tm = new THREE.Mesh(new THREE.SphereGeometry(.025, 8, 6), mat(0xe74c3c, .5)); tm.position.set(.03, .13, .02); g.add(tm); }
+  else if (id === "soda" || id === "juice" || id === "water" || id === "shake") { const col = { soda: 0xd62d20, juice: 0xff9f1a, water: 0x9fd8f0, shake: 0xff9fc6 }[id]; const cup = new THREE.Mesh(new THREE.CylinderGeometry(.07, .055, .22, 18), mat(col, .5)); cup.position.y = .11; g.add(cup); const lid = new THREE.Mesh(new THREE.CylinderGeometry(.072, .072, .015, 18), mat(0xffffff, .4)); lid.position.y = .225; g.add(lid); const st = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .16, 6), mat(0xffffff, .4)); st.position.set(.02, .3, 0); st.rotation.z = .2; g.add(st); }
+  else if (id === "icecream") { const c = new THREE.Mesh(new THREE.ConeGeometry(.05, .14, 14), mat(0xe8b878, .7)); c.rotation.x = Math.PI; c.position.y = .1; g.add(c); const s = new THREE.Mesh(new THREE.ConeGeometry(.06, .12, 14), mat(0xfff3f6, .5)); s.position.y = .23; g.add(s); const b = new THREE.Mesh(new THREE.SphereGeometry(.055, 12, 8), mat(0xfff3f6, .5)); b.position.y = .18; g.add(b); }
+  else if (id === "donut") { const d = new THREE.Mesh(new THREE.TorusGeometry(.06, .03, 10, 20), mat(0xd9a05b, .6)); d.rotation.x = Math.PI / 2; d.position.y = .03; g.add(d); const ic = new THREE.Mesh(new THREE.TorusGeometry(.06, .031, 10, 20, Math.PI * 2), mat(0xff8fb1, .4)); ic.rotation.x = Math.PI / 2; ic.position.y = .045; ic.scale.z = .6; g.add(ic); }
+  else if (id === "cookie") { const c = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, .02, 20), mat(0xc98b4e, .8)); c.position.y = .01; g.add(c); for (let i = 0; i < 5; i++) { const ch = new THREE.Mesh(new THREE.SphereGeometry(.012, 6, 4), mat(0x3b2412, .8)); ch.position.set((rnd() - .5) * .09, .022, (rnd() - .5) * .09); g.add(ch); } }
+  return g;
+}
+const bf = { sel: [null, null, null, null], state: "idle", t: 0, num: 40, tray: null, items: [], table: null };
+function makeTray(ids) {
+  const tray = new THREE.Group(); const plate = rbox(.6, .03, .42, mat(0xd94f2b, .5), .02); plate.position.y = .015; tray.add(plate);
+  const spots = [[-.17, -.08], [.12, -.1], [.17, .1], [-.12, .11]]; const items = [];
+  ids.forEach((id, i) => { const m = foodMesh(id); m.position.set(spots[i][0], .03, spots[i][1]); tray.add(m); items.push(m); });
+  shadowAll(tray, true, false); return { tray, items };
+}
+function renderMenu() {
+  $("bfMenu").innerHTML = BF_MENU.map(([cat, list], ci) => `<h3>${cat}</h3><div class="bfrow">` + list.map(([id, e, n]) => `<button class="btn${bf.sel[ci] === id ? " on" : ""}" data-c="${ci}" data-i="${id}">${e} ${n}</button>`).join("") + "</div>").join("");
+  const chosen = bf.sel.map((id, ci) => id && BF_MENU[ci][1].find(x => x[0] === id)).filter(Boolean);
+  $("bfRecap").textContent = chosen.length ? "Ton menu : " + chosen.map(x => x[1] + " " + x[2]).join(", ") : "Choisis ce que tu veux manger !";
+  $("bfGo").disabled = !chosen.length; $("bfGo").style.opacity = chosen.length ? 1 : .5;
+}
+$("bfMenu").addEventListener("click", e => { const b = e.target.closest("button[data-c]"); if (!b) return; const ci = +b.dataset.c; bf.sel[ci] = bf.sel[ci] === b.dataset.i ? null : b.dataset.i; sfx.click(); renderMenu(); });
+$("bfGo").onclick = () => { const ids = bf.sel.filter(Boolean); if (!ids.length) return; bf.num++; bf.order = ids; bf.state = "cooking"; bf.t = 0; bf.sel = [null, null, null, null]; fermer("orderView");
+  toast(`Merci ! Commande n°${bf.num} en préparation… 👩‍🍳`, 2600); whoosh(2.5, .05, 300, 500); };
+$("bfClose").onclick = () => fermer("orderView");
+function bfAct(a) {
+  if (a === "bforder") { if (bf.state !== "idle") { toast(bf.state === "cooking" ? "Ta commande est en préparation, patience ! ⏳" : "Mange d'abord ta commande ! 😋", 2200); return; } renderMenu(); ouvrir("orderView"); }
+  if (a === "bfpick") { bf.state = "carry"; player.add(bf.tray); const ps = player.scale.x || 1; bf.tray.position.set(0, 1.0 / ps, .45 / ps); bf.tray.rotation.set(0, 0, 0); bf.tray.scale.setScalar(.9 / ps); toast("Va t'asseoir à une table pour manger 🍽️", 2200); }
+  if (a === "bfeat") { const t = bf.table; player.remove(bf.tray); bf.tray.scale.setScalar(1); bf.tray.position.set(t.x, .89, t.z); bf.tray.rotation.y = Math.atan2(P_now().x - t.x, P_now().z - t.z); scene.add(bf.tray); bf.state = "eat"; bf.t = 0; toast("Bon appétit ! 😋", 1600); }
+}
+const P_now = () => player.position;
+function updateBurger(dt, time, P) {
+  const near = Math.abs(P.x - BFW.x) < 45 && Math.abs(P.z - BFW.z) < 45; if (!near && bf.state !== "carry") return false;
+  const inside = inBurger(P.x, P.z);
+  const want = Math.hypot(P.x - BFW.x, P.z - (BFW.z + BFW.hz)) < 4 ? 1 : 0; if (want && (bfG.userData.dOpen || 0) < .05) sfx.door();
+  bfG.userData.dOpen = (bfG.userData.dOpen || 0) + (want - (bfG.userData.dOpen || 0)) * Math.min(1, dt * 5); const o = bfG.userData.dOpen;
+  for (const d of bfG.userData.doors) d.m.position.x = d.s * (BFW.door / 2 + o * BFW.door * .95); bfG.userData.doorBox.off = o > .6;
+  const f0 = bfG.userData.fade ?? 1, f = f0 + ((inside ? .2 : 1) - f0) * Math.min(1, dt * 6); bfG.userData.fade = f; const wm = bfG.userData.wallMat, tr = f < .98;
+  if (wm.transparent !== tr) { wm.transparent = tr; wm.depthWrite = !tr; wm.needsUpdate = true; } wm.opacity = f; bfG.userData.roof.visible = !inside;
+  bfG.userData.big.rotation.y += dt * .3;
+  if (bf.state === "cooking") { bf.t += dt; if (Math.random() < dt * 3) tone(1800 + Math.random() * 1500, .03, "triangle", .015);
+    if (bf.t > 4) { bf.state = "ready"; const tr2 = makeTray(bf.order); bf.tray = tr2.tray; bf.items = tr2.items; bf.tray.position.set(BF_PICK[0], 1.18, BF_PICK[1] - 1.3); scene.add(bf.tray); tone(1046, .15, "sine", .15); tone(1318, .2, "sine", .15, 0, .15); toast(`Commande n°${bf.num} prête ! Viens la chercher au comptoir 🍔`, 3000); } }
+  if (bf.state === "eat") { bf.t += dt; const k = Math.max(0, 1 - bf.t / 4); bf.items.forEach((m, i) => m.scale.setScalar(Math.max(0, Math.min(1, k * 1.4 - i * .1))));
+    if (Math.random() < dt * 3) tone(140 + Math.random() * 80, .06, "square", .04);
+    if (bf.t > 4.2) { scene.remove(bf.tray); bf.tray = null; bf.items = []; bf.state = "idle"; sfx.win(); toast("Miam ! C'était trop bon 😋", 2400); } }
+  return inside;
+}
+
 /* ---------- Canards ---------- */
 const DUCK_SPOTS = [[3, -18], [-22, -26], [17, -15.5], [48, -20], [70, -48], [-72, 0], [-31, 53.5], [-14.5, 43.5], [14, 18.6], [-16, 53]];
 function duckMesh() {
@@ -1560,6 +1719,7 @@ function blocked(x, z, pad) {
   if (Math.hypot(x - AQU.x, z - AQU.z) < AQU.r + 3 + pad) return true;
   if (Math.abs(x - BALO.x) < BALO.hx + 2 + pad && Math.abs(z - BALO.z) < BALO.hz + 2 + pad) return true;
   if (Math.abs(x - GTW.x) < GTW.hx + 2 + pad && Math.abs(z - GTW.z) < GTW.hz + 2 + pad) return true;
+  if (Math.abs(x - BFW.x) < BFW.hx + 2 + pad && Math.abs(z - BFW.z) < BFW.hz + 2 + pad) return true;
   if (cottages.some(c => Math.abs(x - c.x) < 5.5 + pad && (Math.abs(z - c.z) < 4.5 + pad || Math.abs(z - (c.z + c.s * 6.6)) < 2.7 + pad))) return true;
   if (ZONES.some(r => inRect(r, x, z, pad)) || riverNear(x, z).d < RIVER_HW + 3.2 + pad || Math.hypot((x - ARENA.x) / (ARENA.rx + 3), (z - ARENA.z) / (ARENA.rz + 3)) < 1) return true;
   if (boxes.some(b => x > b.x1 - pad && x < b.x2 + pad && z > b.z1 - pad && z < b.z2 + pad)) return true;
@@ -2359,6 +2519,7 @@ const npcs = [
   { name: "Nina, la soigneuse", pos: aqW(-4.4, 3.2), o: { shirt: 0x1f8fae, pants: 0x2d3436, hair: 0x2d2018, long: true, skin: 0xc68e6a }, lines: ["Bienvenue à l'aquarium ! Moi c'est Nina, je m'occupe des poissons.", "Le gros poisson gris, c'est Bubulle le requin. Il est très gentil !", "Tu as vu la tortue de mer ? Elle s'appelle Pistache 🐢", "Les méduses roses brillent dans le grand bassin du milieu.", "Approche-toi du grand bassin et appuie sur Nourrir les poissons 🐟"] },
   { name: "Tom, l'animateur", pos: bw(-3, 9.5), o: { shirt: 0xff8a2b, pants: 0x2e86de, hair: 0x8b4513, cap: 0x27ae60 }, lines: ["Salut ! Bienvenue au Baloba, la salle de jeux ! 🎈", "Monte les marches de la grande structure, passe dans le tunnel et grimpe tout en haut.", "Il y a trois toboggans : le colimaçon tout en haut, le toboggan rapide au 2e étage et le toboggan à vagues au 1er !", "Les six trampolines sont au fond : saute dessus, tu vas rebondir très haut !", "Si tu as soif, va au bar à goûter ! 🧃", "Et la piscine à balles… plonge dedans ! On rentre par l'ouverture sur le côté."] },
   { name: "Léon, de Game Town", pos: gw(6.5, -2.6), o: { shirt: 0x8e44ad, pants: 0x1b1035, hair: 0x111111, cap: 0xff4fd8, skin: 0xd9a27a }, lines: ["Bienvenue à Game Town ! 🎮", "Approche-toi d'une borne et appuie sur Jouer. Il y a Tape-Taupe, Panier Magique et Attrape-Étoiles !", "Chaque partie te fait gagner des tickets 🎟️.", "Avec 3 tickets, tu peux essayer la machine à pince… si tu as de la chance, tu gagnes une peluche !", "Au comptoir des cadeaux, au fond, tu échanges tes tickets contre des cadeaux 🎁"] },
+  { name: "Zoé, de Burger Fast", pos: fw(-1.2, -4.4), o: { shirt: 0xff7a2f, pants: 0x1f9e8f, hair: 0x5a3a22, long: true, cap: 0xff7a2f }, lines: ["Bienvenue chez Burger Fast ! 🍔", "Approche-toi de la caisse et appuie sur Commander pour choisir ton menu.", "Quand ta commande est prête, viens chercher ton plateau au bout du comptoir.", "Ensuite, va t'asseoir à une table pour manger. Bon appétit ! 😋"] },
 ];
 npcs.forEach(n => { n.g = person(n.o); n.g.position.set(n.pos[0], 0, n.pos[1]); n.g.rotation.y = rnd() * 6; scene.add(n.g); const lb = label(n.name.split(",")[0], "#8e44ad", "#ffffff", .6 / (n.o.scale ?? .76)); lb.position.y = 2.7; n.g.add(lb); circles.push({ x: n.pos[0], z: n.pos[1], r: .5 }); n.idx = -1; });
 const swimmer = person({ shirt: 0xffffff, pants: 0x00b894, shorts: true, hair: 0x2d3436, skin: 0xd9a27a }); setOutfit(swimmer, "requin"); scene.add(swimmer);
@@ -2611,6 +2772,7 @@ function zoneName(P) {
   if (inAqua(P.x, P.z)) return "🐠 Aquarium";
   if (inBaloba(P.x, P.z)) return "🎈 Le Baloba";
   if (inGameTown(P.x, P.z)) return "🎮 Game Town";
+  if (inBurger(P.x, P.z)) return "🍔 Burger Fast";
   if (P.y > 3 && inRect(TREEHUT, P.x, P.z)) return "🏠 La cabane dans l'arbre";
   if (P.y > 3 && inRect(TREEH, P.x, P.z)) return "🌳 Maison dans les arbres";
   for (const h of cabRoofs) if (Math.abs(P.x - h.x) < 2 && Math.abs(P.z - h.z) < 2) return "🛖 Une cabane";
@@ -2621,7 +2783,7 @@ function zoneName(P) {
   if (riverNear(P.x, P.z).d < 7) return "🌊 Rivière sauvage";
   return "";
 }
-const ZTOAST = { "🎮 Game Town": "Game Town ! Joue aux bornes d'arcade pour gagner des tickets 🎟️", "🎈 Le Baloba": "Le Baloba ! Grimpe dans la structure, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
+const ZTOAST = { "🍔 Burger Fast": "Burger Fast ! Va à la caisse pour commander ton menu 🍔🍟", "🎮 Game Town": "Game Town ! Joue aux bornes d'arcade pour gagner des tickets 🎟️", "🎈 Le Baloba": "Le Baloba ! Grimpe dans la structure, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
   "🌊 Rivière sauvage": "La rivière sauvage ! Va au ponton pour prendre une bouée 🛟", "🌳 Maison dans les arbres": "Tu es dans les arbres ! Traverse le pont de singe… et descends par le toboggan 🛝", "🛖 Une cabane": "Une petite cabane en rondins 🛖" };
 const seenZ = new Set();
 
@@ -2794,6 +2956,7 @@ let act1 = null, act2 = null, doorNear = null;
 function doAct(a) {
   if (!a) return; sfx.click();
   if (a === "feed") { feedFish(); return; }
+  if (/^bf(order|pick|eat)$/.test(a)) { bfAct(a); return; }
   if (/^gt\d$/.test(a)) { openArcade(GT_CABS[+a.slice(2)].k); return; }
   if (a === "claw") { clawPlay(); return; }
   if (a === "prizes") { renderPrizes(); ouvrir("prizeView"); return; }
@@ -2851,10 +3014,11 @@ function drawMap() {
   mx.textBaseline = "alphabetic";
   mx.fillStyle = "#e84393"; mx.fillRect(X(BALO.x - BALO.hx), Z(BALO.z - BALO.hz), BALO.hx * 2 * k, BALO.hz * 2 * k); mx.strokeStyle = "#ffc93c"; mx.lineWidth = 3; mx.strokeRect(X(BALO.x - BALO.hx), Z(BALO.z - BALO.hz), BALO.hx * 2 * k, BALO.hz * 2 * k);
   mx.fillStyle = "#3b2a7a"; mx.fillRect(X(GTW.x - GTW.hx), Z(GTW.z - GTW.hz), GTW.hx * 2 * k, GTW.hz * 2 * k); mx.strokeStyle = "#ff4fd8"; mx.lineWidth = 3; mx.strokeRect(X(GTW.x - GTW.hx), Z(GTW.z - GTW.hz), GTW.hx * 2 * k, GTW.hz * 2 * k);
+  mx.fillStyle = "#ff7a2f"; mx.fillRect(X(BFW.x - BFW.hx), Z(BFW.z - BFW.hz), BFW.hx * 2 * k, BFW.hz * 2 * k);
   mx.fillStyle = "#1f8fae"; mx.beginPath(); mx.arc(X(AQU.x), Z(AQU.z), AQU.r * k, 0, 7); mx.fill(); mx.strokeStyle = "#ffffff"; mx.lineWidth = 2; mx.stroke();
   mx.fillStyle = "#e84393"; mx.fillRect(X(11.3), Z(21), 5.4 * k, 2 * k);
   mx.font = '700 13px "Baloo 2",sans-serif'; mx.textAlign = "center"; mx.fillStyle = "#0d3b52";
-  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2)); mx.fillText("Baloba", X(BALO.x), Z(BALO.z - BALO.hz - 2)); mx.fillText("Game Town", X(GTW.x), Z(GTW.z - GTW.hz - 2));
+  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2)); mx.fillText("Baloba", X(BALO.x), Z(BALO.z - BALO.hz - 2)); mx.fillText("Game Town", X(GTW.x), Z(GTW.z - GTW.hz - 2)); mx.fillText("Burger Fast", X(BFW.x), Z(BFW.z - BFW.hz - 2));
   mx.fillText("Ferme", X(-70), Z(-36)); mx.fillText("Poney club", X(ARENA.x), Z(ARENA.z - ARENA.rz - 2)); mx.fillText("Karts", X(0), Z(-80)); mx.fillText("Rivière sauvage", X(-50), Z(75)); mx.fillText("Maison dans les arbres", X(50), Z(84)); mx.fillText("Vélos", X(6), Z(41));
   mx.font = '700 11px "Baloo 2",sans-serif';
   npcs.forEach(n => { const nx = X(n.g.position.x), nz = Z(n.g.position.z); mx.fillStyle = "#8e44ad"; mx.beginPath(); mx.arc(nx, nz, 4, 0, 7); mx.fill(); mx.fillText(n.name.split(",")[0], nx, nz - 7); });
@@ -3332,11 +3496,11 @@ function loop() {
   farmRoofs[0].roof.visible = !inBarn; treeRoof.visible = !inTreeHut; for (const h of cabRoofs) { const i = Math.abs(P.x - h.x) < 2 && Math.abs(P.z - h.z) < 2; h.roof.visible = !i; if (i) inCab = true; }
   const dWant = Math.hypot(P.x, P.z - 7.5) < 5 ? 1 : 0; if (dWant && domeDoorOpen < .05) sfx.door();
   domeDoorOpen += (dWant - domeDoorOpen) * Math.min(1, dt * 5); domeDoors.forEach(d => d.m.position.x = d.s * (1.4 + domeDoorOpen * 2.7)); domeDoorBox.off = domeDoorOpen > .6;
-  const inAq = updateAquarium(dt, time, P), inBalo = updateBaloba(dt, time, P), inGT = updateGameTown(dt, time, P), nightK = updateDayNight(dt);
+  const inAq = updateAquarium(dt, time, P), inBalo = updateBaloba(dt, time, P), inGT = updateGameTown(dt, time, P), nightK = updateDayNight(dt), inBF = updateBurger(dt, time, P);
 
   // caméra
   if (state !== "ride") {
-    if (inCottage || inAq || inBalo || inGT) { camDist = 7.5; minPitch = 1.0; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
+    if (inCottage || inAq || inBalo || inGT || inBF) { camDist = 7.5; minPitch = 1.0; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
     const pt = Math.max(pitch, minPitch); const baseY = state === "top" ? 9.95 : state === "boat" ? .6 : Math.max(P.y, 0);
     const cx = P.x + Math.sin(yaw) * Math.cos(pt) * camDist, cz = P.z + Math.cos(yaw) * Math.cos(pt) * camDist, cy = baseY + 1.5 + Math.sin(pt) * camDist;
     camera.position.lerp(tv.set(cx, Math.max(cy, .6), cz), Math.min(1, dt * 7)); camera.lookAt(P.x, baseY + 1.4, P.z);
@@ -3384,6 +3548,9 @@ function loop() {
     if (state === "walk" && P.y < 1 && inGameTown(P.x, P.z)) { GT_CABS.forEach((c, i) => { if (Math.hypot(P.x - c.x, P.z - c.z) < 1.1) offer("gt" + i, "🕹️ Jouer à " + GT_GAMES[c.k].name); });
       if (Math.hypot(P.x - gtClaw.front[0], P.z - gtClaw.front[1]) < 1.3) offer("claw", "🧸 Pince à peluches (3 🎟️)");
       if (Math.hypot(P.x - (GTW.x - 6.8), P.z - GTW.z) < 2.2) offer("prizes", "🎁 Échanger mes tickets"); }
+    if (state === "walk" && P.y < 1 && inBurger(P.x, P.z)) { if (Math.hypot(P.x - BF_ORDER[0], P.z - BF_ORDER[1]) < 1.4) offer("bforder", "🍔 Commander");
+      if (bf.state === "ready" && Math.hypot(P.x - BF_PICK[0], P.z - BF_PICK[1]) < 1.5) offer("bfpick", "🍽️ Prendre mon plateau");
+      if (bf.state === "carry") { const t = BF_TABLES.find(t => Math.hypot(P.x - t.x, P.z - t.z) < 2); if (t) { bf.table = t; offer("bfeat", "😋 Manger ici"); } } }
     if (state === "drive") offer("dismount", "🧍 Descendre");
     if (state === "river" && (riv.stop || riv.dist > 10 && Math.hypot(P.x - RDOCK.x, P.z - RDOCK.z) < 6)) offer("riverout", "🧍 Sortir sur le ponton");
     if (state === "river" && riv.stop) offer("riveragain", "🔁 Refaire un tour");
