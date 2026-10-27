@@ -1685,9 +1685,9 @@ function person(o) {
   }
   // ---- tête
   const head = new THREE.Group(); head.position.y = 1.97; body.add(head);
-  put(head, "sk", sph(.23, 48, 40), [0, .02, 0], [0, 0, 0], [.9, 1.04, .98]);
-  put(head, "sk", sph(.17, 40, 32), [0, -.085, .03], [0, 0, 0], [.93, .8, .9]);
-  put(head, "sk", sph(.058, 24, 18), [0, -.16, .11], [0, 0, 0], [1.1, .62, .7]);
+  put(head, "sk", sph(.23, 48, 40), [0, .02, 0], [0, 0, 0], [.95, .99, .98]); // tête ronde d'enfant
+  put(head, "sk", sph(.17, 40, 32), [0, -.07, .03], [0, 0, 0], [.96, .74, .9]);
+  put(head, "sk", sph(.058, 24, 18), [0, -.145, .11], [0, 0, 0], [1.1, .6, .7]);
   for (const s of [-1, 1]) { // oreilles
     put(head, "sk", sph(.05, 20, 16), [s * .205, -.01, -.005], [0, 0, 0], [.42, 1, .75]);
     put(head, "sk", new THREE.TorusGeometry(.036, .011, 8, 20, Math.PI * 1.4), [s * .214, -.005, -.005], [0, s * Math.PI / 2, -Math.PI * .2]);
@@ -1696,7 +1696,7 @@ function person(o) {
   put(head, "sk", sph(.016, 14, 10), [0, -.04, .218], [0, 0, 0], [1, .7, .6]);
   // visage dessiné : grands yeux (ils clignent), sourire et joues roses, posés sur la tête
   const irisC = o.eyes ?? [0x6b4424, 0x3a78b5, 0x4f8a3a, 0x8a5a2b][Math.floor(R() * 4)];
-  const ELL = [[0, .02, 0, .207, .239, .225], [0, -.085, .03, .158, .136, .153], [0, -.16, .11, .064, .036, .041]];
+  const ELL = [[0, .02, 0, .2185, .2277, .2254], [0, -.07, .03, .1632, .1258, .153], [0, -.145, .11, .064, .035, .041]];
   const surf = (x, y) => { let z = 0; for (const [cx, cy, cz, rx, ry, rz] of ELL) { const k = 1 - ((x - cx) / rx) ** 2 - ((y - cy) / ry) ** 2; if (k > 0) z = Math.max(z, cz + rz * Math.sqrt(k)); } return z; };
   const fm = matVisage(irisC, hairC.getHex(), female), nD = o.lite ? 3 : 6;
   const decal = (cx, cy, w, h, u0, v0, du, dv, mir) => { // petite grille qui épouse le visage, centrée sur (cx, cy)
