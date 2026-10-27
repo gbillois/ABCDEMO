@@ -9,7 +9,7 @@ workers_dev = true
 ORIGINES = "https://gbillois.github.io"
 # Interrupteur : mettre "non" pour endormir l'oracle (le jeu crée alors les animaux tout seul).
 ACTIF = "oui"
-MODELE = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+MODELE = "@cf/nvidia/nemotron-3-120b-a12b"
 # Créations par jour : pour tout le monde, et pour une même adresse.
 QUOTA_JOUR = "150"
 QUOTA_ADRESSE_JOUR = "30"

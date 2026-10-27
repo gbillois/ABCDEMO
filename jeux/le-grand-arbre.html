@@ -95,6 +95,12 @@
   /* Oracle des animaux */
   h3 { margin: 0; font-family: var(--label); font-size: 17px; color: var(--gold); text-align: center; }
   #oracle .panel { grid-template-columns: minmax(0, 1fr); }
+  #oracle.enCreation { align-items: end; padding-bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 20px)); background: rgba(6,14,9,.12); }
+  #oracle.enCreation .panel { width: min(360px, 100%); padding: 16px 20px; gap: 8px; }
+  #oracle.enCreation .panel > :not(#oTitre):not(#oMsg):not(.row) { display: none; }
+  #oracle.enCreation h2 { font-size: 19px; }
+  #oracle.enCreation #oMsg { font-size: 16px; }
+  #oracle.enCreation .row .btn { padding: 7px 14px; font-size: 13px; }
   .oform { display: flex; gap: 8px; }
   .oform input { flex: 1; width: 0; min-width: 0; font: 800 18px var(--body); padding: 12px 16px; border-radius: 999px; border: 2px solid var(--edge);
     background: rgba(0,0,0,.3); color: var(--ink); -webkit-user-select: text; user-select: text; }
@@ -1558,6 +1564,15 @@ function filtrerTexte(v) {
       || /(?:^|[^a-z])(con|cons|pd|fdp|ntm|tuer|tue|tues|tuee|tueur|meurtre|mort|morte|morts|mourir|sang|sanglant|arme|armes|fusil|pistolet|couteau|bombe|guerre|sexe|sexy|nu|nue|nus|nues|drogue|alcool|biere|vin|cigarette)(?:$|[^a-z])/.test(simple)) return null;
   return p;
 }
+// Quelques détails explicites ne doivent jamais dépendre d'une omission du modèle.
+function respecterDemande(recette, texte) {
+  const r = nettoyerRecette(recette);
+  const mots = (filtrerTexte(texte) || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]+/g, ' ');
+  if (/\b(licornes?|unicorns?)\b/.test(mots)) r.cornes = 'licorne';
+  if (/\barc en ciel\b/.test(mots)) r.couleur = 'arc_en_ciel';
+  if (/\bsans (?:aucune? )?cornes?\b/.test(mots)) r.cornes = 'aucune';
+  return nettoyerRecette(r);
+}
 // --- fin de la partie commune ---
 
 // Sans l'oracle : les mots que le jeu connaît lui-même.
@@ -1805,8 +1820,14 @@ function makeCreature(rec, seed) {
     if (X.has('moustaches') && F !== 'insecte') for (let w = -1; w <= 1; w++) H.push(prep(new THREE.CylinderGeometry(.0035, .0035, hr * 1.1, 4), 0xf4f0e8, [s * hr * .62, -hr * .2 + w * hr * .07, hr * .92], [0, 0, s * (Math.PI / 2 - w * .15)]));
     if (X.has('defenses')) H.push(prep(new THREE.ConeGeometry(hr * .09, hr * .75, 10), 0xf6f0e0, [s * hr * .32, -hr * .55, hr * .9], [Math.PI / 2 + .5, 0, 0]));
   }
-  if (rec.cornes === 'licorne') { H.push(prep(new THREE.ConeGeometry(hr * .12, hr * .95, 16, 4), 0xf6e090, [0, hr * 1.2, hr * .5], [.45, 0, 0]));
-    for (let i = 0; i < 3; i++) H.push(prep(new THREE.TorusGeometry(hr * (.1 - i * .025), hr * .02, 6, 16), 0xf0c860, [0, hr * (1.0 + i * .2), hr * (.42 + i * .09)], [Math.PI / 2 + .45, 0, 0])); }
+  if (rec.cornes === 'licorne') {
+    // Une vraie silhouette de corne, assez grande pour rester lisible sur téléphone.
+    const corne = new THREE.Group(), longueur = hr * 1.9, rayon = hr * .22;
+    corne.name = 'corne-licorne'; corne.position.set(0, hr * .72, hr * .6); corne.rotation.x = .28;
+    const pieces = [prep(new THREE.ConeGeometry(rayon, longueur, 20, 6), 0xffe5a0, [0, longueur / 2, 0])];
+    for (let i = 1; i <= 4; i++) pieces.push(prep(new THREE.TorusGeometry(rayon * (1 - i / 5), hr * .025, 6, 20), 0xc78b2e, [0, longueur * i / 5, 0], [Math.PI / 2, 0, 0]));
+    corne.add(partMesh(pieces)); hg.add(corne);
+  }
   if (X.has('criniere')) for (let i = 0; i < 9; i++) { const a = -1.4 + i * .35; H.push(prep(new THREE.SphereGeometry(hr * .36, 12, 10), dark(C2()), [Math.sin(a) * hr * .95, hr * .25 + Math.cos(a) * hr * .55, -hr * .4], null, [1, 1, .8])); }
   if (X.has('crete') && F !== 'serpent') for (let i = 0; i < 3; i++) H.push(prep(new THREE.ConeGeometry(hr * .16, hr * .45, 10), F === 'oiseau' ? 0xd83030 : C2(), [0, hr * 1.02, hr * (.3 - i * .3)], [(.3 - i * .3) * .8, 0, 0], [.5, 1, 1]));
   hg.add(partMesh(H));
@@ -1846,7 +1867,8 @@ function cri(type, S) { if (!AC) return; const t = AC.currentTime, k = 1 / Math.
   else { for (let i = 0; i < 2; i++) { tone(230 * k, .14, 'square', .05, t + i * .22, null, 160 * k); noise(.12, .05, 700, 'bandpass', 3, t + i * .22); } } }
 
 // --- Pierre de l'oracle, paillettes
-const oracle = { x: 10.5, z: 9.5, y: 0, crystal: null, glow: null, ring: null, busy: false, open: false };
+const oracle = { x: 10.5, z: 9.5, y: 0, crystal: null, glow: null, ring: null, magic: null, magicAmount: 0, busy: false, open: false };
+const magieDouce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const sparks = [];
 function buildOracle() {
   const { x, z } = oracle, y = oracle.y = terrainH(x, z), S = [], g = new THREE.Group(); g.position.set(x, y, z); scene.add(g);
@@ -1860,6 +1882,21 @@ function buildOracle() {
   oracle.crystal = new THREE.Mesh(new THREE.OctahedronGeometry(.26, 0), new THREE.MeshStandardMaterial({ color: 0xa8e0ff, emissive: 0x3a90ff, emissiveIntensity: 1.3, roughness: .12, metalness: .1, flatShading: true }));
   oracle.crystal.scale.set(1, 1.5, 1); oracle.crystal.position.y = 1.85; oracle.crystal.castShadow = true; g.add(oracle.crystal);
   oracle.glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: TX.glow, color: 0x8ad0ff, transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending })); oracle.glow.position.y = 1.85; oracle.glow.scale.setScalar(2.2); g.add(oracle.glow);
+  // Géométries réutilisées : une constellation qui tourne au-dessus du cristal, sans allocations par image.
+  const magic = oracle.magic = new THREE.Group(); magic.visible = false; scene.add(magic);
+  magic.userData.rings = []; magic.userData.stars = [];
+  const couleurs = [0xffdf91, 0x95eaff, 0xd2a5ff];
+  for (let i = 0; i < 3; i++) {
+    const cercle = new THREE.Mesh(new THREE.TorusGeometry(.55 + i * .12, .012, 6, 64), new THREE.MeshBasicMaterial({ color: couleurs[i], transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+    cercle.rotation.set(Math.PI / 2 + (i - 1) * .45, i * .7, 0); magic.add(cercle); magic.userData.rings.push(cercle);
+  }
+  const etoile = new THREE.Shape();
+  for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, r = i % 2 ? .022 : .09; if (!i) etoile.moveTo(Math.cos(a) * r, Math.sin(a) * r); else etoile.lineTo(Math.cos(a) * r, Math.sin(a) * r); } etoile.closePath();
+  const geoEtoile = new THREE.ShapeGeometry(etoile);
+  for (let i = 0; i < 24; i++) {
+    const sp = new THREE.Mesh(geoEtoile, new THREE.MeshBasicMaterial({ color: couleurs[i % 3], transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+    magic.add(sp); magic.userData.stars.push(sp);
+  }
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 1.3 * 150 / 512), new THREE.MeshStandardMaterial({ map: signTexture("L'Oracle"), roughness: .8 }));
   const post = new THREE.Mesh(prep(new THREE.CylinderGeometry(.05, .06, 1.2, 8), 0x6a4a2a), MAT.wood); const sa = Math.atan2(15 - x, 6 - z);
   post.position.set(x + Math.sin(sa) * 1.35 + Math.cos(sa) * .9, y + .6, z + Math.cos(sa) * 1.35 - Math.sin(sa) * .9); post.castShadow = true; scene.add(post);
@@ -1870,6 +1907,27 @@ function paillettes(pos, col, n, spread) {
   for (let i = 0; i < n; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: TX.glow, color: col, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
     sp.position.copy(pos); sp.scale.setScalar(.2 + Math.random() * .25); scene.add(sp); const a = Math.random() * TAU, v = (spread || 1) * (.6 + Math.random() * 1.6);
     sparks.push({ sp, v: new V3(Math.cos(a) * v, .6 + Math.random() * 2.2, Math.sin(a) * v), t: 0, life: .7 + Math.random() * .8 }); }
+}
+function updateOracleMagic(dt, time) {
+  if (gardien) { gardien.cristal.rotation.y += dt * (oracle.busy ? 6 : 1); gardien.halo.material.opacity = .6 + Math.sin(time * 2.6) * .25; }
+  if (!oracle.crystal) return;
+  oracle.crystal.rotation.y += dt * (oracle.busy ? 5 : .7); oracle.crystal.position.y = 1.85 + Math.sin(time * 1.4) * .08; oracle.glow.position.y = oracle.crystal.position.y;
+  oracle.glow.scale.setScalar(2.1 + Math.sin(time * 2.3) * .25 + (oracle.busy ? .8 : 0)); oracle.ring.rotation.z += dt * .4;
+  const target = oracle.busy ? 1 : 0;
+  oracle.magicAmount += (target - oracle.magicAmount) * Math.min(1, dt * 6);
+  const m = oracle.magic, amount = oracle.magicAmount; m.visible = amount > .01;
+  if (!m.visible) return;
+  if (oracle.src === 'gardien' && gardien) { gardien.cristal.getWorldPosition(m.position); m.position.y += .8; }
+  else m.position.set(oracle.x, oracle.y + 2.8, oracle.z);
+  const t = magieDouce ? 0 : time;
+  m.scale.setScalar(.55 + amount * .45);
+  m.userData.rings.forEach((r, i) => { r.rotation.z = t * (i % 2 ? -.9 : .7); r.material.opacity = amount * .65; });
+  m.userData.stars.forEach((s, i) => {
+    const a = i / 24 * TAU + t * (i % 2 ? .8 : -.6), r = .45 + (i % 4) * .12;
+    s.position.set(Math.cos(a) * r, Math.sin(i * 2.4 + t * 1.5) * .6, Math.sin(a) * r);
+    s.quaternion.copy(camera.quaternion); s.rotateZ(t + i); s.scale.setScalar(.5 + .5 * (1 + Math.sin(t * 3 + i)));
+    s.material.opacity = amount * (.55 + .4 * Math.sin(t * 2 + i) ** 2);
+  });
 }
 
 // --- Les animaux de Théo : ils suivent ses pas, en file
@@ -1886,7 +1944,8 @@ function trailPoint(dist) {
 }
 function ajouterAnimal(def, depuis) { // depuis : point d'apparition (V3), sinon déjà là
   const apparition = !!depuis;
-  const rec = nettoyerRecette(def.r), c = makeCreature(rec, def.g), S = TAILLES[rec.taille];
+  const rec = respecterDemande(def.r, def.n), c = makeCreature(rec, def.g), S = TAILLES[rec.taille];
+  def = { ...def, r: rec }; // Répare aussi les licornes déjà sauvegardées sur l'appareil.
   const p = { def, rec, c, S, nom: def.n, x: player.x, y: player.y, z: player.z, face: player.face, hop: 0, appear: apparition ? 0 : 1, space: .35 + .45 * S, chirp: 4 + Math.random() * 8 };
   if (apparition) { p.x = depuis.x; p.y = depuis.y - .3; p.z = depuis.z; }
   c.root.scale.setScalar(apparition ? .01 : S); c.root.position.set(p.x, p.y, p.z); scene.add(c.root); pets.push(p); return p;
@@ -1922,9 +1981,6 @@ function updatePets(dt, time) {
   }
   for (let i = sparks.length - 1; i >= 0; i--) { const s = sparks[i]; s.t += dt; s.v.y -= 1.6 * dt; s.sp.position.addScaledVector(s.v, dt); s.sp.material.opacity = Math.max(0, 1 - s.t / s.life);
     if (s.t >= s.life) { scene.remove(s.sp); s.sp.material.dispose(); sparks.splice(i, 1); } }
-  if (gardien) { gardien.cristal.rotation.y += dt * (oracle.busy ? 6 : 1); gardien.halo.material.opacity = .6 + Math.sin(time * 2.6) * .25; }
-  if (oracle.crystal) { oracle.crystal.rotation.y += dt * (oracle.busy ? 5 : .7); oracle.crystal.position.y = 1.85 + Math.sin(time * 1.4) * .08; oracle.glow.position.y = oracle.crystal.position.y;
-    oracle.glow.scale.setScalar(2.1 + Math.sin(time * 2.3) * .25 + (oracle.busy ? .8 : 0)); oracle.ring.rotation.z += dt * .4; }
 }
 function caresser(p) { p.hop = .6; cri(p.rec.cri, p.S); paillettes(new V3(p.x, p.y + .5 * p.S, p.z), 0xff90c0, 10, .5); toast(`${p.nom} est tout content !`, 1.8); }
 
@@ -1983,6 +2039,11 @@ function ouvrirOracle(src) {
   if (!document.body.classList.contains('touch')) setTimeout(() => $('oTxt').focus(), 50);
 }
 function fermerOracle() { if (!oracle.open) return; oracle.open = false; $('oracle').hidden = true; $('oTxt').blur(); state.paused = false; canvas.focus(); }
+function oracleEnCreation(actif) {
+  oracle.busy = actif; $('oGo').disabled = actif; $('oracle').classList.toggle('enCreation', actif);
+  $('oForm').setAttribute('aria-busy', String(actif));
+  if (actif) $('oTxt').blur();
+}
 async function demanderOracle(texte) {
   if (!ORACLE_URL) return { raison: 'dort' };
   const ac = new AbortController(), to = setTimeout(() => ac.abort(), 15000);
@@ -1997,11 +2058,12 @@ async function creerAnimal() {
   if (oracle.busy) return;
   const texte = filtrerTexte($('oTxt').value);
   if (!texte) { oMsg(`${qui()} ne connaît pas ce mot-là. Écris un autre animal !`); sonNon(); return; }
-  oracle.busy = true; $('oGo').disabled = true; oMsg(oracle.src === 'gardien' ? 'Sylvanor lève son bâton…' : "L'Oracle réfléchit…"); sonMagie();
-  const rep = await demanderOracle(texte);
-  oracle.busy = false; $('oGo').disabled = false;
+  oracleEnCreation(true); oMsg(oracle.src === 'gardien' ? 'Sylvanor tisse la magie…' : "La magie prend forme…"); sonMagie();
+  let rep;
+  try { [rep] = await Promise.all([demanderOracle(texte), new Promise(r => setTimeout(r, 1400))]); }
+  finally { oracleEnCreation(false); }
   if (rep.raison === 'mot') { oMsg(`${qui()} ne connaît pas ce mot-là. Écris un autre animal !`); sonNon(); return; }
-  const def = { n: nomAnimal(texte), r: rep.recette || recetteLocale(texte), g: (Math.random() * 2 ** 31) | 0 };
+  const def = { n: nomAnimal(texte), r: respecterDemande(rep.recette || recetteLocale(texte), texte), g: (Math.random() * 2 ** 31) | 0 };
   if (pets.length >= MAX_ANIMAUX) retirerAnimal(pets[0]);
   const depuis = oracle.src === 'gardien' && gardien ? gardien.cristal.getWorldPosition(new V3()) : new V3(oracle.x, oracle.y + 1.85, oracle.z);
   const p = ajouterAnimal(def, depuis); sauverAnimaux(); $('oTxt').value = '';
@@ -2127,6 +2189,7 @@ function frame(now) {
   camera.updateMatrixWorld(); uSunView.value.copy(SUN).transformDirection(camera.matrixWorldInverse); animateNature(dt, time);
   if (state.playing && !state.paused) { update(dt, time); updateCamera(dt); }
   else if (!state.playing) { const a = time * .05; camera.position.set(Math.cos(a) * 46, 30 + Math.sin(time * .1) * 6, Math.sin(a) * 46); camera.lookAt(0, 34, 0); }
+  updateOracleMagic(dt, time); // Continue aussi pendant l'attente dans l'écran de l'oracle.
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) { toastT = 0; $('toast').hidden = true; } }
   if (TX.waterN) { TX.waterN.offset.set(time * .01, time * .006); }
   scheduleMusic();

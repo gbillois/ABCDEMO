@@ -7,7 +7,7 @@ const source = readFileSync(new URL('../src/index.js', import.meta.url), 'utf8')
 const jeu = readFileSync(new URL('../../../jeux/le-grand-arbre.html', import.meta.url), 'utf8');
 const { default: worker, Quota } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
 const commun = texte => texte.slice(texte.indexOf("// --- Recette d'animal"), texte.indexOf('// --- fin de la partie commune ---'));
-const ctx = vm.runInNewContext(commun(source) + ';({ nettoyerRecette, filtrerTexte, RECETTE, EXTRAS })');
+const ctx = vm.runInNewContext(commun(source) + ';({ nettoyerRecette, filtrerTexte, respecterDemande, RECETTE, EXTRAS })');
 const { filtrerTexte, RECETTE, EXTRAS } = ctx, nettoyerRecette = r => JSON.parse(JSON.stringify(ctx.nettoyerRecette(r)));
 
 const ORIGINE = 'https://gbillois.github.io';
@@ -60,6 +60,27 @@ test('création : la recette du modèle est nettoyée, rien d\'autre ne sort', a
   assert.match(entree.messages[1].content, /un lapin-dragon violet/);
   assert.equal(entree.response_format.type, 'json_schema');
   assert.ok(entree.max_tokens <= 300);
+});
+
+test('Nemotron : format chat.completion, corne et arc-en-ciel conservés malgré une omission', async () => {
+  const env = environnement({ reponse: { choices: [{ message: { content: JSON.stringify({ ...BONNE, cornes: 'aucune', couleur: 'rose' }), reasoning: 'ne doit pas sortir' } }] } });
+  env.MODELE = '@cf/nvidia/nemotron-3-120b-a12b';
+  const r = await worker.fetch(demande({ texte: 'une licorne arc-en-ciel' }), env);
+  assert.equal(r.status, 200);
+  const j = await r.json();
+  assert.equal(j.recette.cornes, 'licorne'); assert.equal(j.recette.couleur, 'arc_en_ciel');
+  assert.deepEqual(Object.keys(j), ['ok', 'recette']);
+  assert.deepEqual(env.appels[0].entree.chat_template_kwargs, { enable_thinking: false });
+  assert.equal(env.appels[0].modele, env.MODELE);
+});
+
+test('détails explicites : anciennes licornes réparées, hybrides et exceptions respectés', () => {
+  for (const texte of ['Licorne arc-en-ciel', 'une licorne-dragon', 'deux unicorns']) assert.equal(ctx.respecterDemande({ cornes: 'aucune' }, texte).cornes, 'licorne');
+  assert.equal(ctx.respecterDemande(BONNE, 'une licorne sans corne').cornes, 'aucune');
+  assert.equal(ctx.respecterDemande(BONNE, 'un lapin-dragon violet').cornes, 'deux');
+  const r = ctx.respecterDemande({ cornes: 'laser', extras: ['texte libre'] }, 'une licorne arc-en-ciel');
+  for (const k in RECETTE) assert.ok(RECETTE[k].includes(r[k]));
+  assert.equal(r.extras.length, 0);
 });
 
 test('origine, méthode, corps et texte contrôlés avant tout appel au modèle', async () => {

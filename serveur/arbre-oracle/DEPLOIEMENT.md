@@ -87,10 +87,17 @@ Tests sans réseau : `node --test serveur/arbre-oracle/tests/oracle.test.mjs`.
 - **Interrupteur** : `ACTIF = "non"` endort l'oracle sans toucher au jeu.
 - **Sortie du modèle** : schéma JSON imposé, puis `nettoyerRecette` ne garde que les valeurs
   des listes fermées. Aucun texte libre du modèle n'est renvoyé. `max_tokens` = 300.
+- **Modèle** : `@cf/nvidia/nemotron-3-120b-a12b` (NVIDIA Nemotron 3 Super), accessible avec
+  Workers Free. Le raisonnement interne est désactivé pour réserver la sortie au JSON et
+  réduire l'attente. Les formats `response` et `choices[0].message.content` sont acceptés.
+- **Détails explicites** : `respecterDemande`, commun au jeu et au Worker, garantit la corne
+  des licornes et la couleur arc-en-ciel demandée ; « sans corne » reste respecté. Le jeu
+  applique aussi cette réparation aux animaux déjà enregistrés sur l'appareil.
 - **Consigne au modèle** : animal toujours mignon et gentil ; toute autre consigne écrite par
   l'enfant est ignorée.
 - **Coût** : avec l'offre Workers Free, Workers AI s'arrête à l'allocation gratuite du jour
-  (10 000 « neurons ») au lieu de facturer. Une création coûte quelques dizaines de neurons
-  avec le modèle 70B ; 150 par jour reste dans le gratuit. Pour plus de créations, le modèle
-  `@cf/meta/llama-3.1-8b-instruct-fast` (dans `MODELE`) coûte beaucoup moins.
+  (10 000 « neurons ») au lieu de facturer. La licorne testée avec Nemotron a consommé environ
+  52 neurons ; le coût varie selon la demande et la réponse. Le quota applicatif de 150
+  créations ne garantit donc pas de rester sous l'allocation, partagée avec les autres
+  usages Workers AI du compte. Aucune activation de Workers Paid ni d'AI Gateway.
 - **Pas de journaux** : `[observability] enabled = false`, aucun `console.log`.
