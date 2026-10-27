@@ -819,12 +819,12 @@ G.manque = (r, L, c, e) => {
 
 const PB_MULT = [
   (a, b) => [`Une boîte contient ${a} crayons. Combien de crayons y a-t-il dans ${b} boîtes ?`, "crayons"],
-  (a, b) => [`Un car transporte ${a} enfants. Combien d'enfants transportent ${b} cars ?`, "enfants"],
+  (a, b) => [`Un collier a ${a} perles. Combien de perles faut-il pour ${b} colliers ?`, "perles"],
   (a, b) => [`Une ruche abrite ${a} abeilles. Combien d'abeilles vivent dans ${b} ruches ?`, "abeilles"],
   (a, b) => [`Théo range ${a} cartes dans chaque album. Il remplit ${b} albums. Combien de cartes a-t-il rangées ?`, "cartes"],
   (a, b) => [`Un dragon mange ${a} pommes par jour. Combien de pommes mange-t-il en ${b} jours ?`, "pommes"],
-  (a, b) => [`Un tour de manège coûte ${a} €. Combien coûtent ${b} tours ?`, "€"],
-  (a, b) => [`Un train a ${b} wagons. Chaque wagon a ${a} places. Combien de places y a-t-il dans le train ?`, "places"],
+  (a, b) => [`Un livre a ${a} pages. Combien de pages y a-t-il dans ${b} livres pareils ?`, "pages"],
+  (a, b) => [`Un jardin a ${b} rangées de ${a} fleurs. Combien de fleurs y a-t-il dans le jardin ?`, "fleurs"],
 ];
 G.probMult = (r, L, c, e) => {
   const nums = () => L === 1 ? [r.int(3, 9), r.int(2, 9)] : L === 2 ? [r.int(12, 60), r.int(3, 9)] : [r.int(25, 250), r.int(6, 25)];
@@ -891,12 +891,12 @@ G.multiple = (r, L, c, e) => {
   return { title: "Quel est le plus grand multiple ?", html: `<div class="items" style="--min:300px">${html}</div>` };
 };
 const PB_DIV = [
-  (n, d) => [`Théo a ${n} billes. Il fait des sacs de ${d} billes.`, "sacs pleins", "billes en trop"],
-  (n, d) => [`${n} enfants font des équipes de ${d}.`, "équipes", "enfants sans équipe"],
-  (n, d) => [`On range ${n} œufs dans des boîtes de ${d}.`, "boîtes pleines", "œufs restent"],
-  (n, d) => [`Un fermier partage ${n} carottes entre ses ${d} lapins, sans les couper.`, "carottes par lapin", "carottes restent"],
-  (n, d) => [`Une licorne colle ${n} étoiles sur ${d} pages, pareil sur chaque page.`, "étoiles par page", "étoiles restent"],
-  (n, d) => [`Il faut ${d} roues pour une petite voiture. On a ${n} roues.`, "voitures", "roues en trop"],
+  (n, d) => [`Théo a ${n} billes. Il fait des sacs de ${d} billes.`, "Nombre de sacs pleins", "Nombre de billes en trop"],
+  (n, d) => [`${n} enfants font des équipes de ${d}.`, "Nombre d'équipes", "Nombre d'enfants sans équipe"],
+  (n, d) => [`On range ${n} œufs dans des boîtes de ${d}.`, "Nombre de boîtes pleines", "Nombre d'œufs qui restent"],
+  (n, d) => [`Un fermier partage ${n} carottes entre ses ${d} lapins, sans les couper. Chaque lapin en reçoit autant.`, "Carottes par lapin", "Carottes qui restent"],
+  (n, d) => [`Une licorne colle ${n} étoiles sur ${d} pages, le même nombre sur chaque page.`, "Étoiles par page", "Étoiles qui restent"],
+  (n, d) => [`Une maîtresse range ${n} cahiers en piles de ${d}.`, "Nombre de piles", "Nombre de cahiers qui restent"],
 ];
 G.probDiv = (r, L, c, e) => {
   const tpl = r.sample(PB_DIV, 2);
@@ -905,7 +905,7 @@ G.probDiv = (r, L, c, e) => {
     const kq = `${e}.${i}.q`, kr = `${e}.${i}.r`;
     c.unit({ keys: [kq], ans: { [kq]: q }, check: A => intOf(A[kq]) === q });
     c.unit({ keys: [kr], ans: { [kr]: rr }, check: A => intOf(A[kr]) === rr });
-    return `<div class="it text"><p>${lt(i)} ${t}</p><div class="rep">${c.field(kq, 3)} ${u1} et ${c.field(kr, 2)} ${u2}</div></div>`;
+    return `<div class="it text"><p>${lt(i)} ${t}</p><div class="rep">${u1} : ${c.field(kq, 3)}</div><div class="rep">${u2} : ${c.field(kr, 2)}</div></div>`;
   }).join("");
   return { title: "Petits problèmes.", html: `<div class="items" style="--min:280px">${html}</div>` };
 };
