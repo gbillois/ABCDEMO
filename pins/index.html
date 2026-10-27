@@ -1154,122 +1154,137 @@ function aqCollide(p, prev) {
   const [x, z] = aqW(lp.u, lp.v); p.x = x; p.z = z;
 }
 
-/* ---------- Le Baloba : la salle de jeux couverte (à gauche de l'entrée de l'Aquaparc) ---------- */
-// Repère local : centre de la salle, porte au nord (+z) vers le grand chemin. Structure à étages au fond à gauche,
-// trampolines au fond à droite, piscine à balles devant à droite.
-const BALO = { x: -22, z: 12, hx: 8, hz: 6, h: 6, door: 1.2 };
+/* ---------- Le Baloba : la grande salle de jeux couverte (à l'est, à côté de l'aquarium) ---------- */
+// Repère local : centre de la salle, porte au nord (+z) vers le grand chemin. Grande structure à trois étages au fond,
+// trampolines au fond à droite, grande piscine à balles devant à droite, coin des blocs en mousse et bar à goûter à gauche.
+const BALO = { x: 82, z: -2, hx: 11, hz: 13, h: 8, door: 1.4 };
 const bw = (lx, lz) => [BALO.x + lx, BALO.z + lz];
 const inBaloba = (x, z) => Math.abs(x - BALO.x) < BALO.hx - .2 && Math.abs(z - BALO.z) < BALO.hz - .2;
-path(bw(0, BALO.hz + .3), [BALO.x, 30], 2.6);
+path(bw(0, BALO.hz + .3), [BALO.x, 30], 2.8); path([74, 30], [BALO.x + 1.4, 30], 3.4);
 const baloG = new THREE.Group(); baloG.position.set(BALO.x, 0, BALO.z); scene.add(baloG);
 const baloWallTex = tex(512, (x, s) => {
   x.fillStyle = "#ffffff"; x.fillRect(0, 0, s, s);
   const cols = ["#ff5a4e", "#ffc93c", "#2e86de", "#27ae60", "#e84393", "#9b59b6"];
   for (let i = 0; i < 8; i++) { x.fillStyle = cols[i % 6]; x.fillRect(i * 64, s - 90, 64, 90); }
   for (let i = 0; i < 9; i++) { const bx = 30 + i * 57, by = 120 + (i % 3) * 70, r = 26 + (i % 2) * 10; x.fillStyle = cols[(i + 2) % 6]; x.beginPath(); x.arc(bx, by, r, 0, 7); x.fill(); x.strokeStyle = "rgba(0,0,0,.25)"; x.lineWidth = 2; x.beginPath(); x.moveTo(bx, by + r); x.quadraticCurveTo(bx + 8, by + r + 30, bx - 4, by + r + 60); x.stroke(); x.fillStyle = "rgba(255,255,255,.5)"; x.beginPath(); x.arc(bx - r * .35, by - r * .35, r * .25, 0, 7); x.fill(); }
-}, 2, 1);
-const baloFloorTex = tex(256, (x, s) => { const cols = ["#ff7a6e", "#ffd25e", "#4fa3ec", "#4cc47a"]; for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { x.fillStyle = cols[(i + j * 2) % 4]; x.fillRect(i * 64, j * 64, 64, 64); x.fillStyle = "rgba(0,0,0,.08)"; for (let k = 0; k < 4; k++) { x.fillRect(i * 64 + 8 + k * 14, j * 64 + 4, 6, 6); x.fillRect(i * 64 + 4, j * 64 + 8 + k * 14, 6, 6); } } }, 4, 3);
+}, 4, 1);
+const baloFloorTex = tex(256, (x, s) => { const cols = ["#ff7a6e", "#ffd25e", "#4fa3ec", "#4cc47a"]; for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { x.fillStyle = cols[(i + j * 2) % 4]; x.fillRect(i * 64, j * 64, 64, 64); x.fillStyle = "rgba(0,0,0,.08)"; for (let k = 0; k < 4; k++) { x.fillRect(i * 64 + 8 + k * 14, j * 64 + 4, 6, 6); x.fillRect(i * 64 + 4, j * 64 + 8 + k * 14, 6, 6); } } }, 5.5, 6.5);
 {
   const { hx, hz, h, door } = BALO, wallMat = mat(0xffffff, .7, { map: baloWallTex });
   const wall = (x1, x2, z1, z2, y0 = 0, y1 = h) => { const w = x2 - x1, d = z2 - z1, hh = y1 - y0, m = new THREE.Mesh(new THREE.BoxGeometry(w, hh, d), wallMat); m.position.set((x1 + x2) / 2, (y0 + y1) / 2, (z1 + z2) / 2); m.receiveShadow = true; baloG.add(m); return m; };
   wall(-hx, hx, -hz - .15, -hz + .15); wall(-hx - .15, -hx + .15, -hz, hz); wall(hx - .15, hx + .15, -hz, hz);
-  wall(-hx, -door, hz - .15, hz + .15); wall(door, hx, hz - .15, hz + .15); wall(-door, door, hz - .15, hz + .15, 3.2, h);
+  wall(-hx, -door, hz - .15, hz + .15); wall(door, hx, hz - .15, hz + .15); wall(-door, door, hz - .15, hz + .15, 3.4, h);
   baloG.userData.wallMat = wallMat;
   const [x1, z1] = bw(-hx, -hz), [x2, z2] = bw(hx, hz);
   boxes.push({ x1: x1 - .15, x2: x2 + .15, z1: z1 - .15, z2: z1 + .15 }, { x1: x1 - .15, x2: x1 + .15, z1, z2 }, { x1: x2 - .15, x2: x2 + .15, z1, z2 },
     { x1: x1, x2: BALO.x - door, z1: z2 - .15, z2: z2 + .15 }, { x1: BALO.x + door, x2: x2, z1: z2 - .15, z2: z2 + .15 });
-  // toit arrondi et grosses bulles de couleur posées dessus
+  // toit et grosses bulles de couleur posées dessus
   const roof = new THREE.Group(); baloG.add(roof);
   const slab = rbox(hx * 2 + .8, .5, hz * 2 + .8, mat(0x2e86de, .5), .25); slab.position.y = h + .25; roof.add(slab);
-  [[-4, -2, 2.2, 0xff5a4e], [1, 1.5, 2.8, 0xffc93c], [5, -2.5, 1.8, 0x27ae60], [-5.5, 3, 1.5, 0xe84393]].forEach(([x, z, r, c]) => { const b = new THREE.Mesh(new THREE.SphereGeometry(r, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), mat(c, .35)); b.position.set(x, h + .5, z); roof.add(b); });
+  [[-6, -6, 3.4, 0xff5a4e], [2, 2, 4.2, 0xffc93c], [7, -8, 2.6, 0x27ae60], [-7, 6, 2.4, 0xe84393], [7, 8, 2, 0x9b59b6]].forEach(([x, z, r, c]) => { const b = new THREE.Mesh(new THREE.SphereGeometry(r, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), mat(c, .35)); b.position.set(x, h + .5, z); roof.add(b); });
   shadowAll(roof); baloG.userData.roof = roof;
-  const sign = label("LE BALOBA 🎈", "#e84393", "#ffffff", 2.2); sign.position.set(0, h + 4.4, 0); baloG.add(sign);
-  const awn = rbox(door * 2 + 1.6, .2, 1.4, mat(0xff5a4e, .5), .08); awn.position.set(0, 3.5, hz + .7); awn.castShadow = true; baloG.add(awn);
+  const sign = label("LE BALOBA 🎈", "#e84393", "#ffffff", 3); sign.position.set(0, h + 6.2, 0); baloG.add(sign);
+  const awn = rbox(door * 2 + 1.8, .2, 1.6, mat(0xff5a4e, .5), .08); awn.position.set(0, 3.7, hz + .8); awn.castShadow = true; baloG.add(awn);
   // portes automatiques (coulissent sur les côtés)
-  baloG.userData.doors = [-1, 1].map(s => { const d = new THREE.Mesh(new THREE.BoxGeometry(door, 3.1, .08), glassMat.clone()); d.material.opacity = .45; d.material.color.set(0xffd25e); const fr = new THREE.Mesh(new THREE.BoxGeometry(.08, 3.1, .12), metalMat); fr.position.x = -s * door / 2; d.add(fr); d.position.set(s * door / 2, 1.55, hz); baloG.add(d); return { m: d, s }; });
+  baloG.userData.doors = [-1, 1].map(s => { const d = new THREE.Mesh(new THREE.BoxGeometry(door, 3.3, .08), glassMat.clone()); d.material.opacity = .45; d.material.color.set(0xffd25e); const fr = new THREE.Mesh(new THREE.BoxGeometry(.08, 3.3, .12), metalMat); fr.position.x = -s * door / 2; d.add(fr); d.position.set(s * door / 2, 1.65, hz); baloG.add(d); return { m: d, s }; });
   const db = { x1: BALO.x - door, x2: BALO.x + door, z1: z2 - .1, z2: z2 + .1, off: false }; boxes.push(db); baloG.userData.doorBox = db;
   const fl = new THREE.Mesh(new THREE.PlaneGeometry(hx * 2, hz * 2), mat(0xffffff, .9, { map: baloFloorTex, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 })); fl.rotation.x = -Math.PI / 2; fl.position.y = .03; fl.receiveShadow = true; baloG.add(fl);
-  const lamp = new THREE.PointLight(0xfff1d6, 14, 22, 1.3); lamp.position.set(0, h - .6, 0); baloG.add(lamp);
+  for (const z of [-6, 6]) { const lamp = new THREE.PointLight(0xfff1d6, 16, 26, 1.3); lamp.position.set(0, h - .6, z); baloG.add(lamp); }
 }
-// la grande structure en plastique : deux étages, escaliers, tunnel, filets
-const BL1 = { x1: -7.5, x2: -1.5, z1: -5.8, z2: -2.5, y: 1.6 }, BL2 = { x1: -7.5, x2: -4.5, z1: -5.8, z2: -2.5, y: 3.2 };
-const BST1 = { x1: -1.5, x2: 1.7, z1: -5, z2: -3 }, BST2 = { x1: -4.5, x2: -1.8, z1: -5.7, z2: -4.5 };
+// la grande structure en plastique : trois étages, escaliers, tunnel, filets
+const BL1 = { x1: -10.5, x2: 3, z1: -12.8, z2: -8.5, y: 1.6 }, BL2 = { x1: -10.5, x2: -3, z1: -12.8, z2: -8.5, y: 3.2 }, BL3 = { x1: -10.5, x2: -6.5, z1: -12.8, z2: -8.5, y: 4.8 };
 const step6 = t => Math.min(1, Math.max(0, Math.floor(t * 6 + 1) / 6));
+// escaliers : [zone, hauteur du bas, hauteur du haut, sens de la montée ("x-" ou "z-")]
+const BSTAIRS = [[{ x1: 0, x2: 2, z1: -8.5, z2: -5.3 }, 0, BL1.y, "z-"], [{ x1: -3, x2: 0, z1: -12.7, z2: -11.5 }, BL1.y, BL2.y, "x-"], [{ x1: -6.5, x2: -4.3, z1: -12.7, z2: -11.5 }, BL2.y, BL3.y, "x-"]];
 {
   const inR = (r, lx, lz) => lx > r.x1 - .05 && lx < r.x2 + .05 && lz > r.z1 - .05 && lz < r.z2 + .05;
-  SURF.push((x, z) => { const lx = x - BALO.x, lz = z - BALO.z; return inR(BL1, lx, lz) ? BL1.y : null; },
-    (x, z) => { const lx = x - BALO.x, lz = z - BALO.z; return inR(BL2, lx, lz) ? BL2.y : null; },
-    (x, z) => { const lx = x - BALO.x, lz = z - BALO.z; return inR(BST1, lx, lz) ? BL1.y * step6((BST1.x2 - lx) / (BST1.x2 - BST1.x1)) : null; },
-    (x, z) => { const lx = x - BALO.x, lz = z - BALO.z; return inR(BST2, lx, lz) ? BL1.y + (BL2.y - BL1.y) * step6((BST2.x2 - lx) / (BST2.x2 - BST2.x1)) : null; });
-  // on ne passe pas sous la structure, ni sous l'étage du haut
-  WALLS3.push({ x1: BALO.x + BL1.x1, x2: BALO.x + BL1.x2, z1: BALO.z + BL1.z1, z2: BALO.z + BL1.z2, y0: -1, y1: 1.1 },
-    { x1: BALO.x + BL2.x1, x2: BALO.x + BL2.x2, z1: BALO.z + BL2.z1, z2: BALO.z + BL2.z2, y0: 1.1, y1: 2.7 });
+  for (const L of [BL1, BL2, BL3]) SURF.push((x, z) => inR(L, x - BALO.x, z - BALO.z) ? L.y : null);
+  for (const [r, y0, y1, dir] of BSTAIRS) SURF.push((x, z) => { const lx = x - BALO.x, lz = z - BALO.z; if (!inR(r, lx, lz)) return null; const t = dir === "z-" ? (r.z2 - lz) / (r.z2 - r.z1) : (r.x2 - lx) / (r.x2 - r.x1); return y0 + (y1 - y0) * step6(t); });
+  // on ne passe pas sous les étages
+  const under = (L, y0, y1) => WALLS3.push({ x1: BALO.x + L.x1, x2: BALO.x + L.x2, z1: BALO.z + L.z1, z2: BALO.z + L.z2, y0, y1 });
+  under(BL1, -1, 1.1); under(BL2, 1.1, 2.7); under(BL3, 2.7, 4.3);
   const g = new THREE.Group();
-  const slab = (r, y, c) => { const m = rbox(r.x2 - r.x1, .3, r.z2 - r.z1, mat(c, .45), .1); m.position.set((r.x1 + r.x2) / 2, y - .15, (r.z1 + r.z2) / 2); g.add(m); };
-  slab(BL1, BL1.y, 0xffc93c); slab(BL2, BL2.y, 0xff5a4e);
-  const post = (x, z, y1, c = 0x2e86de) => { const p = new THREE.Mesh(new THREE.CylinderGeometry(.13, .13, y1, 14), mat(c, .4)); p.position.set(x, y1 / 2, z); g.add(p); const cap = new THREE.Mesh(new THREE.SphereGeometry(.2, 14, 10), mat(0xff5a4e, .4)); cap.position.set(x, y1, z); g.add(cap); };
-  for (const [x, z] of [[-7.4, -5.7], [-1.6, -5.7], [-1.6, -2.6], [-7.4, -2.6], [-4.5, -2.6]]) post(x, z, BL2.y + 1.2);
+  const slab = (r, c) => { const m = rbox(r.x2 - r.x1, .3, r.z2 - r.z1, mat(c, .45), .1); m.position.set((r.x1 + r.x2) / 2, r.y - .15, (r.z1 + r.z2) / 2); g.add(m); };
+  slab(BL1, 0xffc93c); slab(BL2, 0xff5a4e); slab(BL3, 0x2e86de);
+  const post = (x, z, y1, c = 0x2e86de) => { const p = new THREE.Mesh(new THREE.CylinderGeometry(.14, .14, y1, 14), mat(c, .4)); p.position.set(x, y1 / 2, z); g.add(p); const cap = new THREE.Mesh(new THREE.SphereGeometry(.22, 14, 10), mat(0xff5a4e, .4)); cap.position.set(x, y1, z); g.add(cap); };
+  for (const [x, z, y] of [[-10.4, -8.6, BL3.y], [-6.5, -8.6, BL3.y], [-3, -8.6, BL2.y], [2.9, -8.6, BL1.y], [2.9, -12.7, BL1.y]]) post(x, z, y + 1.2, x < -6 ? 0x9b59b6 : 0x2e86de);
   // rambardes rembourrées et filets (le jeu empêche déjà de tomber du bord)
   const netMat = new THREE.MeshStandardMaterial({ color: 0x2e86de, transparent: true, opacity: .35, side: THREE.DoubleSide, depthWrite: false });
   const rail = (ax, az, bx, bz, y, c) => { const a = new THREE.Vector3(ax, y, az), b = new THREE.Vector3(bx, y, bz), d = b.clone().sub(a), L = d.length();
     const r = new THREE.Mesh(new THREE.CapsuleGeometry(.09, L, 4, 10), mat(c, .5)); r.position.copy(a).addScaledVector(d, .5); r.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize()); g.add(r);
     const net = new THREE.Mesh(new THREE.PlaneGeometry(L, .85), netMat); net.position.set((ax + bx) / 2, y - .45, (az + bz) / 2); net.rotation.y = -Math.atan2(bz - az, bx - ax); g.add(net); };
-  const y1 = BL1.y + .95, y2 = BL2.y + .95, G = 0x27ae60, R = 0xe84393;
-  rail(-4.5, -2.5, -2.4, -2.5, y1, G); rail(-1.5, -5.8, -1.5, -5, y1, G); rail(-1.5, -3, -1.5, -2.5, y1, G); rail(-7.5, -5.8, -7.5, -2.5, y1, G);
-  rail(-7.5, -2.5, -6.5, -2.5, y2, R); rail(-5.5, -2.5, -4.5, -2.5, y2, R); rail(-4.5, -4.5, -4.5, -2.5, y2, R); rail(-7.5, -5.8, -7.5, -2.5, y2, R);
+  const y1 = BL1.y + .95, y2 = BL2.y + .95, y3 = BL3.y + .95;
+  rail(-3, -8.5, -2, -8.5, y1, 0x27ae60); rail(-1, -8.5, 0, -8.5, y1, 0x27ae60); rail(2, -8.5, 3, -8.5, y1, 0x27ae60); rail(3, -12.8, 3, -8.5, y1, 0x27ae60);
+  rail(-6.5, -8.5, -4.7, -8.5, y2, 0xe84393); rail(-3.7, -8.5, -3, -8.5, y2, 0xe84393); rail(-3, -11.5, -3, -8.5, y2, 0xe84393);
+  rail(-10.5, -8.5, -10.1, -8.5, y3, 0xffc93c); rail(-9.1, -8.5, -6.5, -8.5, y3, 0xffc93c); rail(-6.5, -11.5, -6.5, -8.5, y3, 0xffc93c); rail(-10.5, -12.8, -10.5, -8.5, y3, 0xffc93c);
   // escaliers en marches de mousse
   const stepCols = [0x27ae60, 0xff8a2b];
-  for (let i = 0; i < 6; i++) { const w = (BST1.x2 - BST1.x1) / 6, hh = BL1.y * (i + 1) / 6, s = rbox(w, hh, BST1.z2 - BST1.z1, mat(stepCols[i % 2], .6), .06); s.position.set(BST1.x2 - w * (i + .5), hh / 2, (BST1.z1 + BST1.z2) / 2); g.add(s); }
-  for (let i = 0; i < 6; i++) { const w = (BST2.x2 - BST2.x1) / 6, hh = (BL2.y - BL1.y) * (i + 1) / 6, s = rbox(w, hh, BST2.z2 - BST2.z1, mat(stepCols[(i + 1) % 2], .6), .06); s.position.set(BST2.x2 - w * (i + .5), BL1.y + hh / 2, (BST2.z1 + BST2.z2) / 2); g.add(s); }
-  // le tunnel transparent sur le premier étage
-  const tun = new THREE.Mesh(new THREE.CylinderGeometry(.85, .85, 2.2, 28, 1, true, 0, Math.PI), new THREE.MeshStandardMaterial({ color: 0x27ae60, transparent: true, opacity: .45, side: THREE.DoubleSide, depthWrite: false }));
-  tun.rotation.z = Math.PI / 2; tun.position.set(-3.1, BL1.y, -3.6); g.add(tun);
-  for (const x of [-4.2, -2]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(.85, .1, 10, 28, Math.PI), mat(0xffc93c, .4)); ring.position.set(x, BL1.y, -3.6); ring.rotation.y = Math.PI / 2; g.add(ring); }
+  BSTAIRS.forEach(([r, h0, h1, dir], k) => { for (let i = 0; i < 6; i++) { const hh = (h1 - h0) * (i + 1) / 6, c = mat(stepCols[(i + k) % 2], .6);
+    if (dir === "z-") { const d = (r.z2 - r.z1) / 6, s = rbox(r.x2 - r.x1, hh, d, c, .06); s.position.set((r.x1 + r.x2) / 2, h0 + hh / 2, r.z2 - d * (i + .5)); g.add(s); }
+    else { const w = (r.x2 - r.x1) / 6, s = rbox(w, hh, r.z2 - r.z1, c, .06); s.position.set(r.x2 - w * (i + .5), h0 + hh / 2, (r.z1 + r.z2) / 2); g.add(s); } } });
+  // le tunnel transparent au premier étage, dans le prolongement de l'escalier
+  const tun = new THREE.Mesh(new THREE.CylinderGeometry(.9, .9, 2.4, 28, 1, true, -Math.PI / 2, Math.PI), new THREE.MeshStandardMaterial({ color: 0x27ae60, transparent: true, opacity: .45, side: THREE.DoubleSide, depthWrite: false }));
+  tun.rotation.x = -Math.PI / 2; tun.position.set(1, BL1.y, -10.1); g.add(tun);
+  for (const z of [-8.9, -11.3]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(.9, .1, 10, 28, Math.PI), mat(0xffc93c, .4)); ring.position.set(1, BL1.y, z); g.add(ring); }
   // fanions
-  [[-7.4, -2.6, 0xff5a4e], [-4.5, -2.6, 0x2e86de], [-1.6, -2.6, 0xffc93c]].forEach(([x, z, c]) => { const f = new THREE.Mesh(new THREE.ConeGeometry(.3, .6, 3), mat(c, .5)); f.rotation.z = -Math.PI / 2; f.scale.z = .15; f.position.set(x + .35, BL2.y + 1.05, z); g.add(f); });
+  [[-10.4, -8.6, BL3.y, 0xff5a4e], [-6.5, -8.6, BL3.y, 0x2e86de], [-3, -8.6, BL2.y, 0xffc93c], [2.9, -8.6, BL1.y, 0x27ae60]].forEach(([x, z, y, c]) => { const f = new THREE.Mesh(new THREE.ConeGeometry(.3, .6, 3), mat(c, .5)); f.rotation.z = -Math.PI / 2; f.scale.z = .15; f.position.set(x + .35, y + 1.05, z); g.add(f); });
+  // le coin des blocs en mousse, le bar à goûter, les bancs
+  const foam = [[-7.5, 3, "cube", 0xff5a4e], [-4.8, 3.6, "cyl", 0xffc93c], [-4.2, 6.8, "cube", 0x27ae60], [-8, 7.2, "cyl", 0xe84393]];
+  for (const [x, z, k, c] of foam) { const m = k === "cube" ? rbox(1.1, 1.1, 1.1, mat(c, .7), .25) : new THREE.Mesh(new THREE.CylinderGeometry(.6, .6, 1, 24), mat(c, .7)); m.position.set(x, k === "cube" ? .55 : .5, z); m.rotation.y = rnd(); g.add(m); circles.push({ x: BALO.x + x, z: BALO.z + z, r: .65 }); }
+  const arch = new THREE.Mesh(new THREE.TorusGeometry(1.15, .3, 12, 24, Math.PI), mat(0x2e86de, .7)); arch.position.set(-6.2, 0, 5.2); g.add(arch);
+  const bar = rbox(1.1, 1.1, 6, mat(0xffffff, .6, { map: woodTex }), .12); bar.position.set(-10.3, .55, 7); g.add(bar);
+  const top = rbox(1.3, .1, 6.2, mat(0xff8a2b, .5), .05); top.position.set(-10.3, 1.15, 7); g.add(top);
+  for (let i = 0; i < 5; i++) { const cup = new THREE.Mesh(new THREE.CylinderGeometry(.09, .07, .22, 14), mat([0xff5a4e, 0xffc93c, 0x27ae60, 0xe84393, 0x2e86de][i], .4)); cup.position.set(-10.2, 1.32, 4.6 + i * 1.1); g.add(cup); }
+  const barSign = label("Bar à goûter 🧃", "#ff8a2b", "#ffffff", .9); barSign.position.set(-10.3, 2.6, 7); g.add(barSign);
+  boxes.push({ x1: BALO.x - 10.9, x2: BALO.x - 9.7, z1: BALO.z + 4, z2: BALO.z + 10 });
+  for (const [x, z] of [[-5.5, 11.6], [6.5, 11.6]]) { const b = new THREE.Group(); const seat = rbox(2.4, .12, .6, mat(0x2e86de, .6), .05); seat.position.y = .45; b.add(seat); for (const sx of [-1, 1]) { const l = rbox(.12, .45, .55, mat(0xffffff, .5), .03); l.position.set(sx, .22, 0); b.add(l); } b.position.set(x, 0, z); g.add(b); boxes.push({ x1: BALO.x + x - 1.25, x2: BALO.x + x + 1.25, z1: BALO.z + z - .35, z2: BALO.z + z + .35 }); }
   baloG.add(shadowAll(g));
 }
-// les deux toboggans : un en colimaçon depuis le haut, un à vagues depuis le premier étage
-const baloSpiral = (() => { const c = { x: -4.8, z: .6 }, pts = [[-6, BL2.y + .45, -2.45], [-6.05, BL2.y + .2, -1.1]];
-  for (let i = 0; i <= 24; i++) { const a = -Math.PI - i / 24 * Math.PI * 2, y = THREE.MathUtils.lerp(BL2.y - .2, 1.2, i / 24); pts.push([c.x + 1.3 * Math.cos(a), y, c.z + 1.3 * Math.sin(a)]); }
-  pts.push([-6.1, .55, 2.6], [-6.1, .05, 4.2]); return new THREE.CatmullRomCurve3(pts.map(([x, y, z]) => new THREE.Vector3(BALO.x + x, y, BALO.z + z)), false, "centripetal"); })();
-const baloWave = new THREE.CatmullRomCurve3([[-1.9, BL1.y + .45, -2.45], [-1.9, 1.6, -1.3], [-1.9, 1.45, -.5], [-1.9, 1.0, .5], [-1.9, .9, 1.2], [-1.9, .4, 2.3], [-1.9, .05, 3.3]].map(([x, y, z]) => new THREE.Vector3(BALO.x + x, y, BALO.z + z)), false, "centripetal");
-for (const [cv, col] of [[baloSpiral, 0x9b59b6], [baloWave, 0xff8a2b]]) {
-  const sm = new THREE.Mesh(halfPipe(cv, .75, 200, 10), mat(col, .3, { side: THREE.DoubleSide })); sm.castShadow = true; scene.add(sm);
-  for (let t = .1; t < .92; t += .12) { const p = cv.getPointAt(t), h = p.y - .7; if (h < .3) continue; const pole = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, h, 8), mat(0x2e86de, .4)); pole.position.set(p.x, h / 2, p.z); scene.add(pole); }
+// les trois toboggans : colimaçon tout en haut, toboggan rapide au 2e étage, toboggan à vagues au 1er
+const bcurve = pts => new THREE.CatmullRomCurve3(pts.map(([x, y, z]) => new THREE.Vector3(BALO.x + x, y, BALO.z + z)), false, "centripetal");
+const baloSpiral = (() => { const c = { x: -8, z: -4.5 }, r = 1.6, pts = [[-9.6, BL3.y + .45, -8.45], [-9.6, BL3.y + .2, -7.1]];
+  for (let i = 0; i <= 32; i++) { const a = -Math.PI - i / 32 * Math.PI * 4; pts.push([c.x + r * Math.cos(a), THREE.MathUtils.lerp(BL3.y - .2, 1.0, i / 32), c.z + r * Math.sin(a)]); }
+  pts.push([-9.6, .55, -2.2], [-9.6, .05, -.6]); return bcurve(pts); })();
+const baloFast = bcurve([[-4.2, BL2.y + .45, -8.45], [-4.2, 2.7, -6.6], [-4.2, 1.5, -4.2], [-4.2, .55, -2.2], [-4.2, .05, -.8]]);
+const baloWave = bcurve([[-1.5, BL1.y + .45, -8.45], [-1.5, 1.6, -7.3], [-1.5, 1.4, -6.3], [-1.5, 1.0, -5], [-1.5, .9, -4.2], [-1.5, .4, -2.6], [-1.5, .05, -1.2]]);
+const BSLIDES = [[baloSpiral, -9.6, 4.4, 6, "🛝 Toboggan en colimaçon !", 0x9b59b6], [baloFast, -4.2, 2.8, 4.2, "🛝 Toboggan rapide !", 0x2e86de], [baloWave, -1.5, 1.2, 2.6, "🛝 Toboggan à vagues !", 0xff8a2b]]
+  .map(([curve, lx, y0, y1, name, col]) => ({ curve, x: BALO.x + lx, z: BALO.z - 8.9, y0, y1, name, col }));
+for (const s of BSLIDES) {
+  const sm = new THREE.Mesh(halfPipe(s.curve, .75, 260, 10), mat(s.col, .3, { side: THREE.DoubleSide })); sm.castShadow = true; scene.add(sm);
+  for (let t = .06; t < .92; t += .07) { const p = s.curve.getPointAt(t), h = p.y - .7; if (h < .3) continue; const pole = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, h, 8), mat(0x2e86de, .4)); pole.position.set(p.x, h / 2, p.z); scene.add(pole); }
 }
-// la piscine à balles
-const BPIT = { x1: 2, x2: 7.6, z1: .4, z2: 5.6, gz1: 2, gz2: 3.6 };
+// la grande piscine à balles
+const BPIT = { x1: 3.5, x2: 10.6, z1: -2.5, z2: 10.5, gz1: 3, gz2: 5 };
 {
-  const pad = (x1, x2, z1, z2, c) => { const m = rbox(x2 - x1, .55, z2 - z1, mat(c, .6), .12); m.position.set((x1 + x2) / 2, .27, (z1 + z2) / 2); baloG.add(m); WALLS3.push({ x1: BALO.x + x1, x2: BALO.x + x2, z1: BALO.z + z1, z2: BALO.z + z2, y0: -1, y1: .5 }); };
+  const pad = (x1, x2, z1, z2, c) => { const m = rbox(x2 - x1, .6, z2 - z1, mat(c, .6), .12); m.position.set((x1 + x2) / 2, .3, (z1 + z2) / 2); baloG.add(m); WALLS3.push({ x1: BALO.x + x1, x2: BALO.x + x2, z1: BALO.z + z1, z2: BALO.z + z2, y0: -1, y1: .5 }); };
   const { x1, x2, z1, z2, gz1, gz2 } = BPIT;
-  pad(x1, x2, z1 - .3, z1, 0x2e86de); pad(x1, x2, z2, z2 + .3, 0x2e86de); pad(x2, x2 + .3, z1 - .3, z2 + .3, 0xe84393);
+  pad(x1, x2, z1 - .3, z1, 0x2e86de); pad(x1, x2, z2, z2 + .3, 0x2e86de);
   pad(x1 - .3, x1, z1 - .3, gz1, 0xe84393); pad(x1 - .3, x1, gz2, z2 + .3, 0xe84393);
 }
-const BALLS = 900, ballCols = [0xff5a4e, 0xffc93c, 0x2e86de, 0x27ae60, 0xe84393, 0x9b59b6];
+const BALLS = 2600, ballCols = [0xff5a4e, 0xffc93c, 0x2e86de, 0x27ae60, 0xe84393, 0x9b59b6];
 const ballIM = new THREE.InstancedMesh(new THREE.SphereGeometry(.14, 10, 8), mat(0xffffff, .3), BALLS);
 const balls = Array.from({ length: BALLS }, (_, i) => { const b = { x: BALO.x + BPIT.x1 + .15 + rnd() * (BPIT.x2 - BPIT.x1 - .3), z: BALO.z + BPIT.z1 + .15 + rnd() * (BPIT.z2 - BPIT.z1 - .3), y: .14 + rnd() * .62, dx: 0, dy: 0, dz: 0 }; ballIM.setColorAt(i, new THREE.Color(ballCols[i % 6])); return b; });
 ballIM.receiveShadow = true; scene.add(ballIM);
 { const m = new THREE.Matrix4(); balls.forEach((b, i) => { m.makeTranslation(b.x, b.y, b.z); ballIM.setMatrixAt(i, m); }); }
-// les trampolines
-const TRAMPS = [[4.3, -4.2, 0x2e86de], [6.5, -4.2, 0xff5a4e], [5.4, -1.9, 0xffc93c]].map(([lx, lz, c]) => {
+// six trampolines
+const TRAMPS = [[5.5, -11.3, 0x2e86de], [7.6, -11.3, 0xff5a4e], [9.7, -11.3, 0xffc93c], [5.5, -8.4, 0x27ae60], [7.6, -8.4, 0xe84393], [9.7, -8.4, 0x9b59b6]].map(([lx, lz, c]) => {
   const g = new THREE.Group(); g.position.set(BALO.x + lx, 0, BALO.z + lz); scene.add(g);
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(1, .16, 12, 40), mat(c, .5)); ring.rotation.x = Math.PI / 2; ring.position.y = .5; g.add(ring);
-  const bed = new THREE.Mesh(new THREE.CircleGeometry(.88, 32), mat(0x222831, .9)); bed.rotation.x = -Math.PI / 2; bed.position.y = .45; g.add(bed);
-  for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2, l = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, .5, 8), metalMat); l.position.set(Math.cos(a) * .95, .25, Math.sin(a) * .95); g.add(l); }
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(.9, .14, 12, 40), mat(c, .5)); ring.rotation.x = Math.PI / 2; ring.position.y = .5; g.add(ring);
+  const bed = new THREE.Mesh(new THREE.CircleGeometry(.8, 32), mat(0x222831, .9)); bed.rotation.x = -Math.PI / 2; bed.position.y = .45; g.add(bed);
+  for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2, l = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, .5, 8), metalMat); l.position.set(Math.cos(a) * .85, .25, Math.sin(a) * .85); g.add(l); }
   shadowAll(g); return { g, bed, x: BALO.x + lx, z: BALO.z + lz };
 });
-let baloDoorOpen = 0, baloFade = 1, bounceT = 0, bounceLow = true, pitT = 0;
+let baloDoorOpen = 0, baloFade = 1, bounceT = 0, bounceLow = true, pitT = 0, ballsMoving = false;
 const ballM = new THREE.Matrix4();
 function updateBaloba(dt, time, P) {
-  const near = Math.abs(P.x - BALO.x) < 45 && Math.abs(P.z - BALO.z) < 45; ballIM.visible = near; if (!near) return false;
+  const near = Math.abs(P.x - BALO.x) < 50 && Math.abs(P.z - BALO.z) < 50; ballIM.visible = near; if (!near) return false;
   const inside = inBaloba(P.x, P.z);
-  const want = Math.hypot(P.x - BALO.x, P.z - (BALO.z + BALO.hz)) < 4 ? 1 : 0; if (want && baloDoorOpen < .05) sfx.door();
+  const want = Math.hypot(P.x - BALO.x, P.z - (BALO.z + BALO.hz)) < 4.5 ? 1 : 0; if (want && baloDoorOpen < .05) sfx.door();
   baloDoorOpen += (want - baloDoorOpen) * Math.min(1, dt * 5); for (const d of baloG.userData.doors) d.m.position.x = d.s * (BALO.door / 2 + baloDoorOpen * BALO.door * .95); baloG.userData.doorBox.off = baloDoorOpen > .6;
   baloFade += ((inside ? .2 : 1) - baloFade) * Math.min(1, dt * 6); const wm = baloG.userData.wallMat, tr = baloFade < .98;
   if (wm.transparent !== tr) { wm.transparent = tr; wm.depthWrite = !tr; wm.needsUpdate = true; } wm.opacity = baloFade; baloG.userData.roof.visible = !inside;
   // trampolines : on rebondit tout seul
-  let onT = null; if (state === "walk" && P.y < 3) for (const t of TRAMPS) if (Math.hypot(P.x - t.x, P.z - t.z) < .9) onT = t;
+  let onT = null; if (state === "walk" && P.y < 3) for (const t of TRAMPS) if (Math.hypot(P.x - t.x, P.z - t.z) < .8) onT = t;
   for (const t of TRAMPS) t.bed.position.y = .45;
   if (onT) { bounceT += dt; const s = Math.abs(Math.sin(bounceT * 2.6)); P.y = .5 + s * 2.3; onT.bed.position.y = .45 - Math.max(0, .25 - s) * .9;
     if (s < .12 && !bounceLow) { bounceLow = true; tone(180, .28, "sine", .16, 260); } else if (s > .3) bounceLow = false; }
@@ -1277,11 +1292,13 @@ function updateBaloba(dt, time, P) {
   // la piscine à balles : les balles s'écartent autour de toi
   const inPit = inside && P.x > BALO.x + BPIT.x1 && P.x < BALO.x + BPIT.x2 && P.z > BALO.z + BPIT.z1 && P.z < BALO.z + BPIT.z2;
   if (inPit) { pitT -= dt; if (pitT < 0 && Math.hypot(P.x - prev.x, P.z - prev.z) > .01) { pitT = .35; whoosh(.18, .04, 1800, 2600); } }
-  if (inPit || balls.some(b => b.dy > .001)) {
+  if (inPit || ballsMoving) {
+    ballsMoving = false;
     balls.forEach((b, i) => { const ddx = b.x - P.x, ddz = b.z - P.z, d = Math.hypot(ddx, ddz);
       if (inPit && d < .7) { const k = (.7 - d) / .7, f = Math.min(1, dt * 8); b.dx += (ddx / (d + .01) * .5 * k - b.dx) * f; b.dz += (ddz / (d + .01) * .5 * k - b.dz) * f; b.dy += (k * .35 - b.dy) * f; }
-      else { const f = 1 - Math.min(1, dt * 2); b.dx *= f; b.dz *= f; b.dy *= f; }
-      ballM.makeTranslation(b.x + b.dx, b.y + b.dy, b.z + b.dz); ballIM.setMatrixAt(i, ballM); });
+      else if (b.dy > .001 || Math.abs(b.dx) > .001 || Math.abs(b.dz) > .001) { const f = 1 - Math.min(1, dt * 2); b.dx *= f; b.dz *= f; b.dy *= f; }
+      else return;
+      ballsMoving = true; ballM.makeTranslation(b.x + b.dx, b.y + b.dy, b.z + b.dz); ballIM.setMatrixAt(i, ballM); });
     ballIM.instanceMatrix.needsUpdate = true;
   }
   return inside;
@@ -2107,7 +2124,7 @@ const npcs = [
   { name: "Lucas, de la rivière", pos: [RDOCK.x + RDOCK.tx * 3.4 + RDOCK.sx * 1.2, RDOCK.z + RDOCK.tz * 3.4 + RDOCK.sz * 1.2], o: { shirt: 0xff5a4e, pants: 0xffc93c, shorts: true, hair: 0x2d2018, skin: 0xc68e6a, cap: 0xff5a4e }, lines: ["Bienvenue à la rivière sauvage ! 🌊", "Monte dans une bouée sur le ponton, et le courant t'emporte.", "Il y a deux rapides : ça va très vite ! Penche-toi à gauche ou à droite pour te diriger.", "Le tour se termine ici, au ponton. Tu peux sortir avant si tu veux."] },
   { name: "Paul, le garde forestier", pos: [40, -10], o: { shirt: 0x6d8b3a, hair: 0x555555, cap: 0x4b6328, skin: 0xc68e6a }, lines: ["Bonjour, aventurier !", "Au ponton du lac, tu peux prendre le pédalo. Un canard flotte au milieu du lac !", "Ouvre la carte pour voir où ils se cachent. Les points jaunes, ce sont eux !", "Au bout du chemin, il y a l'aquarium ! Va voir Bubulle le requin 🦈"] },
   { name: "Nina, la soigneuse", pos: aqW(-4.4, 3.2), o: { shirt: 0x1f8fae, pants: 0x2d3436, hair: 0x2d2018, long: true, skin: 0xc68e6a }, lines: ["Bienvenue à l'aquarium ! Moi c'est Nina, je m'occupe des poissons.", "Le gros poisson gris, c'est Bubulle le requin. Il est très gentil !", "Tu as vu la tortue de mer ? Elle s'appelle Pistache 🐢", "Les méduses roses brillent dans le grand bassin du milieu.", "Approche-toi du grand bassin et appuie sur Nourrir les poissons 🐟"] },
-  { name: "Tom, l'animateur", pos: bw(-3.6, 4.6), o: { shirt: 0xff8a2b, pants: 0x2e86de, hair: 0x8b4513, cap: 0x27ae60 }, lines: ["Salut ! Bienvenue au Baloba, la salle de jeux ! 🎈", "Monte les marches de la grande structure, passe dans le tunnel et grimpe tout en haut.", "En haut, il y a le toboggan en colimaçon. Au premier étage, le toboggan à vagues !", "Les trampolines sont au fond : saute dessus, tu vas rebondir très haut !", "Et la piscine à balles… plonge dedans ! On rentre par l'ouverture sur le côté."] },
+  { name: "Tom, l'animateur", pos: bw(-3, 9.5), o: { shirt: 0xff8a2b, pants: 0x2e86de, hair: 0x8b4513, cap: 0x27ae60 }, lines: ["Salut ! Bienvenue au Baloba, la salle de jeux ! 🎈", "Monte les marches de la grande structure, passe dans le tunnel et grimpe tout en haut.", "Il y a trois toboggans : le colimaçon tout en haut, le toboggan rapide au 2e étage et le toboggan à vagues au 1er !", "Les six trampolines sont au fond : saute dessus, tu vas rebondir très haut !", "Si tu as soif, va au bar à goûter ! 🧃", "Et la piscine à balles… plonge dedans ! On rentre par l'ouverture sur le côté."] },
 ];
 npcs.forEach(n => { n.g = person(n.o); n.g.position.set(n.pos[0], 0, n.pos[1]); n.g.rotation.y = rnd() * 6; scene.add(n.g); const lb = label(n.name.split(",")[0], "#8e44ad", "#ffffff", .6 / (n.o.scale ?? .76)); lb.position.y = 2.7; n.g.add(lb); circles.push({ x: n.pos[0], z: n.pos[1], r: .5 }); n.idx = -1; });
 const swimmer = person({ shirt: 0xffffff, pants: 0x00b894, shorts: true, hair: 0x2d3436, skin: 0xd9a27a }); setOutfit(swimmer, "requin"); scene.add(swimmer);
@@ -2542,7 +2559,7 @@ let act1 = null, act2 = null, doorNear = null;
 function doAct(a) {
   if (!a) return; sfx.click();
   if (a === "feed") { feedFish(); return; }
-  if (a === "baloslide" || a === "balowave") { state = "ride"; riding = { curve: a === "baloslide" ? baloSpiral : baloWave, u: 0, dry: true, msg: "Youpi ! 🎈" }; $("dialog").hidden = true; talking = null; sfx.slide(); toast("Wiiiiii ! 🛝", 1600); return; }
+  if (/^balo\d$/.test(a)) { state = "ride"; riding = { curve: BSLIDES[+a.slice(4)].curve, u: 0, dry: true, msg: "Youpi ! 🎈" }; $("dialog").hidden = true; talking = null; sfx.slide(); toast("Wiiiiii ! 🛝", 1600); return; }
   if (a === "mount" && mountT) { mountVeh(mountT); return; }
   if (a === "dismount") { dismount(); return; }
   if (a === "pet" && petT) { petAnimal(petT); return; }
@@ -3071,8 +3088,7 @@ function loop() {
       if (Math.hypot(P.x - RDOCK.x, P.z - RDOCK.z) < 2.6) offer("river", "🛟 Descendre la rivière");
     }
     if (state === "walk" && P.y > 4) { if (Math.hypot(P.x - CHEST.x, P.z - CHEST.z) < 1.8) offer("chest", "🎁 Ouvrir le coffre"); if (Math.hypot(P.x - 63.3, P.z - 69) < 1.5) offer("treeslide", "🛝 Glisser !"); }
-    if (state === "walk" && P.y > 2.8 && Math.hypot(P.x - (BALO.x - 6), P.z - (BALO.z - 2.9)) < 1.3) offer("baloslide", "🛝 Toboggan en colimaçon !");
-    if (state === "walk" && P.y > 1.2 && P.y < 2.5 && Math.hypot(P.x - (BALO.x - 1.9), P.z - (BALO.z - 2.9)) < 1.2) offer("balowave", "🛝 Toboggan à vagues !");
+    if (state === "walk") BSLIDES.forEach((b, i) => { if (P.y > b.y0 && P.y < b.y1 && Math.hypot(P.x - b.x, P.z - b.z) < 1.3) offer("balo" + i, b.name); });
     if (state === "drive") offer("dismount", "🧍 Descendre");
     if (state === "river" && (riv.stop || riv.dist > 10 && Math.hypot(P.x - RDOCK.x, P.z - RDOCK.z) < 6)) offer("riverout", "🧍 Sortir sur le ponton");
     if (state === "river" && riv.stop) offer("riveragain", "🔁 Refaire un tour");
