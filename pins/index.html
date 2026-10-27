@@ -50,6 +50,8 @@ html,body{height:100%;margin:0;overflow:hidden;background:#9fc7e0;color:var(--in
 .card h1{margin:0 0 6px;font-size:30px;line-height:1.1;text-wrap:balance;color:var(--leaf)}
 .card p{font-size:18px;line-height:1.35;margin:8px 0}
 .card .small{font-size:15px;opacity:.75}
+.prizes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}.prizes .btn{font-size:17px;line-height:1.15}.prizes small{font-size:13px;opacity:.9}
+#ticketsPill{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:#ff4fd8;color:#fff}
 .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px}
 #mapc{width:min(84vw,420px);height:auto;aspect-ratio:1;max-width:100%;border-radius:18px;display:block;margin:6px auto;background:#6bb553}
 #money{background:#fff3c4}
@@ -116,7 +118,7 @@ html.app .site{display:none!important}
 <div id="intro" class="overlay">
   <div class="card">
     <h1>Le Domaine des Pins</h1>
-    <p>Des vacances dans la forêt : ton cottage et sa terrasse, l'Aquaparc et ses toboggans, l'aquarium, le Baloba, la rivière sauvage, la ferme, le poney club, les karts, les vélos, la maison dans les arbres, le lac et son pédalo… et un chat roux qui vient te voir !</p>
+    <p>Des vacances dans la forêt : ton cottage et sa terrasse, l'Aquaparc et ses toboggans, l'aquarium, le Baloba, Game Town, la rivière sauvage, la ferme, le poney club, les karts, les vélos, la maison dans les arbres, le lac et son pédalo… et un chat roux qui vient te voir !</p>
     <p><b>Mission :</b> 10 canards en plastique se sont échappés. Retrouve-les tous ! 🦆</p>
     <p class="small">Joystick à gauche pour marcher. Glisse ton doigt sur l'écran pour tourner la caméra. Sur ordinateur : flèches ou ZQSD, E pour agir (ouvrir une porte, nager, se changer…), T pour parler. Tu as 4000 € pour la boutique de maillots de bain.</p>
     <div class="row"><button id="startBtn" class="btn">▶ Jouer</button><button id="introMulti" class="btn" style="background:var(--violet)">👫 À plusieurs</button><a class="btn site" style="background:#34495e" href="../index.html">🏠 Accueil</a></div>
@@ -154,6 +156,24 @@ html.app .site{display:none!important}
     <div class="row"><button id="shopClose" class="btn" style="background:#34495e">Fermer</button></div>
   </div>
 </div>
+<div id="arcadeView" class="overlay" hidden>
+  <div class="card" style="background:#1b1035;color:#ffffff">
+    <h1 id="arcTitle" style="color:#ff4fd8">Arcade</h1>
+    <p id="arcInfo" class="small" style="opacity:.9"></p>
+    <canvas id="arcCanvas" width="320" height="400" style="width:min(78vw,320px);height:auto;aspect-ratio:4/5;max-width:100%;border-radius:16px;background:#0b0620;touch-action:none;display:block;margin:6px auto"></canvas>
+    <div class="row"><button id="arcAgain" class="btn" style="background:#ff4fd8" hidden>🔄 Rejouer</button><button id="arcClose" class="btn" style="background:#34495e">Fermer</button></div>
+  </div>
+</div>
+<div id="prizeView" class="overlay" hidden>
+  <div class="card">
+    <h1>Les cadeaux 🎁</h1>
+    <p>Tu as <b id="prizeTickets">0</b> 🎟️ tickets.</p>
+    <div id="prizeList" class="prizes"></div>
+    <p id="prizeOwned" class="small"></p>
+    <div class="row"><button id="prizeClose" class="btn" style="background:#34495e">Fermer</button></div>
+  </div>
+</div>
+<div id="ticketsPill" class="pill" hidden>🎟️ 0</div>
 <div id="lockerView" class="overlay" hidden>
   <div class="card">
     <h1>Vestiaires 👕</h1>
@@ -1304,6 +1324,215 @@ function updateBaloba(dt, time, P) {
   return inside;
 }
 
+/* ---------- Game Town : la salle d'arcade (à l'ouest, au bout du grand chemin, à côté de la ferme) ---------- */
+// Repère local : centre de la salle, porte à l'est (+x) vers le chemin de la ferme. Bornes d'arcade le long des murs nord et sud,
+// table de air hockey au milieu, machine à pince, piste lumineuse près de l'entrée, comptoir des cadeaux au fond.
+const GTW = { x: -83, z: 19, hx: 9, hz: 6.5, h: 5.5, door: 1.2 };
+const gw = (lx, lz) => [GTW.x + lx, GTW.z + lz];
+const inGameTown = (x, z) => Math.abs(x - GTW.x) < GTW.hx - .2 && Math.abs(z - GTW.z) < GTW.hz - .2;
+path(gw(GTW.hx + .3, 0), [-70, GTW.z], 2.6);
+const gtG = new THREE.Group(); gtG.position.set(GTW.x, 0, GTW.z); scene.add(gtG);
+const gtWallTex = tex(512, (x, s) => {
+  const g = x.createLinearGradient(0, 0, 0, s); g.addColorStop(0, "#2b1d5f"); g.addColorStop(1, "#160f33"); x.fillStyle = g; x.fillRect(0, 0, s, s);
+  const neon = (y, c) => { x.strokeStyle = c; x.lineWidth = 10; x.shadowColor = c; x.shadowBlur = 18; x.beginPath(); x.moveTo(0, y); x.lineTo(s, y); x.stroke(); x.shadowBlur = 0; };
+  neon(70, "#ff4fd8"); neon(95, "#2fd3ff");
+  x.font = "bold 70px sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; ["🎮", "🕹️", "⭐", "👾"].forEach((e, i) => x.fillText(e, 64 + i * 128, 300));
+  for (let i = 0; i < 40; i++) { x.fillStyle = ["#ff4fd8", "#2fd3ff", "#ffe066"][i % 3]; x.beginPath(); x.arc(rnd() * s, 140 + rnd() * 340, 2 + rnd() * 3, 0, 7); x.fill(); }
+}, 3, 1);
+const gtCarpetTex = tex(256, (x, s) => {
+  x.fillStyle = "#1a1240"; x.fillRect(0, 0, s, s);
+  const cols = ["#ff4fd8", "#2fd3ff", "#ffe066", "#7cff6b"];
+  for (let i = 0; i < 26; i++) { x.strokeStyle = cols[i % 4]; x.lineWidth = 4; const px = rnd() * s, py = rnd() * s, r = 6 + rnd() * 10; if (i % 3 === 0) { x.beginPath(); x.arc(px, py, r, 0, 7); x.stroke(); } else if (i % 3 === 1) { x.beginPath(); x.moveTo(px - r, py); x.lineTo(px, py - r); x.lineTo(px + r, py); x.stroke(); } else { x.beginPath(); x.moveTo(px - r, py - r / 2); x.quadraticCurveTo(px, py + r, px + r, py - r / 2); x.stroke(); } }
+}, 4.5, 3.25);
+{
+  const { hx, hz, h, door } = GTW, wallMat = mat(0xffffff, .8, { map: gtWallTex });
+  const wall = (x1, x2, z1, z2, y0 = 0, y1 = h) => { const w = x2 - x1, d = z2 - z1, hh = y1 - y0, m = new THREE.Mesh(new THREE.BoxGeometry(w, hh, d), wallMat); m.position.set((x1 + x2) / 2, (y0 + y1) / 2, (z1 + z2) / 2); m.receiveShadow = true; gtG.add(m); };
+  wall(-hx, hx, -hz - .15, -hz + .15); wall(-hx, hx, hz - .15, hz + .15); wall(-hx - .15, -hx + .15, -hz, hz);
+  wall(hx - .15, hx + .15, -hz, -door); wall(hx - .15, hx + .15, door, hz); wall(hx - .15, hx + .15, -door, door, 3.3, h);
+  gtG.userData.wallMat = wallMat;
+  const [x1, z1] = gw(-hx, -hz), [x2, z2] = gw(hx, hz);
+  boxes.push({ x1, x2, z1: z1 - .15, z2: z1 + .15 }, { x1, x2, z1: z2 - .15, z2: z2 + .15 }, { x1: x1 - .15, x2: x1 + .15, z1, z2 },
+    { x1: x2 - .15, x2: x2 + .15, z1, z2: GTW.z - door }, { x1: x2 - .15, x2: x2 + .15, z1: GTW.z + door, z2 });
+  const db = { x1: x2 - .1, x2: x2 + .1, z1: GTW.z - door, z2: GTW.z + door, off: false }; boxes.push(db); gtG.userData.doorBox = db;
+  gtG.userData.doors = [-1, 1].map(s => { const d = new THREE.Mesh(new THREE.BoxGeometry(.08, 3.1, door), glassMat.clone()); d.material.opacity = .5; d.material.color.set(0xff9bea); d.position.set(hx, 1.55, s * door / 2); gtG.add(d); return { m: d, s }; });
+  const roof = new THREE.Group(); gtG.add(roof);
+  const slab = rbox(hx * 2 + .8, .5, hz * 2 + .8, mat(0x2b1d5f, .5), .25); slab.position.y = h + .25; roof.add(slab);
+  for (const [x, z, c] of [[-5, -2, 0xff4fd8], [0, 2, 0x2fd3ff], [5, -2, 0xffe066]]) { const st = new THREE.Mesh(new THREE.OctahedronGeometry(1.1, 0), new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: .6 })); st.position.set(x, h + 1.8, z); st.scale.y = 1.3; roof.add(st); }
+  shadowAll(roof); gtG.userData.roof = roof;
+  const sign = label("GAME TOWN 🎮", "#1b1035", "#ff4fd8", 2.6); sign.position.set(0, h + 4.2, 0); gtG.add(sign);
+  const fl = new THREE.Mesh(new THREE.PlaneGeometry(hx * 2, hz * 2), mat(0xffffff, .95, { map: gtCarpetTex, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 })); fl.rotation.x = -Math.PI / 2; fl.position.y = .03; fl.receiveShadow = true; gtG.add(fl);
+  // néons le long des murs, lumières roses et bleues
+  for (const [z, c] of [[-hz + .2, 0xff4fd8], [hz - .2, 0x2fd3ff]]) { const n = new THREE.Mesh(new THREE.BoxGeometry(hx * 2 - .6, .1, .1), new THREE.MeshBasicMaterial({ color: c })); n.position.set(0, h - .4, z); gtG.add(n); }
+  for (const [x, c] of [[-4, 0xff4fd8], [4, 0x2fd3ff]]) { const l = new THREE.PointLight(c, 12, 14, 1.4); l.position.set(x, h - .8, 0); gtG.add(l); }
+}
+// les bornes d'arcade : chaque borne lance un des trois mini-jeux
+const GT_GAMES = [
+  { name: "Tape-Taupe", info: "Tape vite les taupes quand elles sortent de leur trou !", col: "#ff4fd8", c3: 0xff4fd8 },
+  { name: "Panier Magique", info: "Touche l'écran (ou Espace) pour lancer le ballon dans le panier qui bouge !", col: "#ffc93c", c3: 0xffc93c },
+  { name: "Attrape-Étoiles", info: "Bouge le panier avec ton doigt (ou les flèches) et attrape les étoiles !", col: "#2fd3ff", c3: 0x2fd3ff },
+];
+const gtScreens = GT_GAMES.map(() => { const c = document.createElement("canvas"); c.width = 128; c.height = 96; const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return { c, x: c.getContext("2d"), t }; });
+function drawScreens(time) {
+  gtScreens.forEach(({ x, t }, k) => {
+    x.fillStyle = "#0b0620"; x.fillRect(0, 0, 128, 96);
+    if (k === 0) { for (let i = 0; i < 3; i++) { x.fillStyle = "#3a2a1a"; x.beginPath(); x.ellipse(24 + i * 40, 70, 14, 6, 0, 0, 7); x.fill(); } const i = Math.floor(time * 1.5) % 3, up = Math.abs(Math.sin(time * 4.7)) * 18; x.fillStyle = "#9b6b43"; x.beginPath(); x.arc(24 + i * 40, 70 - up, 11, Math.PI, 0); x.fill(); x.fillStyle = "#000"; x.fillRect(19 + i * 40, 62 - up, 3, 3); x.fillRect(27 + i * 40, 62 - up, 3, 3); }
+    if (k === 1) { const hx = 64 + Math.sin(time * 1.8) * 40; x.fillStyle = "#fff"; x.fillRect(hx - 18, 8, 36, 20); x.strokeStyle = "#ff8a2b"; x.lineWidth = 3; x.beginPath(); x.moveTo(hx - 12, 30); x.lineTo(hx + 12, 30); x.stroke(); const by = 90 - (time * 90 % 80); x.fillStyle = "#ff8a2b"; x.beginPath(); x.arc(64, by, 7, 0, 7); x.fill(); }
+    if (k === 2) { for (let i = 0; i < 4; i++) { const sx = 20 + i * 30, sy = (time * 40 + i * 23) % 80; x.fillStyle = "#ffe066"; x.font = "14px sans-serif"; x.fillText("★", sx, sy + 10); } x.fillStyle = "#2fd3ff"; x.fillRect(64 + Math.sin(time * 2) * 40 - 14, 84, 28, 8); }
+    x.fillStyle = GT_GAMES[k].col; x.font = "bold 11px sans-serif"; x.fillText(GT_GAMES[k].name.toUpperCase(), 6, 12); t.needsUpdate = true;
+  });
+}
+drawScreens(0);
+const GT_CABS = [];
+{
+  const spots = [[-7, -5.6, 0], [-4.6, -5.6, 1], [-2.2, -5.6, 2], [.2, -5.6, 0], [-7, 5.6, 1], [-4.6, 5.6, 2], [-2.2, 5.6, 0]];
+  for (const [lx, lz, k] of spots) {
+    const face = lz < 0 ? 1 : -1, g = new THREE.Group(); g.position.set(lx, 0, lz); g.rotation.y = face > 0 ? 0 : Math.PI; gtG.add(g);
+    const gm = GT_GAMES[k], body = rbox(1.3, 2.3, .95, mat(0x1b1035, .5), .1); body.position.y = 1.15; g.add(body);
+    const side = rbox(1.36, 2.1, .7, mat(gm.c3, .4), .06); side.position.set(0, 1.1, -.05); side.scale.x = 1; g.add(side);
+    const scr = new THREE.Mesh(new THREE.PlaneGeometry(1.0, .75), new THREE.MeshBasicMaterial({ map: gtScreens[k].t })); scr.position.set(0, 1.6, .49); scr.rotation.x = -.15; g.add(scr);
+    const panel = rbox(1.25, .14, .5, mat(0x111111, .5), .04); panel.position.set(0, 1.0, .6); panel.rotation.x = -.25; g.add(panel);
+    const stick = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .2, 8), metalMat); stick.position.set(-.3, 1.15, .6); g.add(stick);
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(.07, 12, 8), mat(0xff5a4e, .3)); knob.position.set(-.3, 1.27, .6); g.add(knob);
+    [0xff5a4e, 0xffc93c, 0x2fd3ff].forEach((c, i) => { const b = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, .05, 12), new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: .5 })); b.position.set(.05 + i * .17, 1.1, .62); b.rotation.x = -.25; g.add(b); });
+    const marq = new THREE.Mesh(new THREE.BoxGeometry(1.3, .35, .5), new THREE.MeshStandardMaterial({ color: gm.c3, emissive: gm.c3, emissiveIntensity: .7 })); marq.position.set(0, 2.45, .2); g.add(marq);
+    shadowAll(g);
+    const [wx, wz] = gw(lx, lz); boxes.push({ x1: wx - .7, x2: wx + .7, z1: wz - .55, z2: wz + .55 });
+    GT_CABS.push({ k, x: wx, z: wz + face * 1.25 });
+  }
+}
+// la table de air hockey (le palet bouge tout seul)
+const gtPuck = { x: 0, z: 0, vx: 2.2, vz: 1.5 };
+{
+  const g = new THREE.Group(); g.position.set(-3.5, 0, 0); gtG.add(g);
+  const top = rbox(3, .25, 1.7, mat(0xffffff, .3), .08); top.position.y = .85; g.add(top);
+  const rim = rbox(3.2, .2, 1.9, mat(0x2fd3ff, .4), .08); rim.position.y = .75; g.add(rim);
+  const mid = new THREE.Mesh(new THREE.PlaneGeometry(.04, 1.6), new THREE.MeshBasicMaterial({ color: 0xff4fd8 })); mid.rotation.x = -Math.PI / 2; mid.position.y = .985; g.add(mid);
+  for (const sx of [-1.3, 1.3]) for (const sz of [-.7, .7]) { const l = rbox(.15, .7, .15, mat(0x1b1035, .5), .03); l.position.set(sx, .35, sz); g.add(l); }
+  const puck = new THREE.Mesh(new THREE.CylinderGeometry(.11, .11, .04, 20), mat(0xff4fd8, .3)); puck.position.y = 1.0; g.add(puck); gtPuck.m = puck;
+  gtPuck.mallets = [-1.25, 1.25].map((x, i) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(.13, .13, .12, 20), mat(i ? 0x2fd3ff : 0xffe066, .3)); m.position.set(x, 1.04, 0); g.add(m); return m; });
+  shadowAll(g); const [wx, wz] = gw(-3.5, 0); boxes.push({ x1: wx - 1.6, x2: wx + 1.6, z1: wz - .95, z2: wz + .95 });
+}
+// la machine à pince, pleine de peluches
+const gtClaw = { t: -1, win: false, x: 0, z: 0 };
+{
+  const g = new THREE.Group(); g.position.set(4.5, 0, -5.2); gtG.add(g);
+  const base = rbox(1.6, 1, 1.4, mat(0xff4fd8, .4), .08); base.position.y = .5; g.add(base);
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.6, 1.3), new THREE.MeshStandardMaterial({ color: 0xcfeefa, transparent: true, opacity: .2, depthWrite: false, roughness: .05 })); glass.position.y = 1.8; g.add(glass);
+  const lid = rbox(1.6, .3, 1.4, mat(0xff4fd8, .4), .08); lid.position.y = 2.75; g.add(lid);
+  const plushCols = [0xffc93c, 0x2fd3ff, 0x7cff6b, 0xff8a65, 0xb39ddb, 0xffffff];
+  for (let i = 0; i < 12; i++) { const p = new THREE.Mesh(new THREE.SphereGeometry(.15, 12, 10), mat(plushCols[i % 6], .9)); p.position.set((rnd() - .5) * 1.1, 1.12 + rnd() * .2, (rnd() - .5) * .9); g.add(p); for (const s of [-1, 1]) { const ear = new THREE.Mesh(new THREE.SphereGeometry(.06, 8, 6), p.material); ear.position.set(s * .1, .12, 0); p.add(ear); } }
+  const claw = new THREE.Group(); claw.position.set(0, 2.45, 0); g.add(claw);
+  const cord = new THREE.Mesh(new THREE.CylinderGeometry(.015, .015, 1, 6), metalMat); cord.position.y = .5; cord.geometry.translate(0, 0, 0); claw.add(cord);
+  for (let i = 0; i < 3; i++) { const f = new THREE.Mesh(new THREE.BoxGeometry(.04, .25, .04), metalMat); const a = i / 3 * Math.PI * 2; f.position.set(Math.cos(a) * .08, -.1, Math.sin(a) * .08); f.rotation.set(Math.sin(a) * .5, 0, -Math.cos(a) * .5); claw.add(f); }
+  const prize = new THREE.Mesh(new THREE.SphereGeometry(.15, 12, 10), mat(0xffc93c, .9)); prize.position.y = -.28; prize.visible = false; claw.add(prize);
+  gtClaw.claw = claw; gtClaw.cord = cord; gtClaw.prize = prize;
+  shadowAll(g); const [wx, wz] = gw(4.5, -5.2); boxes.push({ x1: wx - .85, x2: wx + .85, z1: wz - .75, z2: wz + .75 }); gtClaw.front = [wx, wz + 1.4];
+}
+// le comptoir des cadeaux, au fond
+{
+  const g = new THREE.Group(); g.position.set(-8.2, 0, 0); gtG.add(g);
+  const counter = rbox(1, 1.1, 5, mat(0x2fd3ff, .4), .1); counter.position.set(.5, .55, 0); g.add(counter);
+  const top = rbox(1.2, .1, 5.2, mat(0xffffff, .3), .04); top.position.set(.5, 1.15, 0); g.add(top);
+  for (const y of [1.6, 2.4, 3.2]) { const sh = rbox(.6, .08, 5, mat(0xffffff, .5), .03); sh.position.set(-.45, y, 0); g.add(sh); }
+  const pc = [0xff5a4e, 0xffc93c, 0x7cff6b, 0x2fd3ff, 0xff4fd8, 0xb39ddb];
+  for (let i = 0; i < 18; i++) { const y = [1.6, 2.4, 3.2][i % 3], z = -2.2 + Math.floor(i / 3) * .88, k = i % 4, c = mat(pc[i % 6], .5);
+    const m = k === 0 ? new THREE.Mesh(new THREE.SphereGeometry(.2, 14, 10), c) : k === 1 ? rbox(.3, .35, .3, c, .05) : k === 2 ? new THREE.Mesh(new THREE.ConeGeometry(.16, .4, 12), c) : new THREE.Mesh(new THREE.TorusGeometry(.13, .05, 8, 16), c);
+    m.position.set(-.45, y + .22, z); g.add(m); }
+  const sign = label("Cadeaux 🎁", "#2fd3ff", "#1b1035", 1); sign.position.set(0, 4.3, 0); g.add(sign);
+  shadowAll(g); const [wx, wz] = gw(-8.2, 0); boxes.push({ x1: wx - .9, x2: wx + 1.1, z1: wz - 2.6, z2: wz + 2.6 });
+}
+// la piste lumineuse près de l'entrée
+const gtTiles = [];
+for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { const m = new THREE.Mesh(new THREE.PlaneGeometry(.9, .9), new THREE.MeshBasicMaterial({ color: 0xff4fd8 })); m.rotation.x = -Math.PI / 2; m.position.set(3.2 + i, .05, 1 + j); gtG.add(m); gtTiles.push(m); }
+const gtTileCols = [0xff4fd8, 0x2fd3ff, 0xffe066, 0x7cff6b, 0x1b1035];
+// tickets et cadeaux gagnés (gardés sur l'appareil)
+const GT_PRIZES = [["🍭", "Sucette", 5], ["🎈", "Ballon", 10], ["🧸", "Ourson", 20], ["🤖", "Robot", 35], ["🚀", "Fusée", 50], ["👑", "Couronne", 80]];
+let gtData = { tickets: 0, owned: [] };
+try { const s = JSON.parse(localStorage.getItem("pins-gametown") || "null"); if (s && Number.isFinite(s.tickets) && Array.isArray(s.owned)) gtData = { tickets: Math.max(0, Math.floor(s.tickets)), owned: s.owned.filter(o => typeof o === "string").slice(0, 200) }; } catch (e) {}
+function gtSave() { try { localStorage.setItem("pins-gametown", JSON.stringify(gtData)); } catch (e) {} $("ticketsPill").textContent = "🎟️ " + gtData.tickets; }
+function gtAddTickets(n) { gtData.tickets += n; gtSave(); }
+let gtDoorOpen = 0, gtFade = 1, gtScreenT = 0, gtTileT = 0;
+function updateGameTown(dt, time, P) {
+  const near = Math.abs(P.x - GTW.x) < 45 && Math.abs(P.z - GTW.z) < 45; if (!near) { $("ticketsPill").hidden = true; return false; }
+  const inside = inGameTown(P.x, P.z); $("ticketsPill").hidden = !inside;
+  const want = Math.hypot(P.x - (GTW.x + GTW.hx), P.z - GTW.z) < 4.2 ? 1 : 0; if (want && gtDoorOpen < .05) sfx.door();
+  gtDoorOpen += (want - gtDoorOpen) * Math.min(1, dt * 5); for (const d of gtG.userData.doors) d.m.position.z = d.s * (GTW.door / 2 + gtDoorOpen * GTW.door * .95); gtG.userData.doorBox.off = gtDoorOpen > .6;
+  gtFade += ((inside ? .2 : 1) - gtFade) * Math.min(1, dt * 6); const wm = gtG.userData.wallMat, tr = gtFade < .98;
+  if (wm.transparent !== tr) { wm.transparent = tr; wm.depthWrite = !tr; wm.needsUpdate = true; } wm.opacity = gtFade; gtG.userData.roof.visible = !inside;
+  gtScreenT -= dt; if (gtScreenT < 0 && Math.hypot(P.x - GTW.x, P.z - GTW.z) < 25) { gtScreenT = .1; drawScreens(time); }
+  gtTileT -= dt; if (gtTileT < 0) { gtTileT = .45; gtTiles.forEach(m => m.material.color.set(gtTileCols[Math.floor(Math.random() * 5)])); }
+  // air hockey
+  const pk = gtPuck; pk.x += pk.vx * dt; pk.z += pk.vz * dt; if (Math.abs(pk.x) > 1.3) { pk.vx = -pk.vx; pk.x = Math.sign(pk.x) * 1.3; } if (Math.abs(pk.z) > .7) { pk.vz = -pk.vz; pk.z = Math.sign(pk.z) * .7; }
+  pk.m.position.x = pk.x; pk.m.position.z = pk.z; pk.mallets.forEach((m, i) => { m.position.z += (pk.z - m.position.z) * Math.min(1, dt * 3) * (i ? .9 : .7); });
+  // la pince
+  const c = gtClaw; if (c.t >= 0) { c.t += dt; const t = c.t;
+    if (t < .8) { c.claw.position.x = c.x * t / .8; c.claw.position.z = c.z * t / .8; }
+    else if (t < 1.6) { c.claw.position.y = 2.45 - (t - .8) / .8 * 1.05; }
+    else if (t < 2.4) { c.prize.visible = c.win; c.claw.position.y = 1.4 + (t - 1.6) / .8 * 1.05; }
+    else { c.claw.position.set(0, 2.45, 0); c.prize.visible = false; c.t = -1;
+      if (c.win) { gtData.owned.push("🧸 Peluche de la pince"); gtSave(); sfx.win(); toast("Tu as attrapé une peluche ! 🧸", 2600); } else { tone(300, .3, "sawtooth", .08, -150); toast("Oh non, elle a glissé ! Réessaie 😉", 2200); } }
+    c.cord.scale.y = Math.max(.2, 2.45 - c.claw.position.y + .3); c.cord.position.y = c.cord.scale.y / 2 - .05; }
+  return inside;
+}
+function clawPlay() {
+  if (gtClaw.t >= 0) return;
+  if (gtData.tickets < 3) { toast("Il te faut 3 tickets 🎟️ : joue aux bornes d'arcade !", 2600); return; }
+  gtAddTickets(-3); gtClaw.t = 0; gtClaw.win = Math.random() < .45; gtClaw.x = (Math.random() - .5) * .9; gtClaw.z = (Math.random() - .5) * .7; whoosh(.8, .05, 400, 900); toast("La pince descend… 🤞", 1600);
+}
+function renderPrizes() {
+  $("prizeTickets").textContent = gtData.tickets;
+  $("prizeList").innerHTML = GT_PRIZES.map(([e, n, c], i) => `<button class="btn" data-p="${i}" style="background:${gtData.tickets >= c ? "#8e44ad" : "#9aa0b4"}">${e} ${n}<br><small>${c} 🎟️</small></button>`).join("");
+  const counts = {}; gtData.owned.forEach(o => counts[o] = (counts[o] || 0) + 1);
+  $("prizeOwned").textContent = gtData.owned.length ? "Tes cadeaux : " + Object.entries(counts).map(([o, n]) => n > 1 ? `${o} ×${n}` : o).join(", ") : "Tu n'as pas encore de cadeau.";
+}
+$("prizeList").addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if (!b) return; const [em, n, c] = GT_PRIZES[+b.dataset.p];
+  if (gtData.tickets < c) { $("prizeOwned").textContent = `Il te manque ${c - gtData.tickets} tickets pour ${em} ${n}. Joue encore un peu !`; tone(260, .2, "triangle", .08); return; }
+  gtData.tickets -= c; gtData.owned.push(em + " " + n); gtSave(); sfx.win(); renderPrizes(); });
+$("prizeClose").onclick = () => fermer("prizeView");
+gtSave();
+// les trois mini-jeux d'arcade, dessinés sur un canvas
+const arcCv = $("arcCanvas"), arcX = arcCv.getContext("2d"); let arc = null;
+function openArcade(k) {
+  const gm = GT_GAMES[k]; $("arcTitle").textContent = gm.name; $("arcTitle").style.color = gm.col; $("arcInfo").textContent = gm.info;
+  arc = { k, t: 20, score: 0, over: false, last: performance.now(), moles: Array.from({ length: 9 }, () => ({ up: 0, hit: 0 })), spawn: .4, hoopX: 160, hoopV: 90, ball: null, flash: 0, bx: 160, stars: [], starT: 0 };
+  $("arcAgain").hidden = true; ouvrir("arcadeView"); tone(660, .1, "square", .08); tone(990, .12, "square", .08, 0, .1); requestAnimationFrame(arcLoop);
+}
+function arcPos(e) { const r = arcCv.getBoundingClientRect(); return [(e.clientX - r.left) * 320 / r.width, (e.clientY - r.top) * 400 / r.height]; }
+arcCv.addEventListener("pointerdown", e => { if (!arc || arc.over) return; const [x, y] = arcPos(e);
+  if (arc.k === 0) { const i = Math.floor(x / (320 / 3)), j = Math.floor((y - 90) / 100); if (i >= 0 && i < 3 && j >= 0 && j < 3) { const m = arc.moles[j * 3 + i]; if (m.up > 0) { m.up = 0; m.hit = .3; arc.score++; tone(880, .08, "square", .1); tone(1320, .08, "square", .08, 0, .06); } else tone(200, .06, "triangle", .05); } }
+  if (arc.k === 1 && !arc.ball) { arc.ball = { x: 160, y: 360 }; whoosh(.3, .05, 500, 1500); }
+  if (arc.k === 2) { arc.bx = x; arcCv.setPointerCapture(e.pointerId); } });
+arcCv.addEventListener("pointermove", e => { if (arc && arc.k === 2 && e.buttons) arc.bx = arcPos(e)[0]; });
+addEventListener("keydown", e => { if (!arc || arc.over || $("arcadeView").hidden) return; if (arc.k === 1 && e.key === " " && !arc.ball) { arc.ball = { x: 160, y: 360 }; whoosh(.3, .05, 500, 1500); } });
+function arcLoop(now) {
+  if (!arc || $("arcadeView").hidden) return; const dt = Math.min(.05, (now - arc.last) / 1000); arc.last = now; const a = arc, x = arcX;
+  if (!a.over) { a.t -= dt;
+    if (a.k === 0) { a.spawn -= dt; if (a.spawn < 0) { a.spawn = .45 + Math.random() * .4; const free = a.moles.filter(m => m.up <= 0); if (free.length) free[Math.floor(Math.random() * free.length)].up = .8 + Math.random() * .4; } a.moles.forEach(m => { if (m.up > 0) m.up -= dt; if (m.hit > 0) m.hit -= dt; }); }
+    if (a.k === 1) { a.hoopX += a.hoopV * dt; if (a.hoopX < 50 || a.hoopX > 270) { a.hoopV = -a.hoopV; a.hoopX = Math.max(50, Math.min(270, a.hoopX)); }
+      if (a.ball) { a.ball.y -= 520 * dt; if (a.ball.y < 95) { if (Math.abs(a.ball.x - a.hoopX) < 26) { a.score++; a.flash = .6; a.hoopV *= 1.12; tone(784, .1, "triangle", .12); tone(1046, .15, "triangle", .12, 0, .1); } else tone(220, .12, "triangle", .06); a.ball = null; } } if (a.flash > 0) a.flash -= dt; }
+    if (a.k === 2) { if (keys["arrowleft"] || keys["q"] || keys["a"]) a.bx -= 260 * dt; if (keys["arrowright"] || keys["d"]) a.bx += 260 * dt; a.bx = Math.max(35, Math.min(285, a.bx));
+      a.starT -= dt; if (a.starT < 0) { a.starT = .5 + Math.random() * .4; a.stars.push({ x: 20 + Math.random() * 280, y: 40, v: 110 + Math.random() * 80 + (20 - a.t) * 4, gold: Math.random() < .15 }); }
+      a.stars.forEach(s => s.y += s.v * dt); a.stars = a.stars.filter(s => { if (s.y > 355 && s.y < 385 && Math.abs(s.x - a.bx) < 38) { a.score += s.gold ? 3 : 1; tone(s.gold ? 1320 : 1046, .1, "sine", .12); return false; } return s.y < 410; }); }
+    if (a.t <= 0) { a.t = 0; a.over = true; a.won = a.k === 2 ? Math.ceil(a.score / 2) : a.score; if (a.won > 0) gtAddTickets(a.won); sfx.win(); $("arcAgain").hidden = false; } }
+  // dessin
+  x.fillStyle = "#0b0620"; x.fillRect(0, 0, 320, 400);
+  x.fillStyle = "#ffffff"; x.font = "bold 22px sans-serif"; x.textAlign = "left"; x.fillText("⏱ " + Math.ceil(a.t), 12, 32); x.textAlign = "right"; x.fillText("⭐ " + a.score, 308, 32); x.textAlign = "center";
+  if (a.k === 0) a.moles.forEach((m, i) => { const cx = 53 + (i % 3) * 107, cy = 160 + Math.floor(i / 3) * 100;
+    if (m.up > 0) { const h = Math.min(1, m.up * 4) * 34; x.fillStyle = "#9b6b43"; x.beginPath(); x.ellipse(cx, cy - h + 20, 26, 30, 0, Math.PI, 0); x.fill(); x.fillRect(cx - 26, cy - h + 20, 52, h); x.fillStyle = "#000"; x.beginPath(); x.arc(cx - 9, cy - h + 4, 4, 0, 7); x.arc(cx + 9, cy - h + 4, 4, 0, 7); x.fill(); x.fillStyle = "#ff8fb1"; x.beginPath(); x.arc(cx, cy - h + 13, 5, 0, 7); x.fill(); }
+    x.fillStyle = "#3a2a1a"; x.beginPath(); x.ellipse(cx, cy + 22, 36, 12, 0, 0, 7); x.fill(); x.fillStyle = "#0b0620"; x.fillRect(cx - 40, cy + 24, 80, 30);
+    if (m.hit > 0) { x.fillStyle = "#ffe066"; x.font = "bold 26px sans-serif"; x.fillText("PAF !", cx, cy - 20); } });
+  if (a.k === 1) { x.fillStyle = "#ffffff"; x.fillRect(a.hoopX - 40, 45, 80, 45); x.strokeStyle = "#ff4fd8"; x.lineWidth = 3; x.strokeRect(a.hoopX - 16, 60, 32, 22); x.strokeStyle = "#ff8a2b"; x.lineWidth = 5; x.beginPath(); x.moveTo(a.hoopX - 26, 95); x.lineTo(a.hoopX + 26, 95); x.stroke();
+    x.strokeStyle = "rgba(255,255,255,.6)"; x.lineWidth = 2; for (let i = -2; i <= 2; i++) { x.beginPath(); x.moveTo(a.hoopX + i * 10, 95); x.lineTo(a.hoopX + i * 6, 120); x.stroke(); }
+    const b = a.ball || { x: 160, y: 360 }; x.fillStyle = "#ff8a2b"; x.beginPath(); x.arc(b.x, b.y, 16, 0, 7); x.fill(); x.strokeStyle = "#7a3b00"; x.lineWidth = 2; x.beginPath(); x.moveTo(b.x - 16, b.y); x.lineTo(b.x + 16, b.y); x.moveTo(b.x, b.y - 16); x.lineTo(b.x, b.y + 16); x.stroke();
+    if (a.flash > 0) { x.fillStyle = "#ffe066"; x.font = "bold 34px sans-serif"; x.fillText("PANIER !", 160, 220); } }
+  if (a.k === 2) { a.stars.forEach(s => { x.fillStyle = s.gold ? "#ffb000" : "#ffe066"; x.font = (s.gold ? 40 : 28) + "px sans-serif"; x.fillText("★", s.x, s.y); });
+    x.fillStyle = "#2fd3ff"; x.beginPath(); x.roundRect(a.bx - 38, 362, 76, 22, 8); x.fill(); x.fillStyle = "#1b1035"; x.fillRect(a.bx - 30, 366, 60, 6); }
+  if (a.over) { x.fillStyle = "rgba(11,6,32,.85)"; x.fillRect(0, 130, 320, 140); x.fillStyle = "#ffffff"; x.font = "bold 28px sans-serif"; x.fillText("Bravo ! ⭐ " + a.score, 160, 185); x.fillStyle = "#ffe066"; x.font = "bold 24px sans-serif"; x.fillText("+" + a.won + " tickets 🎟️", 160, 230); }
+  requestAnimationFrame(arcLoop);
+}
+$("arcAgain").onclick = () => { const k = arc ? arc.k : 0; fermer("arcadeView"); openArcade(k); };
+$("arcClose").onclick = () => { fermer("arcadeView"); arc = null; };
+
 /* ---------- Canards ---------- */
 const DUCK_SPOTS = [[3, -18], [-22, -26], [17, -15.5], [48, -20], [70, -48], [-72, 0], [-31, 53.5], [-14.5, 43.5], [14, 18.6], [-16, 53]];
 function duckMesh() {
@@ -1327,6 +1556,7 @@ function blocked(x, z, pad) {
   if (Math.hypot(x - LAKE.x, z - LAKE.z) < LAKE.r + 2.5 + pad) return true;
   if (Math.hypot(x - AQU.x, z - AQU.z) < AQU.r + 3 + pad) return true;
   if (Math.abs(x - BALO.x) < BALO.hx + 2 + pad && Math.abs(z - BALO.z) < BALO.hz + 2 + pad) return true;
+  if (Math.abs(x - GTW.x) < GTW.hx + 2 + pad && Math.abs(z - GTW.z) < GTW.hz + 2 + pad) return true;
   if (cottages.some(c => Math.abs(x - c.x) < 5.5 + pad && (Math.abs(z - c.z) < 4.5 + pad || Math.abs(z - (c.z + c.s * 6.6)) < 2.7 + pad))) return true;
   if (ZONES.some(r => inRect(r, x, z, pad)) || riverNear(x, z).d < RIVER_HW + 3.2 + pad || Math.hypot((x - ARENA.x) / (ARENA.rx + 3), (z - ARENA.z) / (ARENA.rz + 3)) < 1) return true;
   if (boxes.some(b => x > b.x1 - pad && x < b.x2 + pad && z > b.z1 - pad && z < b.z2 + pad)) return true;
@@ -2125,6 +2355,7 @@ const npcs = [
   { name: "Paul, le garde forestier", pos: [40, -10], o: { shirt: 0x6d8b3a, hair: 0x555555, cap: 0x4b6328, skin: 0xc68e6a }, lines: ["Bonjour, aventurier !", "Au ponton du lac, tu peux prendre le pédalo. Un canard flotte au milieu du lac !", "Ouvre la carte pour voir où ils se cachent. Les points jaunes, ce sont eux !", "Au bout du chemin, il y a l'aquarium ! Va voir Bubulle le requin 🦈"] },
   { name: "Nina, la soigneuse", pos: aqW(-4.4, 3.2), o: { shirt: 0x1f8fae, pants: 0x2d3436, hair: 0x2d2018, long: true, skin: 0xc68e6a }, lines: ["Bienvenue à l'aquarium ! Moi c'est Nina, je m'occupe des poissons.", "Le gros poisson gris, c'est Bubulle le requin. Il est très gentil !", "Tu as vu la tortue de mer ? Elle s'appelle Pistache 🐢", "Les méduses roses brillent dans le grand bassin du milieu.", "Approche-toi du grand bassin et appuie sur Nourrir les poissons 🐟"] },
   { name: "Tom, l'animateur", pos: bw(-3, 9.5), o: { shirt: 0xff8a2b, pants: 0x2e86de, hair: 0x8b4513, cap: 0x27ae60 }, lines: ["Salut ! Bienvenue au Baloba, la salle de jeux ! 🎈", "Monte les marches de la grande structure, passe dans le tunnel et grimpe tout en haut.", "Il y a trois toboggans : le colimaçon tout en haut, le toboggan rapide au 2e étage et le toboggan à vagues au 1er !", "Les six trampolines sont au fond : saute dessus, tu vas rebondir très haut !", "Si tu as soif, va au bar à goûter ! 🧃", "Et la piscine à balles… plonge dedans ! On rentre par l'ouverture sur le côté."] },
+  { name: "Léon, de Game Town", pos: gw(6.5, -2.6), o: { shirt: 0x8e44ad, pants: 0x1b1035, hair: 0x111111, cap: 0xff4fd8, skin: 0xd9a27a }, lines: ["Bienvenue à Game Town ! 🎮", "Approche-toi d'une borne et appuie sur Jouer. Il y a Tape-Taupe, Panier Magique et Attrape-Étoiles !", "Chaque partie te fait gagner des tickets 🎟️.", "Avec 3 tickets, tu peux essayer la machine à pince… si tu as de la chance, tu gagnes une peluche !", "Au comptoir des cadeaux, au fond, tu échanges tes tickets contre des cadeaux 🎁"] },
 ];
 npcs.forEach(n => { n.g = person(n.o); n.g.position.set(n.pos[0], 0, n.pos[1]); n.g.rotation.y = rnd() * 6; scene.add(n.g); const lb = label(n.name.split(",")[0], "#8e44ad", "#ffffff", .6 / (n.o.scale ?? .76)); lb.position.y = 2.7; n.g.add(lb); circles.push({ x: n.pos[0], z: n.pos[1], r: .5 }); n.idx = -1; });
 const swimmer = person({ shirt: 0xffffff, pants: 0x00b894, shorts: true, hair: 0x2d3436, skin: 0xd9a27a }); setOutfit(swimmer, "requin"); scene.add(swimmer);
@@ -2376,6 +2607,7 @@ const BARN = { x1: -90, x2: -78, z1: -27, z2: -13 };
 function zoneName(P) {
   if (inAqua(P.x, P.z)) return "🐠 Aquarium";
   if (inBaloba(P.x, P.z)) return "🎈 Le Baloba";
+  if (inGameTown(P.x, P.z)) return "🎮 Game Town";
   if (P.y > 3 && inRect(TREEHUT, P.x, P.z)) return "🏠 La cabane dans l'arbre";
   if (P.y > 3 && inRect(TREEH, P.x, P.z)) return "🌳 Maison dans les arbres";
   for (const h of cabRoofs) if (Math.abs(P.x - h.x) < 2 && Math.abs(P.z - h.z) < 2) return "🛖 Une cabane";
@@ -2386,7 +2618,7 @@ function zoneName(P) {
   if (riverNear(P.x, P.z).d < 7) return "🌊 Rivière sauvage";
   return "";
 }
-const ZTOAST = { "🎈 Le Baloba": "Le Baloba ! Grimpe dans la structure, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
+const ZTOAST = { "🎮 Game Town": "Game Town ! Joue aux bornes d'arcade pour gagner des tickets 🎟️", "🎈 Le Baloba": "Le Baloba ! Grimpe dans la structure, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
   "🌊 Rivière sauvage": "La rivière sauvage ! Va au ponton pour prendre une bouée 🛟", "🌳 Maison dans les arbres": "Tu es dans les arbres ! Traverse le pont de singe… et descends par le toboggan 🛝", "🛖 Une cabane": "Une petite cabane en rondins 🛖" };
 const seenZ = new Set();
 
@@ -2559,6 +2791,9 @@ let act1 = null, act2 = null, doorNear = null;
 function doAct(a) {
   if (!a) return; sfx.click();
   if (a === "feed") { feedFish(); return; }
+  if (/^gt\d$/.test(a)) { openArcade(GT_CABS[+a.slice(2)].k); return; }
+  if (a === "claw") { clawPlay(); return; }
+  if (a === "prizes") { renderPrizes(); ouvrir("prizeView"); return; }
   if (/^balo\d$/.test(a)) { state = "ride"; riding = { curve: BSLIDES[+a.slice(4)].curve, u: 0, dry: true, msg: "Youpi ! 🎈" }; $("dialog").hidden = true; talking = null; sfx.slide(); toast("Wiiiiii ! 🛝", 1600); return; }
   if (a === "mount" && mountT) { mountVeh(mountT); return; }
   if (a === "dismount") { dismount(); return; }
@@ -2612,10 +2847,11 @@ function drawMap() {
   cottages.forEach(c => { mx.fillStyle = c.mine ? "#ff5a4e" : "#8a5a30"; mx.fillRect(X(c.x - 5), Z(c.z - 4), 10 * k, 8 * k); mx.fillStyle = "#ffffff"; mx.fillText(c.num, X(c.x), Z(c.z) + 1); });
   mx.textBaseline = "alphabetic";
   mx.fillStyle = "#e84393"; mx.fillRect(X(BALO.x - BALO.hx), Z(BALO.z - BALO.hz), BALO.hx * 2 * k, BALO.hz * 2 * k); mx.strokeStyle = "#ffc93c"; mx.lineWidth = 3; mx.strokeRect(X(BALO.x - BALO.hx), Z(BALO.z - BALO.hz), BALO.hx * 2 * k, BALO.hz * 2 * k);
+  mx.fillStyle = "#3b2a7a"; mx.fillRect(X(GTW.x - GTW.hx), Z(GTW.z - GTW.hz), GTW.hx * 2 * k, GTW.hz * 2 * k); mx.strokeStyle = "#ff4fd8"; mx.lineWidth = 3; mx.strokeRect(X(GTW.x - GTW.hx), Z(GTW.z - GTW.hz), GTW.hx * 2 * k, GTW.hz * 2 * k);
   mx.fillStyle = "#1f8fae"; mx.beginPath(); mx.arc(X(AQU.x), Z(AQU.z), AQU.r * k, 0, 7); mx.fill(); mx.strokeStyle = "#ffffff"; mx.lineWidth = 2; mx.stroke();
   mx.fillStyle = "#e84393"; mx.fillRect(X(11.3), Z(21), 5.4 * k, 2 * k);
   mx.font = '700 13px "Baloo 2",sans-serif'; mx.textAlign = "center"; mx.fillStyle = "#0d3b52";
-  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2)); mx.fillText("Baloba", X(BALO.x), Z(BALO.z - BALO.hz - 2));
+  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2)); mx.fillText("Baloba", X(BALO.x), Z(BALO.z - BALO.hz - 2)); mx.fillText("Game Town", X(GTW.x), Z(GTW.z - GTW.hz - 2));
   mx.fillText("Ferme", X(-70), Z(-36)); mx.fillText("Poney club", X(ARENA.x), Z(ARENA.z - ARENA.rz - 2)); mx.fillText("Karts", X(0), Z(-80)); mx.fillText("Rivière sauvage", X(-50), Z(75)); mx.fillText("Maison dans les arbres", X(50), Z(84)); mx.fillText("Vélos", X(6), Z(41));
   mx.font = '700 11px "Baloo 2",sans-serif';
   npcs.forEach(n => { const nx = X(n.g.position.x), nz = Z(n.g.position.z); mx.fillStyle = "#8e44ad"; mx.beginPath(); mx.arc(nx, nz, 4, 0, 7); mx.fill(); mx.fillText(n.name.split(",")[0], nx, nz - 7); });
@@ -3040,11 +3276,11 @@ function loop() {
   farmRoofs[0].roof.visible = !inBarn; treeRoof.visible = !inTreeHut; for (const h of cabRoofs) { const i = Math.abs(P.x - h.x) < 2 && Math.abs(P.z - h.z) < 2; h.roof.visible = !i; if (i) inCab = true; }
   const dWant = Math.hypot(P.x, P.z - 7.5) < 5 ? 1 : 0; if (dWant && domeDoorOpen < .05) sfx.door();
   domeDoorOpen += (dWant - domeDoorOpen) * Math.min(1, dt * 5); domeDoors.forEach(d => d.m.position.x = d.s * (1.4 + domeDoorOpen * 2.7)); domeDoorBox.off = domeDoorOpen > .6;
-  const inAq = updateAquarium(dt, time, P), inBalo = updateBaloba(dt, time, P);
+  const inAq = updateAquarium(dt, time, P), inBalo = updateBaloba(dt, time, P), inGT = updateGameTown(dt, time, P);
 
   // caméra
   if (state !== "ride") {
-    if (inCottage || inAq || inBalo) { camDist = 7.5; minPitch = 1.0; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
+    if (inCottage || inAq || inBalo || inGT) { camDist = 7.5; minPitch = 1.0; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
     const pt = Math.max(pitch, minPitch); const baseY = state === "top" ? 9.95 : state === "boat" ? .6 : Math.max(P.y, 0);
     const cx = P.x + Math.sin(yaw) * Math.cos(pt) * camDist, cz = P.z + Math.cos(yaw) * Math.cos(pt) * camDist, cy = baseY + 1.5 + Math.sin(pt) * camDist;
     camera.position.lerp(tv.set(cx, Math.max(cy, .6), cz), Math.min(1, dt * 7)); camera.lookAt(P.x, baseY + 1.4, P.z);
@@ -3089,6 +3325,9 @@ function loop() {
     }
     if (state === "walk" && P.y > 4) { if (Math.hypot(P.x - CHEST.x, P.z - CHEST.z) < 1.8) offer("chest", "🎁 Ouvrir le coffre"); if (Math.hypot(P.x - 63.3, P.z - 69) < 1.5) offer("treeslide", "🛝 Glisser !"); }
     if (state === "walk") BSLIDES.forEach((b, i) => { if (P.y > b.y0 && P.y < b.y1 && Math.hypot(P.x - b.x, P.z - b.z) < 1.3) offer("balo" + i, b.name); });
+    if (state === "walk" && P.y < 1 && inGameTown(P.x, P.z)) { GT_CABS.forEach((c, i) => { if (Math.hypot(P.x - c.x, P.z - c.z) < 1.1) offer("gt" + i, "🕹️ Jouer à " + GT_GAMES[c.k].name); });
+      if (Math.hypot(P.x - gtClaw.front[0], P.z - gtClaw.front[1]) < 1.3) offer("claw", "🧸 Pince à peluches (3 🎟️)");
+      if (Math.hypot(P.x - (GTW.x - 6.8), P.z - GTW.z) < 2.2) offer("prizes", "🎁 Échanger mes tickets"); }
     if (state === "drive") offer("dismount", "🧍 Descendre");
     if (state === "river" && (riv.stop || riv.dist > 10 && Math.hypot(P.x - RDOCK.x, P.z - RDOCK.z) < 6)) offer("riverout", "🧍 Sortir sur le ponton");
     if (state === "river" && riv.stop) offer("riveragain", "🔁 Refaire un tour");
