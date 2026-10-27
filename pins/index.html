@@ -33,6 +33,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#9fc7e0;color:var(--in
 .ico{width:46px;height:46px;padding:0;font-size:22px;border-radius:14px;background:var(--panel);color:var(--ink)}
 #hudL{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));display:flex;gap:8px;align-items:center;flex-wrap:wrap;max-width:55vw}
 #hudR{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));display:flex;gap:8px}
+@media (max-width:520px){#hudR{display:grid;grid-template-columns:repeat(3,46px);justify-content:end}#hudL{max-width:calc(100vw - 190px)}}
 #where{position:fixed;top:calc(64px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));font-size:15px;background:var(--water);color:#fff}
 #actions{position:fixed;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;align-items:flex-end}
 #talkBtn{background:var(--violet)}
@@ -99,6 +100,7 @@ html.app .site{display:none!important}
   <button id="multiPill" class="pill" hidden aria-label="Partie à plusieurs"></button>
 </div>
 <div id="hudR">
+  <button id="dayBtn" class="btn ico" aria-label="Passer à la nuit">🌙</button>
   <button id="soundBtn" class="btn ico" aria-label="Couper le son">🔊</button>
   <button id="pauseBtn" class="btn ico" aria-label="Pause">⏸️</button>
   <button id="mapBtn" class="btn ico" aria-label="Carte">🗺️</button>
@@ -270,7 +272,7 @@ function makeSky(scale) {
   u.sunPosition.value.copy(sunDir);
   return s;
 }
-scene.add(makeSky(4000));
+const skyMesh = makeSky(4000); scene.add(skyMesh);
 const pmrem = new THREE.PMREMGenerator(renderer);
 const envScene = new THREE.Scene(); envScene.add(makeSky(1000));
 const envGround = new THREE.Mesh(new THREE.CircleGeometry(900, 32), new THREE.MeshBasicMaterial({ color: 0x4f7a3a }));
@@ -286,6 +288,7 @@ sun.shadow.mapSize.set(2048, 2048);
 Object.assign(sun.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, near: 1, far: 260 });
 sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.04;
 scene.add(sun, sun.target);
+const lampMats = [], lampGlowPos = [], winMats = []; // éclairés la nuit
 
 /* ================= Outils ================= */
 function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -696,7 +699,7 @@ function cottage(cx, cz, rot, mine, num) {
   const lintel = new THREE.Mesh(boxUV(new THREE.BoxGeometry(1.1, .95, .3), 1.1, .95, .3, 2.5), wallMat); lintel.position.set(0, 2.83, 4); walls.add(lintel);
   const jambM = mat(0xf2eadb, .6); for (const sx of [-.6, .6]) { const j = rbox(.12, 2.4, .36, jambM, .02); j.position.set(sx, 1.3, 4); walls.add(j); } const head = rbox(1.32, .14, .36, jambM, .02); head.position.set(0, 2.42, 4); walls.add(head);
   // fenêtres
-  const winGlass = mat(0x9fc6dc, .08, { metalness: .4 }), winFrame = mat(0xffffff, .5);
+  const winGlass = mat(0x9fc6dc, .08, { metalness: .4 }), winFrame = mat(0xffffff, .5); winMats.push(winGlass);
   const upper = new THREE.Group(); g.add(upper);
   const windowAt = (grp, x, y, z, ry) => {
     const f = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.25, .36), winFrame); f.position.set(x, y, z); f.rotation.y = ry; grp.add(f);
@@ -990,7 +993,7 @@ bench(38, -32, Math.PI / 2 + .3); bench(40, -16, Math.PI / 2); bench(-8, 26, 0);
 // lampadaires
 const lampPos = [];
 [-60, -36, -12, 12, 36, 60].forEach(x => lampPos.push([x, 27.6])); [[2.6, 20], [2.6, 10], [28, 8], [42, -24]].forEach(p => lampPos.push(p));
-lampPos.forEach(([x, z]) => { const g = new THREE.Group(); const pole = new THREE.Mesh(new THREE.CylinderGeometry(.07, .1, 3.8, 10), mat(0x2f4f3f, .5, { metalness: .4 })); pole.position.y = 1.9; const lamp = new THREE.Mesh(new THREE.SphereGeometry(.25, 16, 12), new THREE.MeshStandardMaterial({ color: 0xfff1c8, emissive: 0xffd27a, emissiveIntensity: .6 })); lamp.position.y = 3.9; const hat = new THREE.Mesh(new THREE.ConeGeometry(.35, .3, 16), mat(0x2f4f3f, .5)); hat.position.y = 4.2; g.add(pole, lamp, hat); g.position.set(x, 0, z); shadowAll(g); scene.add(g); circles.push({ x, z, r: .2 }); });
+lampPos.forEach(([x, z]) => { lampGlowPos.push([x, z]); const g = new THREE.Group(); const pole = new THREE.Mesh(new THREE.CylinderGeometry(.07, .1, 3.8, 10), mat(0x2f4f3f, .5, { metalness: .4 })); pole.position.y = 1.9; const lamp = new THREE.Mesh(new THREE.SphereGeometry(.25, 16, 12), new THREE.MeshStandardMaterial({ color: 0xfff1c8, emissive: 0xffd27a, emissiveIntensity: .6 })); lamp.position.y = 3.9; lampMats.push(lamp.material); const hat = new THREE.Mesh(new THREE.ConeGeometry(.35, .3, 16), mat(0x2f4f3f, .5)); hat.position.y = 4.2; g.add(pole, lamp, hat); g.position.set(x, 0, z); shadowAll(g); scene.add(g); circles.push({ x, z, r: .2 }); });
 
 /* ---------- L'aquarium (à côté de l'Aquaparc, au bout du chemin du lac) ---------- */
 // Repère local : u vers la porte, v sur le côté. Bassins tout autour du mur, grand bassin rond au milieu.
@@ -2815,7 +2818,7 @@ function doAct(a) {
   if (a === "door" && doorNear) { doorNear.want = doorNear.want ? 0 : 1; sfx.door(doorNear.want); }
   if (a === "boat") { state = "boat"; pedalo.v = 0; $("dialog").hidden = true; talking = null; toast("En route ! Ramène le pédalo au ponton pour descendre. 🚤", 2800); }
   if (a === "unboat") { state = "walk"; pedalo.g.position.set(MOOR.x, 0, MOOR.z); pedalo.h = MOOR.h; pedalo.v = 0; P_set(DOCK_END.x, .38, DOCK_END.z); toast("Te revoilà sur le ponton !"); }
-  if (a === "sleep") { const f = $("fade"); paused = true; f.style.opacity = 1; setTimeout(() => { f.style.opacity = 0; paused = false; toast("☀️ Bonjour ! Le soleil se lève sur le domaine.", 2600); sfx.bird(); }, 1600); }
+  if (a === "sleep") { const f = $("fade"); paused = true; f.style.opacity = 1; setTimeout(() => { dayT = .27; dayFF = null; wasNight = false; updateDayButton(false); f.style.opacity = 0; paused = false; toast("☀️ Bonjour ! Le soleil se lève sur le domaine.", 2600); sfx.bird(); }, 1600); }
 }
 $("actBtn").onclick = () => doAct(act1); $("act2Btn").onclick = () => doAct(act2);
 
@@ -3181,6 +3184,59 @@ function floorY(p) {
 // éclaboussure
 const splash = new THREE.Mesh(new THREE.RingGeometry(.5, 1, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, side: THREE.DoubleSide })); splash.rotation.x = -Math.PI / 2; scene.add(splash); let splashT = 0;
 
+/* ================= Jour et nuit : le soleil se lève à l'est, se couche à l'ouest, puis la lune et les étoiles ================= */
+const DAY_LEN = 480; // une journée entière dure 8 minutes
+let dayT = .32, dayFF = null, wasNight = false, dayInit = false;
+const realSun = new THREE.Vector3(), moonDir = new THREE.Vector3();
+const C_FOG_DAY = new THREE.Color(0xc2d8e6), C_FOG_DUSK = new THREE.Color(0xe7b48f), C_FOG_NIGHT = new THREE.Color(0x0d1834);
+const C_SUN_DAY = new THREE.Color(0xfff0d6), C_SUN_LOW = new THREE.Color(0xffa95e), C_MOON = new THREE.Color(0xa9c0ff);
+const C_HEMI_DAY = new THREE.Color(0xd6eaff), C_HEMI_NIGHT = new THREE.Color(0x40569a), C_GROUND_DAY = new THREE.Color(0x5f7f3e), C_GROUND_NIGHT = new THREE.Color(0x1b2a2a);
+const glowTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d"); const g = x.createRadialGradient(64, 64, 0, 64, 64, 64); g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(.25, "rgba(255,255,255,.45)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })();
+const nightSky = new THREE.Group(); scene.add(nightSky);
+const nightDome = new THREE.Mesh(new THREE.SphereGeometry(2200, 32, 16), new THREE.MeshBasicMaterial({ side: THREE.BackSide, transparent: true, opacity: 0, fog: false, depthWrite: false,
+  map: (() => { const c = document.createElement("canvas"); c.width = 4; c.height = 256; const x = c.getContext("2d"); const g = x.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, "#02051a"); g.addColorStop(.42, "#0a1640"); g.addColorStop(.5, "#1d2f63"); g.addColorStop(1, "#0d1834"); x.fillStyle = g; x.fillRect(0, 0, 4, 256); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })() }));
+nightDome.renderOrder = -2; nightSky.add(nightDome);
+const STAR_N = 1600, starPos = new Float32Array(STAR_N * 3);
+for (let i = 0; i < STAR_N; i++) { const v = new THREE.Vector3(Math.random() * 2 - 1, Math.random() * .95 + .05, Math.random() * 2 - 1).normalize().multiplyScalar(2000); starPos.set([v.x, v.y, v.z], i * 3); }
+const starGeo = new THREE.BufferGeometry(); starGeo.setAttribute("position", new THREE.BufferAttribute(starPos, 3));
+const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 2.2, sizeAttenuation: false, transparent: true, opacity: 0, fog: false, depthWrite: false }));
+stars.renderOrder = -1; nightSky.add(stars);
+const moonTex = tex(256, (x, s) => { const g = x.createRadialGradient(110, 100, 10, 128, 128, 128); g.addColorStop(0, "#fbfaf0"); g.addColorStop(1, "#cfcab4"); x.fillStyle = g; x.fillRect(0, 0, s, s);
+  for (let i = 0; i < 22; i++) { const cx = rnd() * s, cy = rnd() * s, r = 6 + rnd() * 22; x.fillStyle = "rgba(150,145,125,.35)"; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); x.fillStyle = "rgba(255,255,245,.25)"; x.beginPath(); x.arc(cx - r * .2, cy - r * .2, r * .7, 0, 7); x.fill(); } });
+moonTex.wrapS = moonTex.wrapT = THREE.ClampToEdgeWrapping; moonTex.repeat.set(1, 1);
+const moon = new THREE.Mesh(new THREE.SphereGeometry(60, 32, 16), new THREE.MeshBasicMaterial({ map: moonTex, fog: false, transparent: true, depthWrite: false })); nightSky.add(moon);
+const moonGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xbcd0ff, transparent: true, opacity: 0, fog: false, depthWrite: false, blending: THREE.AdditiveBlending })); moonGlow.scale.setScalar(520); nightSky.add(moonGlow);
+// halos des lampadaires, la nuit
+const lampGlowM = new THREE.SpriteMaterial({ map: glowTex, color: 0xffcf7a, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+for (const [x, z] of lampGlowPos) { const g = new THREE.Sprite(lampGlowM); g.position.set(x, 3.9, z); g.scale.setScalar(3.2); scene.add(g); }
+function cricket() { const f = 4000 + Math.random() * 600; for (let i = 0; i < 3; i++) tone(f, .035, "sine", .025, 0, i * .07); }
+function updateDayButton(night) { const b = $("dayBtn"); if (!b) return; b.textContent = night ? "☀️" : "🌙"; b.setAttribute("aria-label", night ? "Passer au jour" : "Passer à la nuit"); }
+$("dayBtn").onclick = () => { if (!$("intro").hidden) return; const night = realSun.y < -.05; dayFF = night ? .29 : .9; sfx.click(); toast(night ? "☀️ Le soleil va se lever…" : "🌙 La nuit arrive…", 1800); };
+const SM = THREE.MathUtils.smoothstep;
+function updateDayNight(dt) {
+  if (dayFF !== null) { const d = ((dayFF - dayT) % 1 + 1) % 1, step = Math.min(d, dt * .25); dayT = (dayT + step) % 1; if (d < .002) dayFF = null; }
+  else if (!paused) dayT = (dayT + dt / DAY_LEN) % 1;
+  const th = (dayT - .25) * Math.PI * 2; // 0 au lever du soleil, π/2 à midi
+  realSun.set(Math.cos(th), Math.sin(th) * .92, -.38).normalize(); moonDir.set(-realSun.x, -realSun.y, -.3).normalize();
+  const e = realSun.y, day = SM(e, -.12, .12), low = 1 - SM(e, .05, .35), night = 1 - day;
+  skyMesh.material.uniforms.sunPosition.value.copy(realSun);
+  if (e > -.05) { sunDir.copy(realSun); sun.intensity = 3 * SM(e, -.05, .15); sun.color.copy(C_SUN_DAY).lerp(C_SUN_LOW, low); }
+  else { sunDir.copy(moonDir); sun.intensity = .6 * SM(moonDir.y, .02, .2); sun.color.copy(C_MOON); }
+  hemi.intensity = .22 + .48 * day; hemi.color.copy(C_HEMI_NIGHT).lerp(C_HEMI_DAY, day); hemi.groundColor.copy(C_GROUND_NIGHT).lerp(C_GROUND_DAY, day);
+  scene.environmentIntensity = .1 + .65 * day;
+  scene.fog.color.copy(C_FOG_NIGHT).lerp(C_FOG_DAY, day).lerp(C_FOG_DUSK, low * day * .55);
+  renderer.toneMappingExposure = .85 + night * .2;
+  nightSky.position.copy(camera.position);
+  nightDome.material.opacity = Math.min(.97, night * 1.05); stars.material.opacity = SM(night, .3, 1);
+  moon.position.copy(moonDir).multiplyScalar(1800); moon.lookAt(0, 0, 0); moonGlow.position.copy(moon.position);
+  const mv = SM(moonDir.y, -.05, .1); moon.material.opacity = mv; moonGlow.material.opacity = mv * (.25 + .5 * night); moon.visible = mv > .01;
+  for (const m of lampMats) m.emissiveIntensity = .6 + 3.4 * night; lampGlowM.opacity = night * .85;
+  if (!dayInit) { for (const m of winMats) m.emissive.set(0xffb85c); dayInit = true; } for (const m of winMats) m.emissiveIntensity = night * 1.1;
+  if (lake && lake.material.uniforms && lake.material.uniforms.sunDirection) { lake.material.uniforms.sunDirection.value.copy(sunDir); lake.material.uniforms.sunColor.value.copy(sun.color).multiplyScalar(Math.min(1, sun.intensity / 3)); }
+  const isNight = e < -.05; if (isNight !== wasNight) { wasNight = isNight; updateDayButton(isNight); if (!paused && dayFF === null) toast(isNight ? "🌙 C'est la nuit. Regarde la lune et les étoiles !" : "☀️ Bonjour ! Le soleil se lève.", 2600); }
+  return night;
+}
+
 /* ================= Boucle ================= */
 const clock = new THREE.Clock(); let walkT = 0, time = 0, stepAcc = 0, birdT = 4, lastWhere = "";
 const tv = new THREE.Vector3(), prev = { x: 0, z: 0 };
@@ -3276,7 +3332,7 @@ function loop() {
   farmRoofs[0].roof.visible = !inBarn; treeRoof.visible = !inTreeHut; for (const h of cabRoofs) { const i = Math.abs(P.x - h.x) < 2 && Math.abs(P.z - h.z) < 2; h.roof.visible = !i; if (i) inCab = true; }
   const dWant = Math.hypot(P.x, P.z - 7.5) < 5 ? 1 : 0; if (dWant && domeDoorOpen < .05) sfx.door();
   domeDoorOpen += (dWant - domeDoorOpen) * Math.min(1, dt * 5); domeDoors.forEach(d => d.m.position.x = d.s * (1.4 + domeDoorOpen * 2.7)); domeDoorBox.off = domeDoorOpen > .6;
-  const inAq = updateAquarium(dt, time, P), inBalo = updateBaloba(dt, time, P), inGT = updateGameTown(dt, time, P);
+  const inAq = updateAquarium(dt, time, P), inBalo = updateBaloba(dt, time, P), inGT = updateGameTown(dt, time, P), nightK = updateDayNight(dt);
 
   // caméra
   if (state !== "ride") {
@@ -3368,7 +3424,7 @@ function loop() {
   if (splashT > 0) { splashT -= dt; splash.scale.setScalar(1 + (1 - splashT) * 4); splash.material.opacity = Math.max(0, splashT); }
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $("toast").hidden = true; }
   scheduleMusic();
-  if (!paused && !inCottage && !inDome) { birdT -= dt; if (birdT < 0) { birdT = 3 + Math.random() * 6; sfx.bird(); } }
+  if (!paused && !inCottage && !inDome) { birdT -= dt; if (birdT < 0) { birdT = nightK > .5 ? 1 + Math.random() * 2 : 3 + Math.random() * 6; if (nightK > .5) cricket(); else sfx.bird(); } }
   if (mapOpen) drawMap();
   netTick(dt);
 
