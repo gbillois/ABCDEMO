@@ -881,17 +881,18 @@ function connecter(code, creer) {
   net = { ws, code, s: -1, autres: new Map(), moi: { bub: null, bubT: 0 }, sendT: 0, hb: 0, last: null };
   msg("Connexion…");
   ws.onmessage = e => { if (net && net.ws === ws) recevoir(e.data); };
-  ws.onclose = e => {
-    if (!net || net.ws !== ws) return;
-    const etait = net.s >= 0; quitter();
-    msg(e.code === 4004 ? "Ce code ne marche pas. Vérifie-le : la partie est peut-être finie." : e.code === 4001 ? "La partie est pleine : 6 joueurs au maximum."
-      : etait ? "La connexion est perdue." : "Impossible de joindre le serveur.");
-    if (etait) toast("👫 La partie à plusieurs est terminée.");
-  };
+  ws.onclose = e => { if (net && net.ws === ws) fin(e.code); };
+}
+function fin(code) {
+  const etait = net.s >= 0; quitter();
+  msg(code === 4004 ? "Ce code ne marche pas. Vérifie-le : la partie est peut-être finie." : code === 4001 ? "La partie est pleine : 6 joueurs au maximum."
+    : etait ? "La connexion est perdue." : "Impossible de joindre le serveur.");
+  if (etait) toast("👫 La partie à plusieurs est terminée.");
 }
 function recevoir(data) {
   let d; try { d = JSON.parse(data); } catch (e) { return; }
   if (!d || typeof d !== "object") return;
+  if (d.t === "refus") { fin(d.c === 4001 ? 4001 : 4004); return; }
   const place = v => Number.isInteger(v) && v >= 0 && v < ANIMAUX.length;
   if (!place(d.s)) return;
   if (d.t === "bienvenue") {

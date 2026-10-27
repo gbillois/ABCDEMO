@@ -47,8 +47,9 @@ export class Salle {
 
     // Une salle n'existe que tant qu'il y a quelqu'un dedans : un code ne sert plus
     // une fois que tout le monde est parti.
-    if (!presents.length && !creer) { serveur.close(4004, "inconnu"); return new Response(null, { status: 101, webSocket: client }); }
-    if (presents.length >= MAX_JOUEURS) { serveur.close(4001, "pleine"); return new Response(null, { status: 101, webSocket: client }); }
+    const refuser = c => { serveur.send(JSON.stringify({ t: "refus", c })); serveur.close(c, c === 4004 ? "inconnu" : "pleine"); return new Response(null, { status: 101, webSocket: client }); };
+    if (!presents.length && !creer) return refuser(4004);
+    if (presents.length >= MAX_JOUEURS) return refuser(4001);
 
     const pris = new Set(presents.map(ws => this.place(ws)));
     let s = 0; while (pris.has(s)) s++;
