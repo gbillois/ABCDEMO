@@ -983,6 +983,7 @@ function person(o) {
     sk: mat(skinC, .5, { emissive: skinC.clone().multiplyScalar(.06) }),
     sh: mat(o.shirt, .85), pa: mat(o.pants ?? 0x3a4a63, .8), so: mat(o.shoe ?? 0xf5f5f5, .45), sole: mat(0x2b2b2b, .9),
     hr: mat(hairC, .42), deco: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .3 }),
+    sw: mat(0xffffff, .55), // maillot de bain (motif posé par setOutfit)
   };
   const bins = new Map();
   const T = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler(), V = new THREE.Vector3(), Sc = new THREE.Vector3();
@@ -993,7 +994,8 @@ function person(o) {
     if (!bins.has(bone)) bins.set(bone, new Map()); const m = bins.get(bone); if (!m.has(key)) m.set(key, []); m.get(key).push(gg);
   }
   const q = o.lite ? .42 : 1, Q2 = n => Math.max(6, Math.round(n * q));
-  const lathe = (pts, seg = 32) => new THREE.LatheGeometry(pts.map(([x, y]) => new THREE.Vector2(x, y)), Q2(seg));
+  // pièce tournée : les points vont toujours de bas en haut, sinon ses faces regardent vers l'intérieur
+  const lathe = (pts, seg = 32) => new THREE.LatheGeometry((pts[0][1] > pts[pts.length - 1][1] ? pts.slice().reverse() : pts).map(([x, y]) => new THREE.Vector2(x, y)), Q2(seg));
   const sph = (r, w = 28, h = 20) => new THREE.SphereGeometry(r, Q2(w), Q2(h)), cap = (r, l) => new THREE.CapsuleGeometry(r, l, o.lite ? 2 : 6, Q2(16));
   const tube = (pts, r, seg = 12) => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p))), Q2(seg), r, o.lite ? 4 : 6);
   const legs = [], arms = [], knees = [], elbows = [], lids = [];
@@ -1037,6 +1039,17 @@ function person(o) {
   put(body, "sh", new THREE.TorusGeometry(.275, .014, 6, 40), [0, .885, 0], [Math.PI / 2, 0, 0], [1, .72, 1]);
   put(body, "pa", lathe([[.275, .14], [.29, .02], [.3, -.07], [.2, -.14], [0, -.15]], 40), [0, .97, 0], [0, 0, 0], [1.03, 1, .8]);
   put(body, "pa", new THREE.TorusGeometry(.282, .02, 8, 40), [0, 1.1, 0], [Math.PI / 2, 0, 0], [1, .8, 1]);
+  // ---- maillot de bain, porté à la place des habits
+  put(body, "sw", lathe([[0, -.165], [.2, -.155], [.302, -.07], [.298, .03], [.288, .14]], 40), [0, .97, 0], [0, 0, 0], [1.04, 1, .82]);
+  if (!female) { // short de bain : ceinture, cordon et jambes jusqu'à mi-cuisse
+    put(body, "sw", new THREE.TorusGeometry(.29, .024, 10, 40), [0, 1.105, 0], [Math.PI / 2, 0, 0], [1.04, .82, 1]);
+    for (const s of [-1, 1]) put(body, "deco", cap(.008, .07), [s * .02, 1.05, .245], [0, 0, s * .15], [1, 1, 1], 0xf5f5f5);
+    for (const leg of legs) { put(leg, "sw", lathe([[.182, -.27], [.184, -.2], [.176, -.02], [.168, .08]], 32)); put(leg, "sw", new THREE.TorusGeometry(.182, .013, 6, 32), [0, -.27, 0], [Math.PI / 2, 0, 0]); }
+  } else { // maillot une pièce échancré, avec bretelles
+    put(body, "sw", lathe([[.262, 0], [.236, .2], [.266, .38], [.296, .48], [.286, .53]], 40), [0, .95, 0], [0, 0, 0], [1, 1, .73]);
+    put(body, "sw", new THREE.TorusGeometry(.284, .012, 6, 40), [0, 1.48, 0], [Math.PI / 2, 0, 0], [1, .73, 1]);
+    for (const s of [-1, 1]) put(body, "sw", tube([[s * .11, 1.46, .2], [s * .17, 1.62, .1], [s * .19, 1.67, -.02], [s * .14, 1.55, -.17], [s * .11, 1.46, -.2]], .017, 14));
+  }
   // ---- tête
   const head = new THREE.Group(); head.position.y = 1.97; body.add(head);
   put(head, "sk", sph(.23, 48, 40), [0, .02, 0], [0, 0, 0], [.9, 1.04, .98]);
@@ -1085,10 +1098,11 @@ function person(o) {
   if (o.cap) { const cm = mat(o.cap, .6); M.cap = cm; put(head, "cap", new THREE.SphereGeometry(.252, 40, 16, 0, Math.PI * 2, 0, Math.PI * .5), [0, .055, -.01], [-.12, 0, 0], [1, .8, 1.02]);
     const brim = new THREE.CylinderGeometry(.19, .2, .016, 32, 1, false, -Math.PI / 2, Math.PI); put(head, "cap", brim, [0, .085, .19], [.12, 0, 0], [1, 1, 1.3]); put(head, "cap", sph(.022, 12, 8), [0, .26, -.02]); }
   // assemblage : une seule pièce par matériau et par os
-  const parts = { sh: [], pa: [], so: [], sole: [], hr: [] }, top = [], sleeves = [];
+  const parts = { sh: [], pa: [], so: [], sole: [], hr: [], sw: [] }, top = [], sleeves = [];
   for (const [bone, m] of bins) for (const [key, list] of m) { const mesh = new THREE.Mesh(mergeGeometries(list), M[key]); mesh.castShadow = !o.lite; mesh.receiveShadow = true; bone.add(mesh); if (parts[key]) parts[key].push(mesh); if (key === "sh") (bone === body ? top : sleeves).push(mesh); }
   g.scale.setScalar(o.scale ?? .76); g.rotation.order = "YXZ";
-  g.userData = { female, top, sleeves, legs, arms, knees, elbows, head, lids, blink: 2 + R() * 4, shirt: M.sh, pants: M.pa, shoe: M.so, skin: M.sk, skinColor: skinC.getHex(), shirtParts: parts.sh, shoeParts: parts.so.concat(parts.sole), longPants: o.shorts ? [] : [], clothes: { shirt: o.shirt, pants: o.pants ?? 0x3a4a63, shoe: o.shoe ?? 0xf5f5f5 } };
+  parts.sw.forEach(m => m.visible = false);
+  g.userData = { swim: parts.sw, suit: M.sw, pantsParts: parts.pa, female, top, sleeves, legs, arms, knees, elbows, head, lids, blink: 2 + R() * 4, shirt: M.sh, pants: M.pa, shoe: M.so, skin: M.sk, skinColor: skinC.getHex(), shirtParts: parts.sh, shoeParts: parts.so.concat(parts.sole), longPants: o.shorts ? [] : [], clothes: { shirt: o.shirt, pants: o.pants ?? 0x3a4a63, shoe: o.shoe ?? 0xf5f5f5 } };
   return g;
 }
 // clignement des yeux et respiration, pour tous les personnages
@@ -1112,9 +1126,18 @@ function animPerson(g, mode, t) {
 // tenue : habits ou maillot de bain
 function setOutfit(g, id) {
   const u = g.userData, su = SUITS.find(x => x.id === id), show = (arr, v) => arr.forEach(m => m.visible = v);
-  if (!su) { show(u.shirtParts, true); show(u.shoeParts, true); u.shirt.color.setHex(u.clothes.shirt); u.shirt.map = null; u.pants.color.setHex(u.clothes.pants); u.pants.map = null; u.pants.metalness = 0; u.pants.roughness = .8; }
-  else { show(u.top, !!su.full || u.female); show(u.sleeves, !!su.full); if (su.full) { u.shirt.color.set(su.a); u.shirt.map = null; } else if (u.female) { u.shirt.color.setHex(0xffffff); u.shirt.map = suitTex(su); } u.shirt.needsUpdate = true; show(u.shoeParts, false); u.pants.color.setHex(0xffffff); u.pants.map = suitTex(su); u.pants.metalness = su.gold ? .7 : 0; u.pants.roughness = su.gold ? .25 : .7; }
-  u.pants.needsUpdate = true;
+  show(u.swim, !!su && !su.full);
+  if (!su) { // habits
+    show(u.shirtParts, true); show(u.pantsParts, true); show(u.shoeParts, true);
+    u.shirt.color.setHex(u.clothes.shirt); u.shirt.map = null; u.pants.color.setHex(u.clothes.pants); u.pants.map = null; u.pants.metalness = 0; u.pants.roughness = .8;
+  } else if (su.full) { // combinaison de surf : haut à manches et bas, pieds nus
+    show(u.shirtParts, true); show(u.pantsParts, true); show(u.shoeParts, false);
+    u.shirt.color.set(su.a); u.shirt.map = null; u.pants.color.setHex(0xffffff); u.pants.map = suitTex(su); u.pants.metalness = 0; u.pants.roughness = .7;
+  } else { // short de bain ou maillot une pièce, pieds nus
+    show(u.shirtParts, false); show(u.pantsParts, false); show(u.shoeParts, false);
+    u.suit.map = suitTex(su); u.suit.metalness = su.gold ? .7 : 0; u.suit.roughness = su.gold ? .22 : .55; u.suit.needsUpdate = true;
+  }
+  u.shirt.needsUpdate = true; u.pants.needsUpdate = true;
 }
 const player = person({ shirt: 0x2e86de, pants: 0xf39c12, shorts: true, cap: 0xff5a4e, shoe: 0xff5a4e, scale: .6 }); scene.add(player);
 const pLbl = label("Théo", "#2e86de", "#ffffff", .8); pLbl.position.y = 2.75; player.add(pLbl);
