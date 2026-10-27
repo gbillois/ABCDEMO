@@ -531,17 +531,23 @@ function bake(src) {
 // fusionne sur place les maillages immobiles d'un groupe (les références au groupe restent valables) ;
 // deux matériaux aux réglages identiques n'en font qu'un ; « garder » : pièces qui bougent, laissées telles quelles
 function signMat(m) { return [m.type, m.color?.getHex(), m.map?.uuid, m.roughness, m.metalness, m.transparent, m.opacity, m.side, m.emissive?.getHex(), m.vertexColors, m.bumpMap?.uuid, m.alphaTest, m.depthWrite].join(); }
-function fondre(grp, garder = []) {
-  grp.updateMatrixWorld(true); const inv = grp.matrixWorld.clone().invert(), by = new Map(), mats = new Map(), out = [];
+// « cle » : des groupes identiques (les murs de tous les cottages) partagent la même géométrie fusionnée
+const FONDU = new Map();
+function fondre(grp, garder = [], cle) {
+  grp.updateMatrixWorld(true); const inv = grp.matrixWorld.clone().invert(), by = new Map(), mats = new Map(), out = [], dejà = cle && FONDU.get(cle);
   const skip = new Set(); for (const k of garder) k?.traverse?.(o => skip.add(o));
   grp.traverse(m => { if (!m.isMesh || m.isInstancedMesh || m.isSkinnedMesh || skip.has(m) || !m.visible || m.children.length || Array.isArray(m.material) || m.morphTargetInfluences) return; out.push(m); });
   for (const m of out) { const sg = signMat(m.material); if (!mats.has(sg)) mats.set(sg, m.material); const key = sg + "|" + m.castShadow + m.receiveShadow;
+    if (dejà) { if (!by.has(key)) by.set(key, { mat: mats.get(sg) }); m.parent.remove(m); continue; }
     const g = indexe(m.geometry.clone()).applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, m.matrixWorld));
     for (const k of Object.keys(g.attributes)) if (!["position", "normal", "uv"].includes(k)) g.deleteAttribute(k);
     if (!g.attributes.uv) g.setAttribute("uv", new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
     if (!g.attributes.normal) g.computeVertexNormals();
     if (!by.has(key)) by.set(key, { mat: mats.get(sg), cast: m.castShadow, recv: m.receiveShadow, list: [] }); by.get(key).list.push(g); m.parent.remove(m); }
-  for (const { mat: mm, cast, recv, list } of by.values()) { const me = new THREE.Mesh(mergeGeometries(list), mm); me.castShadow = cast; me.receiveShadow = recv; grp.add(me); list.forEach(x => x.dispose()); }
+  if (dejà) { for (const d of dejà) { const me = new THREE.Mesh(d.geo, by.get(d.key)?.mat ?? d.mat); me.castShadow = d.cast; me.receiveShadow = d.recv; grp.add(me); } return grp; }
+  const faits = [];
+  for (const [key, { mat: mm, cast, recv, list }] of by) { const geo = mergeGeometries(list); if (cle) geo.userData.partage = true; const me = new THREE.Mesh(geo, mm); me.castShadow = cast; me.receiveShadow = recv; grp.add(me); list.forEach(x => x.dispose()); faits.push({ key, geo, mat: mm, cast, recv }); }
+  if (cle) FONDU.set(cle, faits);
   return grp;
 }
 // un seul maillage à couleurs par sommet : [géométrie, couleur, position, rotation, échelle]
@@ -890,7 +896,7 @@ function cottage(cx, cz, rot, mine, num) {
   const plaque = new THREE.Mesh(new THREE.PlaneGeometry(.62, .44), new THREE.MeshStandardMaterial({ map: numTex(num), roughness: .3, metalness: .1 }));
   plaque.position.set(1.45, 2.05, 4.21); g.add(plaque);
   // tout ce qui ne bouge pas est fusionné (murs, étage, escalier, toit, terrasse) : bien moins d'objets à dessiner
-  for (const part of [walls, upper, stairs, roof]) fondre(part);
+  [walls, upper, stairs, roof].forEach((part, i) => fondre(part, [], "cottage-" + i));
   const s = rot ? -1 : 1;
   const c = { g, x: cx, z: cz, s, mine, num, wallMat, roof, door, upper, open: 0, want: 0, fade: 1 };
   c.toLocal = (px, pz) => [(px - cx) * s, (pz - cz) * s];
