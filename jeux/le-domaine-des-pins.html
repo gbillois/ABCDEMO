@@ -682,7 +682,7 @@ function person(o) {
   const nose = new THREE.Mesh(new THREE.SphereGeometry(.045, 10, 8), sk); nose.position.set(0, 1.98, .3); g.add(nose);
   const mouth = new THREE.Mesh(new THREE.TorusGeometry(.07, .016, 6, 14, Math.PI), mat(0x9a3b2f, .6)); mouth.rotation.z = Math.PI; mouth.position.set(0, 1.9, .27); g.add(mouth);
   if (o.cap) { const c = new THREE.Mesh(new THREE.SphereGeometry(.33, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat(o.cap, .7)); c.position.y = 2.08; c.scale.y = .75; g.add(c); const br = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, .04, 20, 1, false, -Math.PI / 2, Math.PI), mat(o.cap, .7)); br.position.set(0, 2.12, .24); g.add(br); }
-  g.userData = { legs, arms }; return shadowAll(g, true, false);
+  g.userData = { legs, arms, shirt: sh }; return shadowAll(g, true, false);
 }
 function animPerson(g, mode, t) {
   const { legs, arms } = g.userData; let l = 0, a = 0, ar = [0, 0];
@@ -866,7 +866,11 @@ function retirer(s, annonce) {
   scene.remove(o.g); net.autres.delete(s); majUI();
   if (annonce) toast(`${ANIMAUX[s][0]} ${ANIMAUX[s][1]} est parti.`);
 }
-function monLabel(text, bg) { player.remove(myLbl); myLbl = text ? label(text, bg, "#ffffff", .6) : pLbl; myLbl.position.y = 2.95; player.add(myLbl); }
+// En partie, on porte la couleur de son animal (comme les autres nous voient).
+function monLabel(text, bg, shirt) {
+  player.remove(myLbl); myLbl = text ? label(text, bg, "#ffffff", .6) : pLbl; myLbl.position.y = 2.95; player.add(myLbl);
+  player.userData.shirt.color.setHex(shirt ?? 0x2e86de);
+}
 function dire(s, i) {
   const a = ANIMAUX[s], phrase = PHRASES[i];
   if (s === net.s) { poserBulle(net.moi, player, phrase); sfx.talk(); return; }
@@ -897,7 +901,7 @@ function recevoir(data) {
   if (!place(d.s)) return;
   if (d.t === "bienvenue") {
     net.s = d.s; (Array.isArray(d.joueurs) ? d.joueurs : []).filter(place).forEach(s => ajouter(s, false));
-    monLabel("Toi " + ANIMAUX[d.s][0], ANIMAUX[d.s][3]); msg(""); majUI(); sfx.duck();
+    monLabel("Toi " + ANIMAUX[d.s][0], ANIMAUX[d.s][3], ANIMAUX[d.s][2]); msg(""); majUI(); sfx.duck();
     toast(net.autres.size ? `Tu as rejoint la partie ! Tu es ${ANIMAUX[d.s][1]}.` : `Partie créée ! Donne le code ${showCode(net.code)} à tes amis.`, 3500);
   } else if (net.s < 0) return;
   else if (d.t === "arrive") ajouter(d.s, true);
