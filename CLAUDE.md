@@ -69,6 +69,16 @@ Accord du propriétaire : le jeu vit dans `pins/` pour avoir sa propre adresse
   `pins/icone.svg`, lui-même dessiné en code. Pas d'image téléchargée.
 - Dans l'application installée, les liens vers le site des jeux (classe `site`) sont cachés.
 
+## Exception : animations des personnages du Domaine des Pins
+
+Accord du propriétaire : `pins/modeles/animations.glb` contient seulement un squelette et des
+animations (marcher, courir, nager, s'asseoir, conduire, glisser, parler, danser) tirées de la
+« Universal Animation Library » 1 et 2 de Quaternius (licence CC0, OpenGameArt), allégées
+(sans les doigts fins). Les corps, visages, cheveux et habits restent faits en code dans
+`pins/index.html` (formes douces fondues en maillage, couleurs par zone dans le shader).
+- Le fichier est dans `FICHIERS` de `pins/sw.js` (hors ligne en solo).
+- Sans le fichier, le jeu reprend les anciens personnages (`personProc`).
+
 ## Publication
 
 Les pages sont servies à deux endroits :
