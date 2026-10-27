@@ -187,8 +187,8 @@
 
 <div id="oracle" class="screen" hidden>
   <div class="panel card">
-    <h2>L'Oracle des animaux</h2>
-    <p style="text-align:center">Écris l'animal que tu veux créer. L'Oracle le fait apparaître, et il te suivra partout !</p>
+    <h2 id="oTitre">L'Oracle des animaux</h2>
+    <p id="oSay" style="text-align:center">Écris l'animal que tu veux créer. L'Oracle le fait apparaître, et il te suivra partout !</p>
     <form id="oForm" class="oform" autocomplete="off">
       <input id="oTxt" maxlength="60" placeholder="un lapin-dragon violet" aria-label="L'animal à créer" enterkeyhint="go" spellcheck="false">
       <button id="oGo" class="btn main" type="submit">Créer</button>
@@ -1250,7 +1250,8 @@ const ELF_DEFS = [
   { name: 'Nimriel', cabin: 2, hair: 0xf0e0b0, tunic: 0x4a4a8a, cloak: 0x2a2a5a, lines: ["Chut… ici, c'est la bibliothèque des elfes.", "Ce livre raconte l'histoire de l'arbre : il a plus de mille ans !"] },
   { name: 'Aerin', where: 2, hair: 0xb06030, tunic: 0x2a6a5a, cloak: 0x1a4a3a, lines: ["Tu montes bien, Théo ! Encore deux étages.", "La chouette dort sur la branche, juste au-dessus. Ne la réveille pas !"] },
   { name: 'Sylas', cabin: 6, hair: 0xd8d8e0, tunic: 0x3a3a6a, cloak: 0x22224a, lines: ["De l'observatoire, on voit toute la forêt.", "La nuit, je compte les étoiles. J'en suis à trois mille deux cent douze !"] },
-  { name: 'Mélian', where: 4, hair: 0xf0c060, tunic: 0x7a4a8a, cloak: 0x4a2a5a, lines: ["Te voilà tout en haut ! Ta maison est au bout du grand pont.", "Pour redescendre, prends l'ascenseur à panier, de l'autre côté de la terrasse."] },
+  { name: 'Mélian', where: 4, hair: 0xf0c060, tunic: 0x7a4a8a, cloak: 0x4a2a5a, lines: ["Te voilà tout en haut ! Ta maison est au bout du grand pont.", "Pour redescendre, prends l'ascenseur à panier, de l'autre côté de la terrasse.", "Le vieux Sylvanor vit ici, au sommet. Il peut créer tous les animaux que tu imagines !"] },
+  { name: 'Sylvanor', at: [4, 4.4], gardien: true, hair: 0xf4f4f0, tunic: 0x2e3f7a, cloak: 0x5a2f7a, lines: [] },
 ];
 function buildCreatures() {
   hero = makeHumanoid({ skin: 0xf0c098, hair: 0x6a3a18, tunic: 0x3a70d0, tunic2: 0x2f5fb8, pants: 0xe0d4b0, shoes: 0x5a3418, sleeve: 0x3a70d0 });
@@ -1260,7 +1261,9 @@ function buildCreatures() {
     const e = { def: d, h, line: 0, a: rnd() * TAU, speed: .9, pause: 0, x: 0, y: 0, z: 0, face: 0, talking: false };
     if (d.where === 'ground') { e.x = 11.5; e.z = 2.6; e.y = 0; e.fixed = true; e.face = Math.atan2(15 - 11.5, 6 - 2.6); }
     else if (d.cabin !== undefined) { const c = CABINS[d.cabin]; const a = c.doorA + Math.PI + .9; e.x = c.cx + Math.cos(a) * 1.1; e.z = c.cz + Math.sin(a) * 1.1; e.y = c.h; e.fixed = true; e.face = Math.atan2(c.cx + Math.cos(c.doorA) * 3 - e.x, c.cz + Math.sin(c.doorA) * 3 - e.z); }
+    else if (d.at) { const dk = decks[d.at[0]], a = d.at[1], r = (dk.rin + dk.rout) / 2; e.x = Math.cos(a) * r; e.z = Math.sin(a) * r; e.y = dk.h; e.fixed = true; e.face = Math.atan2(Math.cos(a), Math.sin(a)); }
     else { e.deck = decks[d.where]; e.r = (e.deck.rin + e.deck.rout) / 2; }
+    if (d.gardien) habillerGardien(e);
     scene.add(h.root); elves.push(e);
   }
   // écureuils : sur le tronc et sur les terrasses
@@ -1434,7 +1437,8 @@ function nearestInteract() {
 function interact() {
   const it = nearestInteract(); if (!it) return;
   const T = document.body.classList.contains('touch');
-  if (it.type === 'elf') { const e = it.e; if (dialogElf === e) e.line = (e.line + 1) % e.def.lines.length; showDialog(e); SFX.elf(); }
+  if (it.type === 'elf' && it.e.def.gardien) ouvrirOracle('gardien');
+  else if (it.type === 'elf') { const e = it.e; if (dialogElf === e) e.line = (e.line + 1) % e.def.lines.length; showDialog(e); SFX.elf(); }
   else if (it.type === 'lift') { LIFT.target = LIFT.y > TOP / 2 ? LIFT.bottom : TOP; LIFT.moving = true; player.mode = 'lift'; player.ox = player.x - LIFT.x; player.oz = player.z - LIFT.z; SFX.lift(); toast(LIFT.target === TOP ? "Ça monte !" : "Ça descend !", 1.5); }
   else if (it.type === 'call') { LIFT.target = player.y > TOP / 2 ? TOP : LIFT.bottom; LIFT.moving = true; SFX.lift(); toast("L'ascenseur arrive…", 2); }
   else if (it.type === 'oracle') ouvrirOracle();
@@ -1880,10 +1884,11 @@ function trailPoint(dist) {
     if (d > 0 && acc + d >= dist) { const k = (dist - acc) / d; return { x: px + (t.x - px) * k, y: py + (t.y - py) * k, z: pz + (t.z - pz) * k }; } acc += d; px = t.x; py = t.y; pz = t.z; }
   const r = dist - acc; return { x: px - Math.sin(player.face) * r, y: py, z: pz - Math.cos(player.face) * r }; // pas encore de traces : derrière Théo
 }
-function ajouterAnimal(def, apparition) {
+function ajouterAnimal(def, depuis) { // depuis : point d'apparition (V3), sinon déjà là
+  const apparition = !!depuis;
   const rec = nettoyerRecette(def.r), c = makeCreature(rec, def.g), S = TAILLES[rec.taille];
   const p = { def, rec, c, S, nom: def.n, x: player.x, y: player.y, z: player.z, face: player.face, hop: 0, appear: apparition ? 0 : 1, space: .35 + .45 * S, chirp: 4 + Math.random() * 8 };
-  if (apparition) { p.x = oracle.x; p.y = oracle.y + 1.5; p.z = oracle.z; }
+  if (apparition) { p.x = depuis.x; p.y = depuis.y - .3; p.z = depuis.z; }
   c.root.scale.setScalar(apparition ? .01 : S); c.root.position.set(p.x, p.y, p.z); scene.add(c.root); pets.push(p); return p;
 }
 function retirerAnimal(p) {
@@ -1917,10 +1922,43 @@ function updatePets(dt, time) {
   }
   for (let i = sparks.length - 1; i >= 0; i--) { const s = sparks[i]; s.t += dt; s.v.y -= 1.6 * dt; s.sp.position.addScaledVector(s.v, dt); s.sp.material.opacity = Math.max(0, 1 - s.t / s.life);
     if (s.t >= s.life) { scene.remove(s.sp); s.sp.material.dispose(); sparks.splice(i, 1); } }
+  if (gardien) { gardien.cristal.rotation.y += dt * (oracle.busy ? 6 : 1); gardien.halo.material.opacity = .6 + Math.sin(time * 2.6) * .25; }
   if (oracle.crystal) { oracle.crystal.rotation.y += dt * (oracle.busy ? 5 : .7); oracle.crystal.position.y = 1.85 + Math.sin(time * 1.4) * .08; oracle.glow.position.y = oracle.crystal.position.y;
     oracle.glow.scale.setScalar(2.1 + Math.sin(time * 2.3) * .25 + (oracle.busy ? .8 : 0)); oracle.ring.rotation.z += dt * .4; }
 }
 function caresser(p) { p.hop = .6; cri(p.rec.cri, p.S); paillettes(new V3(p.x, p.y + .5 * p.S, p.z), 0xff90c0, 10, .5); toast(`${p.nom} est tout content !`, 1.8); }
+
+// --- Sylvanor, le gardien des animaux, au sommet de l'arbre
+let gardien = null;
+function habillerGardien(e) {
+  const h = e.h, hr = .122, hy = hr * .95; gardien = e;
+  h.head.add(partMesh([prep(new THREE.ConeGeometry(hr * .62, hr * 1.9, 24, 4), 0xf4f4f0, [0, hy - hr * 1.15, hr * .5], [Math.PI + .25, 0, 0], [1, 1, .7]),
+    prep(new THREE.TorusGeometry(hr * .22, hr * .07, 8, 20, Math.PI), 0xf4f4f0, [0, hy - hr * .3, hr * .93], [0, 0, Math.PI]),
+    prep(new THREE.ConeGeometry(hr * 1.15, hr * 2.4, 28), 0x3a2a6a, [0, hy + hr * 1.5, -hr * .1], [-.15, 0, .12]),
+    prep(new THREE.TorusGeometry(hr * 1.02, hr * .1, 8, 32), 0x3a2a6a, [0, hy + hr * .45, -hr * .02], [Math.PI / 2 - .15, 0, 0], [1, 1, .6])]));
+  const baton = new THREE.Group(); baton.position.set(0, -.31, .04); h.arms[0].el.add(baton);
+  baton.add(partMesh([prep(new THREE.CylinderGeometry(.022, .03, 1.75, 10), 0x6a4a2a, [0, .3, 0]), prep(new THREE.TorusGeometry(.06, .015, 8, 20), 0xd8b050, [0, 1.17, 0], [Math.PI / 2, 0, 0])]));
+  e.cristal = new THREE.Mesh(new THREE.OctahedronGeometry(.08, 0), new THREE.MeshStandardMaterial({ color: 0xa8e0ff, emissive: 0x3a90ff, emissiveIntensity: 1.6, roughness: .12, flatShading: true }));
+  e.cristal.scale.set(1, 1.5, 1); e.cristal.position.y = 1.3; baton.add(e.cristal);
+  e.halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: TX.glow, color: 0x8ad0ff, transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending })); e.halo.scale.setScalar(.8); e.cristal.add(e.halo);
+}
+function commentaire(rec, nom, seul) {
+  const pick = a => a[Math.random() * a.length | 0], dit = [];
+  if (rec.deplacement === 'vole' || rec.ailes !== 'aucune') dit.push(pick(["Regarde, il vole ! Il te suivra jusqu'aux nuages.", "Avec ses ailes, il va adorer le sommet de l'arbre."]));
+  else if (rec.forme === 'poisson' || rec.deplacement === 'nage') dit.push("Un nageur ! Ici, il nage dans l'air : c'est ma magie.");
+  else if (rec.deplacement === 'saute') dit.push("Hop, hop ! Il adore sauter.");
+  else if (rec.forme === 'serpent') dit.push("Il ondule tout doucement. Il est très gentil.");
+  else if (rec.forme === 'insecte') dit.push("Tout plein de petites pattes ! Il trotte derrière toi.");
+  if (rec.taille === 'geant' || rec.taille === 'grand') dit.push("Quel géant ! Fais-lui de la place dans l'escalier.");
+  else if (rec.taille === 'minuscule') dit.push("Il est tout petit : ne le perds pas de vue !");
+  if (rec.cornes === 'licorne') dit.push("Une corne magique, comme dans les légendes.");
+  if (rec.extras.includes('brillant')) dit.push("Il brille comme une étoile.");
+  if (rec.couleur === 'arc_en_ciel') dit.push("Toutes les couleurs de l'arc-en-ciel !");
+  if (rec.extras.includes('criniere')) dit.push("Quelle belle crinière !");
+  if (rec.extras.includes('carapace')) dit.push("Sa carapace le protège de tout.");
+  const debut = pick(["Magnifique !", "Oh, quelle merveille !", "Bravo, Théo !", "Le voilà !"]);
+  return `${debut} Voici ${nom}. ${dit.slice(0, 2).join(' ')}${seul ? " Mon grand cristal se reposait, alors j'ai fait de mon mieux avec les mots que je connais." : ''}`.replace(/\s+/g, ' ').trim();
+}
 
 // --- Écran de l'oracle
 const IDEES = ["un lapin-dragon violet", "une licorne arc-en-ciel", "un éléphant qui vole", "une tortue géante dorée", "un chat à rayures bleues", "un poisson magique"];
@@ -1932,8 +1970,14 @@ function listeAnimaux() {
     b.addEventListener('click', () => { retirerAnimal(p); sauverAnimaux(); listeAnimaux(); oMsg(`${p.nom} est reparti dans la forêt. Au revoir !`); });
     li.append(sp, b); ul.append(li); }
 }
-function ouvrirOracle() {
-  if (oracle.open) return; oracle.open = true; state.paused = true; for (const k in keys) keys[k] = false; touchIn.x = touchIn.y = 0;
+const ACCUEILS = ["Bonjour Théo ! Je suis Sylvanor, le gardien des animaux. Quel animal veux-tu que je crée ?",
+  "Te revoilà ! Écris-moi un animal, même un animal qui n'existe pas !", "Un lapin qui vole ? Un chat géant ? Dis-moi, et je le fais apparaître avec mon bâton.",
+  "Ah, Théo ! Le vent m'a dit que tu voulais un nouvel ami. Lequel ?"];
+const qui = () => oracle.src === 'gardien' ? 'Sylvanor' : "L'Oracle";
+function ouvrirOracle(src) {
+  if (oracle.open) return; oracle.open = true; oracle.src = src === 'gardien' ? 'gardien' : 'pierre';
+  $('oTitre').textContent = oracle.src === 'gardien' ? 'Sylvanor, gardien des animaux' : "L'Oracle des animaux";
+  $('oSay').textContent = oracle.src === 'gardien' ? ACCUEILS[Math.random() * ACCUEILS.length | 0] : "Écris l'animal que tu veux créer. L'Oracle le fait apparaître, et il te suivra partout !"; state.paused = true; for (const k in keys) keys[k] = false; touchIn.x = touchIn.y = 0;
   hideDialog(); setHint(''); $('oracle').hidden = false; listeAnimaux(); if (!oracle.busy) oMsg(''); SFX.elf();
   const ch = $('oIdees'); ch.textContent = ''; for (const t of [...IDEES].sort(() => Math.random() - .5).slice(0, 3)) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = t; b.addEventListener('click', () => { $('oTxt').value = t; $('oTxt').focus(); }); ch.append(b); }
   if (!document.body.classList.contains('touch')) setTimeout(() => $('oTxt').focus(), 50);
@@ -1952,17 +1996,19 @@ async function demanderOracle(texte) {
 async function creerAnimal() {
   if (oracle.busy) return;
   const texte = filtrerTexte($('oTxt').value);
-  if (!texte) { oMsg("L'Oracle ne connaît pas ce mot-là. Écris un autre animal !"); sonNon(); return; }
-  oracle.busy = true; $('oGo').disabled = true; oMsg("L'Oracle réfléchit…"); sonMagie();
+  if (!texte) { oMsg(`${qui()} ne connaît pas ce mot-là. Écris un autre animal !`); sonNon(); return; }
+  oracle.busy = true; $('oGo').disabled = true; oMsg(oracle.src === 'gardien' ? 'Sylvanor lève son bâton…' : "L'Oracle réfléchit…"); sonMagie();
   const rep = await demanderOracle(texte);
   oracle.busy = false; $('oGo').disabled = false;
-  if (rep.raison === 'mot') { oMsg("L'Oracle ne connaît pas ce mot-là. Écris un autre animal !"); sonNon(); return; }
+  if (rep.raison === 'mot') { oMsg(`${qui()} ne connaît pas ce mot-là. Écris un autre animal !`); sonNon(); return; }
   const def = { n: nomAnimal(texte), r: rep.recette || recetteLocale(texte), g: (Math.random() * 2 ** 31) | 0 };
   if (pets.length >= MAX_ANIMAUX) retirerAnimal(pets[0]);
-  const p = ajouterAnimal(def, true); sauverAnimaux(); $('oTxt').value = '';
+  const depuis = oracle.src === 'gardien' && gardien ? gardien.cristal.getWorldPosition(new V3()) : new V3(oracle.x, oracle.y + 1.85, oracle.z);
+  const p = ajouterAnimal(def, depuis); sauverAnimaux(); $('oTxt').value = '';
   fermerOracle();
-  paillettes(new V3(oracle.x, oracle.y + 1.85, oracle.z), 0xa8e0ff, 30, 1.2); sonMagie(); setTimeout(() => cri(p.rec.cri, p.S), 700);
-  toast(rep.recette ? `Voici ${p.nom} !` : `Voici ${p.nom} ! (L'Oracle s'est reposé : il a fait de son mieux avec les mots qu'il connaît.)`, 4);
+  paillettes(depuis, 0xa8e0ff, 30, 1.2); sonMagie(); setTimeout(() => cri(p.rec.cri, p.S), 700);
+  if (oracle.src === 'gardien' && gardien) { gardien.line = 0; gardien.def.lines = [commentaire(p.rec, p.nom, !rep.recette)]; showDialog(gardien); $('dMore').textContent = (document.body.classList.contains('touch') ? 'Action' : 'E') + ' : créer un autre animal'; }
+  else toast(rep.recette ? `Voici ${p.nom} !` : `Voici ${p.nom} ! (L'Oracle s'est reposé : il a fait de son mieux avec les mots qu'il connaît.)`, 4);
 }
 $('oForm').addEventListener('submit', e => { e.preventDefault(); creerAnimal(); });
 $('oClose').addEventListener('click', fermerOracle);
