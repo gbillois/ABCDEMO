@@ -1383,6 +1383,7 @@ const ANIMAUX = [["🦊", "Renard orange", 0xe67e22, "#e67e22"], ["🐧", "Pingo
   ["🐸", "Grenouille verte", 0x27ae60, "#27ae60"], ["🦉", "Hibou violet", 0x8e44ad, "#8e44ad"], ["🐿️", "Écureuil roux", 0xb5532a, "#b5532a"]];
 const LETTRES = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // sans I, L, O, 0, 1 pour ne pas les confondre
 const CODE_OK = new RegExp(`^[${LETTRES}]{8}$`);
+// 4 = dans un véhicule : sur le lac c'est le pédalo, ailleurs le toboggan (le relais ne connaît que 0 à 4).
 const MODES = ["idle", "walk", "swim", "climb", "ride"];
 let net = null, ovPaused = false, myLbl = pLbl;
 const showCode = c => c.slice(0, 4) + "-" + c.slice(4);
@@ -1422,7 +1423,7 @@ function ajouter(s, annonce) {
 }
 function retirer(s, annonce) {
   const o = net.autres.get(s); if (!o) return;
-  scene.remove(o.g); net.autres.delete(s); majUI();
+  scene.remove(o.g); if (o.boat) scene.remove(o.boat); net.autres.delete(s); majUI();
   if (annonce) toast(`${ANIMAUX[s][0]} ${ANIMAUX[s][1]} est parti.`);
 }
 // En partie, on porte la couleur de son animal (comme les autres nous voient).
@@ -1476,7 +1477,7 @@ function quitter() {
   if (!net) return;
   const n = net; net = null; clearTimeout(n.attente);
   try { n.ws.close(1000); } catch (e) {}
-  for (const o of n.autres.values()) scene.remove(o.g);
+  for (const o of n.autres.values()) { scene.remove(o.g); if (o.boat) scene.remove(o.boat); }
   if (n.moi.bub) player.remove(n.moi.bub);
   monLabel(null); majUI();
 }
@@ -1522,7 +1523,20 @@ function netTick(dt) {
     if (!o.seen) continue;
     const g = o.g; g.position.x += (o.tx - g.position.x) * k; g.position.y += (o.ty - g.position.y) * k; g.position.z += (o.tz - g.position.z) * k;
     let d = o.tr - g.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); g.rotation.y += d * k;
-    o.walk += dt * 9; animPerson(g, MODES[o.m], o.m === 2 ? time * 4 : o.m === 3 ? time * 9 : o.walk);
+    // vitesse de l'ami (pour faire tourner les pédales et la roue de son pédalo)
+    const vit = Math.hypot(o.tx - g.position.x, o.tz - g.position.z) * 10; o.vit = (o.vit || 0) + (vit - (o.vit || 0)) * Math.min(1, dt * 3);
+    if (o.m === 4 && inWater(o.tx, o.tz)) {
+      // chacun a son pédalo : on dessine celui de l'ami sous lui
+      if (!o.boat) { o.boat = makePedalo(); scene.add(o.boat); }
+      const h = g.rotation.y, sx = -.48, b = o.boat; b.visible = true;
+      b.position.set(g.position.x - Math.cos(h) * sx, Math.sin(time * 1.6 + 1) * .035, g.position.z + Math.sin(h) * sx);
+      b.rotation.set(Math.sin(time * 1.3 + 1) * .015, h, Math.sin(time * 1.1 + 1) * .02);
+      b.userData.wheel.rotation.x -= dt * o.vit * 2.2; b.userData.crank.rotation.x -= dt * o.vit * 2.2;
+      animPerson(g, "pedal", time * (1 + o.vit * 1.6));
+    } else {
+      if (o.boat) o.boat.visible = false;
+      o.walk += dt * 9; animPerson(g, MODES[o.m], o.m === 2 ? time * 4 : o.m === 3 ? time * 9 : o.walk);
+    }
   }
   if (net.moi.bub && (net.moi.bubT -= dt) <= 0) { player.remove(net.moi.bub); net.moi.bub = null; }
   if (net.s < 0 || net.ws.readyState !== 1) return;
@@ -1530,7 +1544,7 @@ function netTick(dt) {
   const P = player.position, ry = Math.atan2(Math.sin(player.rotation.y), Math.cos(player.rotation.y));
   const cur = { x: r2(P.x), y: r2(P.y), z: r2(P.z), r: r2(ry) }, L = net.last;
   const bouge = L && Math.hypot(cur.x - L.x, cur.z - L.z) > .02;
-  cur.m = state === "ride" ? 4 : state.startsWith("climb") ? 3 : swimming ? 2 : bouge ? 1 : 0;
+  cur.m = state === "ride" || state === "boat" ? 4 : state.startsWith("climb") ? 3 : swimming ? 2 : bouge ? 1 : 0;
   if (L && L.x === cur.x && L.y === cur.y && L.z === cur.z && L.r === cur.r && L.m === cur.m && net.hb > 0) return;
   net.last = cur; net.hb = 2;
   net.ws.send(JSON.stringify({ t: "p", ...cur }));
