@@ -41,7 +41,7 @@ de phrases entre 6 joueurs au maximum, n'écrit rien sur disque et n'a pas de jo
 ## Ensuite, dans le jeu
 
 Mettre l'adresse rendue par l'IA dans `RELAIS_PROD`, en haut du bloc « Jeu à plusieurs »
-de `jeux/le-domaine-des-pins.html`, par exemple :
+de `pins/index.html`, par exemple :
 
 ```js
 const RELAIS_PROD = "wss://pins-relais.mon-sous-domaine.workers.dev";
@@ -54,7 +54,7 @@ cd serveur/pins-relais
 npx wrangler dev --port 8787 --var ORIGINES:http://localhost:8099
 # dans un autre terminal, à la racine du dépôt :
 python3 -m http.server 8099
-# puis ouvrir http://localhost:8099/jeux/le-domaine-des-pins.html?relais=ws://127.0.0.1:8787
+# puis ouvrir http://localhost:8099/pins/?relais=ws://127.0.0.1:8787
 ```
 
 Le paramètre `?relais=` n'est accepté que sur `localhost`.

@@ -5,6 +5,7 @@ Ce dépôt est un bac à sable de jeux pour Théo. Ne faire aucune action sur un
 Structure :
 - `index.html` — page d'accueil (étagère de cartouches, un bouton par jeu).
 - `jeux/<nom>.html` — un fichier par jeu.
+- `pins/` — Le Domaine des Pins, en application installable (voir plus bas).
 
 ## Principes
 
@@ -37,7 +38,7 @@ Structure :
 
 ## Exception : jeu à plusieurs du Domaine des Pins
 
-Accord du propriétaire pour ce seul jeu : `jeux/le-domaine-des-pins.html` peut se connecter
+Accord du propriétaire pour ce seul jeu : `pins/index.html` peut se connecter
 à un relais WebSocket hébergé sur Cloudflare (code dans `serveur/pins-relais/`).
 - Le jeu reste entièrement jouable seul, sans réseau ; le relais ne sert qu'au mode « À plusieurs ».
 - Aucune donnée personnelle : pas de prénom, pas de compte, chaque joueur est un animal.
@@ -46,6 +47,20 @@ Accord du propriétaire pour ce seul jeu : `jeux/le-domaine-des-pins.html` peut 
   Si on change la liste, garder `NB_PHRASES` du relais identique au nombre de phrases.
 - L'adresse du relais se règle dans `RELAIS_PROD` du jeu ; déploiement : `serveur/pins-relais/DEPLOIEMENT.md`.
 - Aucun autre jeu ne doit utiliser le réseau.
+
+## Exception : Le Domaine des Pins en application (PWA)
+
+Accord du propriétaire : le jeu vit dans `pins/` pour avoir sa propre adresse
+(https://gbillois.github.io/ABCDEMO/pins/) et s'installer sur l'écran d'accueil.
+- `pins/index.html` est le jeu (le modifier lui, pas `jeux/le-domaine-des-pins.html`,
+  qui ne fait que rediriger les anciens liens vers `../pins/`).
+- `pins/manifest.webmanifest` : nom, icônes, plein écran.
+- `pins/sw.js` : garde le jeu sur l'appareil (hors ligne en solo). Le jeu ne change que
+  lorsqu'on appuie sur « Mettre à jour » sur son écran d'accueil : penser à le dire à
+  l'utilisateur après une modification. Si on ajoute un module three.js, l'ajouter à `FICHIERS`.
+- Icônes : fichiers PNG (obligatoires pour une application), générés à partir de
+  `pins/icone.svg`, lui-même dessiné en code. Pas d'image téléchargée.
+- Dans l'application installée, les liens vers le site des jeux (classe `site`) sont cachés.
 
 ## Publication
 
