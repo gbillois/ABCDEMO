@@ -124,6 +124,7 @@
   .gap { display: inline-block; min-width: 3.2em; text-align: center; border-bottom: 2px dotted #8b88a0; color: var(--pen);
     font-family: var(--hand); font-size: 1.3em; line-height: 1.1; padding: 0 4px; }
   .gap.full { border-bottom-style: solid; border-bottom-color: var(--pen); }
+  .gap.elide { margin-right: -.3em; }
   .opts { display: flex; flex-wrap: wrap; gap: 8px; }
   .opt, .chk, .wd {
     border: 2px solid #d7c9a3; background: #fffdf6; border-radius: 999px; padding: 6px 14px; min-height: 44px;
@@ -337,22 +338,22 @@ const ICON = {
    ============================================================ */
 // Groupes : [texte, rôle (S sujet, V verbal, C complément), question du complément]
 const GROUPES = [
-  [["Ce matin", "C", "Quand ?"], ["le petit chat", "S"], ["boit son lait", "V"], ["dans la cuisine", "C", "Où ?"]],
+  [["Ce matin,", "C", "Quand ?"], ["le petit chat", "S"], ["boit son lait", "V"], ["dans la cuisine", "C", "Où ?"]],
   [["Le tigre", "S"], ["chasse une gazelle", "V"], ["sans bruit", "C", "Comment ?"]],
   [["Théo", "S"], ["lit une histoire", "V"], ["le soir", "C", "Quand ?"]],
-  [["Dans la forêt", "C", "Où ?"], ["les elfes", "S"], ["construisent des cabanes", "V"]],
-  [["Mon cheval", "S"], ["galope", "V"], ["très vite", "C", "Comment ?"]],
-  [["Demain", "C", "Quand ?"], ["nous", "S"], ["partirons en vacances", "V"]],
+  [["Dans la forêt,", "C", "Où ?"], ["les elfes", "S"], ["construisent des cabanes", "V"]],
+  [["Mon cheval", "S"], ["galope", "V"], ["dans la prairie", "C", "Où ?"]],
+  [["Demain,", "C", "Quand ?"], ["nous", "S"], ["partirons en vacances", "V"]],
   [["Les oiseaux", "S"], ["chantent", "V"], ["joyeusement", "C", "Comment ?"]],
   [["La maîtresse", "S"], ["corrige les cahiers", "V"], ["avec un stylo rouge", "C", "Comment ?"]],
-  [["En hiver", "C", "Quand ?"], ["la neige", "S"], ["recouvre les montagnes", "V"]],
+  [["En hiver,", "C", "Quand ?"], ["la neige", "S"], ["recouvre les montagnes", "V"]],
   [["Les enfants", "S"], ["jouent au ballon", "V"], ["dans la cour", "C", "Où ?"]],
   [["Ma cousine", "S"], ["a parcouru la muraille", "V"], ["à pied", "C", "Comment ?"]],
-  [["Chaque samedi", "C", "Quand ?"], ["Papa", "S"], ["prépare des crêpes", "V"]],
-  [["Sous le pont", "C", "Où ?"], ["un vieux troll", "S"], ["ronfle", "V"]],
+  [["Chaque samedi,", "C", "Quand ?"], ["Papa", "S"], ["prépare des crêpes", "V"]],
+  [["Sous le pont,", "C", "Où ?"], ["un vieux troll", "S"], ["ronfle", "V"]],
   [["Le dragon", "S"], ["crache du feu", "V"], ["avec colère", "C", "Comment ?"]],
   [["Les abeilles", "S"], ["fabriquent du miel", "V"], ["au printemps", "C", "Quand ?"]],
-  [["Doucement", "C", "Comment ?"], ["la princesse", "S"], ["ouvre la porte", "V"]],
+  [["Doucement,", "C", "Comment ?"], ["la princesse", "S"], ["ouvre la porte", "V"]],
   [["Le hibou", "S"], ["dort", "V"], ["dans le grand chêne", "C", "Où ?"]],
 ];
 const SUJETS = [ // [groupes, index du sujet, nature]
@@ -374,12 +375,12 @@ const PRONOMS = [
 ];
 const CESTQUI = [
   ["Le chat de Léa attrape une souris.", "C'est le chat de Léa qui attrape une souris.", "C'est Léa qui attrape une souris.", "C'est la souris qui attrape le chat."],
-  ["Dans la mare nagent les canards.", "C'est les canards qui nagent dans la mare.", "C'est la mare qui nage.", "C'est l'eau qui nage avec les canards."],
+  ["Dans la mare nagent les canards.", "Ce sont les canards qui nagent dans la mare.", "C'est la mare qui nage.", "C'est l'eau qui nage avec les canards."],
   ["Le frère de Tom mange une glace.", "C'est le frère de Tom qui mange une glace.", "C'est Tom qui mange une glace.", "C'est la glace qui mange le frère."],
   ["Le soir, Mamie raconte une histoire.", "C'est Mamie qui raconte une histoire.", "C'est le soir qui raconte une histoire.", "C'est l'histoire qui raconte Mamie."],
   ["Sur la branche dort un hibou.", "C'est un hibou qui dort sur la branche.", "C'est la branche qui dort.", "C'est l'arbre qui dort."],
-  ["Les amis de Théo jouent au ballon.", "C'est les amis de Théo qui jouent au ballon.", "C'est Théo qui joue au ballon.", "C'est le ballon qui joue."],
-  ["La maîtresse de ma sœur corrige les cahiers.", "C'est la maîtresse de ma sœur qui corrige les cahiers.", "C'est ma sœur qui corrige les cahiers.", "C'est les cahiers qui corrigent la maîtresse."],
+  ["Les amis de Théo jouent au ballon.", "Ce sont les amis de Théo qui jouent au ballon.", "C'est Théo qui joue au ballon.", "C'est le ballon qui joue."],
+  ["La maîtresse de ma sœur corrige les cahiers.", "C'est la maîtresse de ma sœur qui corrige les cahiers.", "C'est ma sœur qui corrige les cahiers.", "Ce sont les cahiers qui corrigent la maîtresse."],
   ["Au fond du jardin pousse un grand chêne.", "C'est un grand chêne qui pousse au fond du jardin.", "C'est le jardin qui pousse.", "C'est le fond qui pousse."],
 ];
 const FORMES = [
@@ -408,7 +409,7 @@ const NEGPHR = [
 const NE = [
   ["Le loup ___ a pas faim.", 1], ["Je ___ mange pas de viande.", 0], ["Elle ___ aime pas le froid.", 1], ["Nous ___ jouons plus.", 0],
   ["Tu ___ écoutes jamais !", 1], ["Il ___ voit rien.", 0], ["Les fées ___ ont aucun souci.", 1], ["Mon chien ___ dort jamais le jour.", 0],
-  ["On ___ entend personne.", 1], ["Je ___ veux pas dormir.", 0], ["Vous ___ habitez plus ici.", 1], ["Les poules ___ volent pas haut.", 0],
+  ["On ___ entend personne.", 1], ["Je ___ veux pas dormir.", 0], ["Vous ___ êtes plus ici.", 1], ["Les poules ___ volent pas haut.", 0],
 ];
 const VERBES = [
   [["Le", "tigre", "chasse", "la", "nuit."], 2], [["Les", "enfants", "jouent", "dans", "la", "cour."], 2],
@@ -429,7 +430,7 @@ const INFINITIFS = [
   ["Ils <b>font</b> un gâteau.", "faire", "font", "fait"], ["Le chien <b>court</b> vite.", "courir", "court", "couru"],
   ["Je <b>chante</b> une chanson.", "chanter", "chanté", "chantais"], ["Les enfants <b>dorment</b>.", "dormir", "dorment", "dormi"], ["Théo <b>lit</b> un livre.", "lire", "lit", "lu"],
 ];
-const COUPES = [["chantons", 5], ["parlez", 4], ["dansent", 5], ["jouais", 3], ["sautons", 4], ["regardez", 6], ["aimais", 3], ["tombent", 4], ["rêvons", 3], ["dessinez", 6], ["collent", 4], ["marchais", 6]];
+const COUPES = [["chantons", 5], ["parlez", 4], ["dansent", 4], ["jouais", 3], ["sautons", 4], ["regardez", 6], ["aimais", 3], ["tombent", 4], ["rêvons", 3], ["dessinez", 6], ["collent", 4], ["marchais", 5]];
 const A_A = [
   ["Ma cousine ___ parcouru la muraille.", 0], ["Elle marche ___ pied.", 1], ["Théo ___ un nouveau vélo.", 0], ["Nous allons ___ la piscine.", 1],
   ["Le chat ___ faim.", 0], ["Il habite ___ Paris.", 1], ["Mon frère ___ perdu sa clé.", 0], ["Je pense ___ toi.", 1], ["Le train part ___ huit heures.", 1],
@@ -445,9 +446,9 @@ const PASSE_AVOIR = [
   ["Le chat [a] faim.", 0], ["Les enfants [ont] peur.", 1], ["Léa [a] trouvé un trésor.", 0], ["Les oiseaux [ont] chanté.", 1],
 ];
 const EST_ET = [
-  ["L'empereur ___ désespéré.", 0], ["Un palais ___ un jardin.", 1], ["Le ciel ___ bleu.", 0], ["Théo ___ Léa jouent ensemble.", 1], ["Ma sœur ___ malade.", 0],
+  ["L'empereur ___ désespéré.", 0], ["L'empereur construit un palais ___ un jardin.", 1], ["Le ciel ___ bleu.", 0], ["Théo ___ Léa jouent ensemble.", 1], ["Ma sœur ___ malade.", 0],
   ["J'aime les fraises ___ les cerises.", 1], ["Ce monument ___ très beau.", 0], ["Il pleut ___ il fait froid.", 1], ["Le chat ___ sur le toit.", 0],
-  ["Du pain ___ du fromage.", 1], ["La muraille ___ immense.", 0], ["Papa ___ Maman arrivent.", 1],
+  ["Je mange du pain ___ du fromage.", 1], ["La muraille ___ immense.", 0], ["Papa ___ Maman arrivent.", 1],
 ];
 const SONT_SON = [
   ["Ce palais et ce jardin ___ construits.", 0], ["L'empereur aime ___ épouse.", 1], ["Les enfants ___ contents.", 0], ["Théo range ___ cartable.", 1],
@@ -462,7 +463,7 @@ const PASSE_ETRE = [
 const GN = [
   ["les", "épreuves", ["différent", "différente", "différents", "différentes"], 3, 1], ["une", "robe", ["vert", "verte", "verts", "vertes"], 1, 0],
   ["des", "chevaux", ["blanc", "blanche", "blancs", "blanches"], 2, 0], ["la", "grenouille", ["petit", "petite", "petits", "petites"], 1, 1],
-  ["des", "fleurs", ["joli", "jolie", "jolis", "jolies"], 3, 1], ["un", "dragon", ["méchant", "méchante", "méchants", "méchantes"], 0, 0],
+  ["les", "fleurs", ["joli", "jolie", "jolis", "jolies"], 3, 1], ["un", "dragon", ["méchant", "méchante", "méchants", "méchantes"], 0, 0],
   ["les", "tigres", ["rayé", "rayée", "rayés", "rayées"], 2, 0], ["une", "muraille", ["long", "longue", "longs", "longues"], 1, 1],
   ["les", "maisons", ["grand", "grande", "grands", "grandes"], 3, 1], ["le", "jardin", ["fleuri", "fleurie", "fleuris", "fleuries"], 0, 0],
   ["des", "pommes", ["mûr", "mûre", "mûrs", "mûres"], 3, 0], ["un", "monument", ["ancien", "ancienne", "anciens", "anciennes"], 0, 0],
@@ -477,11 +478,15 @@ const FEMININ = [["grand", "grande"], ["petit", "petite"], ["gris", "grise"], ["
 const FAMILLE = [["un", "art", "artiste"], ["une", "dent", "dentiste"], ["le", "sport", "sportif"], ["le", "lait", "laitier"], ["le", "chant", "chanteur"],
   ["un", "bond", "bondir"], ["le", "galop", "galoper"], ["le", "tapis", "tapisser"], ["le", "repos", "reposer"], ["le", "camp", "camper"], ["le", "sirop", "siroter"],
   ["le", "bord", "border"], ["le", "retard", "retarder"], ["le", "regard", "regarder"], ["le", "tricot", "tricoter"], ["le", "marchand", "marchandise"],
-  ["le", "banc", "banquette"], ["le", "plomb", "plombier"], ["le", "rang", "ranger"], ["le", "chocolat", "chocolatier"], ["un", "abricot", "abricotier"],
+  ["le", "pot", "potier"], ["le", "plomb", "plombier"], ["le", "rang", "ranger"], ["le", "chocolat", "chocolatier"], ["un", "abricot", "abricotier"],
   ["le", "début", "débuter"], ["le", "saut", "sauter"], ["le", "chat", "chaton"], ["le", "vent", "ventilateur"], ["le", "trot", "trotter"], ["le", "bras", "brassard"]];
 const MUETTES = ["d", "t", "s", "c", "g", "p", "x"];
 // Lettres à éviter comme leurres car elles forment un autre vrai mot (lait/laid, vent/vend…).
-const VRAIS_MOTS = { lait: "dsx", vent: "d", chat: "s", vert: "sx", court: "s", marchand: "t", gros: "t", lent: "s" };
+const VRAIS_MOTS = { lait: "dsx", vent: "d", chat: "s", vert: "sx", court: "s", marchand: "t", gros: "tg", lent: "s", trot: "pc", chaud: "xt",
+  gris: "p", bond: "sg", tapis: "t", art: "c", chant: "p", fort: "s", pot: "p" };
+// Mots dont la forme sans dernière lettre est déjà un vrai mot (ver, bon, tapi…) : pas dans « Choisis la bonne orthographe ».
+const SANS_FIN_EST_UN_MOT = ["vert", "bond", "tapis", "fort", "lait"];
+const autresLettres = (m, l) => MUETTES.filter(x => x !== l && !(VRAIS_MOTS[m] || "").includes(x));
 const ACCORD = [
   ["Les deux sœurs ___ Totoro.", ["rencontre", "rencontrent"], 1], ["Il ___ des glands aux fillettes.", ["offre", "offrent"], 0],
   ["Le chat ___ du lait.", ["boit", "boivent"], 0], ["Les enfants ___ dans la cour.", ["joue", "jouent"], 1], ["Mon frère ___ un gâteau.", ["mange", "mangent"], 0],
@@ -514,17 +519,16 @@ const MOTS_DICTEE = ["muraille", "grenouille", "princesse", "empereur", "épouse
   "flèche", "pierre", "espace", "désespéré", "épreuve", "construit", "terre", "jour"];
 const VF_MOTS = [
   ["Je trie les mots de ma liste avant de commencer.", 0], ["Je peux apprendre tous les mots en une seule fois.", 1],
-  ["Je revois les mots plusieurs fois, même ceux que je connais.", 0], ["Pour apprendre, j'utilise seulement mes oreilles.", 1],
+  ["Je revois les mots plusieurs fois, même ceux que je pense connaître.", 0], ["Pour apprendre, j'utilise seulement mes oreilles.", 1],
   ["Je m'imagine en train d'écrire sous la dictée.", 0], ["J'utilise mes yeux, mes oreilles et mes mains.", 0],
   ["Je me concentre sur les mots nouveaux ou difficiles.", 0], ["Il faut apprendre les mots juste cinq minutes avant la dictée.", 1],
-  ["Les mots que je connais déjà, je ne les revois jamais.", 1],
 ];
 const METHODES = [
   ["Je regarde le mot, je ferme les yeux et je le revois dans ma tête.", 0], ["J'invente une petite histoire pour me souvenir d'une partie difficile.", 1],
   ["Je recopie le mot avec de belles lettres amusantes.", 2], ["Je « photographie » le mot lettre après lettre.", 0],
   ["Pour « muraille », j'imagine deux L qui grimpent sur le mur.", 1], ["J'utilise ma main pour former des lettres décorées.", 2],
   ["Pour « grenouille », je raconte que la grenouille saute dans le « ou ».", 1], ["Je regarde le mot en détail puis je le revois les yeux fermés.", 0],
-  ["J'écris le mot en couleurs, avec des lettres jolies.", 2],
+  ["J'écris le mot en couleurs, avec de jolies lettres.", 2],
 ];
 const RELECTURES = [
   ["Je vérifie que j'ai écrit tous les mots dictés.", 0], ["Je vérifie les points et les majuscules.", 0], ["Je mets une majuscule aux noms propres.", 0],
@@ -581,7 +585,7 @@ const chunkText = g => g.map(c => c[0]);
 const LECONS = [
   {
     id: "groupes", cat: "Grammaire", titre: "Les groupes dans la phrase", art: "groupes",
-    phrase: `<span class="chip C">Ce matin</span> <span class="chip S">le tigre</span> <span class="chip V">chasse une gazelle</span> <span class="chip C">dans la savane</span>.`,
+    phrase: `<span class="chip C">Ce matin,</span> <span class="chip S">le tigre</span> <span class="chip V">chasse une gazelle</span> <span class="chip C">dans la savane</span>.`,
     retenir: `<p><span class="chip S">Groupe sujet</span> : groupe <b class="r">indispensable</b>. Il répond à la question <b class="bl">« De qui ou de quoi je parle ? »</b></p>
       <p><span class="chip V">Groupe verbal</span> : groupe <b class="r">indispensable</b>. Il répond à la question <b class="bl">« Qu'est-ce que j'en dis ? »</b></p>
       <p><span class="chip C">Groupes compléments</span> : ils répondent aux questions <b class="bl">Où ? Quand ? Comment ?</b><br>
@@ -610,7 +614,7 @@ const LECONS = [
       <div class="grid4"><span>un <b class="r">groupe nominal</b> (GN) : <i>le petit chat</i></span><span>un <b class="r">nom propre</b> : <i>Théo</i></span><span>un <b class="r">pronom personnel</b> : <i>il, elles…</i></span></div>
       <p>Le sujet est un groupe <b class="r">indispensable</b>. Il n'est <b class="r">pas toujours placé devant</b> le groupe verbal.</p>
       <p>Il <b class="r">commande le verbe</b> : on dit que le sujet et le verbe <b class="r">s'accordent</b>.</p>
-      <p>Pour trouver le sujet, on peut utiliser la formule <b class="bl">« C'est … qui … »</b>.</p>
+      <p>Pour trouver le sujet, on peut utiliser la formule <b class="bl">« C'est … qui … »</b> (au pluriel : <b class="bl">« Ce sont … qui … »</b>).</p>
       <p class="exm">Exemple : <i>Qui est-ce qui aime chasser ? C'est <b>le tigre</b> qui aime chasser.</i></p>`,
     ex: [
       { title: "Touche le sujet du verbe.", sub: "Attention : il n'est pas toujours devant le verbe !", n: 5, make: (r) => r.sample(SUJETS, 5).map(s => ({ type: "chunks", parts: s[0], a: s[1] })) },
@@ -628,8 +632,8 @@ const LECONS = [
     retenir: `<p>Une phrase peut avoir deux formes :</p>
       <ul><li>la <b class="r">forme affirmative</b> sert à donner une information ou à décrire une action qui se produit ;</li>
       <li>la <b class="r">forme négative</b> sert à nier une information : l'action décrite ne se produit pas.</li></ul>
-      <p>Dans une phrase négative, le verbe est en général entouré des <b class="r">adverbes de négation</b> <b class="bl">ne / n' … pas</b>.</p>
-      <p>Il y en a d'autres : <b class="bl">ne… plus, ne… jamais, ne… rien, ne… personne, ne… aucun, ni… ni</b>.</p>`,
+      <p>Dans une phrase négative, le verbe est en général entouré des <b class="r">adverbes de négation</b> <b class="bl">ne / n'… pas</b>.</p>
+      <p>Il y a d'autres mots de négation : <b class="bl">ne… plus, ne… jamais, ne… rien, ne… personne, ne… aucun, ne… ni… ni</b>.</p>`,
     ex: [
       { title: "Cette phrase est-elle affirmative ou négative ?", n: 6, two: 1, make: (r) => r.sample(FORMES, 6).map(f => pick(f[0], ["Affirmative", "Négative"], f[1])) },
       { title: "Touche tous les mots de la négation.", n: 4, make: (r) => r.sample(NEGMOTS, 4).map(w => ({ type: "words", w: w[0], a: w[1], sol: w[1].map(i => w[0][i].replace(/[.,]/g, "")).join(" … ") })) },
@@ -648,7 +652,7 @@ const LECONS = [
       <p>Le verbe <b class="r">varie</b> selon le <b class="r">temps</b> et la <b class="r">personne</b>.</p>
       <p>Pour trouver le verbe, on peut mettre la phrase à la <b class="bl">forme négative</b> (<i>il <b>ne</b> mange <b>pas</b></i>) ou utiliser <b class="bl">« C'est … qui … »</b>.</p>`,
     ex: [
-      { title: "Touche le verbe conjugué.", sub: "Astuce : essaie de mettre ne … pas autour.", n: 5, make: (r) => r.sample(VERBES, 5).map(v => ({ type: "chunks", parts: v[0], a: v[1], words: 1 })) },
+      { title: "Touche le verbe conjugué.", sub: "Astuce : essaie de mettre ne… pas autour.", n: 5, make: (r) => r.sample(VERBES, 5).map(v => ({ type: "chunks", parts: v[0], a: v[1], words: 1 })) },
       { title: "Le verbe en gras exprime une action ou un état ?", n: 6, two: 1, make: (r) => r.sample(ETAT, 6).map(e => pick(e[0], ["Action", "État"], e[1])) },
       { title: "Quel est l'infinitif du verbe en gras ?", n: 4, make: (r) => r.sample(INFINITIFS, 4).map(i => pickShuffled(r, i[0], i[1], i.slice(2))) },
       { title: "Où se trouve la coupure entre le radical et la terminaison ?", n: 4, make: (r) => r.sample(COUPES, 4).map(([w, c]) => {
@@ -721,19 +725,19 @@ const LECONS = [
       <li>chercher des mots de la <b class="r">même famille</b> : <i>ar<b>t</b> → ar<b>t</b>iste, ar<b>t</b>isanat, ar<b>t</b>istique…</i></li></ul>`,
     ex: [
       { title: "Trouve la lettre muette.", sub: "Dis le mot au féminin dans ta tête.", n: 5, two: 1, make: (r) => r.sample(FEMININ, 5).map(([m]) => {
-          const l = m.slice(-1); const o = r.shuffle([l, ...r.sample(MUETTES.filter(x => x !== l), 2)]);
+          const l = m.slice(-1); const o = r.shuffle([l, ...r.sample(autresLettres(m, l), 2)]);
           return pick(`${m.slice(0, -1)}<span class="gap">?</span>`, o, o.indexOf(l));
         }) },
       { title: "Trouve la lettre muette grâce à la famille.", n: 5, two: 1, make: (r) => r.sample(FAMILLE, 5).map(([d, m, f]) => {
-          const l = m.slice(-1); const o = r.shuffle([l, ...r.sample(MUETTES.filter(x => x !== l), 2)]);
+          const l = m.slice(-1); const o = r.shuffle([l, ...r.sample(autresLettres(m, l), 2)]);
           return pick(`${d} ${m.slice(0, -1)}<span class="gap">?</span> <span style="color:var(--muted)">(pense à : ${f})</span>`, o, o.indexOf(l));
         }) },
-      { title: "Choisis la bonne orthographe.", n: 4, two: 1, make: (r) => r.sample([...FEMININ.map(f => f[0]), ...FAMILLE.map(f => f[1])], 4).map(m => {
-          const base = m.slice(0, -1), l = m.slice(-1), other = r.pick(MUETTES.filter(x => x !== l && !(VRAIS_MOTS[m] || "").includes(x)));
+      { title: "Choisis la bonne orthographe.", n: 4, two: 1, make: (r) => r.sample([...FEMININ.map(f => f[0]), ...FAMILLE.map(f => f[1])].filter(m => !SANS_FIN_EST_UN_MOT.includes(m)), 4).map(m => {
+          const base = m.slice(0, -1), l = m.slice(-1), other = r.pick(autresLettres(m, l));
           return pickShuffled(r, "", m, [base, base + other]);
         }) },
       { title: "Quel mot de la même famille t'aide ?", n: 4, make: (r) => r.sample(FAMILLE, 4).map(([d, m, f]) => {
-          const others = r.sample(FAMILLE.filter(x => x[1] !== m), 2).map(x => x[2]);
+          const others = r.sample(FAMILLE.filter(x => x[1] !== m && !x[2].startsWith(m.slice(0, Math.min(3, m.length - 1)))), 2).map(x => x[2]);
           return pickShuffled(r, `Pour trouver la dernière lettre de <b>« ${d} ${m.slice(0, -1)}… »</b>, je pense à :`, f, others);
         }) },
     ],
@@ -759,7 +763,7 @@ const LECONS = [
     phrase: `Pour apprendre les mots, j'utilise mon <b>cerveau</b>, mais aussi mes <b>yeux</b>, mes <b>oreilles</b> et mes <b>mains</b>.`,
     retenir: `<ul><li><b class="r">Règle 1</b> : je <b>trie les mots de ma liste</b>. Je mets de côté ceux que je sais déjà écrire et je me concentre sur les mots nouveaux ou difficiles.</li>
       <li><b class="r">Règle 2</b> : j'utilise <b>plusieurs sens</b> : la vue, l'ouïe et le toucher. J'essaie différentes méthodes.</li>
-      <li><b class="r">Règle 3</b> : on ne peut pas tout apprendre en une fois. Les mots doivent être <b>revus plusieurs fois</b>.</li>
+      <li><b class="r">Règle 3</b> : on ne peut pas tout apprendre en une fois. Les mots, même ceux que je pense connaître, doivent être <b>revus plusieurs fois</b>.</li>
       <li><b class="r">Règle 4</b> : je m'<b>imagine en train d'écrire</b> sous la dictée.</li></ul>
       <div class="meth">
         <div>${ICON.photo}<span><b>1. L'appareil photo</b> : je regarde le mot lettre après lettre, je le « photographie », je ferme les yeux et je le revois dans ma tête.</span></div>
@@ -785,7 +789,7 @@ const LECONS = [
       <p class="exm">Si l'enseignant a signalé des erreurs, je les corrige <b>en priorité</b>.</p>`,
     ex: [
       { title: "Pendant quelle relecture je vérifie cela ?", n: 4, make: (r) => r.sample(RELECTURES, 4).map(x => pick(x[0], ["Première", "Deuxième", "Troisième"], x[1])) },
-      { title: "Touche les mots qui ont une erreur.", sub: "Majuscules, accords, homophones… Sois un vrai détective !", n: 4, make: (r) => r.sample(ERREURS, 4).map(e => ({ type: "words", w: e[0], a: e[1], sol: e[2] })) },
+      { title: "Touche les mots qui ont une erreur.", sub: "Attention : plusieurs erreurs ont pu se glisser dans une même phrase. Majuscules, accords, homophones… Sois un vrai détective !", n: 4, make: (r) => r.sample(ERREURS, 4).map(e => ({ type: "words", w: e[0], a: e[1], sol: e[2] })) },
       { title: "Choisis la phrase sans erreur.", n: 3, make: (r) => r.sample(SANS_ERREUR, 3).map(s => pickShuffled(r, "", s[0], s.slice(1))) },
       { title: "Vrai ou faux ?", n: 4, make: (r) => r.sample(VF_RELIRE, 4).map(v => pick(v[0], ["Vrai", "Faux"], v[1])) },
     ],
@@ -959,6 +963,7 @@ function applyAnswers() {
   sheet.querySelectorAll("[data-gap]").forEach(g => {
     const u = A[g.dataset.gap], btn = u != null && sheet.querySelector(`.opt[data-k="${g.dataset.gap}"][data-i="${u}"]`);
     g.textContent = btn ? btn.textContent : "…"; g.classList.toggle("full", !!btn);
+    g.classList.toggle("elide", !!btn && btn.textContent.endsWith("'"));
   });
   sheet.querySelectorAll(".wd").forEach(b => b.classList.toggle("sel", (A[b.dataset.m] || "").split(",").includes(b.dataset.i)));
   sheet.querySelectorAll("[data-tw]").forEach(w => paintType(w.dataset.tw));
