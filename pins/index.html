@@ -807,6 +807,58 @@ const WAVE_BTN = { x: POOL.x2 + 2.8, z: -36 };
   const cap = new THREE.Mesh(new THREE.CylinderGeometry(.3, .3, .08, 20), mat(0xf4f4f4, .4)); cap.position.y = 1.08; g.add(cap);
   const btn = new THREE.Mesh(new THREE.SphereGeometry(.2, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xff3b30, emissive: 0xff3b30, emissiveIntensity: .4, roughness: .3 })); btn.position.y = 1.12; g.add(btn); WAVE_BTN.btn = btn;
   const sign = label("🌊 Vagues", "#1fa5d6", "#ffffff", .8); sign.position.y = 2; g.add(sign); shadowAll(g); circles.push({ x: WAVE_BTN.x, z: WAVE_BTN.z, r: .3 }); }
+/* ---------- Les lumières de l'Aquaparc (chaque nuit) et la BOUM 🎉 un soir sur trois : ballons, bouées, boule à facettes, musique ---------- */
+const BOUM = { nights: -1, active: false, wasNight: false, g: new THREE.Group(), balloons: [], floats: [], beams: [], beat: 0, step: 0, loud: false };
+try { BOUM.nights = parseInt(localStorage.getItem("pins-nuits") ?? "-1"); if (!Number.isFinite(BOUM.nights)) BOUM.nights = -1; } catch (e) {}
+{
+  // des lampadaires autour du bassin et une guirlande lumineuse : ils s'allument la nuit
+  const pm = mat(0x2f4f3f, .5, { metalness: .4 });
+  for (const [x, z] of [[POOL.x1 - 2.6, -31], [POOL.x1 - 2.6, -42], [POOL.x2 + 2.6, -31], [POOL.x2 + 2.6, -42], [-6, POOL.z2 + 2.8], [6, POOL.z2 + 2.8], [16, POOL.z2 + 2.8]]) {
+    const p = new THREE.Mesh(new THREE.CylinderGeometry(.07, .09, 3.6, 10), pm); p.position.set(x, 1.8, z); scene.add(p);
+    const l = new THREE.Mesh(new THREE.SphereGeometry(.26, 14, 10), new THREE.MeshStandardMaterial({ color: 0xfff1c8, emissive: 0xffd27a, emissiveIntensity: .6 })); l.position.set(x, 3.7, z); scene.add(l); lampMats.push(l.material); lampGlowPos.push([x, z]); circles.push({ x, z, r: .15 }); }
+  const bulbG = new THREE.SphereGeometry(.12, 8, 6), cols = [0xff5a4e, 0xffc93c, 0x2fd3ff, 0x7cff6b, 0xff4fd8];
+  cols.forEach((c, k) => { const m = new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: .6 }); lampMats.push(m); const n = 64, im = new THREE.InstancedMesh(bulbG, m, n / 5 | 0), m4 = new THREE.Matrix4(); let j = 0;
+    for (let i = k; i < n; i += 5) { const a = i / n * Math.PI * 2, r = DOME.r - 1.2, y = 7.5 + Math.sin(i * .9) * .4; m4.makeTranslation(DOME.x + Math.cos(a) * r, y, DOME.z + Math.sin(a) * r); im.setMatrixAt(j++, m4); } im.count = j; scene.add(im); });
+  // la boum : boule à facettes, rayons de couleur, ballons, bouées, platine du DJ
+  const g = BOUM.g; g.visible = false; scene.add(g);
+  const disco = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 2), new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1, roughness: .15, flatShading: true, emissive: 0x666666, emissiveIntensity: .4 })); disco.position.set(PCX, 12, PCZ); g.add(disco); BOUM.disco = disco;
+  const chain = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, 6, 4), metalMat); chain.position.set(PCX, 15.5, PCZ); g.add(chain);
+  [0xff4fd8, 0x2fd3ff, 0x7cff6b, 0xffc93c, 0xff5a4e].forEach((c, k) => { const beamG = new THREE.ConeGeometry(2.2, 12, 20, 1, true); beamG.translate(0, -6, 0);
+    const b = new THREE.Mesh(beamG, new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: .16, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); b.position.set(PCX + (k - 2) * 6, 13, PCZ - 6 + (k % 2) * 12); g.add(b); BOUM.beams.push({ m: b, ph: k * 1.3 }); });
+  for (let i = 0; i < 26; i++) { const c = cols[i % 5], b = new THREE.Group(); const ball = new THREE.Mesh(new THREE.SphereGeometry(.35, 14, 10), mat(c, .3)); ball.scale.y = 1.2; b.add(ball); const st = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, 1.4, 3), mat(0xffffff, .5)); st.position.y = -1.1; b.add(st);
+    const x = POOL.x1 + 1 + Math.random() * (POOL.x2 - POOL.x1 - 2), z = POOL.z1 + 1 + Math.random() * (POOL.z2 - POOL.z1 - 2); b.position.set(x, 4 + Math.random() * 5, z); g.add(b); BOUM.balloons.push({ g: b, x, z, y: b.position.y, ph: Math.random() * 6 }); }
+  for (let i = 0; i < 10; i++) { const c = cols[i % 5]; const t = new THREE.Mesh(new THREE.TorusGeometry(.6, .24, 10, 24), mat(c, .35)); t.rotation.x = Math.PI / 2; g.add(t);
+    BOUM.floats.push({ m: t, x: POOL.x1 + 2 + Math.random() * (POOL.x2 - POOL.x1 - 4), z: POOL.z1 + 2 + Math.random() * (POOL.z2 - POOL.z1 - 4), ph: Math.random() * 6 }); }
+  const dj = new THREE.Group(); dj.position.set(POOL.x2 + 3, 0, -26.5); g.add(dj); const desk = rbox(3, 1.1, 1, mat(0x1b1035, .4), .08); desk.position.y = .55; dj.add(desk);
+  for (const s of [-1, 1]) { const plat = new THREE.Mesh(new THREE.CylinderGeometry(.35, .35, .05, 20), mat(0x111111, .3)); plat.position.set(s * .8, 1.13, 0); dj.add(plat); const sp = rbox(.8, 1.6, .8, mat(0x222222, .5), .06); sp.position.set(s * 2.2, .8, 0); dj.add(sp); const cone = new THREE.Mesh(new THREE.CircleGeometry(.28, 16), mat(0x555555, .4)); cone.position.set(s * 2.2, 1, .41); dj.add(cone); }
+  const sign = label("🎉 BOUM ce soir ! 🎉", "#ff4fd8", "#ffffff", 1.3); sign.position.set(0, 2.8, 0); dj.add(sign); boxes.push({ x1: POOL.x2 + 3 - 2.7, x2: POOL.x2 + 3 + 2.7, z1: -27.1, z2: -25.9 }); BOUM.djBox = boxes[boxes.length - 1];
+}
+function updateBoum(dt, time, P, nightK) {
+  const night = nightK > .5;
+  if (night && !BOUM.wasNight) { BOUM.nights++; try { localStorage.setItem("pins-nuits", String(BOUM.nights)); } catch (e) {}
+    BOUM.active = BOUM.nights % 3 === 0; if (BOUM.active && !paused) toast("🎉 Ce soir, c'est la BOUM à l'Aquaparc ! Ballons, bouées et musique : viens danser dans la piscine !", 4200); }
+  BOUM.wasNight = night; if (!night) BOUM.active = false;
+  BOUM.g.visible = BOUM.active; BOUM.djBox.off = !BOUM.active;
+  // l'Aquaparc est mieux éclairé la nuit (lumière douce dedans, eau qui brille)
+  const inD = Math.hypot(P.x - DOME.x, P.z - DOME.z) < DOME.r; if (inD) hemi.intensity += .45 * nightK;
+  poolWater.material.emissive.setHex(BOUM.active ? [0x40107a, 0x0a5a8a, 0x7a1060, 0x106a40][Math.floor(time * 2) % 4] : 0x0a6a8a); poolWater.material.emissiveIntensity = nightK * (BOUM.active ? .9 : .5);
+  BOUM.loud = BOUM.active && Math.hypot(P.x - DOME.x, P.z - DOME.z) < DOME.r + 8;
+  if (!BOUM.active) return;
+  BOUM.disco.rotation.y += dt * .8;
+  for (const b of BOUM.beams) { b.m.rotation.z = Math.sin(time * .9 + b.ph) * .5; b.m.rotation.x = Math.cos(time * .7 + b.ph) * .4; }
+  for (const b of BOUM.balloons) b.g.position.set(b.x + Math.sin(time * .5 + b.ph) * .5, b.y + Math.sin(time * 1.3 + b.ph) * .4, b.z + Math.cos(time * .4 + b.ph) * .5);
+  for (const f of BOUM.floats) f.m.position.set(f.x + Math.sin(time * .25 + f.ph) * 1.5, -.12 + poolWaveH(f.x, f.z) + Math.sin(time * 2 + f.ph) * .04, f.z + Math.cos(time * .2 + f.ph) * 1.2);
+  // la musique de la boum : grosse caisse, charleston, basse et petite mélodie (120 battements par minute)
+  if (!BOUM.loud || !actx || muted || paused) { BOUM.beat = 0; return; }
+  const now = actx.currentTime; if (!BOUM.beat || BOUM.beat < now) BOUM.beat = now + .05;
+  const BASS = [45, 45, 52, 52, 48, 48, 50, 50], MEL = [76, 0, 79, 0, 81, 79, 76, 0, 74, 0, 76, 0, 72, 0, 74, 76];
+  while (BOUM.beat < now + .15) { const st = BOUM.step, d = BOUM.beat - now, E = .25;
+    if (st % 2 === 0) tone(110, .22, "sine", .3, -70, d); // boum !
+    tone(9000, .03, "triangle", .02, 0, d + E / 2); // tchi
+    const bn = BASS[Math.floor(st / 4) % 8]; tone(440 * Math.pow(2, (bn - 69) / 12), .2, "triangle", .1, 0, d);
+    const m = MEL[st % 16]; if (m && Math.floor(st / 16) % 2 === 1) tone(440 * Math.pow(2, (m - 69) / 12), .18, "square", .05, 0, d);
+    BOUM.step++; BOUM.beat += E; }
+}
 function pressWaves() {
   WAVE_BTN.btn.position.y = 1.07; setTimeout(() => WAVE_BTN.btn.position.y = 1.12, 250); tone(520, .08, "square", .06);
   if (WAVES.t < 0) { WAVES.t = 0; tone(220, .5, "sawtooth", .07, 0, .1); tone(330, .5, "sawtooth", .07, 0, .6); toast("🌊 C'est parti pour 5 minutes de vagues ! Saute dans la grande piscine !", 3000); }
@@ -6888,7 +6940,7 @@ function playFerme(step, t, E) {
 const TRACKS = { foret: { E: .32, play: playForet }, aqua: { E: .25, play: playAqua }, ferme: { E: .23, play: playFerme } };
 function scheduleMusic() {
   if (!actx || !musBus) return;
-  musBus.gain.setTargetAtTime(muted ? 0 : (paused ? .22 : .42) * VOL.mus, actx.currentTime, .4);
+  musBus.gain.setTargetAtTime(muted ? 0 : (paused ? .22 : .42) * VOL.mus * (BOUM.loud ? .12 : 1), actx.currentTime, .4); // pendant la boum, la musique douce se fait toute petite
   if (muted) { musT = actx.currentTime + .2; return; }
   if (musT < actx.currentTime - .5) musT = actx.currentTime + .1;
   while (musT < actx.currentTime + .4) {
@@ -8117,7 +8169,7 @@ function loop() {
   lakeDoorOpen += (lWant - lakeDoorOpen) * Math.min(1, dt * 5); LDOOR.panels.forEach(d => d.m.position.x = d.s * (.8 + lakeDoorOpen * 1.5));
   const dWant = Math.hypot(P.x, P.z - 7.5) < 5 ? 1 : 0; if (dWant && domeDoorOpen < .05) sfx.door();
   domeDoorOpen += (dWant - domeDoorOpen) * Math.min(1, dt * 5); domeDoors.forEach(d => d.m.position.x = d.s * (1.4 + domeDoorOpen * 2.7)); domeDoorBox.off = domeDoorOpen > .6;
-  const inAq = updateAquarium(dt, time, P), inBalo = updateBaloba(dt, time, P), inGT = updateGameTown(dt, time, P), nightK = updateDayNight(dt), _hw = updateHalloween(dt, time, P, nightK), inBF = updateBurger(dt, time, P), inShop = updateShops(dt, P), inLock = updateLocker(dt, P);
+  const inAq = updateAquarium(dt, time, P), inBalo = updateBaloba(dt, time, P), inGT = updateGameTown(dt, time, P), nightK = updateDayNight(dt), _hw = updateHalloween(dt, time, P, nightK), _bm = updateBoum(dt, time, P, nightK), inBF = updateBurger(dt, time, P), inShop = updateShops(dt, P), inLock = updateLocker(dt, P);
   updateAcro(P);
   if ($("creaView").hidden) updateVacationers(dt, time, P);
 
