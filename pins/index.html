@@ -702,8 +702,18 @@ causticLayer(new THREE.PlaneGeometry(PW, PD), PCX, -1.78, PCZ, PW / 5, PD / 5, .
 const poolWater = new THREE.Mesh(new THREE.PlaneGeometry(PW, PD, 64, 36), new THREE.MeshStandardMaterial({ color: 0x42cbef, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.55, normalMap: waterNormal, normalScale: new THREE.Vector2(0.35, 0.35) }));
 poolWater.material.normalMap = waterNormal.clone(); poolWater.material.normalMap.repeat.set(PW / 6, PD / 6);
 poolWater.rotation.x = -Math.PI / 2; poolWater.position.set(PCX, -0.22, PCZ); poolWater.renderOrder = 1; scene.add(poolWater);
-// la piscine à vagues : toutes les 5 minutes, une minute de vagues qui partent du fond de la grande piscine
-const WAVES = { every: 300, dur: 60, next: 90, t: -1, amp: 0, warned: false, boomT: 0 };
+// la piscine à vagues : on appuie sur le gros bouton du petit pilier, et les vagues durent 5 minutes
+const WAVES = { every: 300, dur: 300, next: Infinity, t: -1, amp: 0, warned: false, boomT: 0 };
+const WAVE_BTN = { x: POOL.x2 + 2.8, z: -36 };
+{ const g = new THREE.Group(); g.position.set(WAVE_BTN.x, 0, WAVE_BTN.z); scene.add(g);
+  const pil = new THREE.Mesh(new THREE.CylinderGeometry(.22, .28, 1.05, 18), mat(0x1fa5d6, .4)); pil.position.y = .52; g.add(pil);
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(.3, .3, .08, 20), mat(0xf4f4f4, .4)); cap.position.y = 1.08; g.add(cap);
+  const btn = new THREE.Mesh(new THREE.SphereGeometry(.2, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xff3b30, emissive: 0xff3b30, emissiveIntensity: .4, roughness: .3 })); btn.position.y = 1.12; g.add(btn); WAVE_BTN.btn = btn;
+  const sign = label("🌊 Vagues", "#1fa5d6", "#ffffff", .8); sign.position.y = 2; g.add(sign); shadowAll(g); circles.push({ x: WAVE_BTN.x, z: WAVE_BTN.z, r: .3 }); }
+function pressWaves() {
+  WAVE_BTN.btn.position.y = 1.07; setTimeout(() => WAVE_BTN.btn.position.y = 1.12, 250); tone(520, .08, "square", .06);
+  if (WAVES.t < 0) { WAVES.t = 0; tone(220, .5, "sawtooth", .07, 0, .1); tone(330, .5, "sawtooth", .07, 0, .6); toast("🌊 C'est parti pour 5 minutes de vagues ! Saute dans la grande piscine !", 3000); }
+  else { WAVES.t = Math.max(WAVES.t, WAVES.dur - 4); toast("Les vagues s'arrêtent… 🌊", 2000); } }
 function poolWaveH(x, z) { if (WAVES.amp <= 0) return 0; const ex = Math.min(x - POOL.x1, POOL.x2 - x), ez = Math.min(z - POOL.z1, POOL.z2 - z), edge = Math.max(0, Math.min(1, ex / 1.5, ez / 1.2));
   return .26 * WAVES.amp * edge * Math.sin((x - POOL.x1) * 1.05 - WAVES.t * 2.3); }
 function updateWaves(dt, P) {
@@ -713,7 +723,8 @@ function updateWaves(dt, P) {
     if (WAVES.next <= 0) { WAVES.t = 0; WAVES.warned = false; if (inD) toast("🌊 Les vagues ! Saute dans la grande piscine !", 2600); } }
   else { WAVES.t += dt; WAVES.amp = Math.min(1, WAVES.t / 4, (WAVES.dur - WAVES.t) / 4);
     WAVES.boomT -= dt; if (inD && WAVES.boomT < 0) { WAVES.boomT = 2.7; whoosh(1.6, .08, 300, 120); }
-    if (WAVES.t >= WAVES.dur) { WAVES.t = -1; WAVES.amp = 0; WAVES.next = WAVES.every - WAVES.dur; if (inD) toast("Les vagues sont finies. Elles reviennent dans 5 minutes ! 🌊", 2600); } }
+    WAVE_BTN.btn.material.emissiveIntensity = .4 + .5 * Math.abs(Math.sin(WAVES.t * 4));
+    if (WAVES.t >= WAVES.dur) { WAVES.t = -1; WAVES.amp = 0; WAVES.next = Infinity; WAVE_BTN.btn.material.emissiveIntensity = .4; if (inD) toast("Les vagues sont finies. Appuie encore sur le bouton pour les relancer ! 🌊", 2800); } }
   const pos = poolWater.geometry.attributes.position; if (WAVES.amp > 0 || WAVES.flat === false) { WAVES.flat = WAVES.amp <= 0;
     for (let i = 0; i < pos.count; i++) pos.setZ(i, poolWaveH(PCX + pos.getX(i), PCZ - pos.getY(i))); pos.needsUpdate = true; poolWater.geometry.computeVertexNormals(); }
 }
@@ -2021,14 +2032,15 @@ const PARK_CARS = [];
   const CAR_COLS = [0xd62d20, 0x2e6fd8, 0xf4f4f4, 0x2b2b2b, 0xffc93c, 0x27ae60, 0x9b59b6, 0xff8a2b, 0x7f8c99];
   const spots = []; for (let i = 0; i < 7; i++) { spots.push([PARK.x1 + 4.8 + i * 2.6, PARK.z1 + 2.8, 0]); spots.push([PARK.x1 + 4.8 + i * 2.6, PARK.z2 - 2.8, Math.PI]); }
   let honkCarInit = 0;
-  spots.forEach(([x, z, h], i) => { if (i % 5 === 3 || (h === 0 && Math.abs(x - 83) < 2.5)) return; const c = makeCar(CAR_COLS[i % CAR_COLS.length], i); c.position.set(x, 0, z); c.rotation.y = h; scene.add(c); PARK_CARS.push({ g: c, x, z, h, flash: 0 }); boxes.push({ x1: x - .95, x2: x + .95, z1: z - 2.05, z2: z + 2.05 }); });
+  spots.forEach(([x, z, h], i) => { if (i % 5 === 3 || (h === 0 && Math.abs(x - 83) < 2.5)) return; const c = makeCar(CAR_COLS[i % CAR_COLS.length], i); c.position.set(x, 0, z); c.rotation.y = h; scene.add(c); PARK_CARS.push({ g: c, x, z, h, flash: 0 }); });
 }
 function makeCar(col, seed) {
   const g = new THREE.Group(), paint = mat(col, .25, { metalness: .4 }), glassC = mat(0x22313f, .1, { metalness: .6 }), tire = mat(0x1b1b1b, .9), rim = mat(0xcfd3d6, .3, { metalness: .7 });
   const body = rbox(1.8, .6, 4, paint, .22); body.position.y = .62; g.add(body);
   const van = seed % 4 === 1, cab = rbox(1.6, .6, van ? 2.9 : 2.1, paint, .25); cab.position.set(0, 1.18, van ? -.35 : -.15); g.add(cab);
   const win = rbox(1.64, .42, van ? 2.7 : 1.9, glassC, .18); win.position.set(0, 1.2, van ? -.35 : -.15); g.add(win);
-  for (const sx of [-.8, .8]) for (const sz of [-1.3, 1.3]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(.34, .34, .25, 20), tire); w.rotation.z = Math.PI / 2; w.position.set(sx, .34, sz); g.add(w); const r = new THREE.Mesh(new THREE.CylinderGeometry(.18, .18, .26, 14), rim); r.rotation.z = Math.PI / 2; r.position.set(sx, .34, sz); g.add(r); }
+  const wheels = []; g.userData.wheels = wheels; g.userData.wheelR = .34;
+  for (const sx of [-.8, .8]) for (const sz of [-1.3, 1.3]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(.34, .34, .25, 20), tire); w.rotation.z = Math.PI / 2; w.position.set(sx, .34, sz); g.add(w); wheels.push(w); const r = new THREE.Mesh(new THREE.CylinderGeometry(.18, .18, .26, 14), rim); r.rotation.z = Math.PI / 2; r.position.set(sx, .34, sz); g.add(r); wheels.push(r); }
   const heads = [], hm = new THREE.MeshStandardMaterial({ color: 0xfffbe6, emissive: 0xfff3c0, emissiveIntensity: .2 });
   for (const sx of [-.6, .6]) { const hl = new THREE.Mesh(new THREE.SphereGeometry(.12, 12, 8), hm); hl.scale.z = .4; hl.position.set(sx, .7, 2); g.add(hl); heads.push(hl);
     const tl = new THREE.Mesh(new THREE.BoxGeometry(.3, .12, .05), new THREE.MeshStandardMaterial({ color: 0xc0392b, emissive: 0x7a1010, emissiveIntensity: .5 })); tl.position.set(sx, .72, -2.01); g.add(tl); }
@@ -2715,6 +2727,8 @@ function makeBike(col) {
 const vehicles = [];
 const BIKE_COLS = [0xe74c3c, 0x2e86de, 0xf1c40f, 0x27ae60, 0xe84393];
 BIKE_COLS.forEach((c, i) => { const v = { kind: "bike", g: makeBike(c), x: 3 + i * 1.5, z: 36.6, h: Math.PI, v: 0, r: .55, lean: 0, ca: 0 }; v.g.position.set(v.x, 0, v.z); v.g.rotation.y = v.h; scene.add(v.g); vehicles.push(v); movers.push(v); });
+// les voitures du parking : on peut monter dedans et les conduire
+for (const c of PARK_CARS) { const v = { kind: "car", g: c.g, x: c.x, z: c.z, h: c.h, v: 0, r: 1.15 }; vehicles.push(v); movers.push(v); }
 { const g = new THREE.Group(); for (let i = 0; i < 6; i++) { const h = new THREE.Mesh(new THREE.TorusGeometry(.32, .025, 8, 20, Math.PI), metalMat); h.position.set(2.25 + i * 1.5, 0, 37.55); g.add(h); }
   const bar = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, 7.6, 8), metalMat); bar.rotation.z = Math.PI / 2; bar.position.set(6, .3, 37.55); g.add(bar);
   const sign = label("Vélos 🚲", "#27ae60", "#ffffff", .7); sign.position.set(6, 1.9, 38.2); scene.add(sign); scene.add(bake(g)); boxes.push({ x1: 1.8, x2: 10.2, z1: 37.4, z2: 37.7 }); }
@@ -5470,7 +5484,7 @@ const aiKarts = []; // plus de circuit de karts
 const floaters = [.12, .4, .58, .9].map((u, i) => { const b = makeBuoy(), g = bather(i % 2 === 1); g.visible = true; b.add(g); g.position.set(0, -.62, 0); scene.add(b); return { b, g, u, lat: (rnd() - .5) * 1.4, spin: rnd() * 6 }; });
 const myBuoy = makeBuoy(); myBuoy.visible = false; scene.add(myBuoy);
 // réglages de conduite : vitesse, accélération, virage, place du pilote
-const VK = { bike: { max: 7.5, acc: 1.5, turn: 2.6, y: .33, z: -.27, mode: "bike" }, kart: { max: 10, acc: 2, turn: 2.4, y: -.2, z: -.3, mode: "kart" }, pony: { max: 6.5, acc: 1.3, turn: 2.1, y: 1.03, z: .05, mode: "saddle" } };
+const VK = { car: { max: 13, acc: 2.2, turn: 1.9, y: .32, z: .15, x: .42, mode: "kart" }, bike: { max: 7.5, acc: 1.5, turn: 2.6, y: .33, z: -.27, mode: "bike" }, kart: { max: 10, acc: 2, turn: 2.4, y: -.2, z: -.3, mode: "kart" }, pony: { max: 6.5, acc: 1.3, turn: 2.1, y: 1.03, z: .05, mode: "saddle" } };
 let seatOffer = null, veh = null, engine = null, mountT = null, petT = null, seatT = null, riv = null, food = null, chestGot = false, musWant = "foret";
 function inp() { let ix = jx, iy = jy; if (!paused) { if (keys["arrowup"] || keys["z"] || keys["w"]) iy = -1; if (keys["arrowdown"] || keys["s"]) iy = 1; if (keys["arrowleft"] || keys["q"] || keys["a"]) ix = -1; if (keys["arrowright"] || keys["d"]) ix = 1; } else ix = iy = 0; return [ix, iy]; }
 function engineOn() { if (!actx || engine) return; try { const o = actx.createOscillator(), o2 = actx.createOscillator(), lp = actx.createBiquadFilter(), g = actx.createGain(); o.type = "sawtooth"; o2.type = "square"; lp.type = "lowpass"; lp.frequency.value = 520; g.gain.value = 0;
@@ -5487,13 +5501,14 @@ function vehOk(V, q) {
 function mountVeh(v) {
   veh = v; state = "drive"; v.v = 0; $("dialog").hidden = true; talking = null;
   if (v.kind === "pony") { v.ridden = true; v.hitched = false; animalSound("pony", 2); toast(`Hue, ${v.name || "petit poney"} ! 🐴 Tu peux aller partout.`, 2600); }
+  else if (v.kind === "car") { engineOn(); tone(392, .12, "square", .05); toast("Vroum ! 🚗 Tu conduis la voiture. Tu peux aller sur tous les chemins.", 2800); }
   else if (v.kind === "kart") { engineOn(); lap.t = -1; lap.px = 0; toast("Vroum ! 🏎️ Passe la ligne à damier pour lancer le chrono.", 2800); }
   else { tone(2100, .18, "sine", .07); tone(2100, .18, "sine", .07, 0, .22); toast("En selle ! 🚲 Tu peux descendre où tu veux.", 2400); }
 }
 function dismount() {
   const v = veh; if (!v) return; const rx = Math.cos(v.h), rz = -Math.sin(v.h), P = player.position;
   P.set(v.x + rx * 1.25, 0, v.z + rz * 1.25); skipM = v; resolve(P, { x: v.x, z: v.z }); skipM = null; P.y = floorY(P);
-  player.rotation.set(0, v.h, 0); v.v = 0; if (v.kind === "pony") { v.ridden = false; v.hitched = true; v.g.position.y = 0; } if (v.kind === "kart") engineOff();
+  player.rotation.set(0, v.h, 0); v.v = 0; if (v.kind === "pony") { v.ridden = false; v.hitched = true; v.g.position.y = 0; } if (v.kind === "kart" || v.kind === "car") engineOff();
   veh = null; state = "walk";
 }
 const lap = { t: -1, px: 0, best: null }; try { const b = parseFloat(localStorage.getItem("pins-kart")); if (b > 0) lap.best = b; } catch (e) {}
@@ -5519,9 +5534,9 @@ function driveTick(dt, P) {
   const lean = V.kind === "bike" ? THREE.MathUtils.clamp(-turn / Math.max(dt, 1e-3) * .1 * Math.min(1, V.v / 4), -.35, .35) : 0; V.lean = (V.lean || 0) + (lean - (V.lean || 0)) * Math.min(1, dt * 6);
   V.g.position.set(V.x, hy, V.z); V.g.rotation.set(0, V.h, V.kind === "bike" ? V.lean : 0);
   const bob = V.kind === "pony" ? Math.abs(Math.sin(V.ph)) * .06 * Math.min(1, V.v / 2) : 0;
-  P.set(V.x + Math.sin(V.h) * K.z, K.y + hy + bob, V.z + Math.cos(V.h) * K.z); player.rotation.y = V.h; player.rotation.z = V.kind === "bike" ? V.lean : 0;
+  P.set(V.x + Math.sin(V.h) * K.z + Math.cos(V.h) * (K.x || 0), K.y + hy + bob, V.z + Math.cos(V.h) * K.z - Math.sin(V.h) * (K.x || 0)); player.rotation.y = V.h; player.rotation.z = V.kind === "bike" ? V.lean : 0;
   if (V.kind === "bike") { const w = V.v * dt / .31; V.g.userData.wheels.forEach(x => x.rotation.x += w); V.ca += w * .55; V.g.userData.crank.rotation.x = V.ca; animPerson(player, "bike", V.ca); }
-  else if (V.kind === "kart") { V.g.userData.wheels.forEach(x => x.rotation.x += V.v * dt / .19); animPerson(player, "kart", 0); kartLap(V, dt);
+  else if (V.kind === "kart" || V.kind === "car") { V.g.userData.wheels.forEach(x => x.rotation.x += V.v * dt / (V.g.userData.wheelR || .19)); animPerson(player, "kart", 0); if (V.kind === "kart") kartLap(V, dt);
     if (engine) { const t = actx.currentTime; engine.o.frequency.setTargetAtTime(42 + Math.abs(V.v) * 9, t, .05); engine.o2.frequency.setTargetAtTime(21 + Math.abs(V.v) * 4.5, t, .05); engine.g.gain.setTargetAtTime(muted || paused ? 0 : .05, t, .05); } }
   else animPerson(player, "saddle", V.ph, V.v);
 }
@@ -5837,6 +5852,7 @@ let act1 = null, act2 = null, doorNear = null;
 function doAct(a) {
   if (!a) return; sfx.click();
   if (a === "feed") { feedFish(); return; }
+  if (a === "waves") { pressWaves(); return; }
   if (a === "acro") { if (harnessOn) { setHarness(false); toast("Tu as rendu ton baudrier. À bientôt ! 👋", 2000); } else ouvrir("acroView"); return; }
   if (a === "zip") { state = "ride"; riding = { curve: acroZip.curve, u: 0, dry: true, msg: "Youpi ! Quelle tyrolienne ! 🪂" }; $("dialog").hidden = true; talking = null; sfx.slide(); toast("Wiiiiii ! 🪂", 1600); return; }
   if (a === "prog") { ouvrir("progView"); return; }
@@ -6716,7 +6732,7 @@ function loop() {
     mountT = petT = seatOffer = null;
     if (state === "walk" && P.y < 1) {
       let bv = null, bd = 2.3; for (const v of vehicles) { const d = Math.hypot(P.x - v.x, P.z - v.z); if (d < bd) { bd = d; bv = v; } }
-      if (bv) { mountT = bv; offer("mount", bv.kind === "bike" ? "🚲 Monter sur le vélo" : bv.kind === "kart" ? "🏎️ Monter dans le kart" : "🐴 Monter sur " + bv.name); }
+      if (bv) { mountT = bv; offer("mount", bv.kind === "car" ? "🚗 Monter dans la voiture" : bv.kind === "bike" ? "🚲 Monter sur le vélo" : bv.kind === "kart" ? "🏎️ Monter dans le kart" : "🐴 Monter sur " + bv.name); }
       let ba = null, bd2 = 1.4; for (const a of animals) { if (!a.g.visible) continue; const d = Math.hypot(P.x - a.x, P.z - a.z) - a.r; if (d < bd2) { bd2 = d; ba = a; } }
       if (Math.hypot(P.x - cat.x, P.z - cat.z) < 1.8) ba = cat;
       if (ba) { petT = ba; offer("pet", PET[ba.kind][0]); }
@@ -6726,12 +6742,13 @@ function loop() {
       if (Math.hypot(P.x - RDOCK.x, P.z - RDOCK.z) < 2.6) offer("river", "🛟 Descendre la rivière");
     }
     if (state === "walk" && P.y > 4) { if (Math.hypot(P.x - CHEST.x, P.z - CHEST.z) < 1.8) offer("chest", "🎁 Ouvrir le coffre"); if (Math.hypot(P.x - 63.3, P.z - 69) < 1.5) offer("treeslide", "🛝 Glisser !"); }
+    if (state === "walk" && P.y < 1 && Math.hypot(P.x - WAVE_BTN.x, P.z - WAVE_BTN.z) < 1.7) offer("waves", WAVES.t < 0 ? "🌊 Lancer les vagues (5 min)" : "⏹️ Arrêter les vagues");
     if (state === "walk") BSLIDES.forEach((b, i) => { if (P.y > b.y0 && P.y < b.y1 && Math.hypot(P.x - b.x, P.z - b.z) < 1.3) offer("balo" + i, b.name); });
     if (state === "walk" && P.y < 1 && inGameTown(P.x, P.z)) { GT_CABS.forEach((c, i) => { if (Math.hypot(P.x - c.x, P.z - c.z) < 1.1) offer("gt" + i, "🕹️ Jouer à " + GT_GAMES[c.k].name); });
       if (Math.hypot(P.x - gtClaw.front[0], P.z - gtClaw.front[1]) < 1.3) offer("claw", "🧸 Pince à peluches (3 🎟️)");
       if (Math.hypot(P.x - (GTW.x + 4.2), P.z - (GTW.z + 5.3)) < 2.2) offer("prizes", "🎁 Échanger mes tickets");
       if (Math.hypot(P.x - GT_SMALL.front[0], P.z - GT_SMALL.front[1]) < 1.3) offer("small", "🍬 Petites choses (tickets)"); }
-    honkCar = null; if (state === "walk" && P.y < 1 && inRect(PARK, P.x, P.z)) { honkCar = PARK_CARS.find(c => Math.hypot(P.x - c.x, P.z - c.z) < 2.9) || null; if (honkCar) offer("honk", "📯 Klaxonner"); }
+    honkCar = null; if (state === "walk" && P.y < 1 && inRect(PARK, P.x, P.z)) { honkCar = PARK_CARS.find(c => Math.hypot(P.x - c.g.position.x, P.z - c.g.position.z) < 2.9) || null; if (honkCar) offer("honk", "📯 Klaxonner"); }
     if (state === "walk" && P.y < 1) { if (ACCUEIL.in(P.x, P.z) && Math.hypot(P.x - ACCUEIL.x, P.z - (ACCUEIL.z - .1)) < 1.9) offer("prog", "📋 Le programme");
       if (BOULANGERIE.in(P.x, P.z) && Math.hypot(P.x - BOULANGERIE.x, P.z - (BOULANGERIE.z - .4)) < 2.6) offer("boul", "🥐 Acheter");
       if (MARKET.in(P.x, P.z) && Math.hypot(P.x - (MARKET.x + 5.6), P.z - (MARKET.z + .6)) < 1.7) offer("market", "🛒 Faire les courses"); }
