@@ -3007,7 +3007,7 @@ let harnessOn = false, acroToastT = -9;
 // L'acrobranche (d'après la photo de Théo) : une grande structure en poteaux d'acier galvanisé, sur du gravier.
 // Niveau 1 (3,5 m) : un grand filet tendu, fermé par des filets ; niveau 2 (7,5 m) : 8 plateformes en bois autour des poteaux,
 // reliées par 8 ponts tous différents ; on monte par deux escaliers en colimaçon ; on redescend en tyrolienne.
-const AC = { x1: -133, x2: -119, z1: 113, z2: 127, L1: 3.5, L2: 7.5, A: [-117.3, 128.7], B: [-134.7, 111.3] };
+const AC = { x1: -133, x2: -119, z1: 113, z2: 127, L1: 3.5, L2: 7.5, A: [-116, 130] };
 const ACRO_P = [[-133, 113], [-126, 113], [-119, 113], [-119, 120], [-119, 127], [-126, 127], [-133, 127], [-133, 120]].map(([x, z]) => [x, z, AC.L2]);
 const ACRO_R = 1.1;
 const segSurf = (ax, az, ay, bx, bz, by, w, sag = 0) => (x, z) => { const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz, t = ((x - ax) * dx + (z - az) * dz) / L2; if (t < 0 || t > 1) return null;
@@ -3017,7 +3017,7 @@ const spiralSurf = (cx, cz, a0, h0, h1) => (x, z) => { const dx = x - cx, dz = z
   const ph = ((Math.atan2(dz, dx) - a0) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI); if (ph > 1.5 * Math.PI) return null; return h0 + Math.round(ph / (1.5 * Math.PI) * 14) / 14 * (h1 - h0); };
 const ACRO_GATE = { x1: -116.7, x2: -114.9, z1: 126.3, z2: 126.7, off: false }; boxes.push(ACRO_GATE);
 ACRO.gate = [-115.8, 126.2];
-path([-137.3, 106.5], [-114.4, 106.5], 2.2); path([-114.4, 106.5], [-114.4, 125.6], 2.2);
+path([-137.3, 106.5], [-114.4, 106.5], 2.2); path([-114.4, 106.5], [-114.4, 126.6], 2.2);
 let acroZip = null; const ACRO_SWING = [];
 {
   const g = new THREE.Group(); scene.add(g);
@@ -3030,7 +3030,7 @@ let acroZip = null; const ACRO_SWING = [];
   const grav = new THREE.Mesh(new THREE.CircleGeometry(1, 48), mat(0xe8dcc0, .95, { map: sandTex, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 })); grav.rotation.x = -Math.PI / 2; grav.scale.set(17, 15, 1); grav.position.set(cx, .021, cz); grav.receiveShadow = true; g.add(grav);
   // les poteaux d'acier (avec leurs bagues), plus hauts ou plus bas
   const poles = []; for (const x of [x1, cx, x2]) for (const z of [z1, cz, z2]) poles.push([x, z, 11 + ((x * 7 + z * 3) % 4 + 4) % 4]);
-  poles.push([...AC.A, 9.5], [...AC.B, 11]);
+  poles.push([...AC.A, 10.5]); // le poteau central de l'escalier
   for (const [x, z, h] of poles) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.2, .24, h, 14), steel); p.position.set(x, h / 2, z); g.add(p); circles.push({ x, z, r: .3 });
     for (let y = 1.2; y < h; y += 2.4) { const ring = new THREE.Mesh(new THREE.CylinderGeometry(.27, .27, .14, 14), steel); ring.position.set(x, y, z); g.add(ring); } }
   // les chapeaux de bois hexagonaux en haut de deux poteaux, et les cônes verts
@@ -3056,27 +3056,54 @@ let acroZip = null; const ACRO_SWING = [];
   { const c = document.createElement("canvas"); c.width = 512; c.height = 160; const x = c.getContext("2d"); x.fillStyle = "#3b2a22"; x.fillRect(0, 0, 512, 160); for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? "#33241d" : "#41302a"; x.fillRect(0, i * 20, 512, 19); }
     x.strokeStyle = "#9fd0e8"; x.lineWidth = 9; x.lineCap = "round"; x.beginPath(); x.moveTo(170, 80); x.quadraticCurveTo(220, 40, 255, 95); x.quadraticCurveTo(300, 40, 350, 70); x.stroke(); x.beginPath(); x.moveTo(250, 95); x.lineTo(240, 125); x.stroke();
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; const wall = new THREE.Mesh(new THREE.BoxGeometry(7, 1.9, .2), [dkwood, dkwood, dkwood, dkwood, new THREE.MeshStandardMaterial({ map: t, roughness: .9 }), dkwood]); wall.position.set(x1 + 3.5, .95, z2 + .55); g.add(wall); boxes.push({ x1: x1, x2: x1 + 7, z1: z2 + .4, z2: z2 + .7 }); }
-  // ESCALIERS EN COLIMAÇON : A (du sol au filet, dans sa cage) et B (du filet aux plateformes du haut)
-  // LE GRAND ESCALIER EN COLIMAÇON (2 tours, dans sa cage) : du sol jusqu'au filet (3,5 m), puis jusqu'aux plateformes (7,5 m)
-  { const [sx, sz] = AC.A, RISE = L2 / 2, TURN = 2 * Math.PI, aL1 = 225 * Math.PI / 180, a0 = aL1 - (L1 / RISE) * TURN; AC.a0 = a0;
-    for (let k = 0; k < 2; k++) SURF.push((x, z) => { if (!harnessOn) return null; const dx = x - sx, dz = z - sz, r = Math.hypot(dx, dz); if (r < .45 || r > 2.05) return null;
-      const ph = ((Math.atan2(dz, dx) - a0) % TURN + TURN) % TURN; return k * RISE + Math.round(ph / TURN * 16) / 16 * RISE; });
-    for (let k = 0; k <= 32; k++) { const a = a0 + k / 16 * Math.PI, h = k / 32 * L2, st = rbox(1.5, .08, .55, plank, .02); st.position.set(sx + Math.cos(a) * 1.25, Math.max(.04, h - .04), sz + Math.sin(a) * 1.25); st.rotation.y = -a; g.add(st); }
-    tube(Array.from({ length: 41 }, (_, k) => { const a = a0 + k / 20 * Math.PI; return [sx + Math.cos(a) * 2, k / 40 * L2 + .95, sz + Math.sin(a) * 2]; }), .035, rope);
-    // la cage en grillage : on ne passe pas à travers (sauf par l'entrée en bas et les deux sorties)
+  // L'ESCALIER EN COLIMAÇON, dans sa cage, à côté du coin nord-est : on entre en bas face au chemin (au sud) ;
+  // 7/8 de tour plus haut (3,5 m), une passerelle rejoint le grand filet ; un tour de plus (7,5 m), une autre rejoint la plateforme du coin.
+  // Les deux sorties regardent le coin de la structure ; 16 marches par tour, de 25 cm.
+  const STAIR = (() => { const [sx, sz] = AC.A, RISE = 4, TURN = 2 * Math.PI, N = 16, aX = Math.atan2(z2 - sz, x2 - sx), a0 = aX - (L1 / RISE) * TURN; AC.a0 = a0;
+    const hAt = (k, ph) => Math.round((k * TURN + ph) / TURN * N) / N * RISE;
+    for (let k = 0; k < 2; k++) SURF.push((x, z) => { if (!harnessOn) return null; const dx = x - sx, dz = z - sz, r = Math.hypot(dx, dz); if (r < .4 || r > 2.1) return null;
+      const ph = ((Math.atan2(dz, dx) - a0) % TURN + TURN) % TURN, h = hAt(k, ph); return h > L2 + .01 ? null : h; });
+    // les marches : des parts de couronne (de 0,35 à 2,05 m du poteau), qui se touchent sans se chevaucher
+    const nb = Math.round(L2 / RISE * N), da = TURN / N, sh = new THREE.Shape(), r0 = .35, r1 = 2.05, h2 = da / 2 + .01;
+    sh.moveTo(r0 * Math.cos(-h2), r0 * Math.sin(-h2)); sh.lineTo(r1 * Math.cos(-h2), r1 * Math.sin(-h2)); sh.absarc(0, 0, r1, -h2, h2, false); sh.lineTo(r0 * Math.cos(h2), r0 * Math.sin(h2)); sh.absarc(0, 0, r0, h2, -h2, true);
+    const stepGeo = new THREE.ExtrudeGeometry(sh, { depth: .07, bevelEnabled: false, curveSegments: 3 }); stepGeo.rotateX(Math.PI / 2);
+    for (let k = 0; k <= nb; k++) { const a = a0 + k * da, st = new THREE.Mesh(stepGeo, plank); st.position.set(sx, Math.max(.07, k / N * RISE), sz); st.rotation.y = -a; g.add(st); }
+    tube(Array.from({ length: 61 }, (_, k) => { const a = a0 + k / 60 * (L2 / RISE) * TURN; return [sx + Math.cos(a) * 2.02, k / 60 * L2 + .95, sz + Math.sin(a) * 2.02]; }), .035, rope);
+    // la cage en grillage : on ne passe qu'à l'entrée et aux deux sorties
     const gap = (a, c, w) => Math.abs(Math.atan2(Math.sin(a - c), Math.cos(a - c))) < w;
-    const cg = new THREE.Mesh(new THREE.CylinderGeometry(2.25, 2.25, L2 + 2, 28, 1, true), netM(36, 24)); cg.position.set(sx, (L2 + 2) / 2, sz); cg.rotation.y = 0; g.add(cg);
+    const cg = new THREE.Mesh(new THREE.CylinderGeometry(2.25, 2.25, L2 + 2, 28, 1, true), netM(36, 24)); cg.position.set(sx, (L2 + 2) / 2, sz); g.add(cg);
     for (let i = 0; i < 32; i++) { const a = i / 32 * TURN, px = sx + Math.cos(a) * 2.3, pz = sz + Math.sin(a) * 2.3, W = (y0, y1) => WALLS3.push({ x1: px - .24, x2: px + .24, z1: pz - .24, z2: pz + .24, y0, y1 });
-      const inEntry = gap(a, a0 + .35, .55), inL1 = gap(a, aL1, .45), inTop = gap(a, a0, .5);
-      const cuts = []; if (inEntry) cuts.push([-1, 2.4]); if (inL1) cuts.push([L1 - .6, L1 + 2.2]); if (inTop) cuts.push([L2 - .6, L2 + 2.5]);
+      const cuts = []; if (gap(a, a0 + .3, .5)) cuts.push([-1, 2.4]); if (gap(a, aX, .4)) { cuts.push([L1 - .6, L1 + 2.2]); cuts.push([L2 - .6, L2 + 2.5]); }
       let y = -1; for (const [c0, c1] of cuts.sort((p, q) => p[0] - q[0])) { if (c0 > y) W(y, c0); y = Math.max(y, c1); } if (y < L2 + 2) W(y, L2 + 2); }
-    // le petit palier en haut, qui rejoint la plateforme du coin
-    const lx = sx + Math.cos(a0) * 1.3, lz = sz + Math.sin(a0) * 1.3, pad = rbox(1.8, .16, 1.8, plank, .03); pad.position.set(lx - .2, L2 - .08, lz - .2); g.add(pad);
-    SURF.push((px, pz) => harnessOn && Math.abs(px - lx + .2) < .9 && Math.abs(pz - lz + .2) < .9 ? L2 : null);
-    ACRO.gate = [sx + Math.cos(a0 + .35) * 2.7, sz + Math.sin(a0 + .35) * 2.7]; Object.assign(ACRO_GATE, { x1: ACRO.gate[0] - .7, x2: ACRO.gate[0] + .7, z1: ACRO.gate[1] - .2, z2: ACRO.gate[1] + .2 }); }
-  // NIVEAU 2 : les plateformes en bois autour des poteaux
-  for (const [x, z] of ACRO_P) { const d = rbox(ACRO_R * 2, .16, ACRO_R * 2, plank, .03); d.position.set(x, L2 - .08, z); g.add(d); for (let k = 0; k < 4; k++) { const b = rbox(.1, .3, ACRO_R * 2, dkwood, .01); b.position.set(x - ACRO_R + .3 + k * .5, L2 - .3, z); g.add(b); }
-    SURF.push((px, pz) => harnessOn && Math.abs(px - x) < ACRO_R && Math.abs(pz - z) < ACRO_R ? L2 : null); }
+    ACRO.gate = [sx + Math.cos(a0 + .3) * 2.7, sz + Math.sin(a0 + .3) * 2.7]; Object.assign(ACRO_GATE, { x1: ACRO.gate[0] - .7, x2: ACRO.gate[0] + .7, z1: ACRO.gate[1] - .2, z2: ACRO.gate[1] + .2 });
+    return { sx, sz, aX }; })();
+  // les deux passerelles de l'escalier vers le coin : au filet (3,5 m) et à la plateforme du coin (7,5 m), avec leurs rambardes
+  const passerelle = (ax, az, bx, bz, y, w) => { const f = segSurf(ax, az, y, bx, bz, y, w); SURF.push((x, z) => harnessOn ? f(x, z) : null);
+    const L = Math.hypot(bx - ax, bz - az), ux = (bx - ax) / L, uz = (bz - az) / L, vx = -uz, vz = ux, rotY = Math.atan2(-(bz - az), bx - ax), n = Math.max(2, Math.round(L / .32));
+    for (let k = 0; k <= n; k++) { const t = k / n, pl = rbox(.28, .07, w, plank, .02); pl.position.set(ax + (bx - ax) * t, y - .035, az + (bz - az) * t); pl.rotation.y = rotY; g.add(pl); }
+    for (const sd of [-1, 1]) { const ox = vx * sd * w / 2, oz = vz * sd * w / 2; tube([[ax + ox, y + .95, az + oz], [bx + ox, y + .95, bz + oz]], .03, rope);
+      for (const t of [0, 1]) { const po = rbox(.08, 1, .08, dkwood, .01); po.position.set(ax + (bx - ax) * t + ox, y + .5, az + (bz - az) * t + oz); g.add(po); }
+      const nt = new THREE.Mesh(new THREE.PlaneGeometry(L, .9), netM(L * 3, 2.7)); nt.position.set((ax + bx) / 2 + ox, y + .5, (az + bz) / 2 + oz); nt.rotation.y = rotY; g.add(nt);
+      for (let k = 0; k < Math.ceil(L / .45); k++) { const t = (k + .5) / Math.ceil(L / .45), px = ax + (bx - ax) * t + ox, pz = az + (bz - az) * t + oz; WALLS3.push({ x1: px - .22, x2: px + .22, z1: pz - .22, z2: pz + .22, y0: y - .4, y1: y + 1.3 }); } } };
+  { const { sx, sz, aX } = STAIR, cx0 = Math.cos(aX), cz0 = Math.sin(aX);
+    passerelle(sx + cx0 * 1.9, sz + cz0 * 1.9, x2 + .45, z2 + .45, L1, 1.1); // jusqu'au coin du grand filet
+    passerelle(sx + cx0 * 1.9, sz + cz0 * 1.9, x2 + ACRO_R - .25, z2 + ACRO_R - .25, L2, 1.1); } // jusqu'au coin de la plateforme
+  // NIVEAU 2 : les plateformes en bois autour des poteaux, avec des garde-corps (rambarde et filet) là où ne part aucun pont
+  ACRO_P.forEach(([x, z], i) => { const d = rbox(ACRO_R * 2, .22, ACRO_R * 2, plank, .04); d.position.set(x, L2 - .11, z); g.add(d);
+    SURF.push((px, pz) => harnessOn && Math.abs(px - x) < ACRO_R && Math.abs(pz - z) < ACRO_R ? L2 : null);
+    const voisins = [ACRO_P[(i + 1) % ACRO_P.length], ACRO_P[(i + ACRO_P.length - 1) % ACRO_P.length]].map(([bx, bz]) => [Math.sign(Math.round(bx - x)), Math.sign(Math.round(bz - z))]);
+    const ouvert = (sx, sz) => voisins.some(([a, b]) => a === sx && b === sz); // un pont part de ce côté
+    // le coin où arrive la passerelle de l'escalier (nord-est) ou part la tyrolienne (sud-est) : 1 m de passage dans la rambarde
+    const coin = x === x2 && z === z2 ? [1, 1] : x === x2 && z === z1 ? [1, -1] : null;
+    for (const [sx, sz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { if (ouvert(sx, sz)) continue;
+      const ex = x + sx * ACRO_R, ez = z + sz * ACRO_R, along = sx ? [0, 1] : [1, 0];
+      let t0 = -ACRO_R, t1 = ACRO_R; if (coin && (sx === coin[0] || sz === coin[1])) { const c = sx ? coin[1] : coin[0]; if (c > 0) t1 -= 1; else t0 += 1; }
+      const P0 = [ex + along[0] * t0, ez + along[1] * t0], P1 = [ex + along[0] * t1, ez + along[1] * t1], Lr = t1 - t0, mx = (P0[0] + P1[0]) / 2, mz = (P0[1] + P1[1]) / 2;
+      const nt = new THREE.Mesh(new THREE.PlaneGeometry(Lr, .9), netM(Lr * 3, 2.7)); nt.position.set(mx, L2 + .5, mz); nt.rotation.y = sx ? Math.PI / 2 : 0; g.add(nt);
+      tube([[P0[0], L2 + .95, P0[1]], [P1[0], L2 + .95, P1[1]]], .03, rope);
+      for (const P of [P0, P1]) { const po = rbox(.08, 1, .08, dkwood, .01); po.position.set(P[0], L2 + .5, P[1]); g.add(po); }
+      WALLS3.push({ x1: Math.min(P0[0], P1[0]) - .15, x2: Math.max(P0[0], P1[0]) + .15, z1: Math.min(P0[1], P1[1]) - .15, z2: Math.max(P0[1], P1[1]) + .15, y0: L2 - .4, y1: L2 + 1.3 }); }
+  });
   // les 8 ponts, tous différents
   const kinds = ["planches", "singe", "etriers", "filet", "poutre", "echelle", "balancoire", "tunnel"];
   ACRO_P.forEach(([ax, az], i) => {
