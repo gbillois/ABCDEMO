@@ -119,3 +119,22 @@ test('maillots identiques dans le jeu et le relais ; maillot fille/garçon et co
   const fonction = jeu.slice(jeu.indexOf('function setOutfitBrut('), jeu.indexOf('\n }', jeu.indexOf('function setOutfitBrut(')));
   for (const mot of ['su.full', 'u.female', 'suitTex(su)', 'u.tongs']) assert.ok(fonction.includes(mot), mot);
 });
+
+test('transfert d\'une partie : 6 chiffres, un envoi et une réception, messages passés tels quels, rien gardé', async () => {
+  const OriginalResponse = globalThis.Response, OriginalPair = globalThis.WebSocketPair;
+  globalThis.Response = class { constructor(body, options) { Object.assign(this, options); } };
+  globalThis.WebSocketPair = class { constructor() { const serveur = new Socket(); this[0] = { serveur }; this[1] = serveur; } };
+  try {
+    const tous = [], tags = new Map();
+    const ctx = { getWebSockets: t => tous.filter(ws => !ws.closed && (!t || (tags.get(ws) || []).includes(t))), acceptWebSocket: (ws, tg = []) => { tous.push(ws); tags.set(ws, tg); }, getTags: ws => tags.get(ws) || [] };
+    const salle = new Salle(ctx), ouvrir = async r => (await salle.fetch(new Request('https://test/transfert/123456?r=' + r))).webSocket.serveur;
+    const sansEnvoi = await ouvrir('recv'); assert.equal(sansEnvoi.code, 4404); // personne n'envoie encore : code inconnu
+    const env = await ouvrir('send'); assert.equal(env.closed, false);
+    assert.equal((await ouvrir('send')).code, 4409); // un seul envoi par code
+    const rec = await ouvrir('recv'); assert.deepEqual(env.messages.pop(), { relay: 'peer' });
+    assert.equal((await ouvrir('recv')).code, 4409); // une seule réception
+    await salle.webSocketMessage(env, JSON.stringify({ t: 'hello', pub: 'abc' })); assert.deepEqual(rec.messages.pop(), { t: 'hello', pub: 'abc' });
+    await salle.webSocketMessage(rec, JSON.stringify({ t: 'done' })); assert.deepEqual(env.messages.pop(), { t: 'done' });
+    await salle.webSocketMessage(rec, 'x'.repeat(5000)); assert.equal(env.closed, true); // la réception n'envoie que de petits messages
+  } finally { globalThis.Response = OriginalResponse; globalThis.WebSocketPair = OriginalPair; }
+});

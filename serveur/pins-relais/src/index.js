@@ -12,6 +12,13 @@ const POS_PAR_SECONDE = 15;   // positions acceptées par joueur et par seconde
 const PHRASE_DELAI_MS = 1500; // délai minimal entre deux phrases d'un même joueur
 const CODE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/;
 const MODES = 5;              // 0 immobile, 1 marche, 2 nage, 3 échelle, 4 toboggan
+// Transfert d'une partie d'un appareil à l'autre (comme Millepoques) : un code de 6 chiffres = une petite salle à deux.
+// L'appareil qui envoie arrive le premier (?r=send), celui qui reçoit le rejoint (?r=recv) ; chaque message de l'un est
+// passé tel quel à l'autre. La partie est chiffrée par les deux appareils (le relais ne voit que des octets illisibles) ;
+// rien n'est écrit ; le code meurt au bout de 10 minutes.
+const TRANSFERT = /^\/transfert\/(\d{6})$/;
+const T_TTL = 10 * 60e3, T_MAX_SEND = 600000, T_MAX_RECV = 4000; // durée, octets envoyés par chacun
+const T_INCONNU = [4404, "code inconnu"], T_PRIS = [4409, "code pris"], T_FINI = [4408, "code fini"], T_GROS = [4413, "trop gros"];
 const MAILLOTS = ["rouge", "raye", "palmiers", "requin", "arcenciel", "surf", "or"];
 // apparence du personnage : uniquement des numéros dans des listes fermées (mêmes bornes que LOOK_MAX du jeu)
 // (les 4 derniers : forme des yeux, sourcils, nez, bouche ; un ancien jeu envoie encore 13 numéros : accepté, le jeu complète)
@@ -40,6 +47,13 @@ export default {
 
     if (url.pathname === "/") return new Response("Relais du Domaine des Pins : OK\n", { headers: { "content-type": "text/plain; charset=utf-8" } });
 
+    const t = url.pathname.match(TRANSFERT);
+    if (t) {
+      const role = url.searchParams.get("r");
+      if (request.headers.get("Upgrade") !== "websocket" || (role !== "send" && role !== "recv")) return new Response("WebSocket attendu", { status: 426 });
+      if (!origines.includes(origine)) return new Response("Origine refusée", { status: 403 });
+      return env.SALLES.get(env.SALLES.idFromName("transfert-" + t[1])).fetch(request);
+    }
     const m = url.pathname.match(/^\/salle\/([^/]+)$/);
     if (!m) return new Response("Introuvable", { status: 404 });
     if (request.headers.get("Upgrade") !== "websocket") return new Response("WebSocket attendu", { status: 426 });
@@ -59,6 +73,7 @@ export class Salle {
   }
 
   async fetch(request) {
+    if (TRANSFERT.test(new URL(request.url).pathname)) return this.transfert(request);
     const creer = new URL(request.url).searchParams.get("creer") === "1";
     const presents = this.ctx.getWebSockets().filter(ws => this.place(ws) >= 0);
     const [client, serveur] = Object.values(new WebSocketPair());
@@ -82,7 +97,32 @@ export class Salle {
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  place(ws) { const a = ws.deserializeAttachment(); return a ? a.s : -1; }
+  place(ws) { const a = ws.deserializeAttachment(); return a && Number.isInteger(a.s) ? a.s : -1; }
+
+  // ---- transfert d'une partie : deux appareils, l'un envoie, l'autre reçoit
+  refuserT([c, raison]) { const [client, serveur] = Object.values(new WebSocketPair()); this.ctx.acceptWebSocket(serveur, ["fini"]); serveur.close(c, raison); return new Response(null, { status: 101, webSocket: client }); }
+  transfert(request) {
+    const role = new URL(request.url).searchParams.get("r"), now = Date.now();
+    const env = this.ctx.getWebSockets("send")[0], ne = env?.deserializeAttachment()?.t || 0;
+    if (env && now - ne > T_TTL) { this.finirT(T_FINI); return this.refuserT(role === "send" ? T_FINI : T_INCONNU); }
+    if (role === "send" && env) return this.refuserT(T_PRIS);
+    if (role === "recv" && !env) return this.refuserT(T_INCONNU);
+    if (role === "recv" && this.ctx.getWebSockets("recv").length) return this.refuserT(T_PRIS);
+    const [client, serveur] = Object.values(new WebSocketPair());
+    this.ctx.acceptWebSocket(serveur, [role]);
+    serveur.serializeAttachment({ tr: true, t: role === "send" ? now : ne, n: 0 });
+    if (role === "recv") for (const ws of this.ctx.getWebSockets()) if (ws.deserializeAttachment()?.tr) { try { ws.send('{"relay":"peer"}'); } catch (e) {} }
+    return new Response(null, { status: 101, webSocket: client });
+  }
+  finirT([c, raison]) { for (const ws of this.ctx.getWebSockets()) { try { ws.close(c, raison); } catch (e) {} } }
+  messageT(ws, data, a) {
+    if (Date.now() - a.t > T_TTL) return this.finirT(T_FINI);
+    const send = this.ctx.getTags(ws).includes("send");
+    a.n += typeof data === "string" ? data.length * 3 : data.byteLength;
+    if (a.n > (send ? T_MAX_SEND : T_MAX_RECV)) return this.finirT(T_GROS);
+    ws.serializeAttachment(a);
+    for (const o of this.ctx.getWebSockets()) if (o !== ws && o.deserializeAttachment()?.tr) { try { o.send(data); } catch (e) {} }
+  }
 
   diffuser(obj, sauf) {
     const txt = JSON.stringify(obj);
@@ -90,6 +130,7 @@ export class Salle {
   }
 
   async webSocketMessage(ws, data) {
+    const at = ws.deserializeAttachment(); if (at && at.tr) return this.messageT(ws, data, at);
     const s = this.place(ws);
     if (s < 0) return;
     if (typeof data !== "string" || data.length > TAILLE_MAX) return ws.close(1009, "trop long");
@@ -130,11 +171,14 @@ export class Salle {
   }
 
   async webSocketClose(ws, code) {
+    const at = ws.deserializeAttachment(); if (at && at.tr) { // transfert : l'autre appareil est prévenu
+      for (const o of this.ctx.getWebSockets()) if (o !== ws && o.deserializeAttachment()?.tr) { try { o.send('{"relay":"gone"}'); } catch (e) {} }
+      try { ws.close(code === 1005 || code === 1006 ? 1000 : code, "au revoir"); } catch (e) {} return; }
     this.quitter(ws);
     try { ws.close(code === 1000 || (code >= 3000 && code <= 4999) ? code : 1000, "au revoir"); } catch (e) {}
   }
 
-  async webSocketError(ws) { this.quitter(ws); }
+  async webSocketError(ws) { const at = ws.deserializeAttachment(); if (at && at.tr) return this.webSocketClose(ws, 1000); this.quitter(ws); }
 
   quitter(ws) {
     const s = this.place(ws);

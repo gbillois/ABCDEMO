@@ -55,6 +55,10 @@ Accord du propriétaire pour ce seul jeu : `pins/index.html` peut se connecter
   Les personnages créés restent dans `localStorage` (6 au plus) ; le code de personnage
   (surnom + choix) se recopie à la main d'un appareil à l'autre, sans réseau. Le surnom et le sexe restent fixes
   pendant la connexion ; le maillot peut changer aux vestiaires et suit le personnage.
+- Transfert d'une partie vers un autre appareil (comme dans Millepoques) : le même relais, chemin `/transfert/<6 chiffres>`.
+  L'appareil qui envoie montre un code à 6 chiffres, l'autre le tape ; le relais passe les messages de l'un à l'autre
+  sans rien écrire et coupe au bout de 10 minutes. La partie est chiffrée de bout en bout par le navigateur (ECDH P-256,
+  HKDF salé par le code, AES-GCM) : le relais ne voit que des octets illisibles. Sans réseau, on passe par un fichier JSON.
 - L'adresse du relais se règle dans `RELAIS_PROD` du jeu ; déploiement : `serveur/pins-relais/DEPLOIEMENT.md`.
 - Aucun autre jeu ne doit utiliser le réseau (sauf l'Oracle du Grand Arbre, ci-dessous).
 
