@@ -38,6 +38,12 @@
 *{box-sizing:border-box;touch-action:manipulation}
 .ic{width:1.25em;height:1.25em;vertical-align:-.28em;flex:none;display:inline-block;overflow:visible}
 .menuJeu{max-width:520px}
+.tpConf{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(20,30,40,.35);border-radius:18px}
+.tpConf[hidden]{display:none}
+.tpConf>div{background:#fffdf4;border-radius:20px;padding:14px 18px;box-shadow:0 6px 0 #c9b98f,0 12px 30px rgba(0,0,0,.3);max-width:86%}
+.tpConf p{font-size:20px;font-weight:800;margin:0 0 10px}
+.tpConf .btn .ic{width:1.3em;height:1.3em}
+
 /* Réglages en onglets */
 .card.reglages{max-width:540px;padding:0 0 16px;overflow:hidden auto;max-height:calc(100vh - 32px)}
 .reglages .regTete{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 8px 20px;background:linear-gradient(#3fae6e,#2f8f5b);color:#fff;position:sticky;top:0;z-index:1}
@@ -374,8 +380,9 @@ html.app .site{display:none!important}
   <div class="card">
     <h1>Carte du domaine</h1>
     <div style="position:relative"><canvas id="mapc" width="640" height="640" style="touch-action:none"></canvas>
-      <div style="position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px"><button id="mapPlus" class="btn" style="padding:6px 14px;font-size:22px">➕</button><button id="mapMinus" class="btn" style="padding:6px 14px;font-size:22px">➖</button></div></div>
-    <p class="small">🔺 Toi · 🟡 canards à trouver · 🟣 personnages · ronds de couleur : tes amis<br><b>✨ Touche un endroit de la carte pour y aller tout de suite !</b> ➕ pour zoomer, puis glisse le doigt pour bouger la carte.</p>
+      <div style="position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px"><button id="mapPlus" class="btn" style="padding:6px 14px;font-size:22px">+</button><button id="mapMinus" class="btn" style="padding:6px 14px;font-size:22px">−</button></div></div>
+    <div id="tpConf" class="tpConf" hidden><div><p id="tpTxt"></p><div class="row"><button id="tpOui" class="btn"><i data-ico="teleport"></i> Y aller</button><button id="tpNon" class="btn" style="background:#9aa0b4">Non</button></div></div></div>
+    <p class="small">Touche un <b>point violet</b> (ou n'importe quel endroit) pour t'y téléporter. Bleu : toi · jaune : les canards · violet clair : les personnages. Plus et moins pour zoomer, puis glisse le doigt pour bouger la carte.</p>
     <div class="row"><button id="mapClose" class="btn">Fermer</button></div>
   </div>
 </div>
@@ -8061,15 +8068,32 @@ mc.addEventListener("pointerdown", e => { MAPV.drag = { id: e.pointerId, x: e.cl
 mc.addEventListener("pointermove", e => { const d = MAPV.drag; if (!d || d.id !== e.pointerId) return; const r = mc.getBoundingClientRect(), f = 640 / r.width / mapK(), dx = e.clientX - d.x, dy = e.clientY - d.y;
   if (Math.hypot(dx, dy) > 8) d.moved = true; if (d.moved && MAPV.z > 1) { MAPV.cx = d.cx - dx * f; MAPV.cz = d.cz - dy * f; mapClamp(); } });
 mc.addEventListener("pointercancel", () => { MAPV.drag = null; });
-mc.addEventListener("pointerup", e => { const d = MAPV.drag; MAPV.drag = null; if (!d || d.moved) return;
-  if (state !== "walk" && state !== "drive") { toast("Termine d'abord ce que tu fais, puis réessaie 😉", 2000); return; }
-  const r = mc.getBoundingClientRect(), S = 640, k = mapK(), px = (e.clientX - r.left) * S / r.width, pz = (e.clientY - r.top) * S / r.height;
-  let x = (px - S / 2) / k + MAPV.cx, z = (pz - S / 2) / k + MAPV.cz; x = Math.max(-WORLD + 2, Math.min(WORLD - 2, x)); z = Math.max(-WORLD + 2, Math.min(WORLD - 2, z));
-  if (inWater(x, z) || inPoolRect(x, z, -1) || Math.hypot(x - 120, z - 95) < 9.5) { toast("🌊 Là, c'est de l'eau ! Touche un autre endroit sur la carte.", 2200); return; }
+// Points de téléportation (violets sur la carte) ; avant de partir, on demande confirmation
+function pointsTP() { const L = [
+    ["Ton cottage", ...myCottage.toWorld(0, 7)], ["L'accueil et le village", ACCUEIL.x, ACCUEIL.z - ACCUEIL.hz - 2.5], ["L'Aquaparc", 0, 10],
+    ["Le lac", LAKE.x + DOCK.ux * (DOCK.u1 + 2), LAKE.z + DOCK.uz * (DOCK.u1 + 2)], ["Le Multi Parcs", GTW.x, GTW.z + GTW.hz + 2.5], ["Burger Fast", BFW.x, BFW.z + BFW.hz + 2.5],
+    ["Le parking", 83, 50], ["Le minigolf", GOLF.kiosk[0], GOLF.kiosk[1] - 2.5], ["L'acrobranche", ACRO.gate[0], ACRO.gate[1] - 2.5], ["Le zoo", (ZOO.x1 + ZOO.x2) / 2, ZOO.z2 + 2.5],
+    ["La ferme", (FARM.x1 + FARM.x2) / 2, FARM.z2 + 2.5], ["Le poney club", ARENA.x, ARENA.z - ARENA.rz - 3], ["Le cinéma", (CINE.x1 + CINE.x2) / 2, CINE.z1 - 2.5],
+    ["La salle des fêtes", (FETE.x1 + FETE.x2) / 2, FETE.z2 + 2.5], ["La rivière sauvage", RDOCK.x, RDOCK.z]];
+  if (HALLO.on) L.push(["Le manoir hanté", MANOR.x1 - 2.5, MANOR.door]); return L; }
+function teleporter(x, z) {
   if (state === "drive") dismount(); if (state === "golf") golf3Stop();
   const P = player.position; P.set(x, 0, z); resolve(P, { x, z }); P.y = floorY({ x: P.x, y: 0, z: P.z }); prev.x = P.x; prev.z = P.z;
   whoosh(.5, .08, 600, 2400); tone(1046, .1, "sine", .08); tone(1568, .14, "sine", .07, 0, .1);
-  mapOpen = false; $("mapView").hidden = true; toast("✨ Hop ! Te voilà arrivé !", 1800);
+  mapOpen = false; $("mapView").hidden = true; $("tpConf").hidden = true; toast("Hop ! Te voilà arrivé !", 1800);
+}
+let tpVers = null;
+$("tpOui").onclick = () => { if (tpVers) teleporter(tpVers[0], tpVers[1]); tpVers = null; };
+$("tpNon").onclick = () => { sfx.click(); $("tpConf").hidden = true; tpVers = null; };
+$("mapc").parentNode.append($("tpConf"));
+mc.addEventListener("pointerup", e => { const d = MAPV.drag; MAPV.drag = null; if (!d || d.moved) return;
+  if (state !== "walk" && state !== "drive") { toast("Termine d'abord ce que tu fais, puis réessaie.", 2000); return; }
+  const r = mc.getBoundingClientRect(), S = 640, k = mapK(), px = (e.clientX - r.left) * S / r.width, pz = (e.clientY - r.top) * S / r.height;
+  // un point violet tout près ? on va à ce lieu
+  let nom = null, x, z, best = 26; for (const [n, tx, tz] of pointsTP()) { const dd = Math.hypot((tx - MAPV.cx) * k + S / 2 - px, (tz - MAPV.cz) * k + S / 2 - pz); if (dd < best) { best = dd; nom = n; x = tx; z = tz; } }
+  if (!nom) { x = (px - S / 2) / k + MAPV.cx; z = (pz - S / 2) / k + MAPV.cz; x = Math.max(-WORLD + 2, Math.min(WORLD - 2, x)); z = Math.max(-WORLD + 2, Math.min(WORLD - 2, z));
+    if (inWater(x, z) || inPoolRect(x, z, -1) || Math.hypot(x - 120, z - 95) < 9.5) { toast("Là, c'est de l'eau ! Touche un autre endroit sur la carte.", 2200); return; } }
+  sfx.click(); tpVers = [x, z]; $("tpTxt").textContent = nom ? "Aller à : " + nom + " ?" : "Aller à cet endroit ?"; $("tpConf").hidden = false;
 });
 function drawMap() {
   const S = 640, k = mapK(), X = x => (x - MAPV.cx) * k + S / 2, Z = z => (z - MAPV.cz) * k + S / 2;
@@ -8120,6 +8144,11 @@ function drawMap() {
     const fx = X(o.g.position.x), fz = Z(o.g.position.z); mx.fillStyle = ANIMAUX[s][3]; mx.strokeStyle = "#fff"; mx.lineWidth = 3; mx.beginPath(); mx.arc(fx, fz, 10, 0, 7); mx.fill(); mx.stroke();
     mx.textBaseline = "middle"; mx.font = '13px sans-serif'; mx.fillText(ANIMAUX[s][0], fx, fz + 1); mx.textBaseline = "alphabetic";
     const nm = nomJoueur(s); mx.font = '800 12px "Baloo 2",sans-serif'; mx.lineWidth = 3; mx.strokeStyle = "#fff"; mx.strokeText(nm, fx, fz - 14); mx.fillStyle = ANIMAUX[s][3]; mx.fillText(nm, fx, fz - 14); }
+  // les points de téléportation
+  mx.textAlign = "center"; for (const [n, tx, tz] of pointsTP()) { const qx = X(tx), qz = Z(tz); if (qx < -20 || qx > S + 20 || qz < -20 || qz > S + 20) continue;
+    mx.fillStyle = "#8e44ad"; mx.strokeStyle = "#fff"; mx.lineWidth = 3; mx.beginPath(); mx.arc(qx, qz, 9, 0, 7); mx.fill(); mx.stroke();
+    mx.fillStyle = "#fff"; mx.beginPath(); mx.arc(qx, qz, 3.2, 0, 7); mx.fill();
+    if (MAPV.z > 1.5) { mx.font = '800 13px "Baloo 2",sans-serif'; mx.lineWidth = 4; mx.strokeStyle = "#fff"; mx.strokeText(n, qx, qz - 14); mx.fillStyle = "#5b2a86"; mx.fillText(n, qx, qz - 14); } }
   const px = X(player.position.x), pz = Z(player.position.z); mx.save(); mx.translate(px, pz); mx.rotate(-player.rotation.y + Math.PI);
   mx.fillStyle = "#2e86de"; mx.strokeStyle = "#fff"; mx.lineWidth = 2; mx.beginPath(); mx.moveTo(0, -11); mx.lineTo(8, 8); mx.lineTo(-8, 8); mx.closePath(); mx.fill(); mx.stroke(); mx.restore();
 }
