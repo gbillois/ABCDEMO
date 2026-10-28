@@ -591,7 +591,7 @@ const SUITS = [
   { id: "palmiers", name: "Short palmiers", price: 600, a: "#16a085", b: "#ffd23f", k: "dots" },
   { id: "requin", name: "Short requin", price: 850, a: "#5d6d7e", b: "#ffffff", k: "teeth" },
   { id: "arcenciel", name: "Short arc-en-ciel", price: 1200, k: "rainbow" },
-  { id: "surf", name: "Combinaison de surf", price: 1800, a: "#17202a", b: "#00b894", k: "stripes", full: true },
+  { id: "surf", name: "Combinaison de surf", price: 1800, a: "#17202a", b: "#00b894", k: "surf", full: true },
   { id: "or", name: "Short en or", price: 2900, a: "#d4a017", b: "#ffe680", k: "dots", gold: true },
 ];
 function suitCanvas(su, W = 128, H = 128) {
@@ -599,6 +599,7 @@ function suitCanvas(su, W = 128, H = 128) {
   if (su.k === "rainbow") ["#e74c3c", "#e67e22", "#f1c40f", "#2ecc71", "#3498db", "#9b59b6"].forEach((col, i) => { x.fillStyle = col; x.fillRect(0, i * H / 6, W, H / 6 + 1); });
   else { x.fillStyle = su.a; x.fillRect(0, 0, W, H); x.fillStyle = su.b || su.a;
     if (su.k === "stripes") for (let i = 0; i < 8; i += 2) x.fillRect(0, i * H / 8, W, H / 16);
+    if (su.k === "surf") { x.beginPath(); x.moveTo(0, H * .62); x.bezierCurveTo(W * .3, H * .45, W * .55, H * .8, W, H * .55); x.lineTo(W, H * .7); x.bezierCurveTo(W * .55, H * .95, W * .3, H * .6, 0, H * .78); x.fill(); } // une seule vague sur le côté, pas de bandes
     if (su.k === "dots") for (let i = 0; i < 18; i++) { x.beginPath(); x.arc((i * 37) % W, (i * 53) % H, 6 + (i % 3) * 2, 0, 7); x.fill(); }
     if (su.k === "teeth") for (let i = 0; i < 8; i++) { x.beginPath(); x.moveTo(i * W / 8, H * .55); x.lineTo(i * W / 8 + W / 16, H * .75); x.lineTo((i + 1) * W / 8, H * .55); x.fill(); } }
   return c;
@@ -614,6 +615,7 @@ function suitMesh(su) { // short exposé dans la boutique
 await souffle(14,"Les pins poussent…");
 /* ================= Monde ================= */
 const circles = [], boxes = [];
+const PP = { x1: 107, x2: 129, z1: -13, z2: 6, gx: 118 }, PPOOL = { x1: 111, x2: 124, z1: -8.5, z2: -.5 }; // la piscine des anniversaires (dehors)
 const DOME = { x: 0, z: -29, r: 34 }, POOL = { x1: -12, x2: 20, z1: -46, z2: -28 }, KIDS = { x: -22, z: -22, r: 7 }, LAKE = { x: 78, z: -62, r: 38 }; // le grand lac (agrandi), avec sa grande plage du côté de l'Aquaparc
 const BEACH = { a: 2.35, w: .78, d: 11 }; // angle du milieu de la plage (vers l'Aquaparc), demi-ouverture, largeur du sable
 const onBeach = (x, z, pad = 0) => { const dx = x - LAKE.x, dz = z - LAKE.z, d = Math.hypot(dx, dz), a = Math.atan2(dz, dx); return d < LAKE.r + BEACH.d + pad && d > LAKE.r - 1 && Math.abs(Math.atan2(Math.sin(a - BEACH.a), Math.cos(a - BEACH.a))) < BEACH.w + pad / LAKE.r; };
@@ -684,7 +686,7 @@ function vcMesh(items, m = VC) {
 
 // Sol avec un trou pour le bassin de la piscine (coordonnées de forme : z du monde = -y)
 function poolHole() { const h = new THREE.Path(); h.moveTo(POOL.x1, -POOL.z2); h.lineTo(POOL.x1, -POOL.z1); h.lineTo(POOL.x2, -POOL.z1); h.lineTo(POOL.x2, -POOL.z2); h.lineTo(POOL.x1, -POOL.z2); return h; }
-const gShape = new THREE.Shape(); gShape.moveTo(-700, -700); gShape.lineTo(700, -700); gShape.lineTo(700, 700); gShape.lineTo(-700, 700); gShape.holes.push(poolHole());
+const gShape = new THREE.Shape(); gShape.moveTo(-700, -700); gShape.lineTo(700, -700); gShape.lineTo(700, 700); gShape.lineTo(-700, 700); gShape.holes.push(poolHole()); { const h = new THREE.Path(); h.moveTo(PPOOL.x1, -PPOOL.z2); h.lineTo(PPOOL.x1, -PPOOL.z1); h.lineTo(PPOOL.x2, -PPOOL.z1); h.lineTo(PPOOL.x2, -PPOOL.z2); h.lineTo(PPOOL.x1, -PPOOL.z2); gShape.holes.push(h); }
 const ground = new THREE.Mesh(new THREE.ShapeGeometry(gShape), mat(0xffffff, 0.95, { map: grassTex }));
 ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
 
@@ -749,7 +751,7 @@ function pressWaves() {
   if (WAVES.t < 0) { WAVES.t = 0; tone(220, .5, "sawtooth", .07, 0, .1); tone(330, .5, "sawtooth", .07, 0, .6); toast("🌊 C'est parti pour 5 minutes de vagues ! Saute dans la grande piscine !", 3000); }
   else { WAVES.t = Math.max(WAVES.t, WAVES.dur - 4); toast("Les vagues s'arrêtent… 🌊", 2000); } }
 function poolWaveH(x, z) { if (WAVES.amp <= 0) return 0; const ex = Math.min(x - POOL.x1, POOL.x2 - x), ez = Math.min(z - POOL.z1, POOL.z2 - z), edge = Math.max(0, Math.min(1, ex / 1.5, ez / 1.2));
-  return .26 * WAVES.amp * edge * Math.sin((x - POOL.x1) * 1.05 - WAVES.t * 2.3); }
+  return .62 * WAVES.amp * edge * Math.sin((x - POOL.x1) * .75 - WAVES.t * 2.1); } // de vraies vagues : plus hautes et plus longues
 function updateWaves(dt, P) {
   const inD = Math.hypot(P.x - DOME.x, P.z - DOME.z) < DOME.r + 10;
   if (WAVES.t < 0) { WAVES.next -= dt;
@@ -1645,7 +1647,8 @@ function blowCandles(r) {
   // « Joyeux anniversaire », joué à la flûte
   const N = [[392, .3], [392, .15], [440, .45], [392, .45], [523, .45], [494, .9], [392, .3], [392, .15], [440, .45], [392, .45], [587, .45], [523, .9]];
   let t = .4; for (const [f, d] of N) { tone(f, d * .95, "triangle", .1, 0, t); t += d * .85; }
-  setTimeout(() => petitEffet("confetti"), 400); toast("Joyeux anniversaire ! 🎂🎉", 3200);
+  setTimeout(() => petitEffet("confetti"), 400); toast(partyOK ? "Joyeux anniversaire ! 🎂🎉" : "Joyeux anniversaire ! 🎂🎉 La piscine des anniversaires est ouverte pour toi, à côté du Multi Parcs ! 🏊", 4200);
+  partyOK = true; PPGATE.off = true; try { localStorage.setItem("pins-fete", "1"); } catch (e) {}
 }
 const BALLS = LOWQ ? 3600 : 4800, ballCols = [0xff5a4e, 0xffc93c, 0x2e86de, 0x27ae60, 0xe84393, 0x9b59b6];
 const ballIM = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.14, 1), mat(0xffffff, .3), BALLS);
@@ -2889,6 +2892,63 @@ function manorAct(a) {
   if (a === "coffin") { if (MANOR.coffin.t > -9) return; MANOR.coffin.t = 0; [196, 185, 175, 165].forEach((f, i) => tone(f, .25, "sawtooth", .05, 0, i * .12)); tone(880, .4, "square", .07, -500, .5); toast("💀 AAAH ! Un squelette ! … Il te fait coucou 👋", 2800); }
   if (a === "candy") { if (time - MANOR.candyT < 30) { toast("🍬 Tu as déjà pris des bonbons ! Reviens plus tard.", 2000); return; } MANOR.candyT = time; money += 20; saveShop(); updMoney(); [1046, 1318, 1568].forEach((f, i) => tone(f, .12, "triangle", .1, 0, i * .08)); toast("🍬 Des bonbons ! Et une pièce cachée : +20 € 🎃", 2600); }
   if (a === "piano") { [220, 261, 311, 293, 233, 220].forEach((f, i) => tone(f, .5, "triangle", .1, 0, i * .28)); toast("🎹 Une musique qui fait peur… 👻", 2000); }
+}
+
+/* ---------- La piscine des anniversaires 🎂 : dehors, à l'est du Multi Parcs ; on y entre après avoir soufflé les bougies ---------- */
+let partyOK = false; try { partyOK = localStorage.getItem("pins-fete") === "1"; } catch (e) {}
+const PPGATE = { x1: PP.gx - 1.3, x2: PP.gx + 1.3, z1: PP.z2 - .15, z2: PP.z2 + .15, off: partyOK }; boxes.push(PPGATE);
+ZONES.push({ x1: PP.x1 - 2, x2: PP.x2 + 2, z1: PP.z1 - 2, z2: PP.z2 + 2 });
+path([PP.gx, 30], [PP.gx, PP.z2 + .6], 2.6);
+{
+  const g = new THREE.Group(); scene.add(g); const P2 = PPOOL, W = P2.x2 - P2.x1, D = P2.z2 - P2.z1, cx = (P2.x1 + P2.x2) / 2, cz = (P2.z1 + P2.z2) / 2;
+  // le bassin : carrelage, fond, eau
+  [[cx, P2.z1, W, 0], [cx, P2.z2, W, Math.PI], [P2.x1, cz, D, Math.PI / 2], [P2.x2, cz, D, -Math.PI / 2]].forEach(([x, z, w, ry]) => { const t = tileTex.clone(); t.repeat.set(w / 4, 1.8 / 4); const m = new THREE.Mesh(new THREE.PlaneGeometry(w, 1.8), mat(0xffffff, .3, { map: t })); m.position.set(x, -.9, z); m.rotation.y = ry; g.add(m); });
+  const fl = tileTex.clone(); fl.repeat.set(W / 4, D / 4); const bottom = new THREE.Mesh(new THREE.PlaneGeometry(W, D), mat(0xffffff, .3, { map: fl })); bottom.rotation.x = -Math.PI / 2; bottom.position.set(cx, -1.8, cz); g.add(bottom);
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(W, D), new THREE.MeshStandardMaterial({ color: 0x5fd8ff, roughness: .05, transparent: true, opacity: .6, normalMap: waterNormal })); water.material.normalMap = waterNormal.clone(); water.material.normalMap.repeat.set(W / 6, D / 6); water.rotation.x = -Math.PI / 2; water.position.set(cx, -.22, cz); water.renderOrder = 1; g.add(water); PP.water = water;
+  // la plage en bois autour, la margelle
+  const deck = new THREE.Mesh(new THREE.PlaneGeometry(PP.x2 - PP.x1, PP.z2 - PP.z1), mat(0xffffff, .85, { map: woodTex, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
+  deck.rotation.x = -Math.PI / 2; deck.position.set((PP.x1 + PP.x2) / 2, .02, (PP.z1 + PP.z2) / 2); deck.receiveShadow = true; g.add(deck);
+  const hole = new THREE.Mesh(new THREE.PlaneGeometry(W, D), mat(0x2a7fa8, .2)); hole.visible = false; g.add(hole);
+  const cop = mat(0xffffff, .5); [[cx, P2.z1 - .3, W + 1.2, .6], [cx, P2.z2 + .3, W + 1.2, .6], [P2.x1 - .3, cz, .6, D], [P2.x2 + .3, cz, .6, D]].forEach(([x, z, w, d]) => { const b = rbox(w, .2, d, cop, .06); b.position.set(x, .1, z); g.add(b); });
+  // une barrière blanche tout autour, avec un portail
+  const fenceM = mat(0xffffff, .5); const side = (ax, az, bx, bz) => { const L = Math.hypot(bx - ax, bz - az), n = Math.round(L / .5);
+    for (let k = 0; k <= n; k++) { const x = ax + (bx - ax) * k / n, z = az + (bz - az) * k / n; if (az === PP.z2 && bz === PP.z2 && Math.abs(x - PP.gx) < 1.4) continue; const p = rbox(.08, 1.1, .08, fenceM, .02); p.position.set(x, .55, z); g.add(p); }
+    for (const y of [.35, .95]) { if (az === PP.z2 && bz === PP.z2) { for (const [a, b] of [[ax, PP.gx - 1.4], [PP.gx + 1.4, bx]]) { const r = rbox(Math.abs(b - a), .06, .05, fenceM, .01); r.position.set((a + b) / 2, y, az); g.add(r); } } else { const r = rbox(Math.abs(bx - ax) + .05, .06, Math.abs(bz - az) + .05, fenceM, .01); r.position.set((ax + bx) / 2, y, (az + bz) / 2); g.add(r); } } };
+  side(PP.x1, PP.z1, PP.x2, PP.z1); side(PP.x1, PP.z1, PP.x1, PP.z2); side(PP.x2, PP.z1, PP.x2, PP.z2); side(PP.x1, PP.z2, PP.x2, PP.z2);
+  boxes.push({ x1: PP.x1, x2: PP.x2, z1: PP.z1 - .1, z2: PP.z1 + .1 }, { x1: PP.x1 - .1, x2: PP.x1 + .1, z1: PP.z1, z2: PP.z2 }, { x1: PP.x2 - .1, x2: PP.x2 + .1, z1: PP.z1, z2: PP.z2 }, { x1: PP.x1, x2: PP.gx - 1.3, z1: PP.z2 - .1, z2: PP.z2 + .1 }, { x1: PP.gx + 1.3, x2: PP.x2, z1: PP.z2 - .1, z2: PP.z2 + .1 });
+  const gate = new THREE.Group(); gate.position.set(PP.gx - 1.3, 0, PP.z2); g.add(gate); const gp = rbox(2.6, 1, .06, mat(0xff5a4e, .5), .02); gp.position.set(1.3, .55, 0); gate.add(gp); PP.gate = gate;
+  // l'arche de ballons au-dessus du portail
+  const cols = [0xff5a4e, 0xffc93c, 0x2e86de, 0x27ae60, 0xe84393, 0x9b59b6];
+  for (let k = 0; k <= 16; k++) { const a = Math.PI * k / 16, b = new THREE.Mesh(new THREE.SphereGeometry(.28, 12, 10), mat(cols[k % 6], .3)); b.position.set(PP.gx + Math.cos(a) * 1.8, .3 + Math.sin(a) * 2.6, PP.z2); b.scale.y = 1.15; g.add(b); }
+  const sign = label("🎂 Piscine des anniversaires", "#e84393", "#ffffff", 1.1); sign.position.set(PP.gx, 3.6, PP.z2); g.add(sign);
+  // les guirlandes de fanions
+  for (const [ax, az, bx, bz] of [[PP.x1, PP.z1, PP.x2, PP.z2], [PP.x2, PP.z1, PP.x1, PP.z2]]) for (let k = 1; k < 20; k++) { const t = k / 20, f = new THREE.Mesh(new THREE.ConeGeometry(.18, .35, 3), mat(cols[k % 6], .5, { side: THREE.DoubleSide })); f.scale.z = .1; f.rotation.x = Math.PI; f.rotation.y = Math.atan2(bx - ax, bz - az) + Math.PI / 2; f.position.set(ax + (bx - ax) * t, 3.2 - Math.sin(Math.PI * t) * .8, az + (bz - az) * t); g.add(f); }
+  for (const [x, z] of [[PP.x1 + .2, PP.z1 + .2], [PP.x2 - .2, PP.z1 + .2], [PP.x1 + .2, PP.z2 - .2], [PP.x2 - .2, PP.z2 - .2]]) { const m = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, 3.3, 8), fenceM); m.position.set(x, 1.65, z); g.add(m); }
+  // des bouées qui flottent : un donut rose, une bouée licorne… et un toboggan
+  PP.floats = [];
+  for (const [x, z, c] of [[cx - 3, cz - 1, 0xff8fc8], [cx + 2, cz + 1.5, 0xffd23f], [cx + 4, cz - 2, 0x7cff6b]]) { const t = new THREE.Mesh(new THREE.TorusGeometry(.55, .22, 10, 24), mat(c, .35)); t.rotation.x = Math.PI / 2; t.position.set(x, -.15, z); g.add(t); PP.floats.push({ m: t, x, z, ph: x }); }
+  { const s = new THREE.Group(); s.position.set(P2.x2 + 1.6, 0, cz); g.add(s); const sm = mat(0x2e86de, .4);
+    const ladder = rbox(.8, 2.2, .12, mat(0xffffff, .5), .03); ladder.position.set(1, 1.1, 0); s.add(ladder); const top = rbox(1, .12, 1, sm, .03); top.position.set(.6, 2.2, 0); s.add(top);
+    const ch = new THREE.Mesh(new THREE.BoxGeometry(2.6, .1, .8), sm); ch.position.set(-.8, 1.2, 0); ch.rotation.z = -.62; s.add(ch); circles.push({ x: P2.x2 + 2.6, z: cz, r: .5 }); }
+  // la table de fête : gâteau, cadeaux, transats
+  { const t = rbox(2.2, .08, 1.1, mat(0xffffff, .5), .03); t.position.set(PP.x1 + 2, .8, PP.z1 + 2); g.add(t); for (const [dx, dz] of [[-1, -.45], [1, -.45], [-1, .45], [1, .45]]) { const l = rbox(.06, .8, .06, mat(0xffffff, .5), .01); l.position.set(PP.x1 + 2 + dx, .4, PP.z1 + 2 + dz); g.add(l); }
+    const cake = new THREE.Mesh(new THREE.CylinderGeometry(.32, .32, .3, 20), mat(0xffd1e8, .5)); cake.position.set(PP.x1 + 2, .99, PP.z1 + 2); g.add(cake);
+    for (let k = 0; k < 3; k++) { const gf = rbox(.32, .32, .32, mat(cols[k + 2], .5), .02); gf.position.set(PP.x1 + 1.2 + k * .5, 1, PP.z1 + 2.2); g.add(gf); }
+    boxes.push({ x1: PP.x1 + .8, x2: PP.x1 + 3.2, z1: PP.z1 + 1.4, z2: PP.z1 + 2.6 }); }
+  for (let k = 0; k < 3; k++) { const l = rbox(.7, .25, 1.8, mat(cols[k * 2], .6), .06); l.position.set(PP.x2 - 1.5 - k * 1.1, .2, PP.z1 + 1.8); g.add(l); }
+  // la cabine pour mettre son maillot
+  { const cb = new THREE.Group(); cb.position.set(PP.x1 + 1.4, 0, PP.z2 - 1.6); g.add(cb); const wm = mat(0x9be7ff, .5);
+    const back = rbox(2, 2.2, .1, wm, .03); back.position.set(0, 1.1, -.9); cb.add(back); for (const s of [-1, 1]) { const sd = rbox(.1, 2.2, 1.8, wm, .03); sd.position.set(s * 1, 1.1, 0); cb.add(sd); }
+    const roof = rbox(2.2, .1, 2, mat(0xe84393, .5), .03); roof.position.y = 2.25; cb.add(roof); const cur = rbox(1.9, 1.8, .04, mat(0xffc93c, .7), .01); cur.position.set(0, 1.2, .9); cur.scale.x = .45; cur.position.x = -.5; cb.add(cur);
+    const lb = label("Cabine 👕", "#2e86de", "#ffffff", .7); lb.position.set(0, 2.8, 0); cb.add(lb); boxes.push({ x1: PP.x1 + .3, x2: PP.x1 + 2.5, z1: PP.z2 - 2.6, z2: PP.z2 - 2.4 }); PP.cabin = [PP.x1 + 1.4, PP.z2 - 1.6]; }
+  shadowAll(g); water.castShadow = false;
+}
+const inPartyZone = (x, z) => x > PP.x1 && x < PP.x2 && z > PP.z1 && z < PP.z2;
+function updatePartyPool(dt, time, P) {
+  if (Math.abs(P.x - PP.gx) > 70 || Math.abs(P.z - PP.z1) > 70) return;
+  PP.gate.rotation.y += ((PPGATE.off ? -1.6 : 0) - PP.gate.rotation.y) * Math.min(1, dt * 3);
+  for (const f of PP.floats) { f.m.position.set(f.x + Math.sin(time * .3 + f.ph) * .8, -.15 + Math.sin(time * 1.7 + f.ph) * .04, f.z + Math.cos(time * .25 + f.ph) * .6); f.m.rotation.z = time * .2 + f.ph; }
+  if (!PPGATE.off && Math.hypot(P.x - PP.gx, P.z - (PP.z2 + .8)) < 2 && time - (PP.msgT || -9) > 5) { PP.msgT = time; toast("🎂 Cette piscine est réservée aux anniversaires ! Va d'abord souffler les bougies d'un gâteau dans une salle d'anniversaire du Multi Parcs 🎈", 4200); }
 }
 
 /* ---------- Végétation ---------- */
@@ -6306,6 +6366,7 @@ function openChest() {
 // ---------- où suis-je dans les nouveaux coins ----------
 const BARN = { x1: -90, x2: -78, z1: -27, z2: -13 };
 function zoneName(P) {
+  if (inRect(PP, P.x, P.z, 1)) return "🎂 Piscine des anniversaires";
   if (HALLO.on && inRect({ x1: MANOR.x1 - 4.5, x2: MANOR.x2 + 3, z1: MANOR.z1 - 3.5, z2: MANOR.z2 + 3.5 }, P.x, P.z)) return "🏚️ Manoir hanté";
   if (inAqua(P.x, P.z)) return "🐠 Aquarium";
   if (inBaloba(P.x, P.z)) return "🎈 Multi Parcs";
@@ -6325,7 +6386,7 @@ function zoneName(P) {
   if (riverNear(P.x, P.z).d < 7) return "🌊 Rivière sauvage";
   return "";
 }
-const ZTOAST = { "🏚️ Manoir hanté": "Le manoir hanté ! Entre si tu l'oses… Ouvre le cercueil, joue du piano et prends des bonbons 🍬", "⛳ Minigolf": "Le minigolf ! Va au kiosque vert pour jouer les 6 trous ⛳", "🧗 Acrobranche": "L'acrobranche ! Va à l'accueil pour mettre ton baudrier 🦺", "👕 Vestiaires": "Les vestiaires ! Entre dans une cabine pour te changer 👕", "🏨 Accueil": "L'accueil ! Margot t'explique tout : approche-toi du comptoir 📋", "🥖 Boulangerie": "Ça sent bon le pain chaud ! 🥖", "🛒 Market Speed": "Le Market Speed ! Va à la caisse pour faire tes courses 🛒⚡", "🅿️ Parking": "Le parking ! Approche-toi d'une voiture pour klaxonner 📯. Les vélos sous l'abri, tu peux les prendre 🚲", "🍔 Burger Fast": "Burger Fast ! Va à la caisse pour commander ton menu 🍔🍟", "🎈 Multi Parcs": "Bienvenue au Multi Parcs ! Joue aux bornes d'arcade pour gagner des tickets 🎟️. Au fond : grimpe, glisse, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
+const ZTOAST = { "🎂 Piscine des anniversaires": "La piscine des anniversaires ! Mets ton maillot dans la cabine et plonge 🏊🎈", "🏚️ Manoir hanté": "Le manoir hanté ! Entre si tu l'oses… Ouvre le cercueil, joue du piano et prends des bonbons 🍬", "⛳ Minigolf": "Le minigolf ! Va au kiosque vert pour jouer les 6 trous ⛳", "🧗 Acrobranche": "L'acrobranche ! Va à l'accueil pour mettre ton baudrier 🦺", "👕 Vestiaires": "Les vestiaires ! Entre dans une cabine pour te changer 👕", "🏨 Accueil": "L'accueil ! Margot t'explique tout : approche-toi du comptoir 📋", "🥖 Boulangerie": "Ça sent bon le pain chaud ! 🥖", "🛒 Market Speed": "Le Market Speed ! Va à la caisse pour faire tes courses 🛒⚡", "🅿️ Parking": "Le parking ! Approche-toi d'une voiture pour klaxonner 📯. Les vélos sous l'abri, tu peux les prendre 🚲", "🍔 Burger Fast": "Burger Fast ! Va à la caisse pour commander ton menu 🍔🍟", "🎈 Multi Parcs": "Bienvenue au Multi Parcs ! Joue aux bornes d'arcade pour gagner des tickets 🎟️. Au fond : grimpe, glisse, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
   "🌊 Rivière sauvage": "La rivière sauvage ! Va au ponton pour prendre une bouée 🛟", "🌳 Maison dans les arbres": "Tu es dans les arbres ! Traverse le pont de singe… et descends par le toboggan 🛝", "🛖 Une cabane": "Une petite cabane en rondins 🛖" };
 const seenZ = new Set();
 
@@ -6570,6 +6631,7 @@ function drawMap() {
   mx.fillStyle = "#5a5e64"; mx.fillRect(X(PARK.x1), Z(PARK.z1), (PARK.x2 - PARK.x1) * k, (PARK.z2 - PARK.z1) * k);
   for (const sh of SHOPS) { mx.fillStyle = sh === ACCUEIL ? "#2e86de" : sh === MARKET ? "#27ae60" : "#8a4b2a"; mx.fillRect(X(sh.x - sh.hx), Z(sh.z - sh.hz), sh.hx * 2 * k, sh.hz * 2 * k); }
   if (HALLO.on) { mx.fillStyle = "#4a2a6a"; mx.fillRect(X(MANOR.x1), Z(MANOR.z1), (MANOR.x2 - MANOR.x1) * k, (MANOR.z2 - MANOR.z1) * k); }
+  mx.fillStyle = "#f3c6dd"; mx.fillRect(X(PP.x1), Z(PP.z1), (PP.x2 - PP.x1) * k, (PP.z2 - PP.z1) * k); mx.fillStyle = "#5fd8ff"; mx.fillRect(X(PPOOL.x1), Z(PPOOL.z1), (PPOOL.x2 - PPOOL.x1) * k, (PPOOL.z2 - PPOOL.z1) * k);
   mx.fillStyle = "#5c6066"; mx.fillRect(X(ROAD.x - ROAD.w / 2), Z(ROAD.z1), ROAD.w * k, (ROAD.z2 - ROAD.z1) * k);
   mx.fillStyle = "#2fa85a"; mx.fillRect(X(GOLF.x1), Z(GOLF.z1), (GOLF.x2 - GOLF.x1) * k, (GOLF.z2 - GOLF.z1) * k);
   mx.fillStyle = "#2d6a4f"; mx.fillRect(X(ACRO.x1), Z(ACRO.z1), (ACRO.x2 - ACRO.x1) * k, (ACRO.z2 - ACRO.z1) * k);
@@ -7427,7 +7489,7 @@ const tv = new THREE.Vector3(), prev = { x: 0, z: 0 };
 player.position.set(SPAWN.x, 0, SPAWN.z);
 applyRelief();
 function setBtn(el, txt) { if (txt) { if (el.textContent !== txt) el.textContent = txt; el.hidden = false; } else el.hidden = true; }
-function inPoolRect(x, z, m = .35) { return x > POOL.x1 + m && x < POOL.x2 - m && z > POOL.z1 + m && z < POOL.z2 - m; }
+function inPoolRect(x, z, m = .35) { return x > POOL.x1 + m && x < POOL.x2 - m && z > POOL.z1 + m && z < POOL.z2 - m || x > PPOOL.x1 + m && x < PPOOL.x2 - m && z > PPOOL.z1 + m && z < PPOOL.z2 - m; }
 camera.position.set(-16, 6, 26); camera.lookAt(-16, 1.5, 35);
 
 /* ================= Ce qu'on ne voit pas, on ne le dessine pas =================
@@ -7533,7 +7595,7 @@ function loop() {
   if (state === "river") riverTick(dt, P);
   if (state === "lie" || state === "eat") seatTick(dt);
   if (state === "golf") golf3Tick(dt, time, P);
-  updateRoad(dt, P);
+  updateRoad(dt, P); updatePartyPool(dt, time, P);
   updateRacks();
 
   if (state === "walk" || state === "top") {
@@ -7556,7 +7618,8 @@ function loop() {
 
   // où suis-je ?
   // en maillot de bain, on ne sort pas de l'Aquaparc : il faut d'abord se rhabiller dans une cabine des vestiaires
-  if (state === "walk" && wearing && Math.hypot(prev.x - DOME.x, prev.z - DOME.z) < DOME.r - .3 && Math.hypot(P.x - DOME.x, P.z - DOME.z) >= DOME.r - .3) { P.x = prev.x; P.z = prev.z; if (time - suitToastT > 4) { suitToastT = time; toast("👕 Pas de maillot de bain dehors ! Va dans une cabine des vestiaires pour remettre tes habits.", 3200); } }
+  const inSwimZone = (x, z, m) => Math.hypot(x - DOME.x, z - DOME.z) < DOME.r - m || (x > PP.x1 + m && x < PP.x2 - m && z > PP.z1 + m && z < PP.z2 - m);
+  if (state === "walk" && wearing && inSwimZone(prev.x, prev.z, .3) && !inSwimZone(P.x, P.z, .3)) { P.x = prev.x; P.z = prev.z; if (time - suitToastT > 4) { suitToastT = time; toast("👕 Pas de maillot de bain dehors ! Va dans une cabine pour remettre tes habits.", 3200); } }
   // la route, c'est pour les voitures : à pied, on ne marche pas dessus
   if (state === "walk" && onRoad(P.x, P.z, .3) && P.z > PARK.z2 + .4 && !onRoad(prev.x, prev.z, .3)) { P.x = prev.x; P.z = prev.z; if (time - roadToastT > 4) { roadToastT = time; toast("🚗 La route, c'est pour les voitures ! Monte dans une voiture pour rouler dessus.", 3000); } }
   inDome = Math.hypot(P.x - DOME.x, P.z - DOME.z) < DOME.r && state !== "ride" || state === "top" || state.startsWith("climb");
@@ -7638,6 +7701,7 @@ function loop() {
       if (Math.hypot(P.x - MANOR.coffinAt[0], P.z - MANOR.coffinAt[1]) < 1.6) offer("m_coffin", "⚰️ Ouvrir le cercueil");
       if (Math.abs(P.x - (cx + 2)) < 1.6 && Math.abs(P.z - cz) < 1.6) offer("m_candy", "🍬 Prendre des bonbons");
       if (Math.hypot(P.x - MANOR.piano[0], P.z - MANOR.piano[1]) < 1.4) offer("m_piano", "🎹 Jouer du piano"); }
+    if (state === "walk" && P.y < 1 && Math.hypot(P.x - PP.cabin[0], P.z - PP.cabin[1]) < 1.3) offer("locker", "👕 Cabine : maillot ou habits");
     if (state === "walk" && P.y < 1 && Math.hypot(P.x - GOLF.kiosk[0], P.z - (GOLF.kiosk[1] - 1.3)) < 1.8) offer("golf3", "⛳ Jouer au minigolf"); if (state === "walk" && P.y < 1 && Math.hypot(P.x - GOLF.kiosk[0], P.z - (GOLF.kiosk[1] - 1.3)) < 1.8) offer("golf", "🎯 Minigolf de poche");
     if (state === "walk" && P.y < 1 && Math.hypot(P.x - WAVE_BTN.x, P.z - WAVE_BTN.z) < 1.7) offer("waves", WAVES.t < 0 ? "🌊 Lancer les vagues (5 min)" : "⏹️ Arrêter les vagues");
     if (state === "walk") BSLIDES.forEach((b, i) => { if (P.y > b.y0 && P.y < b.y1 && Math.hypot(P.x - b.x, P.z - b.z) < 1.3) offer("balo" + i, b.name); });
