@@ -5830,7 +5830,7 @@ const aiKarts = []; // plus de circuit de karts
 const floaters = [.12, .4, .58, .9].map((u, i) => { const b = makeBuoy(), g = bather(i % 2 === 1); g.visible = true; b.add(g); g.position.set(0, -.62, 0); scene.add(b); return { b, g, u, lat: (rnd() - .5) * 1.4, spin: rnd() * 6 }; });
 const myBuoy = makeBuoy(); myBuoy.visible = false; scene.add(myBuoy);
 // réglages de conduite : vitesse, accélération, virage, place du pilote
-const VK = { car: { max: 13, acc: 2.2, turn: 1.9, y: .32, z: .15, x: .42, mode: "kart" }, bike: { max: 7.5, acc: 1.5, turn: 2.6, y: .33, z: -.27, mode: "bike" }, kart: { max: 10, acc: 2, turn: 2.4, y: -.2, z: -.3, mode: "kart" }, pony: { max: 6.5, acc: 1.3, turn: 2.1, y: 1.03, z: .05, mode: "saddle" } };
+const VK = { car: { max: 13, acc: 2.2, turn: 1.9, y: .17, z: .15, x: .42, mode: "kart" }, bike: { max: 7.5, acc: 1.5, turn: 2.6, y: .33, z: -.27, mode: "bike" }, kart: { max: 10, acc: 2, turn: 2.4, y: -.2, z: -.3, mode: "kart" }, pony: { max: 6.5, acc: 1.3, turn: 2.1, y: 1.03, z: .05, mode: "saddle" } };
 let seatOffer = null, veh = null, engine = null, mountT = null, petT = null, seatT = null, riv = null, food = null, chestGot = false, musWant = "foret";
 function inp() { let ix = jx, iy = jy; if (!paused) { if (keys["arrowup"] || keys["z"] || keys["w"]) iy = -1; if (keys["arrowdown"] || keys["s"]) iy = 1; if (keys["arrowleft"] || keys["q"] || keys["a"]) ix = -1; if (keys["arrowright"] || keys["d"]) ix = 1; } else ix = iy = 0; return [ix, iy]; }
 function engineOn() { if (!actx || engine) return; try { const o = actx.createOscillator(), o2 = actx.createOscillator(), lp = actx.createBiquadFilter(), g = actx.createGain(); o.type = "sawtooth"; o2.type = "square"; lp.type = "lowpass"; lp.frequency.value = 520; g.gain.value = 0;
