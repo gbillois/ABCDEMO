@@ -1527,13 +1527,13 @@ function aqCollide(p, prev) {
   const [x, z] = aqW(lp.u, lp.v); p.x = x; p.z = z;
 }
 
-/* ---------- Le Baloba : la grande salle de jeux couverte (à l'est, à côté de l'aquarium) ---------- */
-await souffle(35,"On gonfle le Baloba…");
+/* ---------- Le Multi Parcs : la grande salle de jeux couverte (à l'est, à côté de l'aquarium) ---------- */
+await souffle(35,"On gonfle les jeux du Multi Parcs…");
 // Repère local : centre de la salle, porte au nord (+z) vers le grand chemin. Grande structure à trois étages au fond,
 // trampolines au fond à droite, grande piscine à balles devant à droite, coin des blocs en mousse et bar à goûter à gauche.
 const BALO = { x: 88, z: -2, hx: 17, hz: 13, h: 8, door: 1.4 }; // agrandi vers l'est (salles d'anniversaire à l'ouest, grande piscine à balles à l'est)
 const bw = (lx, lz) => [BALO.x + lx, BALO.z + lz];
-const inBaloba = (x, z) => Math.abs(x - BALO.x) < BALO.hx - .2 && Math.abs(z - BALO.z) < BALO.hz - .2;
+const inSalleJeux = (x, z) => Math.abs(x - BALO.x) < BALO.hx - .2 && Math.abs(z - BALO.z) < BALO.hz - .2;
 path([74, 30], [87.9, 30], 3.4); // jusqu'à l'entrée du Multi Parcs (GTW n'existe pas encore ici)
 const baloG = new THREE.Group(); baloG.position.set(BALO.x, 0, BALO.z); scene.add(baloG);
 const baloWallTex = tex(512, (x, s) => {
@@ -1717,9 +1717,9 @@ const CASTLE = { x: -14, z: 7.4, h: 2.5, t: 0, low: false, wob: 0 }; // h : demi
   w3(-H, H, -H, -H + W); w3(-H, -H + W, -H, H); w3(H - W, H, -H, H); w3(-H, -H + 1.5, H - W, H); w3(H - 1.5, H, H - W, H);
 }
 const inCastle = (x, z) => { const lx = x - BALO.x - CASTLE.x, lz = z - BALO.z - CASTLE.z, i = CASTLE.h - .45; return Math.abs(lx) < i && lz > -i && lz < CASTLE.h - .1; };
-function updateBaloba(dt, time, P) {
+function updateSalleJeux(dt, time, P) {
   const near = Math.abs(P.x - BALO.x) < 50 && Math.abs(P.z - BALO.z) < 50; ballIM.visible = near; if (!near) return false;
-  const inside = inBaloba(P.x, P.z);
+  const inside = inSalleJeux(P.x, P.z);
   for (const r of BDAY) { if (r.out > 0) { r.out -= dt; if (r.out <= 0) r.flames.forEach(f => f.visible = true); } else r.flames.forEach((f, i) => f.scale.y = .8 + Math.sin(time * 15 + i * 2) * .25); }
   const want = Math.hypot(P.x - BALO.x, P.z - (BALO.z + BALO.hz)) < 4.5 ? 1 : 0; if (want && baloDoorOpen < .05) sfx.door();
   baloDoorOpen += (want - baloDoorOpen) * Math.min(1, dt * 5); for (const d of baloG.userData.doors) d.m.position.x = d.s * (BALO.door / 2 + baloDoorOpen * BALO.door * .95); baloG.userData.doorBox.off = baloDoorOpen > .6;
@@ -1751,13 +1751,13 @@ function updateBaloba(dt, time, P) {
   return inside;
 }
 
-/* ---------- Multi Parcs : Game Town (la salle d'arcade) collée au Baloba ---------- */
-await souffle(39, "On allume Game Town…");
-// On entre par Game Town (porte au nord, vers le grand chemin) ; au fond, la porte automatique du Baloba.
+/* ---------- Multi Parcs : la salle d'arcade, collée à la grande salle de jeux ---------- */
+await souffle(39, "On allume la salle d'arcade…");
+// On entre par la salle d'arcade (porte au nord, vers le grand chemin) ; au fond, la porte automatique de la grande salle de jeux.
 // Repère local : bornes d'arcade le long des murs est et ouest, air hockey au milieu, pince et piste lumineuse près de l'entrée, cadeaux à l'est.
 const GTW = { x: 86.5, z: 19.6, hx: 6.5, hz: 8.5, h: 5.5, door: 1.2 };
 const gw = (lx, lz) => [GTW.x + lx, GTW.z + lz];
-const inGameTown = (x, z) => Math.abs(x - GTW.x) < GTW.hx - .2 && Math.abs(z - GTW.z) < GTW.hz - .2;
+const inArcade = (x, z) => Math.abs(x - GTW.x) < GTW.hx - .2 && Math.abs(z - GTW.z) < GTW.hz - .2;
 path(gw(0, GTW.hz + .3), [GTW.x, 30], 2.6);
 const gtG = new THREE.Group(); gtG.position.set(GTW.x, 0, GTW.z); scene.add(gtG);
 const gtWallTex = tex(512, (x, s) => {
@@ -1775,7 +1775,7 @@ const gtCarpetTex = tex(256, (x, s) => {
 {
   const { hx, hz, h, door } = GTW, wallMat = mat(0xffffff, .8, { map: gtWallTex });
   const wall = (x1, x2, z1, z2, y0 = 0, y1 = h) => { const w = x2 - x1, d = z2 - z1, hh = y1 - y0, m = new THREE.Mesh(new THREE.BoxGeometry(w, hh, d), wallMat); m.position.set((x1 + x2) / 2, (y0 + y1) / 2, (z1 + z2) / 2); m.receiveShadow = true; gtG.add(m); };
-  // le mur sud est celui du Baloba (avec sa porte automatique) : on ne le double pas
+  // le mur sud est celui de la grande salle de jeux (avec sa porte automatique) : on ne le double pas
   wall(-hx - .15, -hx + .15, -hz, hz); wall(hx - .15, hx + .15, -hz, hz);
   wall(-hx, -door, hz - .15, hz + .15); wall(door, hx, hz - .15, hz + .15); wall(-door, door, hz - .15, hz + .15, 3.3, h);
   gtG.userData.wallMat = wallMat;
@@ -1911,13 +1911,13 @@ function petitEffet(kind) {
 }
 const GT_PRIZES = [["🍭", "Sucette", 5], ["🎈", "Ballon", 10], ["🧸", "Ourson", 20], ["🤖", "Robot", 35], ["🚀", "Fusée", 50], ["👑", "Couronne", 80]];
 let gtData = { tickets: 0, owned: [] };
-try { const s = JSON.parse(localStorage.getItem("pins-gametown") || "null"); if (s && Number.isFinite(s.tickets) && Array.isArray(s.owned)) gtData = { tickets: Math.max(0, Math.floor(s.tickets)), owned: s.owned.filter(o => typeof o === "string").slice(0, 200) }; } catch (e) {}
-function gtSave() { try { localStorage.setItem("pins-gametown", JSON.stringify(gtData)); } catch (e) {} $("ticketsPill").textContent = "🎟️ " + gtData.tickets; }
+try { const s = JSON.parse((localStorage.getItem("pins-arcade") || localStorage.getItem("pins-gametown")) || "null"); if (s && Number.isFinite(s.tickets) && Array.isArray(s.owned)) gtData = { tickets: Math.max(0, Math.floor(s.tickets)), owned: s.owned.filter(o => typeof o === "string").slice(0, 200) }; } catch (e) {}
+function gtSave() { try { localStorage.setItem("pins-arcade", JSON.stringify(gtData)); } catch (e) {} $("ticketsPill").textContent = "🎟️ " + gtData.tickets; }
 function gtAddTickets(n) { gtData.tickets += n; gtSave(); }
 let gtDoorOpen = 0, gtFade = 1, gtScreenT = 0, gtTileT = 0;
-function updateGameTown(dt, time, P) {
+function updateArcade(dt, time, P) {
   const near = Math.abs(P.x - GTW.x) < 45 && Math.abs(P.z - GTW.z) < 45; if (!near) { $("ticketsPill").hidden = true; return false; }
-  const inside = inGameTown(P.x, P.z); $("ticketsPill").hidden = !inside;
+  const inside = inArcade(P.x, P.z); $("ticketsPill").hidden = !inside;
   const want = Math.hypot(P.x - GTW.x, P.z - (GTW.z + GTW.hz)) < 4.2 ? 1 : 0; if (want && gtDoorOpen < .05) sfx.door();
   gtDoorOpen += (want - gtDoorOpen) * Math.min(1, dt * 5); for (const d of gtG.userData.doors) d.m.position.x = d.s * (GTW.door / 2 + gtDoorOpen * GTW.door * .95); gtG.userData.doorBox.off = gtDoorOpen > .6;
   gtFade += ((inside ? .2 : 1) - gtFade) * Math.min(1, dt * 6); const wm = gtG.userData.wallMat, tr = gtFade < .98;
@@ -2001,7 +2001,7 @@ function arcLoop(now) {
 $("arcAgain").onclick = () => { const k = arc ? arc.k : 0; fermer("arcadeView"); openArcade(k); };
 $("arcClose").onclick = () => { fermer("arcadeView"); arc = null; };
 
-/* ---------- Burger Fast : le restaurant (au bord du grand chemin, entre les cottages et le Baloba) ---------- */
+/* ---------- Burger Fast : le restaurant (au bord du grand chemin, entre les cottages et le Multi Parcs) ---------- */
 // Repère local : centre de la salle, porte au nord (+z) vers le grand chemin. Comptoir et cuisine au fond, tables à gauche et à droite.
 const BFW = { x: 71.5, z: 20, hx: 7.5, hz: 5.5, h: 4.6, door: 1.2 };
 const fw = (lx, lz) => [BFW.x + lx, BFW.z + lz];
@@ -6395,8 +6395,8 @@ function zoneName(P) {
   if (inRect(PP, P.x, P.z, 1)) return "🎂 Piscine des anniversaires";
   if (HALLO.on && inRect({ x1: MANOR.x1 - 4.5, x2: MANOR.x2 + 3, z1: MANOR.z1 - 3.5, z2: MANOR.z2 + 3.5 }, P.x, P.z)) return "🏚️ Manoir hanté";
   if (inAqua(P.x, P.z)) return "🐠 Aquarium";
-  if (inBaloba(P.x, P.z)) return "🎈 Multi Parcs";
-  if (inGameTown(P.x, P.z)) return "🎈 Multi Parcs";
+  if (inSalleJeux(P.x, P.z)) return "🎈 Multi Parcs";
+  if (inArcade(P.x, P.z)) return "🎈 Multi Parcs";
   if (inBurger(P.x, P.z)) return "🍔 Burger Fast";
   if (inRect(GOLF, P.x, P.z)) return "⛳ Minigolf";
   if (inRect(ACRO, P.x, P.z)) return "🧗 Acrobranche";
@@ -6431,11 +6431,12 @@ function tone(f, dur, type = "sine", vol = .25, slide = 0, delay = 0) {
   o.connect(g).connect(fxBus); o.start(t); o.stop(t + dur + .05);
 }
 function whoosh(dur, vol = .2, f0 = 600, f1 = 1800, delay = 0) {
-  if (!actx || muted) return; const t = actx.currentTime + delay, n = actx.sampleRate * dur, b = actx.createBuffer(1, n, actx.sampleRate), d = b.getChannelData(0);
-  for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
-  const src = actx.createBufferSource(); src.buffer = b; const f = actx.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 1.2; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  if (!actx || muted) return; const t = actx.currentTime + delay;
+  // un seul bruit de 3 s, fabriqué une fois et réutilisé (avant : un nouveau à chaque porte, chaque plouf…)
+  if (!whoosh.buf || whoosh.buf.sampleRate !== actx.sampleRate) { const n = actx.sampleRate * 3, b = actx.createBuffer(1, n, actx.sampleRate), d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; whoosh.buf = b; }
+  const src = actx.createBufferSource(); src.buffer = whoosh.buf; src.loop = true; const f = actx.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 1.2; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
   const g = actx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + dur * .2); g.gain.exponentialRampToValueAtTime(.0008, t + dur);
-  src.connect(f).connect(g).connect(fxBus); src.start(t);
+  src.connect(f).connect(g).connect(fxBus); src.start(t, Math.random() * 2); src.stop(t + dur + .05);
 }
 const sfx = {
   duck() { tone(330, .14, "sawtooth", .1, -140); tone(880, .12, "triangle", .2, 0, .12); tone(1320, .2, "triangle", .2, 0, .22); },
@@ -7566,6 +7567,10 @@ camera.position.set(-16, 6, 26); camera.lookAt(-16, 1.5, 35);
    - les lumières des bâtiments ne s'allument que quand on est tout près (2 au plus) ;
    - les tout petits objets ne font pas d'ombre. */
 const TRI = [], LAMPES = [];
+// Les lampes des bâtiments ne sont que des repères. Deux vraies lampes (FEUX), toujours là, vont se poser sur les
+// deux repères les plus proches : le nombre de lumières ne change jamais. (Avant, quand une lampe s'allumait,
+// la carte graphique devait refaire tous les programmes de couleurs : le jeu se figeait en entrant à la piscine, au parking…)
+const FEUX = [0, 1].map(() => Object.assign(new THREE.PointLight(0xffffff, 0, 10, 1.4), { userData: { lampe: null, veut: null, k: 0 } }));
 {
   const b3 = new THREE.Box3(), sp = new THREE.Sphere();
   scene.updateMatrixWorld(true);
@@ -7575,10 +7580,23 @@ const TRI = [], LAMPES = [];
     o.traverse(x => { if (x.isMesh) x.userData.cs0 = x.castShadow; });
     TRI.push({ o, lc: o.worldToLocal(sp.center.clone()), far: o.userData.legs ? (LOWQ ? 80 : 120) : (o.userData.loin ?? ((LOWQ ? 30 : 40) + sp.radius * (LOWQ ? 10 : 13))) + (o.userData.loin ? sp.radius : 0), ombre: (LOWQ ? 22 : 30) + sp.radius, off: false, omb: true });
   }
+  // l'intérieur meublé (avec le feu de cheminée) est posé tout de suite dans ton cottage : ainsi il est préparé au chargement comme le reste
+  if (!interior.parent) { myCottage.g.add(interior); interiorHost = myCottage; }
   scene.traverse(o => {
     if (o.isPointLight) { LAMPES.push(o); o.visible = false; }
     if (o.isMesh && o.castShadow && !o.isSkinnedMesh && !o.isInstancedMesh) { if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere(); const sc = o.getWorldScale(new THREE.Vector3()); if (o.geometry.boundingSphere.radius * Math.max(sc.x, sc.y, sc.z) < .3) o.castShadow = false; }
   });
+  scene.add(...FEUX);
+}
+// un repère de lampe compte seulement si tout ce qui le porte est visible (ex. le manoir, seulement à Halloween)
+function lampeVisible(l) { if (!l.parent) return false; for (let o = l.parent; o; o = o.parent) if (!o.visible) return false; return true; }
+// à chaque image : chaque vraie lampe suit son repère (le feu de cheminée vacille) ; pour changer de repère, elle s'éteint puis se rallume en douceur
+function suivreFeux(dt) {
+  for (const f of FEUX) { const u = f.userData;
+    if (u.lampe !== u.veut) { u.k -= dt * 6; if (u.k <= 0) { u.k = 0; u.lampe = u.veut; } }
+    else if (u.lampe && u.k < 1) u.k = Math.min(1, u.k + dt * 6);
+    const l = u.lampe; if (!l) { f.intensity = 0; continue; }
+    l.getWorldPosition(f.position); f.color.copy(l.color); f.distance = l.distance; f.decay = l.decay; f.intensity = l.intensity * u.k; }
 }
 // téléphones et tablettes : les textures peintes (bois, herbe, pierre…) en deux fois moins de pixels de côté (4 fois moins de mémoire)
 if (LOWQ) { const vus = new Set();
@@ -7599,20 +7617,26 @@ function trier(dt) {
     const dP = _tv.distanceTo(player.position), omb = !off && (t.omb ? dP < t.ombre * 1.15 : dP < t.ombre);
     if (omb !== t.omb) { t.omb = omb; o.traverse(x => { if (x.isMesh && x.userData.cs0 !== undefined) x.castShadow = omb && x.userData.cs0; }); } }
   // les 2 lumières les plus proches (dans les 30 m)
-  const près = LAMPES.filter(l => l.parent).map(l => [l, l.getWorldPosition(_tv).distanceTo(C)]).filter(([, d]) => d < 30).sort((a, b) => a[1] - b[1]).slice(0, 2).map(([l]) => l);
-  for (const l of LAMPES) l.visible = près.includes(l);
+  const près = LAMPES.filter(lampeVisible).map(l => [l, l.getWorldPosition(_tv).distanceTo(C)]).filter(([, d]) => d < 30).sort((a, b) => a[1] - b[1]).slice(0, 2).map(([l]) => l);
+  // une vraie lampe garde son repère s'il est encore parmi les plus proches ; les autres prennent les repères libres
+  const libres = près.filter(l => !FEUX.some(f => f.userData.veut === l));
+  for (const f of FEUX) if (!près.includes(f.userData.veut)) f.userData.veut = libres.shift() || null;
 }
 // sur téléphone et tablette, les ombres sont recalculées une image sur deux
 // (les ombres sont recalculées à chaque image : une image sur deux faisait sauter l'ombre des personnages qui bougent)
 // Menu d'accueil : l'image fixe du domaine remplace la 3D (une première image est dessinée derrière, pour être prête)
 const introEl = $("intro"); let dejaVu = false;
-// Résolution qui s'adapte : si les images ralentissent, on dessine un peu moins de pixels, et on remonte quand tout va bien
-const PR_MAX = renderer.getPixelRatio(), PR_MIN = Math.min(PR_MAX, LOWQ ? .9 : 1); let prN = 0, prT = 0, prBon = 0;
-function adapterResolution(dt) {
-  prN++; prT += dt; if (prT < 1.5) return;
+// Résolution qui s'adapte : si les images ralentissent, on dessine un peu moins de pixels, et on remonte quand tout va bien.
+// Changer la taille de l'image fait lui-même un petit à-coup : on ne fait pas le yoyo. On baisse après 2 mesures lentes de suite (4 s),
+// on remonte après 5 bonnes (10 s), et après 3 baisses on ne remonte plus. Une très longue image (pause, autre appli) ne compte pas.
+const PR_MAX = renderer.getPixelRatio(), PR_MIN = Math.min(PR_MAX, LOWQ ? .9 : 1); let prN = 0, prT = 0, prBas = 0, prBon = 0, prBaisses = 0, prAvant = 0;
+function adapterResolution() {
+  const now = performance.now(), d = (now - prAvant) / 1000; prAvant = now;
+  if (d > .25) { prN = prT = 0; return; }
+  prN++; prT += d; if (prT < 2) return;
   const ips = prN / prT, pr = renderer.getPixelRatio(); prN = 0; prT = 0;
-  if (ips < 42 && pr > PR_MIN) { renderer.setPixelRatio(Math.max(PR_MIN, pr - .15)); prBon = 0; }
-  else if (ips > 56 && pr < PR_MAX && ++prBon >= 3) { renderer.setPixelRatio(Math.min(PR_MAX, pr + .1)); prBon = 0; }
+  if (ips < 45) { prBon = 0; if (++prBas >= 2 && pr > PR_MIN) { renderer.setPixelRatio(Math.max(PR_MIN, pr - .2)); prBas = 0; prBaisses++; } }
+  else { prBas = 0; if (ips > 57 && pr < PR_MAX && prBaisses < 3 && ++prBon >= 5) { renderer.setPixelRatio(Math.min(PR_MAX, pr + .1)); prBon = 0; } }
 }
 function loop() {
   requestAnimationFrame(loop);
@@ -7699,7 +7723,7 @@ function loop() {
 
   // intérieur posé dans le cottage le plus proche
   let near = null, nd = 1e9; for (const c of cottages) { const d = Math.hypot(P.x - c.x, P.z - c.z); if (d < nd) { nd = d; near = c; } }
-  if (nd < 26 && near !== interiorHost) { if (interiorHost) interiorHost.upper.visible = !interiorHost.single; near.g.add(interior); interiorHost = near; }
+  if (nd < 26 && near !== interiorHost) { if (interiorHost) interiorHost.upper.visible = !interiorHost.single; near.g.add(interior); interiorHost = near; interior.traverse(x => { if (!x.isLight) x.layers.mask = near.g.layers.mask; }); }
   // portes automatiques
   for (const c of cottages) {
     c.open += (c.want - c.open) * Math.min(1, dt * 3.2); c.door.rotation.y = c.open * 1.65;
@@ -7715,7 +7739,7 @@ function loop() {
   lakeDoorOpen += (lWant - lakeDoorOpen) * Math.min(1, dt * 5); LDOOR.panels.forEach(d => d.m.position.x = d.s * (.8 + lakeDoorOpen * 1.5));
   const dWant = Math.hypot(P.x, P.z - 7.5) < 5 ? 1 : 0; if (dWant && domeDoorOpen < .05) sfx.door();
   domeDoorOpen += (dWant - domeDoorOpen) * Math.min(1, dt * 5); domeDoors.forEach(d => d.m.position.x = d.s * (1.4 + domeDoorOpen * 2.7)); domeDoorBox.off = domeDoorOpen > .6;
-  const inAq = updateAquarium(dt, time, P), inBalo = updateBaloba(dt, time, P), inGT = updateGameTown(dt, time, P), nightK = updateDayNight(dt), _hw = updateHalloween(dt, time, P, nightK), inBF = updateBurger(dt, time, P), inShop = updateShops(dt, P), inLock = updateLocker(dt, P);
+  const inAq = updateAquarium(dt, time, P), inBalo = updateSalleJeux(dt, time, P), inGT = updateArcade(dt, time, P), nightK = updateDayNight(dt), _hw = updateHalloween(dt, time, P, nightK), inBF = updateBurger(dt, time, P), inShop = updateShops(dt, P), inLock = updateLocker(dt, P);
   updateAcro(P);
   if ($("creaView").hidden) updateVacationers(dt, time, P);
 
@@ -7773,7 +7797,7 @@ function loop() {
     if (state === "walk" && P.y < 1 && Math.hypot(P.x - GOLF.kiosk[0], P.z - (GOLF.kiosk[1] - 1.3)) < 1.8) offer("golf3", "⛳ Jouer au minigolf"); if (state === "walk" && P.y < 1 && Math.hypot(P.x - GOLF.kiosk[0], P.z - (GOLF.kiosk[1] - 1.3)) < 1.8) offer("golf", "🎯 Minigolf de poche");
     if (state === "walk" && P.y < 1 && Math.hypot(P.x - WAVE_BTN.x, P.z - WAVE_BTN.z) < 1.7) offer("waves", WAVES.t < 0 ? "🌊 Lancer les vagues (5 min)" : "⏹️ Arrêter les vagues");
     if (state === "walk") BSLIDES.forEach((b, i) => { if (P.y > b.y0 && P.y < b.y1 && Math.hypot(P.x - b.x, P.z - b.z) < 1.3) offer("balo" + i, b.name); });
-    if (state === "walk" && P.y < 1 && inGameTown(P.x, P.z)) { GT_CABS.forEach((c, i) => { if (Math.hypot(P.x - c.x, P.z - c.z) < 1.1) offer("gt" + i, "🕹️ Jouer à " + GT_GAMES[c.k].name); });
+    if (state === "walk" && P.y < 1 && inArcade(P.x, P.z)) { GT_CABS.forEach((c, i) => { if (Math.hypot(P.x - c.x, P.z - c.z) < 1.1) offer("gt" + i, "🕹️ Jouer à " + GT_GAMES[c.k].name); });
       if (Math.hypot(P.x - gtClaw.front[0], P.z - gtClaw.front[1]) < 1.3) offer("claw", "🧸 Pince à peluches (3 🎟️)");
       if (Math.hypot(P.x - (GTW.x + 4.2), P.z - (GTW.z + 5.3)) < 2.2) offer("prizes", "🎁 Échanger mes tickets");
       if (Math.hypot(P.x - GT_SMALL.front[0], P.z - GT_SMALL.front[1]) < 1.3) offer("small", "🍬 Petites choses (tickets)"); }
@@ -7843,13 +7867,30 @@ function loop() {
     const W = innerWidth, Hh = innerHeight; camera.setViewOffset(W, Hh, large ? W * .22 : 0, large ? 0 : Hh * .27, W, Hh); myLbl.visible = false;
   } else if (camera.view?.enabled) { camera.clearViewOffset(); myLbl.visible = true; }
   document.body.classList.toggle("crea-on", creaOn);
-  voituresTick(dt); trier(dt); if (dejaVu) adapterResolution(dt);
+  voituresTick(dt); trier(dt); suivreFeux(dt); if (dejaVu) adapterResolution();
   renderer.render(scene, camera); dejaVu = true;
 }
-window.__pins = { animPerson, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
+window.__pins = { renderer, scene, animPerson, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
 await souffle(97, "Les couleurs se mélangent…");
-try { await Promise.race([renderer.compileAsync(scene, camera), new Promise(r => setTimeout(r, 6000))]); } catch (e) {}
+const compiler = () => Promise.race([renderer.compileAsync(scene, camera), new Promise(r => setTimeout(r, 6000))]).catch(() => {});
+await compiler();
+// les murs qui s'effacent quand on entre (cottages, vestiaires, aquarium, boutiques…) : leur version transparente est préparée aussi,
+// sinon elle se fabrique au moment où l'on passe la porte
+{ const murs = [locker.userData.wallMat, aqG.userData.wallMat, baloG.userData.wallMat, gtG.userData.wallMat, bfG.userData.wallMat, MANOR.wallM, ...SHOPS.map(s => s.wallMat), ...cottages.map(c => c.wallMat)].filter(m => m && !m.transparent);
+  for (const m of murs) { m.transparent = true; m.depthWrite = false; m.needsUpdate = true; }
+  await compiler();
+  for (const m of murs) { m.transparent = false; m.depthWrite = true; m.needsUpdate = true; } }
+// le reflet du lac (sur ordinateur) redessine le décor dans une image à part, avec d'autres réglages de couleurs : ces versions-là sont préparées aussi
+if (!LOWQ) { const rt = new THREE.WebGLRenderTarget(4, 4); renderer.setRenderTarget(rt); const att = compiler(); renderer.setRenderTarget(null); await att; rt.dispose(); }
+// toutes les images peintes partent tout de suite dans la carte graphique (sinon chacune s'y envoie la première fois qu'on la voit : un à-coup)
+await souffle(99, "On range les couleurs…");
+{ const vues = new Set(), envoie = t => { if (t && t.isTexture && !t.isRenderTargetTexture && !vues.has(t)) { vues.add(t); try { renderer.initTexture(t); } catch (e) {} } };
+  scene.traverse(o => { for (const m of [].concat(o.material || [], o.customDepthMaterial || [])) { for (const k in m) envoie(m[k]); if (m.uniforms) for (const k in m.uniforms) envoie(m.uniforms[k].value); } }); }
+// répétition générale, cachée derrière l'écran de chargement : une image de tout le domaine vu du ciel (ombres comprises)
+{ const vue = new THREE.PerspectiveCamera(100, 1, 5, 1500); vue.position.set(0, 240, 0); vue.lookAt(0, 0, 0); renderer.render(scene, vue); }
+// chaque programme est vraiment terminé maintenant (sur iPad, sinon, la fin du travail tombe la première fois qu'il sert, en plein jeu)
+for (const pr of renderer.info.programs) try { pr.getUniforms(); pr.getAttributes(); } catch (e) {}
 chargerPartie(); dessinerPersos();
 document.body.classList.remove("chargement");
 loop();
