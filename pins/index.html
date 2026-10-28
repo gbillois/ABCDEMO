@@ -1296,7 +1296,7 @@ function cottageTheme(c) {
     x.fillStyle = cB; x.font = 'bold 40px "Baloo 2", "Trebuchet MS", sans-serif'; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(words[n % words.length], 128, 66);
     const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; const dm = new THREE.Mesh(new THREE.PlaneGeometry(1.3, .65), new THREE.MeshStandardMaterial({ map: t, roughness: .95, polygonOffset: true, polygonOffsetFactor: -2 }));
     const [mx, mz] = c.toWorld(0, 4.75); dm.rotation.set(-Math.PI / 2, 0, rot); dm.position.set(mx, .225, mz); scene.add(dm);
-    [[-6.9, 6.8, (n * 3) % YARD.length], [6.9, 6.8, (n * 5 + 1) % YARD.length]].forEach(([lx, lz, k]) => { const [g, r] = YARD[k](); const [wx, wz] = c.toWorld(lx, lz); g.position.set(wx, 0, wz); g.rotation.y = rot + (lx < 0 ? .4 : -.4); shadowAll(g); scene.add(g); circles.push({ x: wx, z: wz, r }); });
+    [[-7.2, 1.5, (n * 3) % YARD.length], [7.2, 1.5, (n * 5 + 1) % YARD.length]] // sur les côtés de la maison, loin du range-vélos.forEach(([lx, lz, k]) => { const [g, r] = YARD[k](); const [wx, wz] = c.toWorld(lx, lz); g.position.set(wx, 0, wz); g.rotation.y = rot + (lx < 0 ? .4 : -.4); shadowAll(g); scene.add(g); circles.push({ x: wx, z: wz, r }); });
   }
 }
 
@@ -2366,7 +2366,7 @@ const PARK_CARS = [];
 }
 /* ---------- La route d'arrivée : on vient de loin en voiture, on passe sous le portail du Domaine, puis la barrière, et on se gare au parking ---------- */
 let roadToastT = -9;
-const ROAD = { x: 86, w: 7, z1: PARK.z2 - .2, z2: 186, gateZ: 66, barZ: 72 };
+const ROAD = { x: 86, w: 7, z1: PARK.z2 - .2, z2: 158, gateZ: 66, barZ: 72 }; // elle va du parking jusqu'à la route du grand tour
 ZONES.push({ x1: ROAD.x - ROAD.w / 2 - 2, x2: ROAD.x + ROAD.w / 2 + 2, z1: ROAD.z1, z2: ROAD.z2 + 4 });
 const onRoad = (x, z, m = 0) => Math.abs(x - ROAD.x) < ROAD.w / 2 + m && z > ROAD.z1 - 1 && z < ROAD.z2 + 3;
 {
@@ -2407,12 +2407,33 @@ const onRoad = (x, z, m = 0) => Math.abs(x - ROAD.x) < ROAD.w / 2 + m && z > ROA
   const st = new THREE.CanvasTexture(stripes); st.colorSpace = THREE.SRGBColorSpace;
   const bar = new THREE.Mesh(new THREE.BoxGeometry(ROAD.w - .4, .12, .12), new THREE.MeshStandardMaterial({ map: st, roughness: .5 })); bar.position.x = -(ROAD.w - .4) / 2; arm.add(bar); ROAD.arm = arm; ROAD.open = 0;
   // au bout de la route, un panneau
-  const end = label("⬆️ Domaine des Pins", "#2e6fd8", "#ffffff", 1.1); end.position.set(ROAD.x + ROAD.w / 2 + 1.5, 3, ROAD.z2 - 4); g.add(end);
-  const ep = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, 2.6, 8), metalMat); ep.position.set(ROAD.x + ROAD.w / 2 + 1.5, 1.3, ROAD.z2 - 4); g.add(ep);
+  const end = label("⬆️ Parking du Domaine", "#2e6fd8", "#ffffff", 1.1); end.position.set(ROAD.x + ROAD.w / 2 + 1.5, 3, ROAD.z2 - 9); g.add(end);
+  const ep = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, 2.6, 8), metalMat); ep.position.set(ROAD.x + ROAD.w / 2 + 1.5, 1.3, ROAD.z2 - 9); g.add(ep);
   shadowAll(g);
 }
 // une voiture attend au bout de la route : monte dedans et viens au Domaine !
-{ const c = makeCar(0x2e86de, 7); const x = ROAD.x + 2.2, z = ROAD.z2 - 6; c.position.set(x, 0, z); c.rotation.y = Math.PI; scene.add(c); PARK_CARS.push({ g: c, x, z, h: Math.PI, flash: 0 }); }
+{ const c = makeCar(0x2e86de, 7); const x = ROAD.x + 2.2, z = ROAD.z2 - 12; c.position.set(x, 0, z); c.rotation.y = Math.PI; scene.add(c); PARK_CARS.push({ g: c, x, z, h: Math.PI, flash: 0 }); }
+
+/* ---------- La route du grand tour : elle fait le tour du parc, à côté du chemin des piétons ---------- */
+const RING = { r: 155, w: 6 };
+const onRing = (x, z, m = 0) => { const a = Math.max(Math.abs(x), Math.abs(z)); return Math.abs(a - RING.r) < RING.w / 2 + m && Math.abs(x) < RING.r + RING.w / 2 + m && Math.abs(z) < RING.r + RING.w / 2 + m; };
+const onCrossing = (x, z) => Math.abs(z - 150) < 2 && Math.abs(x - ROAD.x) < ROAD.w / 2 + 1; // le passage piéton du grand tour
+{ const g = new THREE.Group(); scene.add(g); const R = RING.r, W = RING.w, L = 2 * R + W;
+  const lineM = new THREE.MeshBasicMaterial({ color: 0xf4f4f4, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -6 });
+  const dashes = []; 
+  for (const [cx, cz, horiz] of [[0, -R, true], [0, R, true], [-R, 0, false], [R, 0, false]]) {
+    const rt = parkTex.clone(); rt.wrapS = rt.wrapT = THREE.RepeatWrapping; rt.repeat.set(horiz ? L / W : 1, horiz ? 1 : L / W); rt.needsUpdate = true;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(horiz ? L : W, horiz ? W : L), mat(0xffffff, .95, { map: rt, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 })); m.rotation.x = -Math.PI / 2; m.position.set(cx, .024, cz); m.receiveShadow = true; g.add(m);
+    ZONES.push(horiz ? { x1: -L / 2 - 1, x2: L / 2 + 1, z1: cz - W / 2 - 1.5, z2: cz + W / 2 + 1.5 } : { x1: cx - W / 2 - 1.5, x2: cx + W / 2 + 1.5, z1: -L / 2 - 1, z2: L / 2 + 1 });
+    for (let t = -R + 4; t < R - 3; t += 5) dashes.push(horiz ? [t, cz, 0] : [cx, t, Math.PI / 2]); }
+  const dash = new THREE.InstancedMesh(new THREE.PlaneGeometry(2.4, .15).rotateX(-Math.PI / 2), lineM, dashes.length), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), one = new THREE.Vector3(1, 1, 1);
+  dashes.forEach(([x, z, a], i) => { q.setFromAxisAngle(up, a); m4.compose(new THREE.Vector3(x, .031, z), q, one); dash.setMatrixAt(i, m4); }); g.add(dash);
+  // le passage piéton (bandes blanches) là où le chemin du grand tour traverse la route d'arrivée
+  for (let k = 0; k < 6; k++) { const st = new THREE.Mesh(new THREE.PlaneGeometry(.55, 3.2), lineM); st.rotation.x = -Math.PI / 2; st.position.set(ROAD.x - ROAD.w / 2 + .6 + k * 1.15, .032, 150); g.add(st); }
+  const cs = label("🚸 Passage piéton", "#2e6fd8", "#ffffff", .8); cs.position.set(ROAD.x + ROAD.w / 2 + 1.2, 2.6, 150); g.add(cs); const cp = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, 2.2, 8), metalMat); cp.position.set(ROAD.x + ROAD.w / 2 + 1.2, 1.1, 150); g.add(cp);
+  // des panneaux aux coins
+  for (const [x, z] of [[R + 5, R + 5], [-R - 5, R + 5], [R + 5, -R - 5], [-R - 5, -R - 5]]) { const l = label("🚗 Route du grand tour", "#5c6066", "#ffffff", .8); l.position.set(x, 2.6, z); g.add(l); const p = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, 2.2, 8), metalMat); p.position.set(x, 1.1, z); g.add(p); }
+}
 function updateRoad(dt, P) {
   if (!ROAD.arm || Math.abs(P.z - ROAD.barZ) > 40) return;
   let want = 0; const near = (x, z) => Math.abs(x - ROAD.x) < ROAD.w / 2 + 2 && Math.abs(z - (ROAD.barZ - 1.8)) < 9;
@@ -6389,7 +6410,7 @@ await souffle(78,"On gonfle les bouées…");
 const cyclists = [0, 1].map(i => { const g = makeBike([0x16a085, 0xe67e22][i]), rider = person({ lite: true, shirt: [0xe74c3c, 0x9b59b6][i], pants: 0x34495e, shorts: true, skin: C_SKIN[i * 2], hair: C_HAIR[i + 1], long: i === 1, scale: .7, seed: 77 + i });
   rider.position.set(0, .24, -.27); g.add(rider); scene.add(g); const c = { g, rider, x: i ? 40 : -40, z: i ? 30.8 : 29.2, dir: i ? -1 : 1, v: 4.2, r: .6, ca: 0, ring: 0 }; movers.push(c); return c; });
 const aiKarts = []; // plus de circuit de karts
-const floaters = [.12, .4, .58, .9].map((u, i) => { const b = makeBuoy(), g = bather(i % 2 === 1); g.visible = true; b.add(g); g.position.set(0, -.62, 0); scene.add(b); return { b, g, u, lat: (rnd() - .5) * 1.4, spin: rnd() * 6 }; });
+const floaters = [.12, .4, .58, .9].map((u, i) => { const b = makeBuoy(), g = bather(i % 2 === 1); g.visible = true; b.add(g); g.position.set(0, -.3, 0); scene.add(b); return { b, g, u, lat: (rnd() - .5) * 1.4, spin: rnd() * 6 }; });
 const myBuoy = makeBuoy(); myBuoy.visible = false; scene.add(myBuoy);
 // réglages de conduite : vitesse, accélération, virage, place du pilote
 const VK = { car: { max: 13, acc: 2.2, turn: 1.9, y: .17, z: .15, x: .42, mode: "kart" }, bike: { max: 7.5, acc: 1.5, turn: 2.6, y: .33, z: -.27, mode: "bike" }, kart: { max: 10, acc: 2, turn: 2.4, y: -.2, z: -.3, mode: "kart" }, pony: { max: 6.5, acc: 1.3, turn: 2.1, y: 1.03, z: .05, mode: "saddle" } };
@@ -6417,7 +6438,7 @@ function voitureOk(x, z) {
   if (Math.hypot(x - AQU.x, z - AQU.z) < AQU.r + 2.2) return false;
   if (Math.hypot((x - ARENA.x) / (ARENA.rx + 2.5), (z - ARENA.z) / (ARENA.rz + 2.5)) < 1) return false;
   if (x < -6 && z > 46 && riverNear(x, z).d < RIVER_HW + 1.6) return false; // ni la rivière, ni ses ponts
-  if (inRect(PARK, x, z, -.6) || onRoad(x, z, -.9)) return true; // dans le parking et sur la route, on peut aller partout
+  if (inRect(PARK, x, z, -.6) || onRoad(x, z, -.9) || onRing(x, z, -.9)) return true; // dans le parking et sur la route, on peut aller partout
   for (const [a, b, w] of paths) { // distance au chemin (segment arrondi), avec la demi-largeur de la voiture
     const dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz || 1, t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[1]) * dz) / L2));
     if (Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t) < w / 2 + 1.1) return false; }
@@ -6575,7 +6596,7 @@ function endRiver() { state = "walk"; riv = null; myBuoy.visible = false; player
 function riverTick(dt, P) {
   // au retour au ponton, la bouée s'arrête et attend : on sort, ou on refait un tour
   const [ix] = inp(), o = onRiver(riv, riv.stop ? 0 : dt, ix); if (!riv.stop) riv.dist += o.sp * dt;
-  myBuoy.position.set(o.x, o.y, o.z); myBuoy.rotation.y = riv.spin; P.set(o.x, o.y - .62, o.z); player.rotation.y = riv.spin; animPerson(player, "buoy", time);
+  myBuoy.position.set(o.x, o.y, o.z); myBuoy.rotation.y = riv.spin; P.set(o.x, o.y - .3, o.z); player.rotation.y = riv.spin; // assis dans la bouée, le corps hors de l'eau animPerson(player, "buoy", time);
   if (o.rap && !riv.rap) { whoosh(1.6, .22, 300, 1500); toast("Les rapides ! 🌊 Accroche-toi !", 1800); } riv.rap = o.rap;
   if (!riv.stop && riv.dist > RIVER_LEN - .3) { riv.stop = true; riv.u = RDOCK.u; riv.lat = 0; toast("Te revoilà au ponton ! Tu sors, ou tu refais un tour ? 🛟", 3000); }
 }
@@ -6928,6 +6949,7 @@ function drawMap() {
   for (const sh of SHOPS) { mx.fillStyle = sh === ACCUEIL ? "#2e86de" : sh === MARKET ? "#27ae60" : "#8a4b2a"; mx.fillRect(X(sh.x - sh.hx), Z(sh.z - sh.hz), sh.hx * 2 * k, sh.hz * 2 * k); }
   mx.fillStyle = HALLO.on ? "#4a2a6a" : "#c9a27e"; mx.fillRect(X(MANOR.x1), Z(MANOR.z1), (MANOR.x2 - MANOR.x1) * k, (MANOR.z2 - MANOR.z1) * k);
   mx.fillStyle = "#f3c6dd"; mx.fillRect(X(PP.x1), Z(PP.z1), (PP.x2 - PP.x1) * k, (PP.z2 - PP.z1) * k); mx.fillStyle = "#5fd8ff"; mx.fillRect(X(PPOOL.x1), Z(PPOOL.z1), (PPOOL.x2 - PPOOL.x1) * k, (PPOOL.z2 - PPOOL.z1) * k);
+  mx.strokeStyle = "#5c6066"; mx.lineWidth = RING.w * k; mx.strokeRect(X(-RING.r), Z(-RING.r), 2 * RING.r * k, 2 * RING.r * k);
   mx.fillStyle = "#5c6066"; mx.fillRect(X(ROAD.x - ROAD.w / 2), Z(ROAD.z1), ROAD.w * k, (ROAD.z2 - ROAD.z1) * k);
   mx.fillStyle = "#2fa85a"; mx.fillRect(X(GOLF.x1), Z(GOLF.z1), (GOLF.x2 - GOLF.x1) * k, (GOLF.z2 - GOLF.z1) * k);
   mx.fillStyle = "#2d6a4f"; mx.fillRect(X(ACRO.x1), Z(ACRO.z1), (ACRO.x2 - ACRO.x1) * k, (ACRO.z2 - ACRO.z1) * k);
@@ -7972,7 +7994,7 @@ function loop() {
   const inSwimZone = (x, z, m) => Math.hypot(x - DOME.x, z - DOME.z) < DOME.r - m || (x > PP.x1 + m && x < PP.x2 - m && z > PP.z1 + m && z < PP.z2 - m);
   if (state === "walk" && wearing && inSwimZone(prev.x, prev.z, .3) && !inSwimZone(P.x, P.z, .3)) { P.x = prev.x; P.z = prev.z; if (time - suitToastT > 4) { suitToastT = time; toast("👕 Pas de maillot de bain dehors ! Va dans une cabine pour remettre tes habits.", 3200); } }
   // la route, c'est pour les voitures : à pied, on ne marche pas dessus
-  if (state === "walk" && onRoad(P.x, P.z, .3) && P.z > PARK.z2 + .4 && !onRoad(prev.x, prev.z, .3)) { P.x = prev.x; P.z = prev.z; if (time - roadToastT > 4) { roadToastT = time; toast("🚗 La route, c'est pour les voitures ! Monte dans une voiture pour rouler dessus.", 3000); } }
+  if (state === "walk" && ((onRoad(P.x, P.z, .3) && P.z > PARK.z2 + .4 && !onRoad(prev.x, prev.z, .3)) || (onRing(P.x, P.z, .3) && !onRing(prev.x, prev.z, .3))) && !onCrossing(P.x, P.z)) { P.x = prev.x; P.z = prev.z; if (time - roadToastT > 4) { roadToastT = time; toast("🚗 La route, c'est pour les voitures ! Monte dans une voiture pour rouler dessus.", 3000); } }
   inDome = Math.hypot(P.x - DOME.x, P.z - DOME.z) < DOME.r && state !== "ride" || state === "top" || state.startsWith("climb");
   inCottage = null;
   for (const c of cottages) { const [lx, lz] = c.toLocal(P.x, P.z); if (lx > -5 && lx < 5 && lz > -4 && lz < 4) inCottage = c; }
