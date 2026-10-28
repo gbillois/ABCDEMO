@@ -8375,12 +8375,20 @@ function manette() {
       if (o.id === "pauseView") $("resumeBtn").click();
       else if (o.id !== "intro") { const f = boutonsDe(o).filter(b => b.matches("button")).find(b => /fermer|retour|quitter|reprendre|c'est moi|^ok$|annuler|✖|❌/i.test(b.textContent.trim()) || /Close|Ok$|Quit|Back/.test(b.id)); f?.click(); }
     }
-  } else { // en jeu
-    if (GP.focus) poserFocus(null);
+  } else { // en jeu : le stick gauche fait marcher ; la croix choisit un bouton de l'écran (sac, carte, menu, courir, sauter, actions…)
+    const sx = ax(0), sy = ax(1), dp = B(15) ? "d" : B(14) ? "g" : B(13) ? "b" : B(12) ? "h" : "";
+    if (dp && (dp !== GP.dir || now > GP.rep)) { bougerFocus(document.body, dp === "d" ? 1 : dp === "g" ? -1 : 0, dp === "b" ? 1 : dp === "h" ? -1 : 0); GP.rep = now + (dp !== GP.dir ? 400 : 170); GP.focusT = now; }
+    GP.dir = dp;
+    if (GP.focus && (!GP.focus.getClientRects().length || GP.focus.hidden || now - GP.focusT > 10000)) poserFocus(null); // bouton disparu, ou rien fait depuis 10 s
+    const enChoix = !!GP.focus;
+    if (enChoix && appui(0)) { GP.focusT = now; GP.focus.click(); }
+    if (enChoix && appui(1)) poserFocus(null);
+    const mx = sx, my = sy;
     if (jid === null) { if (mx || my) { const L = Math.max(1, Math.hypot(mx, my)); jx = mx / L; jy = my / L; GP.moved = true; } else if (GP.moved) { jx = jy = 0; GP.moved = false; } }
     const cx = ax(2), cy = ax(3); if (cx || cy) { yaw -= cx * dt * 2.8; pitch = Math.max(.06, Math.min(1.2, pitch + cy * dt * 1.6)); }
     const court = B(4) || B(5) || B(6) || B(7) || B(10); if (court !== GP.court) { keys["shift"] = court; GP.court = court; }
-    if (G3.on) { if (appui(0) || appui(1)) g3Charge(true); if ((!B(0) && GP.prec[0]) || (!B(1) && GP.prec[1])) g3Charge(false); }
+    if (enChoix) { /* A et B servent au bouton choisi */ }
+    else if (G3.on) { if (appui(0) || appui(1)) g3Charge(true); if ((!B(0) && GP.prec[0]) || (!B(1) && GP.prec[1])) g3Charge(false); }
     else if (!paused) {
       if (appui(0)) { if (act1 || act2) doAct(act1 || act2); else doJump(); }
       if (appui(1)) doJump();
