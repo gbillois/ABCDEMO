@@ -6354,7 +6354,7 @@ function loop() {
   const dWant = Math.hypot(P.x, P.z - 7.5) < 5 ? 1 : 0; if (dWant && domeDoorOpen < .05) sfx.door();
   domeDoorOpen += (dWant - domeDoorOpen) * Math.min(1, dt * 5); domeDoors.forEach(d => d.m.position.x = d.s * (1.4 + domeDoorOpen * 2.7)); domeDoorBox.off = domeDoorOpen > .6;
   const inAq = updateAquarium(dt, time, P), inBalo = updateBaloba(dt, time, P), inGT = updateGameTown(dt, time, P), nightK = updateDayNight(dt), inBF = updateBurger(dt, time, P), inShop = updateShops(dt, P), inLock = updateLocker(dt, P);
-  updateVacationers(dt, time, P);
+  if ($("creaView").hidden) updateVacationers(dt, time, P);
 
   // caméra
   if (state !== "ride") {
@@ -6433,7 +6433,8 @@ function loop() {
       WT.fall.material.opacity = k > .85 && k < 2.5 ? .5 : Math.max(0, WT.fall.material.opacity - dt * 2); WT.bw.visible = k < 1 || k > 3.4;
       if (k > .85 && !WT.splashed) { WT.splashed = true; if (Math.hypot(P.x - WT.x, P.z - WT.z) < 25) sfx.splash(); }
       if (k > 3.8) { WT.tip = 0; WT.next = 8 + Math.random() * 4; WT.splashed = false; } } }
-  updateCrowd(dt); updateAnimals(dt); updateCat(dt); updateTraffic(dt); updateFloaters(dt);
+  // pendant qu'on crée son personnage, le domaine est en pause (le chat, les animaux et les gens ne bougent plus)
+  if ($("creaView").hidden) { updateCrowd(dt); updateAnimals(dt); updateCat(dt); updateTraffic(dt); updateFloaters(dt); }
   for (let i = hearts.length - 1; i >= 0; i--) { const h = hearts[i]; h.t -= dt; h.s.position.y += dt * .7; h.s.material.opacity = Math.min(1, h.t); if (h.t <= 0) { scene.remove(h.s); h.s.material.dispose(); hearts.splice(i, 1); } }
   CHEST.open += (CHEST.want - CHEST.open) * Math.min(1, dt * 4); chestLid.rotation.x = CHEST.open * 1.9; if (CHEST.want && Math.hypot(P.x - CHEST.x, P.z - CHEST.z) > 4) CHEST.want = 0;
   riverTex.offset.y -= dt * .55; riverWaterM.normalMap.offset.y -= dt * .35; foamMs.forEach(m => m.map.offset.y -= dt * 1.3);
