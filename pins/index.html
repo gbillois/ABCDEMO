@@ -71,6 +71,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#9fc7e0;color:var(--in
 #hudR{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));display:flex;gap:8px}
 @media (max-width:520px){#hudR{gap:6px}#hudL{max-width:calc(100vw - 236px)}}
 #where{position:fixed;top:calc(64px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));font-size:15px;background:var(--water);color:#fff}
+#perf{position:fixed;top:calc(104px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));z-index:5;white-space:pre;font:12px/1.35 ui-monospace,Menlo,monospace;background:rgba(10,20,30,.62);color:#fff;padding:6px 9px;border-radius:10px;pointer-events:none}
 #moveBtns{position:fixed;left:calc(18px + env(safe-area-inset-left,0px));bottom:calc(164px + env(safe-area-inset-bottom,0px));display:flex;gap:10px}
 .btn.round{width:60px;height:60px;border-radius:50%;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:22px;line-height:1.05;background:rgba(52,73,94,.85)}.btn.round small{font-size:11px}#runBtn[aria-pressed="true"]{background:#e84393}
 #actions{position:fixed;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;align-items:flex-end}
@@ -272,6 +273,7 @@ html.app .site{display:none!important}
       <button id="menuAccueil" class="btn" style="background:#ff8a2b">🏁 Écran de départ</button>
       <button id="replayBtn" class="btn" style="background:var(--slide)">🔄 Nouvelle partie</button>
     </div>
+    <div class="row"><button id="perfBtn" class="btn" style="background:#34495e">📊 Compteur de fluidité</button></div>
     <div class="row"><a class="btn site" style="background:#34495e" href="../index.html">🏠 Les autres jeux</a></div>
   </div>
 </div>
@@ -457,6 +459,7 @@ html.app .site{display:none!important}
     <div class="row"><button id="sayClose" class="btn" style="background:#34495e">Fermer</button></div>
   </div>
 </div>
+<div id="perf" hidden aria-hidden="true"></div>
 <div id="vig" aria-hidden="true"></div>
 <div id="fade"></div>
 
@@ -776,8 +779,9 @@ const domeG = new THREE.Group(); domeG.position.set(DOME.x, DOME_BASE, DOME.z); 
   for (let k = 0; k < 32; k++) { const a = k / 32 * Math.PI * 2, p = new THREE.Mesh(new THREE.CylinderGeometry(.16, .16, DOME_BASE, 8), metalMat); p.position.set(DOME.x + Math.cos(a) * DOME.r, DOME_BASE / 2, DOME.z + Math.sin(a) * DOME.r); p.castShadow = true; scene.add(p); }
   const foot = new THREE.Mesh(new THREE.TorusGeometry(DOME.r, .35, 8, 160), metalMat); foot.rotation.x = Math.PI / 2; foot.position.set(DOME.x, .1, DOME.z); scene.add(foot); }
 const dome = new THREE.Mesh(new THREE.SphereGeometry(DOME.r, 96, 32, 0, Math.PI * 2, 0, Math.PI / 2), glassMat); dome.renderOrder = 2; domeG.add(dome);
-for (let k = 0; k < 16; k++) { const rib = new THREE.Mesh(new THREE.TorusGeometry(DOME.r, 0.16, 8, 120, Math.PI), metalMat); rib.rotation.y = k * Math.PI / 16; rib.castShadow = true; domeG.add(rib); }
-[0, .22, .44, .66, .88, 1.1, 1.32].forEach(phi => { const ring = new THREE.Mesh(new THREE.TorusGeometry(DOME.r * Math.cos(phi), phi ? .14 : .35, 8, 160), metalMat); ring.rotation.x = Math.PI / 2; ring.position.y = DOME.r * Math.sin(phi); ring.castShadow = true; domeG.add(ring); });
+for (let k = 0; k < 16; k++) { const rib = new THREE.Mesh(new THREE.TorusGeometry(DOME.r, 0.16, LOWQ ? 6 : 8, LOWQ ? 64 : 120, Math.PI), metalMat); rib.rotation.y = k * Math.PI / 16; rib.castShadow = true; domeG.add(rib); }
+[0, .22, .44, .66, .88, 1.1, 1.32].forEach(phi => { const ring = new THREE.Mesh(new THREE.TorusGeometry(DOME.r * Math.cos(phi), phi ? .14 : .35, LOWQ ? 6 : 8, LOWQ ? 80 : 160), metalMat); ring.rotation.x = Math.PI / 2; ring.position.y = DOME.r * Math.sin(phi); ring.castShadow = true; domeG.add(ring); });
+fondre(domeG, [dome]); // les 16 arceaux et les 7 cercles de la coupole : un seul maillage (la verrière reste à part)
 const domeLbl = label("AQUAPARC", "#1fa5d6", "#ffffff", 2.8); domeLbl.position.set(DOME.x, DOME_BASE + DOME.r * DOME_SY + 3.5, DOME.z); scene.add(domeLbl);
 
 // bassin creusé
@@ -1016,6 +1020,7 @@ const SLIDE_SAMPLES = [], slidePoleQueue = [];
 function addSlideSamples(curve) { const n = Math.ceil(curve.getLength() / .25); for (let i = 0; i <= n; i++) SLIDE_SAMPLES.push(curve.getPointAt(i / n)); }
 function poleClear(x, z, top) { for (const q of SLIDE_SAMPLES) if (q.y < top + .5 && (q.x - x) ** 2 + (q.z - z) ** 2 < 1.6 * 1.6 && q.y > -1) { if (q.y < top - .2) return false; } return true; }
 function halfPipe(curve, R = .85, seg = 320, K = 14, f0 = 0, f1 = 1) {
+  if (LOWQ) seg = Math.round(seg * .55); // sur iPad, des tranches un peu plus longues : la courbe reste lisse sur un petit écran
   const pos = [], idx = [], uv = [], up = new THREE.Vector3(0, 1, 0), len = curve.getLength();
   for (let i = 0; i <= seg; i++) {
     const t = i / seg, p = curve.getPointAt(t), T = curve.getTangentAt(t);
@@ -1827,7 +1832,9 @@ function blowCandles(r) {
   partyOK = true; PPGATE.off = true; try { localStorage.setItem("pins-fete", "1"); } catch (e) {}
 }
 const BALLS = LOWQ ? 3600 : 4800, ballCols = [0xff5a4e, 0xffc93c, 0x2e86de, 0x27ae60, 0xe84393, 0x9b59b6];
-const ballIM = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.14, 1), mat(0xffffff, .3), BALLS);
+// une balle : sur iPad 20 triangles au lieu de 80 (3600 balles : 72 000 triangles au lieu de 288 000), lissée pour rester bien ronde
+const ballGeo = new THREE.IcosahedronGeometry(.14, LOWQ ? 0 : 1); { const p = ballGeo.attributes.position, n = ballGeo.attributes.normal; for (let i = 0; i < p.count; i++) n.setXYZ(i, p.getX(i) / .14, p.getY(i) / .14, p.getZ(i) / .14); }
+const ballIM = new THREE.InstancedMesh(ballGeo, mat(0xffffff, .3), BALLS);
 const balls = Array.from({ length: BALLS }, (_, i) => { const b = { x: BALO.x + BPIT.x1 + .15 + rnd() * (BPIT.x2 - BPIT.x1 - .3), z: BALO.z + BPIT.z1 + .15 + rnd() * (BPIT.z2 - BPIT.z1 - .3), y: .14 + rnd() * .62, dx: 0, dy: 0, dz: 0 }; ballIM.setColorAt(i, new THREE.Color(ballCols[i % 6])); return b; });
 ballIM.receiveShadow = true; scene.add(ballIM);
 { const m = new THREE.Matrix4(); balls.forEach((b, i) => { m.makeTranslation(b.x, b.y, b.z); ballIM.setMatrixAt(i, m); }); }
@@ -6551,7 +6558,7 @@ function updateCrowd(dt) {
       if (!stepTo(a, a.tx, a.tz, 1.8, dt)) { mode = "walk"; spd = 2.4; } }
     else if (a.kind === "lounge") { g.rotation.x = -1.5; a.face = a.rot; }
     g.position.set(a.x, a.y, a.z); g.rotation.y = a.face;
-    if (mode === "walk") a.wt += dt * 3.5 * Math.max(1, spd); animPerson(g, a.kind === "lounge" ? "lie" : mode, mode === "walk" ? a.wt : mode === "swim" ? time * 4 + a.wt : mode === "climb" ? time * 9 : time, mode === "walk" ? spd : undefined); if (a.kind === "lounge") g.rotation.x = -1.5;
+    if (mode === "walk") a.wt += dt * 3.5 * Math.max(1, spd); if (aAnimer(a, a.x, a.z)) animPerson(g, a.kind === "lounge" ? "lie" : mode, mode === "walk" ? a.wt : mode === "swim" ? time * 4 + a.wt : mode === "climb" ? time * 9 : time, mode === "walk" ? spd : undefined); if (a.kind === "lounge") g.rotation.x = -1.5;
     if (a.kind === "lounge") g.rotation.x = -1.5;
     liveFace(g, dt);
   }
@@ -7683,6 +7690,11 @@ const players = [];
 }
 // des vacanciers qui se détendent dans les jacuzzis
 for (const [k, j] of JACUZZIS.entries()) { const g = bather(k === 1); g.visible = true; const a = k ? Math.PI * .75 : -Math.PI / 4; g.position.set(j.x + Math.cos(a) * (j.r - .7), -.2, j.z + Math.sin(a) * (j.r - .7)); g.rotation.y = Math.atan2(-Math.cos(a), -Math.sin(a)); animPerson(g, "sit", 0); circles.push({ x: g.position.x, z: g.position.z, r: .35 }); }
+// Animer les gens : toujours de près (moins de 30 m) ; plus loin, une image sur deux (une sur trois au-delà de 80 m) ;
+// derrière la caméra, pas du tout (on ne les voit pas). Chacun a son tour, pour répartir le travail entre les images.
+let animN = 0, kAnim = 0; const animDir = new THREE.Vector3(0, 0, -1);
+function aAnimer(o, x, z) { const C = camera.position, dx = x - C.x, dz = z - C.z, d2 = dx * dx + dz * dz; if (d2 < 900) return true;
+  if (dx * animDir.x + dz * animDir.z < -4) return false; const k = o._ka ??= kAnim++; return d2 > 6400 ? (animN + k) % 3 === 0 : ((animN + k) & 1) === 0; }
 function updateVacationers(dt, time, P) {
   for (const c of PARK_CARS) if (c.flash > 0) { c.flash -= dt; c.g.userData.lights.emissiveIntensity = c.flash > 0 && Math.sin(c.flash * 18) > 0 ? 3 : .2; }
   for (const w of walkers) {
@@ -7692,14 +7704,14 @@ function updateVacationers(dt, time, P) {
       const [tx, tz] = w.route[0], dx = tx - w.x, dz = tz - w.z, d = Math.hypot(dx, dz);
       const blockedByPlayer = Math.hypot(P.x - (w.x + dx / (d || 1) * .9), P.z - (w.z + dz / (d || 1) * .9)) < .8;
       if (d < .15) { w.route.shift(); if (!w.route.length) { if (w.place.hide) { w.st = "inside"; w.g.visible = false; w.t = 6 + Math.random() * 12; } else { w.st = "idle"; w.t = 4 + Math.random() * 6; } } }
-      else if (!blockedByPlayer) { const s = Math.min(d, w.sp * dt); w.x += dx / d * s; w.z += dz / d * s; let df = Math.atan2(dx, dz) - w.g.rotation.y; df = Math.atan2(Math.sin(df), Math.cos(df)); w.g.rotation.y += df * Math.min(1, dt * 8); w.wt += dt * 6 * w.sp / 1.6; if (!far) animPerson(w.g, "walk", w.wt, w.sp); }
-      else if (!far) animPerson(w.g, "idle", 0);
+      else if (!blockedByPlayer) { const s = Math.min(d, w.sp * dt); w.x += dx / d * s; w.z += dz / d * s; let df = Math.atan2(dx, dz) - w.g.rotation.y; df = Math.atan2(Math.sin(df), Math.cos(df)); w.g.rotation.y += df * Math.min(1, dt * 8); w.wt += dt * 6 * w.sp / 1.6; if (!far && aAnimer(w, w.x, w.z)) animPerson(w.g, "walk", w.wt, w.sp); }
+      else if (!far && aAnimer(w, w.x, w.z)) animPerson(w.g, "idle", 0);
     }
     w.g.position.set(w.x, 0, w.z); w.col.x = w.x; w.col.z = w.z; w.col.r = w.g.visible ? .35 : -9;
   }
   const nearB = Math.abs(P.x - BALO.x) < 60 && Math.abs(P.z - BALO.z) < 60;
   for (const p of players) {
-    const g = p.g; p.t += dt;
+    const g = p.g; p.t += dt; if (g.parent && !g.parent.visible) continue; // dans un bâtiment vu de loin : on ne le voit pas
     if (p.kind === "tramp") { if (!nearB) continue; const s = Math.abs(Math.sin(p.t * 2.5 + p.ph)); g.position.set(p.x, .5 + s * 2, p.z); g.rotation.y += dt * .8; animPerson(g, "jump", 0, 5 * Math.cos(p.t * 2.5 + p.ph) * Math.sign(Math.sin(p.t * 2.5 + p.ph))); }
     else if (p.kind === "pit") { if (!nearB) continue; const dx = p.tx - p.x, dz = p.tz - p.z, d = Math.hypot(dx, dz);
       if (d < .2 || !p.tx) { p.tx = BALO.x + BPIT.x1 + .8 + Math.random() * (BPIT.x2 - BPIT.x1 - 1.6); p.tz = BALO.z + BPIT.z1 + .8 + Math.random() * (BPIT.z2 - BPIT.z1 - 1.6); }
@@ -8100,6 +8112,87 @@ if (LOWQ) { const vus = new Set();
     if (!(im instanceof HTMLCanvasElement) || im.width < 256 || im.isConnected) continue;
     const c = document.createElement("canvas"); c.width = im.width / 2; c.height = im.height / 2; c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); t.source.data = c; t.source.needsUpdate = true; } });
 }
+/* ================= Le décor immobile en « lots » (BatchedMesh) =================
+   Technique des moteurs de jeu : les objets qui partagent la même matière sont dessinés ensemble, en un seul appel
+   (chaque objet garde sa place, sa couleur et peut encore bouger). Les objets d'origine restent dans la scène, invisibles
+   pour la caméra ; à chaque image on recopie dans le lot ce qui a bougé, apparu ou disparu. Si un objet change de matière
+   (un mur qui devient transparent, une couleur différente du lot…), il quitte le lot et redevient un objet normal. */
+const MURS_FONDUS = [locker.userData.wallMat, aqG.userData.wallMat, baloG.userData.wallMat, gtG.userData.wallMat, bfG.userData.wallMat, MANOR.wallM, ...SHOPS.map(s => s.wallMat), ...cottages.map(c => c.wallMat)].filter(Boolean);
+// ce qui compte pour qu'une matière soit la même (la couleur, elle, est donnée objet par objet)
+const LOT_PROPS = ["type", "roughness", "metalness", "opacity", "transparent", "side", "alphaTest", "depthWrite", "depthTest", "flatShading", "fog", "wireframe", "toneMapped", "envMapIntensity", "emissiveIntensity", "polygonOffset", "polygonOffsetFactor", "polygonOffsetUnits", "visible", "map", "normalMap", "bumpMap", "roughnessMap", "metalnessMap", "emissiveMap", "alphaMap", "aoMap", "lightMap", "envMap"];
+const signe = m => LOT_PROPS.map(k => { const v = m[k]; return v && v.isTexture ? v.uuid : v; }).join("|") + "|" + (m.emissive ? m.emissive.getHex() : "") + "|" + (m.normalScale ? m.normalScale.x + "," + m.normalScale.y : "");
+// même matière que le modèle du lot ? On ne regarde que ce que le jeu change en cours de partie (vite fait, à chaque image)
+const memeMat = (m, r) => m.opacity === r.opacity && m.transparent === r.transparent && m.visible === r.visible && m.emissiveIntensity === r.emissiveIntensity && m.map === r.map
+  && m.side === r.side && m.depthWrite === r.depthWrite && m.alphaTest === r.alphaTest && m.roughness === r.roughness && m.metalness === r.metalness && (!m.emissive || m.emissive.equals(r.emissive));
+const LOTS = [], LOT_MEMBRES = [], LOT_MATS = new Map(), TRI_DE = new Map(TRI.map(t => [t.o, t]));
+if (renderer.extensions.has("WEBGL_multi_draw") && !/sanslots/.test(location.search)) { // (?sanslots dans l'adresse : pour comparer)
+  const PROTO_RENDU = THREE.Object3D.prototype.onBeforeRender, PROTO_COMPIL = THREE.Material.prototype.onBeforeCompile;
+  const TYPES = new Set(["MeshStandardMaterial", "MeshBasicMaterial", "MeshLambertMaterial", "MeshPhongMaterial"]);
+  const exclus = new Set([player, ...ducks.map(d => d.g), ...vehicles.map(v => v.g), ...animals.map(a => a.g), ...movers.map(m => m.g), cat.g || cat, ...FEUX].filter(Boolean));
+  const murs = new Set([...MURS_FONDUS, ...winMats, glassMat]);
+  const garder = o => { for (let x = o; x; x = x.parent) { if (exclus.has(x) || x.userData.legs) return false; if (x === scene) return true; } return false; };
+  const groupes = new Map();
+  scene.traverse(o => {
+    if (!o.isMesh || o.isInstancedMesh || o.isSkinnedMesh || o.isBatchedMesh || Array.isArray(o.material) || o.renderOrder !== 0 || !o.frustumCulled) return;
+    const m = o.material, g = o.geometry;
+    if (!TYPES.has(m.type) || m.transparent || m.opacity < 1 || m.vertexColors || m.onBeforeCompile !== PROTO_COMPIL || m.customProgramCacheKey !== THREE.Material.prototype.customProgramCacheKey || murs.has(m)) return;
+    if (o.onBeforeRender !== PROTO_RENDU || o.customDepthMaterial || o.customDistanceMaterial || g.morphAttributes.position || !g.attributes.position || g.attributes.position.count > 30000 || !garder(o)) return;
+    const cast = o.castShadow, cle = signe(m) + "|" + cast + "|" + o.receiveShadow;
+    if (!groupes.has(cle)) groupes.set(cle, { cast, recv: o.receiveShadow, liste: [] }); groupes.get(cle).liste.push(o);
+  });
+  const geoPour = new Map(); // une géométrie « propre » (index, position, normale, uv) par géométrie d'origine
+  const propre = g => { let c = geoPour.get(g); if (c) return c; c = new THREE.BufferGeometry(); const n = g.attributes.position.count;
+    c.setAttribute("position", g.attributes.position); if (g.index) c.setIndex(g.index); else indexe(c);
+    if (g.attributes.normal) c.setAttribute("normal", g.attributes.normal); else c.computeVertexNormals();
+    c.setAttribute("uv", g.attributes.uv || new THREE.BufferAttribute(new Float32Array(n * 2), 2)); geoPour.set(g, c); return c; };
+  const blanc = new THREE.Color(1, 1, 1);
+  for (const { cast, recv, liste } of groupes.values()) {
+    if (liste.length < 8) continue; // pas la peine pour quelques objets (chaque lot a son petit coût fixe par image)
+    const geos = [...new Set(liste.map(o => o.geometry))], nv = geos.reduce((a, g) => a + propre(g).attributes.position.count, 0), ni = geos.reduce((a, g) => a + propre(g).index.count, 0);
+    const ref = liste[0].material, lm = ref.clone(); lm.color?.copy(blanc);
+    const lot = new THREE.BatchedMesh(liste.length, nv, ni, lm); lot.castShadow = cast; lot.receiveShadow = recv; lot.frustumCulled = false; lot.sortObjects = false; lot.perObjectFrustumCulled = true;
+    lot.userData.ref = ref; const ids = new Map(); for (const g of geos) ids.set(g, lot.addGeometry(propre(g)));
+    for (const o of liste) { const id = lot.addInstance(ids.get(o.geometry)); lot.setMatrixAt(id, o.matrixWorld); if (o.material.color) lot.setColorAt(id, o.material.color);
+      const mb = { o, lot, id, mat: o.material, geo: o.geometry, mw: new Float64Array(o.matrixWorld.elements), cr: o.material.color?.r, cg: o.material.color?.g, cb: o.material.color?.b, vis: true, dehors: false, calme: 0, bouge: 0 };
+      LOT_MEMBRES.push(mb); o.userData.lot = mb; o.layers.mask = 0; // l'original n'est plus dessiné : c'est le lot qui le dessine
+      if (!LOT_MATS.has(o.material)) LOT_MATS.set(o.material, { ref, membres: [] }); LOT_MATS.get(o.material).membres.push(mb); }
+    scene.add(lot); LOTS.push(lot);
+  }
+}
+// un objet quitte son lot pour toujours (il redevient un objet normal, que trier() gère comme avant)
+function sortirDuLot(mb) { if (mb.dehors) return; mb.dehors = true; mb.lot.setVisibleAt(mb.id, false); delete mb.o.userData.lot; const top = topDe(mb.o), t = top && TRI_DE.get(top); mb.o.layers.mask = t && t.off ? 2 : 1; }
+function topDe(o) { for (let x = o; x; x = x.parent) if (x.parent === scene) return x; return null; }
+// à chaque image, juste avant de dessiner (les positions du monde viennent d'être recalculées)
+let lotImage = -1; const LOT_MAT_LISTE = [];
+// visible pour de vrai ? (lui et tous ses parents visibles, et pas rangé au loin par trier) ; calculé une fois par image et par objet
+function visDuLot(x) { if (x._vf === lotImage) return x._vv; let v;
+  if (!x.visible) v = false; else if (x.parent === scene) { const t = TRI_DE.get(x); v = !(t && t.off); } else v = x.parent ? visDuLot(x.parent) : false;
+  x._vf = lotImage; x._vv = v; return v; }
+scene.onBeforeRender = () => {
+  if (lotImage === animN || !LOTS.length) return; lotImage = animN;
+  if (!LOT_MAT_LISTE.length) for (const [m, info] of LOT_MATS) LOT_MAT_LISTE.push([m, info]);
+  // une image sur trois : une matière a-t-elle changé ? (le mur qui s'efface et les vitres ne sont pas dans les lots ; c'est une sécurité)
+  for (let i = animN % 3; i < LOT_MAT_LISTE.length; i += 3) { const [m, info] = LOT_MAT_LISTE[i], r = info.ref;
+    if (r.transparent || r.opacity < 1) { for (const mb of info.membres) sortirDuLot(mb); continue; } // le modèle du lot devient transparent : tout le monde sort
+    if (m !== r && !memeMat(m, r)) for (const mb of info.membres) sortirDuLot(mb); }
+  // le lot suit son modèle (ex. lampes et fenêtres qui s'allument la nuit), sauf la couleur qui est donnée objet par objet
+  for (const lot of LOTS) { const lm = lot.material, r = lot.userData.ref; if (memeMat(lm, r)) continue;
+    const refaire = lm.transparent !== r.transparent || lm.map !== r.map || lm.side !== r.side || lm.alphaTest !== r.alphaTest;
+    lm.opacity = r.opacity; lm.transparent = r.transparent; lm.visible = r.visible; lm.map = r.map; lm.side = r.side; lm.depthWrite = r.depthWrite; lm.alphaTest = r.alphaTest; lm.roughness = r.roughness; lm.metalness = r.metalness;
+    if (r.emissive) { lm.emissive.copy(r.emissive); lm.emissiveIntensity = r.emissiveIntensity; } if (refaire) lm.needsUpdate = true; }
+  for (let n = 0; n < LOT_MEMBRES.length; n++) { const mb = LOT_MEMBRES[n]; if (mb.dehors) continue; const o = mb.o;
+    if (o.material !== mb.mat || o.geometry !== mb.geo) { sortirDuLot(mb); continue; }
+    // ce qui n'a pas bougé depuis 2 s n'est regardé qu'une image sur quatre (chacun son tour)
+    if (mb.calme > 120 && ((n + animN) & 3)) continue;
+    const vis = visDuLot(o); if (vis !== mb.vis) { mb.vis = vis; mb.lot.setVisibleAt(mb.id, vis); }
+    if (!vis) continue;
+    const e = o.matrixWorld.elements, w = mb.mw;
+    if (e[12] !== w[12] || e[13] !== w[13] || e[14] !== w[14] || e[0] !== w[0] || e[1] !== w[1] || e[2] !== w[2] || e[4] !== w[4] || e[5] !== w[5] || e[6] !== w[6] || e[8] !== w[8] || e[9] !== w[9] || e[10] !== w[10]) {
+      w.set(e); mb.calme = 0; // ce qui bouge sans arrêt (ballons, seau…) quitte le lot : sinon tout le lot repart vers la carte graphique à chaque image
+      if (++mb.bouge > 90) { sortirDuLot(mb); continue; } mb.lot.setMatrixAt(mb.id, o.matrixWorld); }
+    else { mb.calme++; mb.bouge = 0; }
+    const c = o.material.color; if (c && (c.r !== mb.cr || c.g !== mb.cg || c.b !== mb.cb)) { mb.cr = c.r; mb.cg = c.g; mb.cb = c.b; mb.lot.setColorAt(mb.id, c); } }
+};
 let triT = 0, imageN = 0;
 const _tv = new THREE.Vector3();
 const _sd = new THREE.Vector3(), _sr = new THREE.Vector3(), _su = new THREE.Vector3(), _st = new THREE.Vector3();
@@ -8107,7 +8200,7 @@ function trier(dt) {
   triT -= dt; if (triT > 0) return; triT = .25;
   const C = camera.position;
   for (const t of TRI) { const o = t.o; if (!o.parent) continue; _tv.copy(t.lc).applyMatrix4(o.matrixWorld); const dC = _tv.distanceTo(C), off = t.off ? dC > t.far : dC > t.far * 1.15; // marge : pas de clignotement à la limite
-    if (off !== t.off) { t.off = off; o.traverse(x => { if (!x.isLight) x.layers.set(off ? 1 : 0); }); }
+    if (off !== t.off) { t.off = off; o.traverse(x => { if (!x.isLight && !x.userData.lot) x.layers.set(off ? 1 : 0); }); }
     // au-delà de quelques dizaines de mètres, l'ombre ne se voit plus : on ne la calcule pas
     const dP = _tv.distanceTo(player.position), omb = !off && (t.omb ? dP < t.ombre * 1.15 : dP < t.ombre);
     if (omb !== t.omb) { t.omb = omb; o.traverse(x => { if (x.isMesh && x.userData.cs0 !== undefined) x.castShadow = omb && x.userData.cs0; }); } }
@@ -8133,13 +8226,26 @@ function adapterResolution() {
   if (ips < 45) { prBon = 0; if (++prBas >= 2 && pr > PR_MIN) { renderer.setPixelRatio(Math.max(PR_MIN, pr - .2)); prBas = 0; prBaisses++; } }
   else { prBas = 0; if (ips > 57 && pr < PR_MAX && prBaisses < 3 && ++prBon >= 5) { renderer.setPixelRatio(Math.min(PR_MAX, pr + .1)); prBon = 0; } }
 }
+// Compteur de fluidité (menu ⚙️) : images par seconde, pire image, à-coups, objets dessinés. Pour voir, sur l'iPad, où ça ralentit.
+let perfOn = false; try { perfOn = localStorage.getItem("pins-perf") === "1"; } catch (e) {}
+const perfEl = $("perf"), perfT = []; let perfAff = 0, perfAvant = 0;
+function majPerfBtn() { perfEl.hidden = !perfOn; $("perfBtn").textContent = perfOn ? "📊 Cacher le compteur" : "📊 Compteur de fluidité"; }
+$("perfBtn").onclick = () => { perfOn = !perfOn; try { localStorage.setItem("pins-perf", perfOn ? "1" : "0"); } catch (e) {} perfT.length = 0; majPerfBtn(); sfx.click(); };
+majPerfBtn();
+function majPerf() {
+  const now = performance.now(), d = now - perfAvant; perfAvant = now; if (!perfOn) return;
+  if (d < 1000) perfT.push([now, d]); while (perfT.length && now - perfT[0][0] > 10000) perfT.shift();
+  if (now - perfAff < 500 || !perfT.length) return; perfAff = now;
+  const r = perfT.filter(([t]) => now - t < 2000), pire = Math.max(...r.map(x => x[1])), acoups = perfT.filter(([, x]) => x > 50).length, i = renderer.info;
+  perfEl.textContent = `${(r.length / 2).toFixed(0)} images/s · pire ${pire.toFixed(0)} ms\nà-coups (10 s) : ${acoups}\nobjets dessinés : ${i.render.calls}\ntriangles : ${(i.render.triangles / 1000).toFixed(0)} k\nnetteté ${renderer.getPixelRatio().toFixed(2)} · programmes ${i.programs.length}`;
+}
 function loop() {
   requestAnimationFrame(loop);
   manette();
   const menu = !introEl.hidden; document.body.classList.toggle("accueil-on", menu);
   if (menu && dejaVu) { clock.getDelta(); prN = prT = 0; return; }
   const dt = Math.min(clock.getDelta(), .05); time += dt; uTime.value = time;
-  const P = player.position; prev.x = P.x; prev.z = P.z; prev.y = P.y;
+  const P = player.position; prev.x = P.x; prev.z = P.z; prev.y = P.y; animN++; camera.getWorldDirection(animDir);
   let camDist = 9, minPitch = .06, camTarget = null;
 
   if (state === "ride") {
@@ -8218,7 +8324,7 @@ function loop() {
 
   // intérieur posé dans le cottage le plus proche
   let near = null, nd = 1e9; for (const c of cottages) { const d = Math.hypot(P.x - c.x, P.z - c.z); if (d < nd) { nd = d; near = c; } }
-  if (nd < 26 && near !== interiorHost) { if (interiorHost) interiorHost.upper.visible = !interiorHost.single; near.g.add(interior); interiorHost = near; cottageTheme(near); interior.traverse(x => { if (!x.isLight) x.layers.mask = near.g.layers.mask; }); }
+  if (nd < 26 && near !== interiorHost) { if (interiorHost) interiorHost.upper.visible = !interiorHost.single; near.g.add(interior); interiorHost = near; cottageTheme(near); interior.traverse(x => { if (!x.isLight && !x.userData.lot) x.layers.mask = near.g.layers.mask; }); }
   // portes automatiques
   for (const c of cottages) {
     c.open += (c.want - c.open) * Math.min(1, dt * 3.2); c.door.rotation.y = c.open * 1.65;
@@ -8366,7 +8472,7 @@ function loop() {
   } else if (camera.view?.enabled) { camera.clearViewOffset(); myLbl.visible = true; }
   document.body.classList.toggle("crea-on", creaOn);
   voituresTick(dt); trier(dt); suivreFeux(dt); majInterieurs(); if (dejaVu) adapterResolution();
-  renderer.render(scene, camera); dejaVu = true;
+  renderer.render(scene, camera); dejaVu = true; majPerf();
 }
 window.__pins = { renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
@@ -8375,7 +8481,7 @@ const compiler = () => Promise.race([renderer.compileAsync(scene, camera), new P
 await compiler();
 // les murs qui s'effacent quand on entre (cottages, vestiaires, aquarium, boutiques…) : leur version transparente est préparée aussi,
 // sinon elle se fabrique au moment où l'on passe la porte
-{ const murs = [locker.userData.wallMat, aqG.userData.wallMat, baloG.userData.wallMat, gtG.userData.wallMat, bfG.userData.wallMat, MANOR.wallM, ...SHOPS.map(s => s.wallMat), ...cottages.map(c => c.wallMat)].filter(m => m && !m.transparent);
+{ const murs = MURS_FONDUS.filter(m => !m.transparent);
   for (const m of murs) { m.transparent = true; m.depthWrite = false; m.needsUpdate = true; }
   await compiler();
   for (const m of murs) { m.transparent = false; m.depthWrite = true; m.needsUpdate = true; } }
