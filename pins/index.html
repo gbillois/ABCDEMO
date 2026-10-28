@@ -6113,7 +6113,7 @@ function animPerson(g, mode, t = 0, v) {
     if (SYNC[i]) B[i].quaternion.copy(q); else { const bq = B[i].quaternion; bq._x = q.x; bq._y = q.y; bq._z = q.z; bq._w = q.w; } }
   const j = NB * 4; if (e < 1) { RAC.set(mix(sr[j], RAC.x, e), mix(sr[j + 1], RAC.y, e), mix(sr[j + 2], RAC.z, e)); TANG = mix(sr[j + 3], TANG, e); }
   o[j] = RAC.x; o[j + 1] = RAC.y; o[j + 2] = RAC.z; o[j + 3] = TANG;
-  os.corps.position.copy(RAC); g.rotation.x = TANG;
+  os.corps.position.copy(RAC); os.corps.position.y += .05; g.rotation.x = TANG; // +5 cm (3 à 4 cm à l'échelle) : les chaussures posées sur les chemins, sans s'y enfoncer
   if (A.neuf) { A.out[A.prev].set(o); A.neuf = false; }
   // tongs : enlevées dans l'eau (g.userData.tongs : les maillages des tongs portées ; foule : g.userData.montrerTongs)
   const eau = m === "swim" || m === "tread" || m === "buoy";
