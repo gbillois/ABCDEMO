@@ -38,12 +38,14 @@ export const COULS = [0xff5a4e, 0xff8a2b, 0xffc93c, 0x27ae60, 0x16a085, 0x2e86de
 export const HAUTS = ["T-shirt", "T-shirt rayé", "T-shirt imprimé", "Sweat à capuche", "T-shirt arc-en-ciel"], BAS = ["Short", "Pantalon", "Legging à cerises", "Jean"];
 export const ACC_COULS = COULS.slice(0, 8), TSHIRTS = COULS, SHORTS = [0xf39c12, 0x3a4a63, 0x1f2a44, 0x7b1e2b, 0x3b5b8c, 0x2d3436, 0x6c5ce7, 0x1f9e8f, 0xe84393, 0xffffff, 0xc0392b, 0x7f8c99], CHAUSS = [0xff5a4e, 0xffffff, 0x2d3436, 0x2e86de, 0xffc93c, 0x27ae60, 0xe84393, 0x8b4513];
 // ordre des choix : peau, couleur des cheveux, coupe, yeux, visage, taille, accessoire, couleur de l'accessoire,
-// couleur du haut, couleur du bas, chaussures, sorte de haut, sorte de bas
-export const LOOK_MAX = [8, 12, 9, 6, 3, 3, 9, 8, 14, 12, 8, 5, 4];
+// couleur du haut, couleur du bas, chaussures, sorte de haut, sorte de bas, puis les traits du visage (dessins façon Mii) :
+// forme des yeux, sourcils, nez, bouche (ajoutés à la fin : les anciens personnages à 13 choix sont complétés, migrerLook)
+export const LOOK_MAX = [8, 12, 9, 6, 3, 3, 9, 8, 14, 12, 8, 5, 4, 6, 6, 5, 6], LOOK_MAX_13 = LOOK_MAX.slice(0, 13);
 export const lookValide = l => Array.isArray(l) && l.length === LOOK_MAX.length && l.every((v, i) => Number.isInteger(v) && v >= 0 && v < LOOK_MAX[i]);
 export function optsDePerso(p, extra = {}) {
   const l = p.look, a = l[6];
   return { long: p.sexe === "f", skin: PEAUX[l[0]], hair: CHEVEUX[l[1]], coiffure: l[2], eyes: YEUX[l[3]], tete: TETES[l[4]], scale: TAILLES[l[5]],
     acc: a === 5 ? "casquette" : a === 6 ? "noeud" : a === 7 ? "bandeau" : null, accCol: ACC_COULS[l[7]], shirt: TSHIRTS[l[8]], pants: SHORTS[l[9]], shoe: CHAUSS[l[10]], lunettes: a >= 1 && a <= 4 ? a : a === 8 ? 5 : 0,
-    shorts: l[12] === 0, motifHaut: [null, "rayures", "etoiles", null, "arcenciel"][l[11]], manches: l[11] === 3, capuche: l[11] === 3, motifBas: [null, null, "cerises", "jean"][l[12]], ...extra };
+    shorts: l[12] === 0, motifHaut: [null, "rayures", "etoiles", null, "arcenciel"][l[11]], manches: l[11] === 3, capuche: l[11] === 3, motifBas: [null, null, "cerises", "jean"][l[12]],
+    traits: l.length > 16 ? { yeux: l[13], sourcils: l[14], nez: l[15], bouche: l[16] } : undefined, ...extra };
 }

@@ -11,6 +11,7 @@ import { squelette, typeDe, INDEX_OS } from "./squelette.js";
 import { construireCorps } from "./corps.js";
 import * as MAT from "./materiaux.js";
 import { construireVisage } from "./visage.js";
+export { traitsVisage, apercuVisage } from "./visage.js";
 import { reperesTete } from "./tete.js";
 import { SUITS, suitTex, GLASSES, mulberry, rnd, mergeGeometries } from "../jeu.js";
 export { animPerson, liveFace } from "./anim.js";

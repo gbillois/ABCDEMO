@@ -64,3 +64,18 @@ SCENES.visagesCorps = Q => ({ custom: async ({ THREE, scene, J, camera }) => {
     const L = champ * .6, w = ((out.length - 1) * dx + L) / camera.aspect, d = Math.max(L, w) / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
     camera.position.set(c.x, c.y + d * .05, c.z + d); camera.lookAt(c); camera.near = d * .2; camera.updateProjectionMatrix(); };
   return out; } });
+// visages Mii sur le vrai corps, gros plan des têtes : &n=12&types=garcon,fille&hash=1 (traits du hachage, sinon i-ème variante)
+//   &vue=face|34|profil  &peaux=0,2,4  &champ=.34 (hauteur visée par tête)
+SCENES.mii = Q => ({ custom: async ({ J, camera }) => {
+  const P = await import("./perso/index.js"), types = (Q.get("types") || "garcon,fille").split(","), n = Number(Q.get("n") || 6), peaux = (Q.get("peaux") || "1,3,5,0,6,2").split(",").map(Number);
+  const vue = ROT[Q.get("vue") || "face"] ?? 0, dx = Number(Q.get("dx") || .24), out = [];
+  for (let i = 0; i < n; i++) { const t = types[i % types.length], ad = t === "femme" || t === "homme";
+    const o = { long: t === "fille" || t === "femme", adulte: ad, scale: ad ? .76 : .6, skin: J.PEAUX[peaux[i % peaux.length]], eyes: J.YEUX[i % 6], hair: J.CHEVEUX[(i * 5) % 12],
+      coiffure: o => 0, shirt: 0x2e86de, pants: 0x1f2a44, shorts: true, seed: i * 31 + 7, lite: Q.has("leger") };
+    o.coiffure = o.long ? [1, 2, 3, 4, 6, 8][i % 6] : [0, 5, 7][i % 3];
+    if (!Q.get("hash")) o.traits = { yeux: i % 6, sourcils: (i + 2) % 6, nez: i % 5, bouche: (i + 1) % 6 };
+    const g = P.person(o); g.position.x = (i - (n - 1) / 2) * dx; g.rotation.y = vue; g.updateMatrixWorld(true);
+    g.position.y = 1.2 - g.userData.os.tete.getWorldPosition(new THREE.Vector3()).y; out.push({ g, a: { anim: { mode: "idle" } }, P: { liveFace: (gg, dt) => gg.userData.visage?.animer?.(dt) } }); }
+  const c0 = out[0].a.anim; c0.apres = () => { const L = Number(Q.get("champ") || .34), w = n * dx / camera.aspect, d = Math.max(L, w) / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
+    camera.position.set(0, 1.28, d); camera.lookAt(0, 1.28, 0); camera.near = d * .2; camera.updateProjectionMatrix(); };
+  return out; } });

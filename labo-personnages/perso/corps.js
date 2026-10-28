@@ -484,9 +484,10 @@ function construireTete(type, qualite, A, C) {
   for (const [t, w] of neck) { const c = lp(cB, cTop, t), n = nr(lp(nBase, nTop, t)), fwd = ortho([0, 0, 1], n), side = nr(cr(n, fwd)), sd = side[0] < 0 ? ml(side, -1) : side;
     const idx = angB.map(a => ajoute(lancer(GR.COU, c, nr(ad(ml(fwd, Math.cos(a)), ml(sd, Math.sin(a))))), poidsC(w), GR.COU)); anneaux.push({ idx, a: angB.slice(), cou: true }); }
   // anneaux de la tête : élévation depuis le centre de la tête ; dessous : −62° devant, −32° derrière
-  const NH = plein ? 72 : 36, Af = plein ? .3 : .2, el0 = a => (-32 + (-62 + 32) * (1 + Math.cos(a)) / 2) * PI / 180;
-  const pas = plein ? [0, .025, .055, .09, .125, .16, .195, .23, .265, .3, .333, .366, .399, .432, .465, .498, .531, .566, .605, .65, .7, .76, .82, .88, .935, .975] : [0, .07, .16, .26, .36, .46, .56, .66, .76, .86, .94];
-  const nbr = plein ? [Math.round(nb * 1.33), Math.round(nb * 1.7), NH, NH, NH] : [Math.round(nb * 1.4), NH];
+  const NH = plein ? 44 : 28, Af = plein ? .3 : .2, el0 = a => (-32 + (-62 + 32) * (1 + Math.cos(a)) / 2) * PI / 180;
+  // tête façon Mii (œuf lisse, visage dessiné) : peu d'anneaux suffisent
+  const pas = plein ? [0, .04, .09, .15, .22, .3, .38, .46, .54, .62, .7, .78, .86, .93, .975] : [0, .08, .18, .3, .42, .54, .66, .78, .9];
+  const nbr = plein ? [Math.round(nb * 1.3), Math.round(nb * 1.6), NH] : [Math.round(nb * 1.3), NH];
   for (let k = 0; k < pas.length; k++) { const tau = pas[k], hautK = Math.sin(tau * PI / 2);
     let n = k < nbr.length ? nbr[k] : NH; if (tau > .7) n = Math.max(6, Math.round(NH * Math.cos((tau - .7) / .3 * PI / 2 * .93) / 2) * 2);
     const A2 = Af * Math.min(1, k / 3), a = [], idx = [], tP = tPrec; tPrec = [];

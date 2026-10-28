@@ -1,7 +1,6 @@
-// tete.js — la tête en champ de distance signé (SDF), façon figurine (Mii) : crâne bien rond, joues pleines et lisses,
-// petit menton doux, petit nez en bouton. Ni orbites, ni lèvres, ni narines : le visage (yeux, sourcils, bouche, joues
-// roses) est peint par visage.js sur cette surface lisse, sans creux ni ombre.
-// Repère de l'os « tete » (pivot = atlas, axes du monde, le visage regarde +z), unités du modèle.
+// tete.js — la tête façon Mii : UN œuf doux et lisse (le plus large aux pommettes, menton à peine plus étroit), sans
+// joues, ni nez, ni lèvres, ni orbites modelés. Le visage (yeux, sourcils, nez, bouche, joues roses) est DESSINÉ par
+// visage.js sur cette surface : les personnages se reconnaissent à leurs dessins. Simple = peu de calcul, peu de triangles.
 // Tailles (≈ +10 % du réel) : enfant 0,36 (menton → sommet) × 0,30 de large × 0,33 de profondeur ; adultes 0,32 de haut.
 import * as THREE from "three";
 
@@ -20,67 +19,51 @@ export function cap(x, y, z, c) {
   return sq(dx * dx + dy * dy + dz * dz) - (c[6] + (c[7] - c[6]) * t);
 }
 
-// Mesures par type : ellipsoïdes [cx, cy, cz, a, b, c] (x des pièces doubles : côté gauche, le droit en miroir), raccords k.
-// Visage peint : oeil [x, y, W] (W = demi-largeur de l'œil), bouche [y, demi-largeur], rose [x, y, rayon] (joues),
+// Mesures par type. oeuf = [cy, cz, a, bHaut, bBas, cAvant, cArriere] : la tête est UN œuf doux (demi-largeur a, demi-hauteurs,
+// profondeur devant / derrière), le plus large au niveau des pommettes, rétréci doucement sous yJ jusqu'au menton
+// (tx : largeur, tz : profondeur). crane = repère des cheveux (centre et rayons, inchangé pour cheveux.js).
+// Visage dessiné : oeil [x, y, W] (W = demi-largeur), sourcil y, nez [0, y], bouche [y, demi-largeur], rose [x, y, rayon],
 // oreille [y, z, demi-hauteur, demi-largeur, écart] ; haut / bas : sommet / menton (y) ; front : naissance des cheveux.
 const ENFANT = {
+  oeuf: [.125, -.008, .15, .195, .165, .152, .17], yJ: .07, tx: .16, tz: .08,
   crane: [0, .165, -.012, .150, .155, .156],
-  face: [0, .088, .030, .128, .112, .124], kFace: .05,           // masse du bas du visage : joues rondes
-  joue: [.064, .066, .078, .052, .048, .054], kJoue: .035,        // joues pleines
-  menton: [0, .012, .082, .054, .044, .060], kMenton: .03,
-  nez: [0, .094, .150, .013, .012, .012], kNez: .012,
-  cou: [0, -.17, -.030, 0, .02, -.034, .062, .060], kCou: .038,
-  oeil: [.057, .138, .034], bouche: [.044, .0115], rose: [.084, .080, .024],
-  oreille: [.104, -.014, .036, .023, .015], haut: .32, bas: -.04, front: .245,
+  cou: [0, -.17, -.030, 0, .02, -.034, .062, .060], kCou: .028,
+  oeil: [.054, .118, .03], sourcil: .162, nez: [0, .078], bouche: [.036, .0115], rose: [.084, .082, .022],
+  oreille: [.11, -.012, .034, .022, .012], haut: .32, bas: -.04, front: .245,
 };
-// Adultes : visage un peu plus long, tête plus petite par rapport au corps ; même douceur (la grand-mère : visage rond)
+// Adultes : tête plus petite par rapport au corps, visage un peu plus long ; la grand-mère : visage rond et doux
 const FEMME = {
+  oeuf: [.12, -.014, .13, .17, .15, .138, .15], yJ: .065, tx: .15, tz: .08,
   crane: [0, .150, -.018, .122, .140, .138],
-  face: [0, .070, .020, .112, .110, .118], kFace: .045,
-  joue: [.062, .058, .068, .050, .050, .052], kJoue: .03,
-  menton: [0, .002, .070, .055, .037, .060], kMenton: .028,
-  nez: [0, .088, .133, .016, .019, .016], kNez: .012,
   cou: [0, -.17, -.036, 0, -.012, -.044, .052, .050], kCou: .032,
-  oeil: [.047, .126, .0275], bouche: [.038, .0115], rose: [.071, .075, .020],
-  oreille: [.100, -.020, .032, .020, .013], haut: .29, bas: -.03, front: .222,
+  oeil: [.046, .112, .026], sourcil: .148, nez: [0, .074], bouche: [.03, .0115], rose: [.072, .074, .019],
+  oreille: [.1, -.018, .031, .019, .011], haut: .29, bas: -.03, front: .222,
 };
 const HOMME = {
+  oeuf: [.11, -.016, .134, .175, .145, .142, .155], yJ: .055, tx: .1, tz: .06,
   crane: [0, .145, -.020, .127, .140, .142],
-  face: [0, .066, .020, .118, .112, .122], kFace: .045,
-  joue: [.066, .054, .070, .050, .050, .052], kJoue: .03,
-  menton: [0, -.002, .072, .062, .038, .062], kMenton: .028,
-  nez: [0, .084, .138, .017, .020, .017], kNez: .012,
   cou: [0, -.17, -.036, 0, .01, -.038, .058, .056], kCou: .032,
-  oeil: [.049, .121, .028], bouche: [.035, .0125], rose: [.074, .071, .020],
-  oreille: [.095, -.022, .034, .021, .014], haut: .285, bas: -.035, front: .212,
+  oeil: [.048, .108, .027], sourcil: .144, nez: [0, .07], bouche: [.027, .0125], rose: [.075, .07, .019],
+  oreille: [.098, -.02, .033, .02, .012], haut: .285, bas: -.035, front: .212,
 };
 const PT = { garcon: ENFANT, fille: ENFANT, femme: FEMME, homme: HOMME };
-const prep = e => [e[0], e[1], e[2], 1 / e[3], 1 / e[4], 1 / e[5]];
-// borne : sphère qui contient l'ellipsoïde (centre, rayon)
-const borne = e => [e[0], e[1], e[2], mx(e[3], e[4], e[5])];
-const pres = (x, y, z, b, lim) => { const t = b[3] + lim; if (t <= 0) return false; const dx = x - b[0], dy = y - b[1], dz = z - b[2]; return dx * dx + dy * dy + dz * dz < t * t; };
 
-// Le champ d'un type : une fonction avec ses mesures en constantes locales
+// Le champ d'un type : l'œuf (rayons qui dépendent de y et du côté avant / arrière) + le cou en capsule douce
 function fabrique(P) {
-  const F = a => Float64Array.from(a), C = F(prep(P.crane)), Fa = F(prep(P.face)), Jo = F(prep(P.joue)), Me = F(prep(P.menton)), Ne = F(prep(P.nez)), Co = F(P.cou);
-  const bFa = borne(P.face), bJo = borne(P.joue), bMe = borne(P.menton), bNe = borne(P.nez), kF = P.kFace, kJ = P.kJoue, kM = P.kMenton, kN = P.kNez, kC = P.kCou;
-  const bCo = [(Co[0] + Co[3]) / 2, (Co[1] + Co[4]) / 2, (Co[2] + Co[5]) / 2, ab(Co[4] - Co[1]) / 2 + mx(Co[6], Co[7])];
+  const [cy, cz, a, bh, bb, cf, cb] = P.oeuf, yJ = P.yJ, tx = P.tx, tz = P.tz, lJ = yJ - P.bas, Co = Float64Array.from(P.cou), kC = P.kCou, E = new Float64Array(6);
+  E[1] = cy; E[2] = cz;
   return (x, y, z) => {
-    const X = ab(x);
-    let d = ell(x, y, z, C);
-    if (pres(x, y, z, bCo, d + kC)) d = smin(d, cap(x, y, z, Co), kC);
-    if (d > .1) return d; // loin de la tête
-    if (pres(x, y, z, bFa, d + kF)) d = smin(d, ell(x, y, z, Fa), kF);
-    if (pres(X, y, z, bJo, d + kJ)) d = smin(d, ell(X, y, z, Jo), kJ);
-    if (pres(x, y, z, bMe, d + kM)) d = smin(d, ell(x, y, z, Me), kM);
-    if (pres(x, y, z, bNe, d + kN)) d = smin(d, ell(x, y, z, Ne), kN);
+    const u = y < yJ ? mn(1.2, (yJ - y) / lJ) : 0, u2 = u * u; // sous les pommettes : rétréci en douceur (C¹)
+    E[3] = 1 / (a * (1 - tx * u2)); E[4] = 1 / (y > cy ? bh : bb); E[5] = 1 / ((z > cz ? cf : cb) * (1 - tz * u2));
+    let d = ell(x, y, z, E);
+    if (y < cy) d = smin(d, cap(x, y, z, Co), kC);
     return d;
   };
 }
 for (const P of new Set(Object.values(PT))) P.F = fabrique(P);
 const FG = ENFANT.F, FF = FEMME.F, FH = HOMME.F, Fde = type => type === "femme" ? FF : type === "homme" ? FH : FG;
 export const sdfTete = (x, y, z, type) => Fde(type)(x, y, z);
-// anciens noms (la tête n'a plus de paupières ni de détails cachés : c'est le même champ)
+// anciens noms (la tête n'a ni paupières ni détails cachés : c'est le même champ)
 export const sdfTeteFermee = sdfTete, sdfTeteLegere = sdfTete;
 export const mesuresTete = type => PT[type] || ENFANT;
 

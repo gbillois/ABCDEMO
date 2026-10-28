@@ -14,8 +14,9 @@ const CODE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/;
 const MODES = 5;              // 0 immobile, 1 marche, 2 nage, 3 échelle, 4 toboggan
 const MAILLOTS = ["rouge", "raye", "palmiers", "requin", "arcenciel", "surf", "or"];
 // apparence du personnage : uniquement des numéros dans des listes fermées (mêmes bornes que LOOK_MAX du jeu)
-const LOOK_MAX = [8, 12, 9, 6, 3, 3, 9, 8, 14, 12, 8, 5, 4];
-const lookValide = l => Array.isArray(l) && l.length === LOOK_MAX.length && l.every((v, i) => Number.isInteger(v) && v >= 0 && v < LOOK_MAX[i]);
+// (les 4 derniers : forme des yeux, sourcils, nez, bouche ; un ancien jeu envoie encore 13 numéros : accepté, le jeu complète)
+const LOOK_MAX = [8, 12, 9, 6, 3, 3, 9, 8, 14, 12, 8, 5, 4, 6, 6, 5, 6];
+const lookValide = l => Array.isArray(l) && (l.length === LOOK_MAX.length || l.length === 13) && l.every((v, i) => Number.isInteger(v) && v >= 0 && v < LOOK_MAX[i]);
 
 // Filtre simple, identique dans le jeu et le relais (accents et substitutions courantes).
 function filtrerSurnom(v) {

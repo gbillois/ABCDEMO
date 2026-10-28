@@ -59,7 +59,7 @@ body.crea-on #stick,body.crea-on #moveBtns,body.crea-on #actions,body.crea-on #h
 @media (orientation:landscape){.crea{justify-content:flex-end;align-items:center}.crea .card{margin:auto 0 auto auto;max-height:calc(100vh - 32px);max-width:min(460px,52vw)}}
 .crea h1{font-size:24px}.crea h3{margin:10px 0 4px;font-size:16px;text-align:left;color:var(--leaf)}.crea .opts{display:flex;flex-wrap:wrap;gap:6px}
 .crea .opt{min-width:44px;height:44px;border-radius:12px;border:3px solid transparent;font:inherit;font-size:15px;font-weight:800;padding:0 10px;background:#e8e4d6;color:#1d3b2a;cursor:pointer}
-.crea .opt.coul{width:44px;padding:0;border-color:rgba(0,0,0,.15)}.crea .opt[aria-pressed="true"]{border-color:#ff7a2f;box-shadow:0 0 0 3px #ffc93c}
+.crea .opt.coul{width:44px;padding:0;border-color:rgba(0,0,0,.15)}.crea .opt.dessin{width:66px;padding:0;overflow:hidden}.crea .opt.dessin img{display:block;width:100%;height:100%;object-fit:cover}.crea .opt[aria-pressed="true"]{border-color:#ff7a2f;box-shadow:0 0 0 3px #ffc93c}
 .crea .creaNom{display:block;font-weight:800;margin:6px 0}.crea input{font:inherit;font-size:18px;padding:8px 12px;border-radius:12px;border:3px solid #1d3b2a;width:min(240px,64vw);text-align:center;background:#fff;color:#1d3b2a;user-select:text;-webkit-user-select:text;touch-action:manipulation}
 .crea .perso{background:#9aa0b4;font-size:15px;padding:6px 10px}.crea .perso.on{background:var(--violet);outline:3px solid #ffc93c}.crea .code{font-size:24px;font-weight:800;letter-spacing:1px;word-break:break-all;user-select:text;-webkit-user-select:text}
 .sexe .btn{background:#9aa0b4}.sexe .btn[aria-checked="true"]{background:#e84393;outline:3px solid #ffc93c}.sexe #sexeG[aria-checked="true"]{background:#2e86de}
@@ -2768,10 +2768,9 @@ return { NOMS_OS, INDEX_OS, PARENT_OS, TYPES, HANCHES_ANCIEN, typeDe, POSE_LIAIS
 })();
 // ---------- tete.js ----------
 const M_tete = (() => {
-// tete.js — la tête en champ de distance signé (SDF), façon figurine (Mii) : crâne bien rond, joues pleines et lisses,
-// petit menton doux, petit nez en bouton. Ni orbites, ni lèvres, ni narines : le visage (yeux, sourcils, bouche, joues
-// roses) est peint par visage.js sur cette surface lisse, sans creux ni ombre.
-// Repère de l'os « tete » (pivot = atlas, axes du monde, le visage regarde +z), unités du modèle.
+// tete.js — la tête façon Mii : UN œuf doux et lisse (le plus large aux pommettes, menton à peine plus étroit), sans
+// joues, ni nez, ni lèvres, ni orbites modelés. Le visage (yeux, sourcils, nez, bouche, joues roses) est DESSINÉ par
+// visage.js sur cette surface : les personnages se reconnaissent à leurs dessins. Simple = peu de calcul, peu de triangles.
 // Tailles (≈ +10 % du réel) : enfant 0,36 (menton → sommet) × 0,30 de large × 0,33 de profondeur ; adultes 0,32 de haut.
 
 
@@ -2790,67 +2789,51 @@ function cap(x, y, z, c) {
   return sq(dx * dx + dy * dy + dz * dz) - (c[6] + (c[7] - c[6]) * t);
 }
 
-// Mesures par type : ellipsoïdes [cx, cy, cz, a, b, c] (x des pièces doubles : côté gauche, le droit en miroir), raccords k.
-// Visage peint : oeil [x, y, W] (W = demi-largeur de l'œil), bouche [y, demi-largeur], rose [x, y, rayon] (joues),
+// Mesures par type. oeuf = [cy, cz, a, bHaut, bBas, cAvant, cArriere] : la tête est UN œuf doux (demi-largeur a, demi-hauteurs,
+// profondeur devant / derrière), le plus large au niveau des pommettes, rétréci doucement sous yJ jusqu'au menton
+// (tx : largeur, tz : profondeur). crane = repère des cheveux (centre et rayons, inchangé pour cheveux.js).
+// Visage dessiné : oeil [x, y, W] (W = demi-largeur), sourcil y, nez [0, y], bouche [y, demi-largeur], rose [x, y, rayon],
 // oreille [y, z, demi-hauteur, demi-largeur, écart] ; haut / bas : sommet / menton (y) ; front : naissance des cheveux.
 const ENFANT = {
+  oeuf: [.125, -.008, .15, .195, .165, .152, .17], yJ: .07, tx: .16, tz: .08,
   crane: [0, .165, -.012, .150, .155, .156],
-  face: [0, .088, .030, .128, .112, .124], kFace: .05,           // masse du bas du visage : joues rondes
-  joue: [.064, .066, .078, .052, .048, .054], kJoue: .035,        // joues pleines
-  menton: [0, .012, .082, .054, .044, .060], kMenton: .03,
-  nez: [0, .094, .150, .013, .012, .012], kNez: .012,
-  cou: [0, -.17, -.030, 0, .02, -.034, .062, .060], kCou: .038,
-  oeil: [.057, .138, .034], bouche: [.044, .0115], rose: [.084, .080, .024],
-  oreille: [.104, -.014, .036, .023, .015], haut: .32, bas: -.04, front: .245,
+  cou: [0, -.17, -.030, 0, .02, -.034, .062, .060], kCou: .028,
+  oeil: [.054, .118, .03], sourcil: .162, nez: [0, .078], bouche: [.036, .0115], rose: [.084, .082, .022],
+  oreille: [.11, -.012, .034, .022, .012], haut: .32, bas: -.04, front: .245,
 };
-// Adultes : visage un peu plus long, tête plus petite par rapport au corps ; même douceur (la grand-mère : visage rond)
+// Adultes : tête plus petite par rapport au corps, visage un peu plus long ; la grand-mère : visage rond et doux
 const FEMME = {
+  oeuf: [.12, -.014, .13, .17, .15, .138, .15], yJ: .065, tx: .15, tz: .08,
   crane: [0, .150, -.018, .122, .140, .138],
-  face: [0, .070, .020, .112, .110, .118], kFace: .045,
-  joue: [.062, .058, .068, .050, .050, .052], kJoue: .03,
-  menton: [0, .002, .070, .055, .037, .060], kMenton: .028,
-  nez: [0, .088, .133, .016, .019, .016], kNez: .012,
   cou: [0, -.17, -.036, 0, -.012, -.044, .052, .050], kCou: .032,
-  oeil: [.047, .126, .0275], bouche: [.038, .0115], rose: [.071, .075, .020],
-  oreille: [.100, -.020, .032, .020, .013], haut: .29, bas: -.03, front: .222,
+  oeil: [.046, .112, .026], sourcil: .148, nez: [0, .074], bouche: [.03, .0115], rose: [.072, .074, .019],
+  oreille: [.1, -.018, .031, .019, .011], haut: .29, bas: -.03, front: .222,
 };
 const HOMME = {
+  oeuf: [.11, -.016, .134, .175, .145, .142, .155], yJ: .055, tx: .1, tz: .06,
   crane: [0, .145, -.020, .127, .140, .142],
-  face: [0, .066, .020, .118, .112, .122], kFace: .045,
-  joue: [.066, .054, .070, .050, .050, .052], kJoue: .03,
-  menton: [0, -.002, .072, .062, .038, .062], kMenton: .028,
-  nez: [0, .084, .138, .017, .020, .017], kNez: .012,
   cou: [0, -.17, -.036, 0, .01, -.038, .058, .056], kCou: .032,
-  oeil: [.049, .121, .028], bouche: [.035, .0125], rose: [.074, .071, .020],
-  oreille: [.095, -.022, .034, .021, .014], haut: .285, bas: -.035, front: .212,
+  oeil: [.048, .108, .027], sourcil: .144, nez: [0, .07], bouche: [.027, .0125], rose: [.075, .07, .019],
+  oreille: [.098, -.02, .033, .02, .012], haut: .285, bas: -.035, front: .212,
 };
 const PT = { garcon: ENFANT, fille: ENFANT, femme: FEMME, homme: HOMME };
-const prep = e => [e[0], e[1], e[2], 1 / e[3], 1 / e[4], 1 / e[5]];
-// borne : sphère qui contient l'ellipsoïde (centre, rayon)
-const borne = e => [e[0], e[1], e[2], mx(e[3], e[4], e[5])];
-const pres = (x, y, z, b, lim) => { const t = b[3] + lim; if (t <= 0) return false; const dx = x - b[0], dy = y - b[1], dz = z - b[2]; return dx * dx + dy * dy + dz * dz < t * t; };
 
-// Le champ d'un type : une fonction avec ses mesures en constantes locales
+// Le champ d'un type : l'œuf (rayons qui dépendent de y et du côté avant / arrière) + le cou en capsule douce
 function fabrique(P) {
-  const F = a => Float64Array.from(a), C = F(prep(P.crane)), Fa = F(prep(P.face)), Jo = F(prep(P.joue)), Me = F(prep(P.menton)), Ne = F(prep(P.nez)), Co = F(P.cou);
-  const bFa = borne(P.face), bJo = borne(P.joue), bMe = borne(P.menton), bNe = borne(P.nez), kF = P.kFace, kJ = P.kJoue, kM = P.kMenton, kN = P.kNez, kC = P.kCou;
-  const bCo = [(Co[0] + Co[3]) / 2, (Co[1] + Co[4]) / 2, (Co[2] + Co[5]) / 2, ab(Co[4] - Co[1]) / 2 + mx(Co[6], Co[7])];
+  const [cy, cz, a, bh, bb, cf, cb] = P.oeuf, yJ = P.yJ, tx = P.tx, tz = P.tz, lJ = yJ - P.bas, Co = Float64Array.from(P.cou), kC = P.kCou, E = new Float64Array(6);
+  E[1] = cy; E[2] = cz;
   return (x, y, z) => {
-    const X = ab(x);
-    let d = ell(x, y, z, C);
-    if (pres(x, y, z, bCo, d + kC)) d = smin(d, cap(x, y, z, Co), kC);
-    if (d > .1) return d; // loin de la tête
-    if (pres(x, y, z, bFa, d + kF)) d = smin(d, ell(x, y, z, Fa), kF);
-    if (pres(X, y, z, bJo, d + kJ)) d = smin(d, ell(X, y, z, Jo), kJ);
-    if (pres(x, y, z, bMe, d + kM)) d = smin(d, ell(x, y, z, Me), kM);
-    if (pres(x, y, z, bNe, d + kN)) d = smin(d, ell(x, y, z, Ne), kN);
+    const u = y < yJ ? mn(1.2, (yJ - y) / lJ) : 0, u2 = u * u; // sous les pommettes : rétréci en douceur (C¹)
+    E[3] = 1 / (a * (1 - tx * u2)); E[4] = 1 / (y > cy ? bh : bb); E[5] = 1 / ((z > cz ? cf : cb) * (1 - tz * u2));
+    let d = ell(x, y, z, E);
+    if (y < cy) d = smin(d, cap(x, y, z, Co), kC);
     return d;
   };
 }
 for (const P of new Set(Object.values(PT))) P.F = fabrique(P);
 const FG = ENFANT.F, FF = FEMME.F, FH = HOMME.F, Fde = type => type === "femme" ? FF : type === "homme" ? FH : FG;
 const sdfTete = (x, y, z, type) => Fde(type)(x, y, z);
-// anciens noms (la tête n'a plus de paupières ni de détails cachés : c'est le même champ)
+// anciens noms (la tête n'a ni paupières ni détails cachés : c'est le même champ)
 const sdfTeteFermee = sdfTete, sdfTeteLegere = sdfTete;
 const mesuresTete = type => PT[type] || ENFANT;
 
@@ -3456,9 +3439,10 @@ function construireTete(type, qualite, A, C) {
   for (const [t, w] of neck) { const c = lp(cB, cTop, t), n = nr(lp(nBase, nTop, t)), fwd = ortho([0, 0, 1], n), side = nr(cr(n, fwd)), sd = side[0] < 0 ? ml(side, -1) : side;
     const idx = angB.map(a => ajoute(lancer(GR.COU, c, nr(ad(ml(fwd, Math.cos(a)), ml(sd, Math.sin(a))))), poidsC(w), GR.COU)); anneaux.push({ idx, a: angB.slice(), cou: true }); }
   // anneaux de la tête : élévation depuis le centre de la tête ; dessous : −62° devant, −32° derrière
-  const NH = plein ? 72 : 36, Af = plein ? .3 : .2, el0 = a => (-32 + (-62 + 32) * (1 + Math.cos(a)) / 2) * PI / 180;
-  const pas = plein ? [0, .025, .055, .09, .125, .16, .195, .23, .265, .3, .333, .366, .399, .432, .465, .498, .531, .566, .605, .65, .7, .76, .82, .88, .935, .975] : [0, .07, .16, .26, .36, .46, .56, .66, .76, .86, .94];
-  const nbr = plein ? [Math.round(nb * 1.33), Math.round(nb * 1.7), NH, NH, NH] : [Math.round(nb * 1.4), NH];
+  const NH = plein ? 44 : 28, Af = plein ? .3 : .2, el0 = a => (-32 + (-62 + 32) * (1 + Math.cos(a)) / 2) * PI / 180;
+  // tête façon Mii (œuf lisse, visage dessiné) : peu d'anneaux suffisent
+  const pas = plein ? [0, .04, .09, .15, .22, .3, .38, .46, .54, .62, .7, .78, .86, .93, .975] : [0, .08, .18, .3, .42, .54, .66, .78, .9];
+  const nbr = plein ? [Math.round(nb * 1.3), Math.round(nb * 1.6), NH] : [Math.round(nb * 1.3), NH];
   for (let k = 0; k < pas.length; k++) { const tau = pas[k], hautK = Math.sin(tau * PI / 2);
     let n = k < nbr.length ? nbr[k] : NH; if (tau > .7) n = Math.max(6, Math.round(NH * Math.cos((tau - .7) / .3 * PI / 2 * .93) / 2) * 2);
     const A2 = Af * Math.min(1, k / 3), a = [], idx = [], tP = tPrec; tPrec = [];
@@ -4026,9 +4010,11 @@ return { texGrainPeau, texTissu, texIrreg, ECH_CHEVEUX, texCheveux, STYLE, occlu
 })();
 // ---------- visage.js ----------
 const M_visage = (() => {
-// visage.js — le visage DESSINÉ des anciens personnages (grands yeux, cils des filles, sourcil, petit sourire, joues roses)
-// posé en décalque sur la tête douce de tete.js (tête ≈ +10 %). Les yeux sont des décalques à part : ils clignent
-// (échelle en y autour du centre de l'œil). Matériau : matDecalPeau (même lumière que la peau).
+// visage.js — le visage DESSINÉ façon Mii, en décalques posés sur l'œuf lisse de tete.js : traits simples et nets,
+// sans ombre. On reconnaît chacun à ses dessins : 6 formes d'yeux, 6 sourcils, 5 nez, 6 bouches (+ cils des filles,
+// rides douces des adultes). Les yeux sont des décalques à part : ils clignent (échelle en y autour du centre de l'œil).
+// traitsVisage(o) → { yeux, sourcils, nez, bouche } : o.traits s'il est donné (choix du créateur), sinon tiré d'un hachage
+//   des autres choix (peau, cheveux, coupe, iris, taille, o.seed) : deux personnages différents ont des traits différents.
 // construireVisage(g, os, type, o, qualite) → { animer(dt), geoLeger, yeux, reste } ; g.userData.lids = les 2 yeux.
 // Foule : geoVisageLeger = quelques disques en couleurs de sommets (rouge = iris, vert = sourcil), posés dans le corps.
 
@@ -4036,88 +4022,143 @@ const { devant, gradient, sdfTete, mesuresTete } = M_tete;
 const { matDecalPeau } = M_materiaux;
 
 
-// ---- l'atlas peint (copie de l'ancien jeu) : œil 256×256, bouche 256×128, joues 256×128
-const ATLAS = new Map();
-function atlasVisage(iris, sourcil, f) {
-  const key = iris + "-" + sourcil + (f ? "f" : "g"); if (ATLAS.has(key)) return ATLAS.get(key);
-  const c = document.createElement("canvas"); c.width = 512; c.height = 256; const x = c.getContext("2d"), col = (h, k, w = 0) => "#" + new THREE.Color(h).multiplyScalar(k).lerp(new THREE.Color(0xffffff), w).getHexString();
-  const blanc = () => { x.beginPath(); x.moveTo(32, 142); x.bezierCurveTo(55, 84, 175, 70, 226, 118); x.bezierCurveTo(216, 196, 160, 230, 120, 228); x.bezierCurveTo(70, 226, 40, 192, 32, 142); x.closePath(); };
-  blanc(); x.fillStyle = "#fbfbfd"; x.fill(); x.save(); blanc(); x.clip();
-  const gi = x.createLinearGradient(0, 84, 0, 236); gi.addColorStop(0, col(iris, .3)); gi.addColorStop(.45, col(iris, 1)); gi.addColorStop(1, col(iris, 1.25, .45));
-  x.fillStyle = gi; x.beginPath(); x.ellipse(126, 162, 60, 74, 0, 0, Math.PI * 2); x.fill(); x.lineWidth = 5; x.strokeStyle = col(iris, .35); x.stroke();
-  x.fillStyle = col(iris, .18); x.beginPath(); x.ellipse(126, 170, 25, 36, 0, 0, Math.PI * 2); x.fill();
-  const om = x.createLinearGradient(0, 70, 0, 140); om.addColorStop(0, "rgba(40,20,20,.45)"); om.addColorStop(1, "rgba(40,20,20,0)"); x.fillStyle = om; x.fillRect(0, 60, 256, 80);
-  x.fillStyle = "rgba(255,255,255,.95)"; x.beginPath(); x.ellipse(100, 130, 21, 25, -.3, 0, Math.PI * 2); x.fill(); x.beginPath(); x.arc(158, 200, 9, 0, Math.PI * 2); x.fill(); x.restore();
-  x.strokeStyle = "#2a1a16"; x.lineCap = "round"; x.lineWidth = 15; x.beginPath(); x.moveTo(26, 148); x.bezierCurveTo(52, 82, 178, 64, 232, 110); x.stroke();
-  x.lineWidth = 9; x.beginPath(); x.moveTo(224, 106); x.lineTo(246, 90); x.stroke();
-  if (f) { x.lineWidth = 6; for (const [a1, b1, a2, b2] of [[212, 96, 230, 72], [196, 88, 208, 64], [236, 112, 252, 104]]) { x.beginPath(); x.moveTo(a1, b1); x.lineTo(a2, b2); x.stroke(); } }
-  x.lineWidth = 4; x.globalAlpha = .65; x.beginPath(); x.moveTo(150, 226); x.quadraticCurveTo(196, 214, 216, 186); x.stroke(); x.globalAlpha = 1;
-  x.strokeStyle = col(sourcil, .7); x.lineWidth = f ? 7 : 10; x.beginPath(); x.moveTo(58, 44); x.quadraticCurveTo(130, 10, 206, 34); x.stroke();
-  x.save(); x.translate(256, 0);
-  x.fillStyle = "#8c3030"; x.beginPath(); x.moveTo(98, 48); x.quadraticCurveTo(128, 100, 158, 48); x.quadraticCurveTo(128, 60, 98, 48); x.fill();
-  x.fillStyle = "#e9828a"; x.beginPath(); x.ellipse(128, 70, 13, 7, 0, 0, Math.PI * 2); x.fill();
-  x.strokeStyle = "#6e2626"; x.lineWidth = 3; x.beginPath(); x.moveTo(94, 46); x.quadraticCurveTo(128, 58, 162, 46); x.stroke();
-  x.translate(0, 128); const gb = x.createRadialGradient(128, 64, 4, 128, 64, 84); gb.addColorStop(0, "rgba(255,120,135,.5)"); gb.addColorStop(1, "rgba(255,120,135,0)");
-  x.fillStyle = gb; x.fillRect(0, 0, 256, 128); x.strokeStyle = "rgba(235,90,105,.45)"; x.lineWidth = 4; for (let i = 0; i < 3; i++) { x.beginPath(); x.moveTo(100 + i * 22, 78); x.lineTo(114 + i * 22, 50); x.stroke(); }
-  x.restore();
+const NB_TRAITS = { yeux: 6, sourcils: 6, nez: 5, bouche: 6 };
+function traitsVisage(o = {}) {
+  const t = o.traits; if (t) return { yeux: (t.yeux ?? 0) % 6, sourcils: (t.sourcils ?? 0) % 6, nez: (t.nez ?? 0) % 5, bouche: (t.bouche ?? 0) % 6 };
+  let h = 2166136261; for (const v of [o.skin, o.hair, o.coiffure, o.eyes, o.tete, o.scale, o.long ? 1 : 0, o.seed]) { h = Math.imul(h ^ (Math.round((v ?? 7) * 1000) | 0), 16777619); h ^= h >>> 13; }
+  const r = k => { h = Math.imul(h ^ (h >>> 15), 2246822507); h ^= h >>> 13; return (h >>> 0) % k; };
+  return { yeux: r(6), sourcils: r(6), nez: r(5), bouche: r(6) };
+}
+
+// ---- l'atlas (512×256) : œil 256×256 | bouche (256,0) 256×128 | sourcil (256,128) 256×64 | nez (256,192) 128×64 | joue (384,192) 128×64
+const ATLAS = new Map(), NOIR = "#2b1c18";
+function atlasVisage(iris, sourcil, peau, f, ad, T) {
+  const key = [iris, sourcil, peau, f, ad, T.yeux, T.sourcils, T.nez, T.bouche].join("-"); if (ATLAS.has(key)) return ATLAS.get(key);
+  const c = document.createElement("canvas"); c.width = 512; c.height = 256; dessinerAtlas(c.getContext("2d"), iris, sourcil, peau, f, ad, T);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; t.userData = { partage: true }; ATLAS.set(key, t); return t;
 }
+// aperçu d'un trait pour le créateur de personnage : sorte = yeux | sourcils | nez | bouche, i = variante,
+// o = options de person() (couleurs, long, type adulte) → image (data: URL) sur fond de peau
+const ZONES = { yeux: [0, 0, 256, 256], sourcils: [256, 128, 256, 64], nez: [256, 192, 128, 64], bouche: [256, 0, 256, 128] };
+function apercuVisage(sorte, i, o = {}, l = 96, h = 64) {
+  const a = document.createElement("canvas"); a.width = 512; a.height = 256; const T = { ...traitsVisage(o), [sorte]: i }, peau = o.skin ?? 0xf1c6a0;
+  dessinerAtlas(a.getContext("2d"), o.eyes ?? 0x6b4424, o.hair ?? 0x5a3a22, peau, !!o.long, !!o.adulte, T);
+  const c = document.createElement("canvas"); c.width = l; c.height = h; const x = c.getContext("2d"), [u, v, w, hh] = ZONES[sorte], z = { yeux: 1.25, nez: 1.4 }[sorte] ?? 1;
+  x.fillStyle = "#" + new THREE.Color(peau).getHexString(); x.fillRect(0, 0, l, h);
+  // on découpe la zone du trait seulement (zoom z autour de son centre), posée au centre de l'aperçu
+  const sw = w / z, sh = hh / z, cx = u + w / 2, cy = sorte === "yeux" ? v + 132 : v + hh / 2, k = Math.min(l / sw, h / sh);
+  x.drawImage(a, cx - sw / 2, Math.max(v, cy - sh / 2), sw, sh, (l - sw * k) / 2, (h - sh * k) / 2, sw * k, sh * k); return c.toDataURL();
+}
+function dessinerAtlas(x, iris, sourcil, peau, f, ad, T) {
+  const col = (h, k, w = 0) => "#" + new THREE.Color(h).multiplyScalar(k).lerp(new THREE.Color(0xffffff), w).getHexString();
+  const trait = (w, s = NOIR) => { x.lineWidth = w; x.strokeStyle = s; x.lineCap = x.lineJoin = "round"; };
+  const ell = (cx, cy, rx, ry, fill) => { x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); if (fill) { x.fillStyle = fill; x.fill(); } };
+  const ligne = pts => { x.beginPath(); x.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 4) x.quadraticCurveTo(pts[i], pts[i + 1], pts[i + 2], pts[i + 3]); x.stroke(); };
+  // ---- œil (le coin extérieur est à droite ; le décalque de l'autre œil est en miroir)
+  x.save(); const k = ad ? .84 : 1; x.translate(128, 132); x.scale(k, k); x.translate(-128, -132);
+  const iri = (cx, cy, r) => { ell(cx, cy, r, r * 1.05, col(iris, 1)); ell(cx, cy + r * .1, r * .5, r * .55, NOIR); ell(cx - r * .38, cy - r * .42, r * .27, r * .3, "#fff"); };
+  const blancEtIris = (forme, cy, r) => { forme(); x.fillStyle = "#fff"; x.fill(); x.save(); forme(); x.clip(); iri(128, cy, r); x.restore(); forme(); };
+  const Y = T.yeux;
+  if (Y === 0) { blancEtIris(() => ell(128, 134, 58, 70), 146, 46); trait(8); x.stroke(); trait(14); x.beginPath(); x.ellipse(128, 134, 58, 70, 0, Math.PI * 1.08, Math.PI * 1.95); x.stroke(); }
+  else if (Y === 1) { const am = () => { x.beginPath(); x.moveTo(52, 140); x.quadraticCurveTo(122, 62, 210, 120); x.quadraticCurveTo(140, 200, 52, 140); x.closePath(); };
+    blancEtIris(am, 140, 42); trait(6); x.stroke(); trait(14); ligne([48, 142, 122, 58, 214, 116]); trait(8); ligne([210, 116, 222, 108, 232, 96]); }
+  else if (Y === 2) { ell(128, 140, 36, 50, col(iris, .32)); ell(128, 150, 22, 30, col(iris, .75)); ell(128, 152, 13, 18, NOIR); ell(114, 118, 11, 13, "#fff"); ell(140, 168, 5, 5, "rgba(255,255,255,.8)"); }
+  else if (Y === 3) { const ri = () => { x.beginPath(); x.moveTo(50, 128); x.lineTo(206, 116); x.quadraticCurveTo(200, 196, 128, 196); x.quadraticCurveTo(56, 194, 50, 128); x.closePath(); };
+    blancEtIris(ri, 150, 46); trait(6); x.stroke(); trait(15); ligne([44, 130, 128, 118, 212, 114]); }
+  else if (Y === 4) { blancEtIris(() => ell(128, 132, 66, 76), 140, 54); trait(7); x.stroke(); ell(150, 176, 8, 8, "#fff"); trait(14); x.beginPath(); x.ellipse(128, 132, 66, 76, 0, Math.PI * 1.1, Math.PI * 1.92); x.stroke(); }
+  else { blancEtIris(() => ell(128, 140, 76, 40), 146, 36); trait(6); x.stroke(); trait(13); x.beginPath(); x.ellipse(128, 140, 76, 40, 0, Math.PI * 1.05, Math.PI * 1.97); x.stroke(); }
+  if (f) { trait(ad ? 5 : 7); const cils = Y === 5 ? [[194, 116, 214, 96], [178, 106, 192, 86]] : Y === 3 ? [[200, 114, 222, 98], [182, 114, 198, 94]] : [[196, 92, 220, 74], [178, 80, 194, 58], [206, 108, 232, 100]];
+    for (const [a1, b1, a2, b2] of cils) { x.beginPath(); x.moveTo(a1, b1); x.lineTo(a2, b2); x.stroke(); } }
+  if (ad) { trait(5, "rgba(120,70,60,.55)"); ligne([70, 52, 130, 30, 196, 52]); ligne([188, 196, 210, 190, 224, 174]); } // pli de paupière, petite ride au coin
+  x.restore();
+  // ---- bouche (256,0)
+  x.save(); x.translate(256, 0); const LV = "#7a2c2a", B = T.bouche;
+  const ouverte = dents => { x.beginPath(); x.moveTo(80, 42); x.quadraticCurveTo(128, 52, 176, 42); x.quadraticCurveTo(128, 120, 80, 42); x.closePath(); x.fillStyle = "#8c2f32"; x.fill();
+    x.save(); x.clip(); ell(128, 84, 28, 16, "#e8737e"); if (dents) { x.fillStyle = "#fff"; x.fillRect(70, 30, 116, 20); } x.restore();
+    x.beginPath(); x.moveTo(80, 42); x.quadraticCurveTo(128, 52, 176, 42); x.quadraticCurveTo(128, 120, 80, 42); trait(5, LV); x.stroke(); };
+  if (B === 0) { trait(8, LV); ligne([80, 50, 128, 86, 176, 50]); }
+  else if (B === 1) ouverte(false);
+  else if (B === 2) { trait(7, LV); ligne([104, 56, 128, 68, 152, 56]); }
+  else if (B === 3) ouverte(true);
+  else if (B === 4) { trait(8, LV); ligne([88, 58, 136, 78, 176, 44]); }
+  else { ell(128, 60, 30, 13, "#d9707a"); trait(4, LV); ligne([100, 59, 128, 64, 156, 59]); }
+  // ---- sourcil (256,128) : couleur des cheveux, plus foncée
+  x.translate(0, 128); const S = T.sourcils, ws = (ad ? .8 : 1) * (f ? .85 : 1); trait(1, col(sourcil, .62));
+  const SO = [[9, [50, 36, 128, 30, 206, 28]], [10, [44, 46, 128, 4, 212, 36]], [18, [52, 36, 128, 32, 204, 32]], [12, [50, 46, 128, 34, 206, 20]], [11, [80, 40, 130, 20, 186, 36]], [10, [50, 26, 120, 14, 206, 44]]][S];
+  x.lineWidth = SO[0] * ws * 1.4; ligne(SO[1]);
+  // ---- nez (256,192) : petit trait, couleur de la peau assombrie
+  x.translate(0, 64); const N = col(peau, .66), kn = ad ? 1.15 : 1; x.save(); x.translate(64, 32); x.scale(kn, kn); x.translate(-64, -32); trait(7, N);
+  if (T.nez === 0) ligne([50, 28, 64, 46, 78, 28]);
+  else if (T.nez === 1) { x.beginPath(); x.moveTo(68, 8); x.lineTo(58, 40); x.quadraticCurveTo(62, 48, 74, 44); x.stroke(); }
+  else if (T.nez === 2) { ell(54, 36, 5, 4, N); ell(74, 36, 5, 4, N); }
+  else if (T.nez === 3) ligne([72, 14, 50, 32, 72, 48]);
+  else { ell(64, 32, 18, 13, col(peau, .9)); trait(5, N); ligne([50, 38, 64, 48, 78, 38]); }
+  x.restore();
+  // ---- joue rose (384,192), légère
+  x.translate(128, 0); const gb = x.createRadialGradient(64, 32, 2, 64, 32, 46); const a = ad ? .22 : .38;
+  gb.addColorStop(0, `rgba(255,120,135,${a})`); gb.addColorStop(1, "rgba(255,120,135,0)"); x.fillStyle = gb; x.fillRect(0, 0, 128, 64);
+  x.restore();
+}
 const MATS = new Map();
-function matVisage(iris, sourcil, f) {
-  const key = iris + "-" + sourcil + f; if (MATS.has(key)) return MATS.get(key);
-  const m = matDecalPeau(atlasVisage(iris, sourcil, f)); m.userData.partage = true; MATS.set(key, m); return m;
+function matVisage(...a) {
+  const key = a.flatMap(v => typeof v === "object" ? Object.values(v) : [v]).join("-"); if (MATS.has(key)) return MATS.get(key);
+  const m = matDecalPeau(atlasVisage(...a)); m.userData.partage = true; MATS.set(key, m); return m;
 }
 
 // ---- géométrie : petites grilles qui épousent la face (devant : profondeur de la peau en x, y), partagées par type
 const GEOS = new Map();
 function geosVisage(type) {
   if (GEOS.has(type)) return GEOS.get(type);
-  const M = mesuresTete(type), E = M.oeil, ey = E[1], ex = type === "femme" || type === "homme" ? E[0] * 1.08 : E[0] * 1.1, nD = 6, K = type === "femme" || type === "homme" ? .82 : 1;
-  const z = (x, y) => devant(type, x, y) ?? 0;
-  const decal = (cx, cy, w, h, u0, v0, du, dv, mir) => {
+  const M = mesuresTete(type), E = M.oeil, ad = type === "femme" || type === "homme", K = ad ? .86 : 1, z = (x, y) => devant(type, x, y) ?? 0;
+  // (cx, cy, w, h) dans la tête ; (u0, v0, du, dv) dans l'atlas ; n = subdivisions
+  const decal = (cx, cy, w, h, u0, v0, du, dv, mir, n = 4) => {
     const pos = [], uv = [], idx = [], cz = z(cx, cy);
-    for (let j = 0; j <= nD; j++) for (let i = 0; i <= nD; i++) { const a = i / nD, b = j / nD, X = cx + (a - .5) * w, Y = cy + (b - .5) * h; pos.push(X - cx, Y - cy, z(X, Y) + .0025 - cz); uv.push((u0 + (mir ? 1 - a : a) * du) / 512, 1 - (v0 + (1 - b) * dv) / 256); }
-    for (let j = 0; j < nD; j++) for (let i = 0; i < nD; i++) { const p = j * (nD + 1) + i; idx.push(p, p + 1, p + nD + 2, p, p + nD + 2, p + nD + 1); }
+    for (let j = 0; j <= n; j++) for (let i = 0; i <= n; i++) { const a = i / n, b = j / n, X = cx + (a - .5) * w, Y = cy + (b - .5) * h; pos.push(X - cx, Y - cy, z(X, Y) + .0022 - cz); uv.push((u0 + (mir ? 1 - a : a) * du) / 512, 1 - (v0 + (1 - b) * dv) / 256); }
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { const p = j * (n + 1) + i; idx.push(p, p + 1, p + n + 2, p, p + n + 2, p + n + 1); }
     const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals(); geo.userData.partage = true;
     return { geo, c: new THREE.Vector3(cx, cy, cz) };
   };
-  const yeux = [-1, 1].map(s => decal(s * ex, ey - .004, .112 * K, .112 * K, 0, 0, 256, 256, s < 0));
-  const bouche = decal(0, M.bouche[0] + .004, .1 * K, .05 * K, 256, 0, 256, 128, false), joues = [-1, 1].map(s => decal(s * M.rose[0] * 1.08, M.rose[1] - .006, .062 * K, .031 * K, 256, 128, 256, 128, false));
-  const reste = mergeGeometries([bouche, ...joues].map(d => d.geo.translate(d.c.x, d.c.y, d.c.z))); reste.userData.partage = true;
+  const D = E[2] * 3.5;
+  const yeux = [-1, 1].map(s => decal(s * E[0], E[1], D, D, 0, 0, 256, 256, s < 0));
+  const sourcils = [-1, 1].map(s => decal(s * E[0] * 1.04, M.sourcil, D * .9, D * .225, 256, 128, 256, 64, s < 0, 3));
+  const bouche = decal(0, M.bouche[0], .11 * K, .055 * K, 256, 0, 256, 128, false), nez = decal(0, M.nez[1], .046 * K, .023 * K, 256, 192, 128, 64, false, 2);
+  const joues = [-1, 1].map(s => decal(s * M.rose[0], M.rose[1], .05 * K, .025 * K, 384, 192, 128, 64, false, 2));
+  const reste = mergeGeometries([bouche, nez, ...sourcils, ...joues].map(d => d.geo.clone().translate(d.c.x, d.c.y, d.c.z))); reste.userData.partage = true;
   const r = { yeux, reste }; GEOS.set(type, r); return r;
 }
 
-// ---- foule : disques en couleurs de sommets (rouge = iris, vert = sourcil), coordonnées de la tête
+// ---- foule : disques en couleurs de sommets (rouge = iris, vert = sourcil), coordonnées de la tête ; yeux en points (Mii)
 const LEG = new Map();
 function geoVisageLeger(type) {
   if (LEG.has(type)) return LEG.get(type);
-  const M = mesuresTete(type), E = M.oeil, K = type === "femme" || type === "homme" ? .82 : 1, f = (x, y, z) => sdfTete(x, y, z, type), v = new THREE.Vector3();
+  const M = mesuresTete(type), E = M.oeil, K = type === "femme" || type === "homme" ? .86 : 1, f = (x, y, z) => sdfTete(x, y, z, type), v = new THREE.Vector3();
   const P = [], N = [], C = [], I = [];
   const disque = (cx, cy, rx, ry, col, n = 8, dz = .002) => { const b = P.length / 3, z0 = devant(type, cx, cy) ?? 0; const ring = [[cx, cy]];
     for (let k = 0; k < n; k++) { const a = k / n * Math.PI * 2; ring.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]); }
     for (const [x, y] of ring) { const z = (devant(type, x, y) ?? z0) + dz; gradient(f, x, y, z, v); P.push(x, y, z); N.push(v.x, v.y, v.z); C.push(col[0], col[1], col[2]); }
     for (let k = 0; k < n; k++) I.push(b, b + 1 + k, b + 1 + (k + 1) % n); };
-  for (const s of [-1, 1]) { const cx = s * E[0] * 1.1, cy = E[1] - .004;
-    disque(cx, cy, .04 * K, .046 * K, [1, 1, 1], 10); disque(cx, cy - .006 * K, .027 * K, .035 * K, [1, 0, 0], 10, .0035); disque(cx, cy - .008 * K, .013 * K, .019 * K, [.07, .04, .04], 8, .0045);
-    disque(cx - .01 * K, cy + .008 * K, .007 * K, .008 * K, [1, 1, 1], 6, .0055); disque(cx, cy + .047 * K, .03 * K, .0045, [0, 1, 0], 6, .0035);
-    disque(s * M.rose[0] * 1.08, M.rose[1] - .006, .022 * K, .013 * K, [1, .62, .66], 8, .002); }
-  disque(0, M.bouche[0] + .004, .018 * K, .008 * K, [.55, .17, .18], 8, .002);
+  for (const s of [-1, 1]) { const cx = s * E[0], cy = E[1];
+    disque(cx, cy, .019 * K, .025 * K, [1, 1, 1], 8); disque(cx, cy - .003 * K, .015 * K, .02 * K, [1, 0, 0], 8, .003); disque(cx, cy - .003 * K, .008 * K, .011 * K, [.07, .04, .04], 6, .004);
+    disque(cx - .005 * K, cy + .008 * K, .004 * K, .0045 * K, [1, 1, 1], 5, .005); disque(s * E[0] * 1.03, M.sourcil, .022 * K, .004, [0, 1, 0], 6, .003);
+    disque(s * M.rose[0], M.rose[1], .016 * K, .009 * K, [1, .66, .7], 6, .002); }
+  disque(0, M.bouche[0], .02 * K, .006 * K, [.5, .17, .17], 8, .002);
   const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(N, 3)); g.setAttribute("color", new THREE.Float32BufferAttribute(C, 3)); g.setIndex(I);
   g.userData.partage = true; LEG.set(type, g); return g;
 }
 
 function construireVisage(g, os, type, o = {}, qualite = "plein") {
-  const tete = os.tete, hair = o.hair ?? 0x5a3a22, iris = o.eyes ?? 0x6b4424;
+  const tete = os.tete, hair = o.hair ?? 0x5a3a22, iris = o.eyes ?? 0x6b4424, ad = type === "femme" || type === "homme";
   if (qualite === "leger") { const geoL = geoVisageLeger(type); g.userData.lids = []; return { animer() {}, geoLeger: geoL }; }
-  const G = geosVisage(type), m = matVisage(iris, hair, !!o.long), yeux = G.yeux.map(d => { const e = new THREE.Mesh(d.geo, m); e.position.copy(d.c); e.renderOrder = 1; e.name = "oeil"; tete.add(e); return e; });
+  const T = traitsVisage(o), G = geosVisage(type), m = matVisage(iris, hair, o.skin ?? 0xf1c6a0, !!o.long, ad, T);
+  const yeux = G.yeux.map(d => { const e = new THREE.Mesh(d.geo, m); e.position.copy(d.c); e.renderOrder = 1; e.name = "oeil"; tete.add(e); return e; });
   const reste = new THREE.Mesh(G.reste, m); reste.renderOrder = 1; reste.name = "bouche"; tete.add(reste);
-  g.userData.lids = yeux; g.userData.blink = 2 + Math.random() * 3;
+  g.userData.lids = yeux; g.userData.blink = 2 + Math.random() * 3; g.userData.traits = T;
   const S = { t: 2 + Math.random() * 3, k: 1 };
-  return { yeux, reste, animer(dt = 1 / 60) { // clignement : yeux écrasés une fraction de seconde, de temps en temps (double parfois)
+  return { yeux, reste, traits: T, animer(dt = 1 / 60) { // clignement : yeux écrasés une fraction de seconde, de temps en temps (double parfois)
     S.t -= dt; const ferme = S.t < .11 && S.t > 0, a = ferme ? .1 : 1; S.k += (a - S.k) * Math.min(1, dt * 30); for (const e of yeux) e.scale.y = S.k;
     if (S.t <= 0) S.t = Math.random() < .2 ? .25 : 2.5 + Math.random() * 3.5; } };
 }
-return { geoVisageLeger, construireVisage };
+return { NB_TRAITS, traitsVisage, apercuVisage, geoVisageLeger, construireVisage };
 })();
 // ---------- anim.js ----------
 const M_anim = (() => {
@@ -4815,7 +4856,7 @@ const memo = (cle, f) => { if (!GEOS.has(cle)) GEOS.set(cle, f()); return GEOS.g
 const geoHaut = (type, long, mot) => memo(`haut|${type}|${long}|${mot === 'etoiles'}`, () => {
   const { geo, J, enfant, Lg, reg, lng, Y } = repere(type, "chausse"), hem = J.bassin.y - (long ? .035 : .015), Lm = long ? Lg.bras : enfant ? .13 : .16, ep = long ? .016 : .011;
   return extraire(geo, i => { const r = reg(i); return r === 0 ? Y(i) - hem : r === 3 ? Lm - lng(i) : r === 4 && long ? Lg.avantbras - .014 - lng(i) : -1; },
-    i => { const r = reg(i); return ep + (r === 0 ? .008 * (1 - ss(hem, hem + .13, Y(i))) * (long ? .6 : 1) : .003 * ss(0, Lm, lng(i))); }, [3, 14]);
+    i => { const r = reg(i); return ep + (r === 0 ? .008 * (1 - ss(hem, hem + .13, Y(i))) * (long ? .6 : 1) : r === 4 ? .003 - .005 * ss(Lg.avantbras - .07, Lg.avantbras - .014, lng(i)) : .003 * ss(0, Lm, lng(i))); }, [3, 14]); // avant-bras : continu au coude, poignet resserré
 });
 // ---- bas : short, pantalon (jean), legging
 const geoBas = (type, sorte) => memo(`bas|${type}|${sorte}`, () => {
@@ -4936,6 +4977,7 @@ const { squelette, typeDe, INDEX_OS } = M_squelette;
 const { construireCorps } = M_corps;
 const MAT = M_materiaux;
 const { construireVisage } = M_visage;
+const { traitsVisage, apercuVisage } = M_visage; // ré-export
 const { reperesTete } = M_tete;
 
 const { animPerson, liveFace } = M_anim; // ré-export
@@ -5052,11 +5094,11 @@ function setOutfit(g, id) {
   else { U.uHMode.value = su.full ? 3 : u.female ? 2 : 1; U.uHSuit.value = suitTex(su); U.uHHaut.value.set(su.a ?? "#e74c3c"); U.uHMetal.value = su.gold ? .6 : 0; }
   for (const t of u.tongs ?? []) t.visible = !!su;
 }
-return { animPerson, liveFace, putGlasses, putSwimGear, person, setOutfit };
+return { traitsVisage, apercuVisage, animPerson, liveFace, putGlasses, putSwimGear, person, setOutfit };
 })();
 return M_index;
 })();
-const { animPerson, liveFace, putGlasses, putSwimGear, person, setOutfit } = ATELIER_PERSOS;
+const { traitsVisage, apercuVisage, animPerson, liveFace, putGlasses, putSwimGear, person, setOutfit } = ATELIER_PERSOS;
 let player = person({ shirt: 0x2e86de, pants: 0xf39c12, shorts: true, cap: 0xff5a4e, shoe: 0xff5a4e, scale: .6 }); scene.add(player);
 const pLbl = label("Théo", "#2e86de", "#ffffff", .8); pLbl.position.y = 2.75; player.add(pLbl);
 const SPAWN = { x: -16, z: 33 };
@@ -5655,21 +5697,26 @@ const COULS = [0xff5a4e, 0xff8a2b, 0xffc93c, 0x27ae60, 0x16a085, 0x2e86de, 0x8e4
 const HAUTS = ["T-shirt", "T-shirt rayé", "T-shirt imprimé", "Sweat à capuche", "T-shirt arc-en-ciel"], BAS = ["Short", "Pantalon", "Legging à cerises", "Jean"];
 const ACC_COULS = COULS.slice(0, 8), TSHIRTS = COULS, SHORTS = [0xf39c12, 0x3a4a63, 0x1f2a44, 0x7b1e2b, 0x3b5b8c, 0x2d3436, 0x6c5ce7, 0x1f9e8f, 0xe84393, 0xffffff, 0xc0392b, 0x7f8c99], CHAUSS = [0xff5a4e, 0xffffff, 0x2d3436, 0x2e86de, 0xffc93c, 0x27ae60, 0xe84393, 0x8b4513];
 // ordre des choix : peau, couleur des cheveux, coupe, yeux, visage, taille, accessoire, couleur de l'accessoire,
-// couleur du haut, couleur du bas, chaussures, sorte de haut, sorte de bas
-const LOOK_MAX = [8, 12, 9, 6, 3, 3, 9, 8, 14, 12, 8, 5, 4];
+// couleur du haut, couleur du bas, chaussures, sorte de haut, sorte de bas, puis les traits du visage (dessins façon Mii) :
+// forme des yeux, sourcils, nez, bouche (ajoutés à la fin : les anciens personnages à 13 choix sont complétés, migrerLook)
+const LOOK_MAX = [8, 12, 9, 6, 3, 3, 9, 8, 14, 12, 8, 5, 4, 6, 6, 5, 6], LOOK_MAX_13 = LOOK_MAX.slice(0, 13);
+// ancien personnage (13 choix) : on ajoute des traits tirés de ses autres choix (toujours les mêmes pour lui)
+const migrerLook = l => { if (!Array.isArray(l) || l.length !== 13) return l; let h = 7; for (const v of l) h = (h * 31 + (v | 0) + 11) % 1000003;
+  return [...l, h % 6, (h >> 3) % 6, (h >> 6) % 5, (h >> 9) % 6]; };
 const lookValide = l => Array.isArray(l) && l.length === LOOK_MAX.length && l.every((v, i) => Number.isInteger(v) && v >= 0 && v < LOOK_MAX[i]);
 function optsDePerso(p, extra = {}) {
   const l = p.look, a = l[6];
   return { long: p.sexe === "f", skin: PEAUX[l[0]], hair: CHEVEUX[l[1]], coiffure: l[2], eyes: YEUX[l[3]], tete: TETES[l[4]], scale: TAILLES[l[5]],
     acc: a === 5 ? "casquette" : a === 6 ? "noeud" : a === 7 ? "bandeau" : null, accCol: ACC_COULS[l[7]], shirt: TSHIRTS[l[8]], pants: SHORTS[l[9]], shoe: CHAUSS[l[10]], lunettes: a >= 1 && a <= 4 ? a : a === 8 ? 5 : 0,
-    shorts: l[12] === 0, motifHaut: [null, "rayures", "etoiles", null, "arcenciel"][l[11]], manches: l[11] === 3, capuche: l[11] === 3, motifBas: [null, null, "cerises", "jean"][l[12]], ...extra };
+    shorts: l[12] === 0, motifHaut: [null, "rayures", "etoiles", null, "arcenciel"][l[11]], manches: l[11] === 3, capuche: l[11] === 3, motifBas: [null, null, "cerises", "jean"][l[12]],
+    traits: l.length > 16 ? { yeux: l[13], sourcils: l[14], nez: l[15], bouche: l[16] } : undefined, ...extra };
 }
 function persoAuHasard(sexe) { const l = LOOK_MAX.map(m => Math.floor(Math.random() * m)); l[2] = sexe === "f" ? [1, 2, 3, 4, 6][Math.floor(Math.random() * 5)] : [0, 5, 7][Math.floor(Math.random() * 3)]; l[4] = 1; l[5] = 1; l[6] = Math.random() < .6 ? 0 : l[6]; l[12] = Math.random() < .5 ? 0 : l[12]; return { nom: "", sexe, look: l }; }
 // code : le tout dans un grand nombre, écrit avec 32 signes faciles à lire (sans I, O, 0 ni 1), avec une petite somme de contrôle
 const CODE32 = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", NOM_CH = " abcdefghijklmnopqrstuvwxyz0123456789-'_éèêëàâäçîïôöùûüÿñòóõãáíì";
 const nomPourCode = n => [...n].map(c => { const l = c.toLowerCase(); if (NOM_CH.includes(l)) return c; const b = c.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); return NOM_CH.includes(b.toLowerCase()) ? b : ""; }).join("").slice(0, 16);
-function persoEnCode(p) {
-  let v = BigInt(p.sexe === "f" ? 1 : 0); p.look.forEach((x, i) => v = v * BigInt(LOOK_MAX[i]) + BigInt(x));
+function persoEnCode(p) { // 2 / 3 en tête : code à 17 choix (les anciens codes commencent par 0 / 1)
+  let v = BigInt(p.sexe === "f" ? 3 : 2); p.look.forEach((x, i) => v = v * BigInt(LOOK_MAX[i]) + BigInt(x));
   const nom = nomPourCode(p.nom || ""); for (const c of nom) { const k = NOM_CH.indexOf(c.toLowerCase()); v = v * 128n + BigInt(k * 2 + (c !== c.toLowerCase() ? 1 : 0)); }
   v = v * 17n + BigInt([...nom].length); v = v * 1024n + v % 1021n;
   let t = ""; while (v > 0n) { t = CODE32[Number(v % 32n)] + t; v /= 32n; } return t.match(/.{1,4}/g).join("-");
@@ -5680,17 +5727,19 @@ function codeEnPerso(code) {
   const ctl = v % 1024n; v /= 1024n; if (v % 1021n !== ctl) return null;
   const n = Number(v % 17n); v /= 17n; const ch = [];
   for (let i = 0; i < n; i++) { const k = Number(v % 128n); v /= 128n; const c = NOM_CH[k >> 1]; if (!c) return null; ch.unshift(k & 1 ? c.toUpperCase() : c); }
-  const look = []; for (let i = LOOK_MAX.length - 1; i >= 0; i--) { look.unshift(Number(v % BigInt(LOOK_MAX[i]))); v /= BigInt(LOOK_MAX[i]); }
-  if (v > 1n) return null; const nom = filtrerSurnom(ch.join("")); if (nom === null) return null;
-  return { nom, sexe: v === 1n ? "f" : "g", look };
+  const lire = MAX => { let w = v; const look = []; for (let i = MAX.length - 1; i >= 0; i--) { look.unshift(Number(w % BigInt(MAX[i]))); w /= BigInt(MAX[i]); } return { look, w }; };
+  let { look, w } = lire(LOOK_MAX), sexe; // code à 17 choix, sinon ancien code à 13 choix (complété)
+  if (w === 2n || w === 3n) sexe = w === 3n ? "f" : "g"; else { ({ look, w } = lire(LOOK_MAX_13)); if (w > 1n) return null; sexe = w === 1n ? "f" : "g"; look = migrerLook(look); }
+  const nom = filtrerSurnom(ch.join("")); if (nom === null) return null;
+  return { nom, sexe, look };
 }
 // les personnages gardés sur l'appareil (6 au plus) et celui qu'on joue
 let PERSOS = [], persoI = 0;
-try { const v = JSON.parse(localStorage.getItem("pins-persos") || "[]"); if (Array.isArray(v)) PERSOS = v.filter(p => p && ["f", "g"].includes(p.sexe) && lookValide(p.look) && filtrerSurnom(p.nom ?? "") !== null).slice(0, 6); persoI = Math.min(PERSOS.length - 1, Math.max(0, +localStorage.getItem("pins-perso") || 0)); } catch (e) {}
+try { const v = JSON.parse(localStorage.getItem("pins-persos") || "[]"); if (Array.isArray(v)) PERSOS = v.map(p => p && { ...p, look: migrerLook(p.look) }).filter(p => p && ["f", "g"].includes(p.sexe) && lookValide(p.look) && filtrerSurnom(p.nom ?? "") !== null).slice(0, 6); persoI = Math.min(PERSOS.length - 1, Math.max(0, +localStorage.getItem("pins-perso") || 0)); } catch (e) {}
 const premiereFois = !PERSOS.length;
 if (premiereFois) { // on reprend les anciens choix (fille/garçon, nom, lunettes) s'il y en a
   let sx = "g", nom = "", lu = 0; try { sx = localStorage.getItem("pins-sexe") === "f" ? "f" : "g"; nom = filtrerSurnom(localStorage.getItem("pins-nom") || "") || ""; lu = Math.min(4, Math.max(0, +localStorage.getItem("pins-lunettes") || 0)); } catch (e) {}
-  const p = { nom, sexe: sx, look: [1, sx === "f" ? 3 : 2, sx === "f" ? 1 : 0, 0, 1, 1, lu || (sx === "f" ? 0 : 5), 0, sx === "f" ? 11 : 5, sx === "f" ? 6 : 0, 0, 0, 0] }; PERSOS = [p]; persoI = 0; }
+  const p = { nom, sexe: sx, look: [1, sx === "f" ? 3 : 2, sx === "f" ? 1 : 0, 0, 1, 1, lu || (sx === "f" ? 0 : 5), 0, sx === "f" ? 11 : 5, sx === "f" ? 6 : 0, 0, 0, 0, sx === "f" ? 4 : 0, sx === "f" ? 1 : 3, 0, 0] }; PERSOS = [p]; persoI = 0; }
 const monPerso = () => PERSOS[persoI];
 function sauverPersos() { try { localStorage.setItem("pins-persos", JSON.stringify(PERSOS)); localStorage.setItem("pins-perso", persoI); } catch (e) {} }
 // le joueur prend l'apparence du personnage choisi
@@ -5708,7 +5757,7 @@ function nommer(v) {
   const n = label(monNom, "#2e86de", "#ffffff", .8); pLbl.material.map.dispose(); pLbl.material.dispose(); pLbl.material = n.material; pLbl.scale.copy(n.scale);
 }
 // l'écran du créateur : on voit son personnage de face pendant qu'on le change
-const CREA = [["Tu es", "sexe"], ["Peau", 0, PEAUX], ["Couleur des cheveux", 1, CHEVEUX], ["Coiffure", 2, COUPES], ["Yeux", 3, YEUX], ["Visage", 4, TROIS], ["Taille", 5, TROIS],
+const CREA = [["Tu es", "sexe"], ["Peau", 0, PEAUX], ["Couleur des cheveux", 1, CHEVEUX], ["Coiffure", 2, COUPES], ["Yeux", 3, YEUX], ["Forme des yeux", 13, "yeux"], ["Sourcils", 14, "sourcils"], ["Nez", 15, "nez"], ["Bouche", 16, "bouche"], ["Visage", 4, TROIS], ["Taille", 5, TROIS],
   ["Accessoire", 6, ACCS], ["Couleur de l'accessoire", 7, ACC_COULS], ["Haut", 11, HAUTS], ["Couleur du haut", 8, TSHIRTS], ["Bas", 12, BAS], ["Couleur du bas", 9, SHORTS], ["Chaussures", 10, CHAUSS]];
 let creaRetour = null;
 function dessinerCrea() {
@@ -5721,9 +5770,10 @@ function dessinerCrea() {
   for (const [titre, k, liste] of CREA) {
     if (k === 7 && !(p.look[6] >= 5 && p.look[6] <= 7)) continue; // couleur seulement pour casquette, nœud, bandeau
     const h = document.createElement("h3"); h.textContent = titre; O.append(h); const d = document.createElement("div"); d.className = "opts"; O.append(d);
-    const items = k === "sexe" ? [["👧 Fille", "f"], ["👦 Garçon", "g"]] : liste.map((v, i) => [v, i]);
-    for (const [v, val] of items) { const b = document.createElement("button"), on = k === "sexe" ? p.sexe === val : p.look[k] === val; b.className = "opt" + (typeof v === "number" ? " coul" : "");
-      if (typeof v === "number") { b.style.background = "#" + v.toString(16).padStart(6, "0"); b.setAttribute("aria-label", titre + " " + (val + 1)); } else b.textContent = v;
+    const dessin = typeof liste === "string", items = k === "sexe" ? [["👧 Fille", "f"], ["👦 Garçon", "g"]] : dessin ? [...Array(LOOK_MAX[k])].map((_, i) => [i, i]) : liste.map((v, i) => [v, i]);
+    for (const [v, val] of items) { const b = document.createElement("button"), on = k === "sexe" ? p.sexe === val : p.look[k] === val; b.className = "opt" + (dessin ? " dessin" : typeof v === "number" ? " coul" : "");
+      if (dessin) { const im = new Image(); im.alt = ""; try { im.src = apercuVisage(liste, val, optsDePerso(p)); } catch (e) {} b.append(im); b.setAttribute("aria-label", titre + " " + (val + 1)); }
+      else if (typeof v === "number") { b.style.background = "#" + v.toString(16).padStart(6, "0"); b.setAttribute("aria-label", titre + " " + (val + 1)); } else b.textContent = v;
       b.setAttribute("aria-pressed", on ? "true" : "false");
       b.onclick = () => { if (k === "sexe") p.sexe = val; else p.look[k] = val; sfx.click(); appliquerPerso(); dessinerCrea(); }; d.append(b); }
   }
@@ -5761,7 +5811,7 @@ function envoyerProfil() {
 function appliquerProfil(d) {
   const pseudo = filtrerSurnom(d.pseudo);
   if (pseudo === null || !["f", "g"].includes(d.sexe) || (d.tenue !== null && !SUITS.some(su => su.id === d.tenue))) return;
-  net.profils.set(d.s, { pseudo, sexe: d.sexe, tenue: d.tenue, look: lookValide(d.look) ? d.look : null });
+  const lk = migrerLook(d.look); net.profils.set(d.s, { pseudo, sexe: d.sexe, tenue: d.tenue, look: lookValide(lk) ? lk : null });
   if (d.s === net.s) monLabel("Toi " + ANIMAUX[d.s][0] + " " + nomJoueur(d.s), ANIMAUX[d.s][3], ANIMAUX[d.s][2]);
   else {
     const o = net.autres.get(d.s) || ajouter(d.s, false);
