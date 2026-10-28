@@ -36,6 +36,7 @@
   color-scheme:light;
 }
 *{box-sizing:border-box;touch-action:manipulation}
+.gp-focus{outline:4px solid var(--sun)!important;outline-offset:3px;box-shadow:0 0 0 7px rgba(255,255,255,.85)!important}
 /* au moins 16 px dans les champs : sinon l'iPhone zoome quand on tape dedans */
 input,textarea,select{font-size:max(16px,1em)}
 [hidden]{display:none!important}
@@ -7165,6 +7166,61 @@ function golf3Tick(dt, time, P) {
   if (G3.from) G3.club.position.set(P.x + rx * .3, .95, P.z + rz * .3);
 }
 
+/* ================= Manette de jeu (Bluetooth) =================
+   Manette « standard » (Xbox, PlayStation, Switch…). En jeu : stick gauche ou croix pour marcher, stick droit pour la caméra,
+   A pour agir (ou sauter s'il n'y a rien à faire), B sauter, X parler, Y deuxième action, gâchettes pour courir,
+   Start pause, Select carte. Dans les menus : la croix ou le stick choisit un bouton, A appuie, B revient. */
+const GP = { prec: [], t: 0, moved: false, focus: null, rep: 0, dir: "", court: false };
+addEventListener("gamepadconnected", () => toast("🎮 Manette connectée ! A : agir · B : sauter · X : parler · RB : courir · Start : pause", 4200));
+addEventListener("gamepaddisconnected", () => toast("🎮 Manette débranchée.", 1800));
+function manetteActive() { for (const g of (navigator.getGamepads ? navigator.getGamepads() : [])) if (g && g.connected) return g; return null; }
+function menuOuvert() { const v = [...document.querySelectorAll(".overlay")].filter(o => !o.hidden); return v[v.length - 1] || null; }
+function boutonsDe(o) { return [...o.querySelectorAll("button, a.coin, a.btn, input, [role=button]")].filter(b => !b.disabled && b.getClientRects().length && getComputedStyle(b).visibility !== "hidden"); }
+function poserFocus(b) { GP.focus?.classList.remove("gp-focus"); GP.focus = b; if (b) { b.classList.add("gp-focus"); b.scrollIntoView?.({ block: "nearest", inline: "nearest" }); } }
+// le bouton le plus proche dans la direction choisie
+function bougerFocus(o, dx, dy) {
+  const L = boutonsDe(o); if (!L.length) return; const cur = L.includes(GP.focus) ? GP.focus : null;
+  if (!cur) { poserFocus(L.find(b => b.id === "startBtn" || b.id === "resumeBtn") || L.find(b => b.classList.contains("on")) || L[0]); return; }
+  const r = cur.getBoundingClientRect(), cx = r.x + r.width / 2, cy = r.y + r.height / 2; let best = null, bs = 1e9;
+  for (const b of L) { if (b === cur) continue; const q = b.getBoundingClientRect(), x = q.x + q.width / 2 - cx, y = q.y + q.height / 2 - cy, av = x * dx + y * dy;
+    if (av <= 4) continue; const sc = av + Math.abs(x * dy - y * dx) * 2.5; if (sc < bs) { bs = sc; best = b; } }
+  if (best) poserFocus(best);
+}
+function manette() {
+  const g = manetteActive(); if (!g) { if (GP.focus) poserFocus(null); return; }
+  const now = performance.now(), dt = Math.min(.05, (now - (GP.t || now)) / 1000); GP.t = now;
+  const B = i => !!g.buttons[i]?.pressed, appui = i => B(i) && !GP.prec[i], ax = i => { const v = g.axes[i] ?? 0; return Math.abs(v) < .2 ? 0 : v; };
+  const mx = THREE.MathUtils.clamp(ax(0) + (B(15) ? 1 : 0) - (B(14) ? 1 : 0), -1, 1), my = THREE.MathUtils.clamp(ax(1) + (B(13) ? 1 : 0) - (B(12) ? 1 : 0), -1, 1);
+  const o = menuOuvert();
+  if (o) { // dans un menu : on choisit un bouton
+    if (GP.moved && jid === null) { jx = jy = 0; GP.moved = false; }
+    if (GP.focus && !o.contains(GP.focus)) poserFocus(null);
+    const dir = Math.max(Math.abs(mx), Math.abs(my)) > .5 ? (Math.abs(mx) > Math.abs(my) ? (mx > 0 ? "d" : "g") : (my > 0 ? "b" : "h")) : "";
+    if (dir && (dir !== GP.dir || now > GP.rep)) { bougerFocus(o, dir === "d" ? 1 : dir === "g" ? -1 : 0, dir === "b" ? 1 : dir === "h" ? -1 : 0); GP.rep = now + (dir !== GP.dir ? 400 : 170); }
+    GP.dir = dir;
+    if (appui(0)) { if (!GP.focus) bougerFocus(o, 0, 0); else if (GP.focus.matches("input")) GP.focus.focus(); else GP.focus.click(); }
+    if (appui(9) && o.id === "intro") $("startBtn").click();
+    else if (appui(1) || appui(9)) { // revenir : reprendre, fermer, OK…
+      if (o.id === "pauseView") $("resumeBtn").click();
+      else if (o.id !== "intro") { const f = boutonsDe(o).filter(b => b.matches("button")).find(b => /fermer|retour|quitter|reprendre|c'est moi|^ok$|annuler|✖|❌/i.test(b.textContent.trim()) || /Close|Ok$|Quit|Back/.test(b.id)); f?.click(); }
+    }
+  } else { // en jeu
+    if (GP.focus) poserFocus(null);
+    if (jid === null) { if (mx || my) { const L = Math.max(1, Math.hypot(mx, my)); jx = mx / L; jy = my / L; GP.moved = true; } else if (GP.moved) { jx = jy = 0; GP.moved = false; } }
+    const cx = ax(2), cy = ax(3); if (cx || cy) { yaw -= cx * dt * 2.8; pitch = Math.max(.06, Math.min(1.2, pitch + cy * dt * 1.6)); }
+    const court = B(4) || B(5) || B(6) || B(7) || B(10); if (court !== GP.court) { keys["shift"] = court; GP.court = court; }
+    if (G3.on) { if (appui(0) || appui(1)) g3Charge(true); if ((!B(0) && GP.prec[0]) || (!B(1) && GP.prec[1])) g3Charge(false); }
+    else if (!paused) {
+      if (appui(0)) { if (act1 || act2) doAct(act1 || act2); else doJump(); }
+      if (appui(1)) doJump();
+      if (appui(2)) $("talkBtn").click();
+      if (appui(3) && act2) doAct(act2);
+    }
+    if (appui(9)) $("pauseBtn").click();
+    if (appui(8)) $("mapBtn").click();
+  }
+  GP.prec = g.buttons.map(b => b.pressed);
+}
 /* ================= Boucle ================= */
 const clock = new THREE.Clock(); let walkT = 0, time = 0, stepAcc = 0, birdT = 4, lastWhere = "";
 const tv = new THREE.Vector3(), prev = { x: 0, z: 0 };
@@ -7230,6 +7286,7 @@ function adapterResolution(dt) {
 }
 function loop() {
   requestAnimationFrame(loop);
+  manette();
   const menu = !introEl.hidden; document.body.classList.toggle("accueil-on", menu);
   if (menu && dejaVu) { clock.getDelta(); prN = prT = 0; return; }
   const dt = Math.min(clock.getDelta(), .05); time += dt; uTime.value = time;
