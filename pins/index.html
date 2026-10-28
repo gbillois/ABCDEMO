@@ -2267,13 +2267,17 @@ function clusterGeo(n = 26, size = 1.1) {
   const g = mergeGeometries(parts), P = g.attributes.position, N = g.attributes.normal, t = new THREE.Vector3();
   for (let i = 0; i < P.count; i++) { t.set(P.getX(i), P.getY(i) + .2, P.getZ(i)).normalize(); N.setXYZ(i, t.x, t.y, t.z); } return g;
 }
-const pineTrunk = new THREE.CylinderGeometry(.12, .42, 10.6, 12); pineTrunk.translate(0, 5.3, 0); instanced(pineTrunk, barkM, pines);
-const trunkGeo = new THREE.CylinderGeometry(.18, .36, 4.6, 12); trunkGeo.translate(0, 2.3, 0); instanced(trunkGeo, barkM, leafy);
-{ const im = instanced(pineGeo(), pineMat, pines, 0, (t, c) => c.setRGB(.8 + t.c * .3, .85 + t.c * .25, .8 + t.c * .2)); im.customDepthMaterial = depthOf(needleTex, .5); }
+// la forêt est découpée en cases de 40 m : une case derrière la caméra ou trop loin n'est pas dessinée (ni son ombre)
+const TREE_CELL = 40, TREE_LOIN = LOWQ ? 170 : 270;
+const pineTrunk = new THREE.CylinderGeometry(.12, .42, 10.6, 12); pineTrunk.translate(0, 5.3, 0); instancedParCase(pineTrunk, barkM, pines, null, TREE_CELL, TREE_LOIN);
+const trunkGeo = new THREE.CylinderGeometry(.18, .36, 4.6, 12); trunkGeo.translate(0, 2.3, 0); instancedParCase(trunkGeo, barkM, leafy, null, TREE_CELL, TREE_LOIN);
+{ const pd = depthOf(needleTex, .5), pg = pineGeo(); for (const im of instancedParCase(pg, pineMat, pines, (t, c) => c.setRGB(.8 + t.c * .3, .85 + t.c * .25, .8 + t.c * .2), TREE_CELL, TREE_LOIN)) im.customDepthMaterial = pd; }
 { const crowns = []; leafy.forEach(t => { for (let k = 0; k < 9; k++) { const a = k / 9 * 6.28 + rnd(), r = k === 0 ? 0 : 1.1 + rnd() * .9; crowns.push({ x: t.x + Math.cos(a) * r * t.s, z: t.z + Math.sin(a) * r * t.s, y: (4.4 + (k === 0 ? 1.6 : rnd() * 1.6)) * t.s, s: (1.6 + rnd() * .7) * t.s, r: rnd() * 6, c: t.c, k }); } });
-  const im = new THREE.InstancedMesh(clusterGeo(), leafMat2, crowns.length), m = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color();
-  crowns.forEach((t, i) => { q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), t.r); m.compose(new THREE.Vector3(t.x, t.y, t.z), q, new THREE.Vector3(t.s, t.s * .85, t.s)); im.setMatrixAt(i, m); const k = t.k ? 1 : 1.1; c.setRGB((.75 + t.c * .3) * k, (.85 + t.c * .2) * k, (.6 + t.c * .2) * k); im.setColorAt(i, c); });
-  im.castShadow = true; im.receiveShadow = true; im.customDepthMaterial = depthOf(leafTex2, .45); scene.add(im); }
+  const cg = clusterGeo(), cd = depthOf(leafTex2, .45), cases = new Map(), m = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color();
+  for (const t of crowns) { const key = Math.floor(t.x / TREE_CELL) + "," + Math.floor(t.z / TREE_CELL); if (!cases.has(key)) cases.set(key, []); cases.get(key).push(t); }
+  for (const list of cases.values()) { const im = new THREE.InstancedMesh(cg, leafMat2, list.length);
+    list.forEach((t, i) => { q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), t.r); m.compose(new THREE.Vector3(t.x, t.y, t.z), q, new THREE.Vector3(t.s, t.s * .85, t.s)); im.setMatrixAt(i, m); const k = t.k ? 1 : 1.1; c.setRGB((.75 + t.c * .3) * k, (.85 + t.c * .2) * k, (.6 + t.c * .2) * k); im.setColorAt(i, c); });
+    im.castShadow = true; im.receiveShadow = true; im.customDepthMaterial = cd; im.userData.loin = TREE_LOIN; scene.add(im); } }
 pines.concat(leafy).forEach(t => circles.push({ x: t.x, z: t.z, r: .4 * t.s }));
 // buissons, fleurs, herbes, rochers
 const bushes = [], flowers = [], tufts = [], rocks = [];
@@ -2301,7 +2305,7 @@ for (const tm of instancedParCase(tuftGeo, grassM, tufts, (t, c) => c.setRGB(.75
 for (let i = 0; i < 26; i++) { const a = i / 26 * 6.28 + rnd() * .2, r = LAKE.r + 1.4 + rnd() * 1.2; rocks.push({ x: LAKE.x + Math.cos(a) * r, z: LAKE.z + Math.sin(a) * r, s: .4 + rnd() * .5, r: rnd() * 6, c: rnd() }); }
 for (let i = 0; i < 1500 && rocks.length < 170; i++) { const x = (rnd() * 2 - 1) * WORLD, z = (rnd() * 2 - 1) * WORLD; if (!blocked(x, z, 1)) rocks.push({ x, z, s: .5 + rnd() * .9, r: rnd() * 6, c: rnd() }); }
 const rockGeo = new THREE.DodecahedronGeometry(1, 1); { const p = rockGeo.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i); const f = 1 + .25 * Math.sin(x * 4 + y * 3) * Math.cos(z * 3.5 + x); p.setXYZ(i, x * f, y * f * .6, z * f); } rockGeo.computeVertexNormals(); rockGeo.translate(0, .15, 0); }
-instanced(rockGeo, mat(0xffffff, .95), rocks, 0, (t, c) => c.setHSL(.08, .05, .45 + t.c * .15));
+instancedParCase(rockGeo, mat(0xffffff, .95), rocks, (t, c) => c.setHSL(.08, .05, .45 + t.c * .15), TREE_CELL, LOWQ ? 90 : 140);
 rocks.forEach(r => { if (r.s > .5) circles.push({ x: r.x, z: r.z, r: .8 * r.s }); }); bushes.forEach(b => circles.push({ x: b.x, z: b.z, r: .55 * b.s }));
 /* ================= Nouveautés : la ferme, ses animaux, le poney club, les karts, les vélos, la rivière sauvage, la maison dans les arbres ================= */
 const barnTex = tex(256, (x, s) => { for (let i = 0; i < 16; i++) { const v = rnd() * 25; x.fillStyle = `rgb(${150 + v},${40 + v * .4},${32 + v * .3})`; x.fillRect(i * 16, 0, 16, s); x.fillStyle = "rgba(40,10,8,.6)"; x.fillRect(i * 16 + 15, 0, 1.5, s); }
@@ -2631,7 +2635,7 @@ const foamMs = [];
     R.push({ x: p.x - tz / L * off * sd, z: p.z + tx / L * off * sd, s: .22 + rnd() * .45, r: rnd() * 6, c: rnd() }); }
   for (const [u0, u1] of RAPIDS) for (let k = 0; k < 10; k++) { const i = Math.round((u0 + (u1 - u0) * rnd()) * RIV_N), p = RIV[i], q = RIV[(i + 1) % RIV_N], tx = q.x - p.x, tz = q.z - p.z, L = Math.hypot(tx, tz), off = (RIVER_HW - .35) * (k % 2 ? 1 : -1);
     R.push({ x: p.x - tz / L * off, z: p.z + tx / L * off, s: .3 + rnd() * .25, r: rnd() * 6, c: -.6 }); }
-  instanced(rockGeo, mat(0xffffff, .7), R, 0, (t, c) => c.setHSL(.09, .05, t.c < 0 ? .25 : .38 + t.c * .18));
+  instancedParCase(rockGeo, mat(0xffffff, .7), R, (t, c) => c.setHSL(.09, .05, t.c < 0 ? .25 : .38 + t.c * .18), TREE_CELL, LOWQ ? 60 : 100);
 }
 // ponts en bois bombés : on passe dessus, les bouées passent dessous
 const RBR = [];
