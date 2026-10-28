@@ -124,6 +124,11 @@ de travail **et sur `main`** pour mettre à jour GitHub Pages, puis republier l'
    (`titre`, `description`, `icone`, `fichier`, `couleur` c1…c6).
 3. Commit, push (branche + `main`), republier l'artefact (accueil + `files` du jeu).
 
+## Fluidité des jeux 3D
+
+Avant de créer ou modifier un jeu 3D, lire `OPTIMISATION-3D.md` (principes : rien ne se fabrique
+pendant qu'on joue, peu d'appels de dessin, intérieurs cachés de loin, mesurer avant et après).
+
 ## Jouabilité
 
 - Jouable à la souris/clavier **et** au tactile (tablette, téléphone) : commandes à l'écran

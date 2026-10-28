@@ -61,8 +61,8 @@
 /* au moins 16 px dans les champs : sinon l'iPhone zoome quand on tape dedans */
 input,textarea,select{font-size:max(16px,1em)}
 [hidden]{display:none!important}
-html,body{height:100%;margin:0;overflow:hidden;background:#9fc7e0;color:var(--ink);font-family:var(--ui);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
-#game{position:fixed;inset:0}
+html,body{height:100%;margin:0;overflow:hidden;background:#24452f;color:var(--ink);font-family:var(--ui);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#game{position:fixed;inset:0;height:100vh;height:100lvh} /* lvh : toute la hauteur de l'écran, même sous la barre du bas de Safari */
 #game canvas{display:block;width:100%;height:100%}
 .pill{background:var(--panel);border-radius:999px;padding:4px 14px;font-weight:800;font-size:19px;box-shadow:0 3px 0 rgba(0,0,0,.18);font-variant-numeric:tabular-nums}
 .btn{font-family:var(--ui);font-weight:800;font-size:19px;border:0;border-radius:18px;padding:9px 16px;color:#fff;background:var(--leaf);box-shadow:0 4px 0 rgba(0,0,0,.25);cursor:pointer;touch-action:manipulation;text-decoration:none;display:inline-block}
@@ -88,13 +88,13 @@ html,body{height:100%;margin:0;overflow:hidden;background:#9fc7e0;color:var(--in
 #dialog b{display:block;color:var(--violet);font-size:16px}
 #dialog p{margin:2px 0 0;font-size:19px;line-height:1.3}
 #dialog small{display:block;text-align:right;opacity:.6;font-size:13px}
-#accueil{position:fixed;inset:0;z-index:1;opacity:0;pointer-events:none;transition:opacity .6s;background:#9fc7e0}
+#accueil{position:fixed;inset:0;height:100vh;height:100lvh;z-index:1;opacity:0;pointer-events:none;transition:opacity .6s;background:#9fc7e0}
 #accueil img{width:100%;height:100%;object-fit:cover;object-position:50% 70%;display:block}
 body.accueil-on #accueil{opacity:1}
 #accueil img{animation:survol 38s ease-in-out infinite alternate;will-change:transform}
 body:not(.accueil-on) #accueil img{animation-play-state:paused}
 @keyframes survol{from{transform:scale(1.05)}to{transform:scale(1.16) translate(-2.5%,-1.5%)}}
-#intro{flex-direction:column;justify-content:space-between;align-items:center;text-align:center;color:#fff;background:linear-gradient(rgba(6,28,48,.6),rgba(6,28,48,0) 34%,rgba(0,0,0,0) 52%,rgba(6,24,14,.78));overflow:hidden}
+#intro{flex-direction:column;justify-content:space-between;align-items:center;text-align:center;color:#fff;background:linear-gradient(#5aaee3,rgba(90,174,227,.92) 9%,rgba(90,174,227,.55) 20%,rgba(90,174,227,0) 34%,rgba(0,0,0,0) 52%,rgba(6,24,14,.78)); /* en haut, un ciel bleu à la place de la brume grise de l'image */overflow:hidden}
 #intro .titre{margin-top:min(5vh,40px);animation:arrive .9s cubic-bezier(.2,1.4,.4,1) both}
 #intro .logo{font-weight:800;line-height:.86;letter-spacing:-.01em;text-shadow:0 3px 0 #1d6b3f,0 6px 0 #124a2b,0 10px 22px rgba(0,0,0,.5)}
 #intro .logo span{display:block;font-size:min(9vw,7.5vh,64px)}
@@ -244,7 +244,7 @@ html.app .site{display:none!important}
   <div class="coins"><a class="coin site" href="../index.html" aria-label="Accueil des jeux">🏠</a><span></span><button id="aideBtn" class="coin" aria-label="Aide">❓</button><button id="majBtn" class="coin" aria-label="Mettre à jour le jeu" hidden>🔄</button></div>
   <div class="titre">
     <div class="logo"><span>Le Domaine</span><b>des Pins</b></div>
-    <p class="slogan">Retrouve les 10 canards&nbsp;!&nbsp;🦆</p>
+    <p class="slogan">Les vacances, tous ensemble&nbsp;!</p>
   </div>
   <div class="bas">
     <div id="charge"><div class="barre"><i id="chargeBar"></i></div><span id="chargeTxt">Le domaine se prépare…</span></div>
@@ -446,12 +446,12 @@ html.app .site{display:none!important}
 <div id="creaView" class="overlay crea" hidden>
   <div class="card">
     <h1>Ton personnage 🎨</h1>
-    <div class="creaNom"><label for="creaNomIn">Ton surnom</label><div class="nomLigne"><input id="creaNomIn" type="text" maxlength="16" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Théo"><button id="creaNomDe" class="de" type="button" aria-label="Un surnom au hasard">🎲</button></div></div>
+    <div class="creaNom"><label for="creaNomIn">Ton surnom</label><div class="nomLigne"><input id="creaNomIn" type="text" maxlength="16" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Théo"><button id="creaNomDe" class="de" type="button" aria-label="Tout au hasard : un nouveau look et un nouveau surnom">🎲</button></div></div>
     <p id="creaMsg" class="small">Un surnom, pas ton vrai prénom 😉</p>
+    <div class="row"><button id="creaOk" class="btn">▶ C'est parti !</button><button id="creaRetourBtn" class="btn" style="background:#9aa0b4">↩️ Retour</button></div>
     <div id="creaOpts"></div>
-    <div class="row"><button id="creaOk" class="btn">✅ C'est moi !</button><button id="creaHasard" class="btn" style="background:#ff8a2b">🎲 Au hasard</button></div>
-    <div class="row"><button id="creaCodeBtn" class="btn" style="background:#34495e">🔑 Mon code</button><button id="creaImportBtn" class="btn" style="background:#34495e">📥 J'ai un code</button><button id="creaSuppr" class="btn" style="background:#9aa0b4">🗑️ Effacer</button></div>
-    <div id="creaCodeBox" hidden><p class="small">Tape ce code sur un autre téléphone ou ordinateur (bouton « J'ai un code ») pour y retrouver ton personnage :</p><p id="creaCode" class="code"></p></div>
+    <div class="row"><button id="creaCodeBtn" class="btn" style="background:#34495e">🔑 Mon code personnage</button><button id="creaImportBtn" class="btn" style="background:#34495e">📥 Entrer mon code personnage</button><button id="creaSuppr" class="btn" style="background:#c0392b">🗑️ Supprimer</button></div>
+    <div id="creaCodeBox" hidden><p class="small">Tape ce code sur un autre téléphone ou ordinateur (bouton « Entrer mon code personnage ») pour y retrouver ton personnage :</p><p id="creaCode" class="code"></p><div class="row"><button id="creaCopier" class="btn" style="background:var(--water)">📋 Copier le code</button></div></div>
     <div id="creaImportBox" hidden><input id="creaCodeIn" type="text" maxlength="48" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH-…"><button id="creaCodeOk" class="btn">Ajouter</button></div>
   </div>
 </div>
@@ -528,7 +528,7 @@ renderer.shadowMap.type = LOWQ ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap; //
 $("game").appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(58, 1, 0.1, 3000);
-function resize() { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+function resize() { const h = Math.max(innerHeight, $("game").clientHeight); renderer.setSize(innerWidth, h); camera.aspect = innerWidth / h; camera.updateProjectionMatrix(); } // toute la hauteur de l'écran (pas de bande en bas)
 addEventListener("resize", resize); resize();
 
 // Ciel réaliste + lumière
@@ -5967,6 +5967,7 @@ function construireVisage(g, os, type, o = {}, qualite = "plein") {
   const tete = os.tete, hair = o.hair ?? 0x5a3a22, iris = o.eyes ?? 0x6b4424, ad = type === "femme" || type === "homme";
   if (qualite === "leger") { const geoL = geoVisageLeger(type); g.userData.lids = []; return { animer() {}, geoLeger: geoL }; }
   const T = traitsVisage(o), G = geosVisage(type), m = matVisage(iris, hair, o.skin ?? 0xf1c6a0, !!o.long, ad, T);
+  m.forceSinglePass = true; // yeux et bouche : une seule couche posée sur le visage, une passe suffit (même image, deux fois moins de travail)
   const yeux = G.yeux.map(d => { const e = new THREE.Mesh(d.geo, m); e.position.copy(d.c); e.renderOrder = 1; e.name = "oeil"; tete.add(e); return e; });
   const reste = new THREE.Mesh(G.reste, m); reste.renderOrder = 1; reste.name = "bouche"; tete.add(reste);
   g.userData.lids = yeux; g.userData.blink = 2 + Math.random() * 3; g.userData.traits = T;
@@ -7231,7 +7232,7 @@ function updateTraffic(dt) {
     c.v += ((stop ? 0 : 4.2) - c.v) * Math.min(1, dt * 3); if (stop && (c.ring -= dt) < 0) { c.ring = 3; if (Math.hypot(P.x - c.x, P.z - c.z) < 12) { tone(2100, .15, "sine", .05); tone(2100, .15, "sine", .05, 0, .2); } }
     c.x += c.dir * c.v * dt; if (c.x * c.dir > 72) { c.dir *= -1; c.z = c.dir > 0 ? 29.2 : 30.8; }
     const w = c.v * dt / .31; c.g.userData.wheels.forEach(x => x.rotation.x += w); c.ca += w * .55; c.g.userData.crank.rotation.x = c.ca;
-    c.g.position.set(c.x, 0, c.z); c.g.rotation.y = c.dir > 0 ? Math.PI / 2 : -Math.PI / 2; animPerson(c.rider, "bike", c.ca); }
+    c.g.position.set(c.x, 0, c.z); c.g.rotation.y = c.dir > 0 ? Math.PI / 2 : -Math.PI / 2; if (aAnimer(c, c.x, c.z)) animPerson(c.rider, "bike", c.ca); }
   const on = Math.abs(P.x - KART.x) < 90 && Math.abs(P.z - KART.z) < 90;
   for (const k of aiKarts) { if (k.g.visible !== on) k.g.visible = on; if (!on) continue;
     const ax = KART.rx + k.lane, az = KART.rz + k.lane, dl = Math.hypot(ax * Math.sin(k.th), az * Math.cos(k.th));
@@ -7754,7 +7755,9 @@ function dessinerCrea() {
       b.onclick = () => { if (k === "sexe") p.sexe = val; else p.look[k] = val; sfx.click(); appliquerPerso(); dessinerCrea(); }; d.append(b); }
   }
 }
-function ouvrirCrea() {
+let creaAvant = null, creaCamA = 0;
+function ouvrirCrea(nouveau = false, avantI = persoI) {
+  creaAvant = { nouveau, i: avantI, p: JSON.parse(JSON.stringify(monPerso())) }; creaCamA = player.rotation.y;
   creaRetour = ["intro", "pauseView", "lockerView"].find(id => !$(id).hidden) || null; if (creaRetour) $(creaRetour).hidden = true;
   $("creaCodeBox").hidden = $("creaImportBox").hidden = true; dessinerCrea(); $("creaView").hidden = false;
 }
@@ -7787,21 +7790,35 @@ function dessinerPersosDans(L) {
     b.onclick = () => { audioOn(); sfx.click(); if (i === persoI) { ouvrirCrea(); return; } persoI = i; sauverPersos(); appliquerPerso(); dessinerPersos(); }; L.append(b); });
   if (PERSOS.length < 6) { const b = document.createElement("button"), e = document.createElement("i"), n = document.createElement("span"); b.className = "vign nouveau"; e.textContent = "＋"; n.textContent = "Nouveau"; b.append(e, n);
     b.setAttribute("aria-label", "Créer un nouveau personnage");
-    b.onclick = () => { audioOn(); sfx.click(); PERSOS.push(persoAuHasard(Math.random() < .5 ? "f" : "g")); persoI = PERSOS.length - 1; sauverPersos(); appliquerPerso(); ouvrirCrea(); }; L.append(b); }
+    b.onclick = () => { audioOn(); sfx.click(); const avantI = persoI; PERSOS.push(persoAuHasard(Math.random() < .5 ? "f" : "g")); persoI = PERSOS.length - 1; sauverPersos(); appliquerPerso(); ouvrirCrea(true, avantI); }; L.append(b); }
 }
 $("creaNomIn").addEventListener("keydown", e => e.stopPropagation());
-$("creaNomDe").onclick = () => { sfx.click(); $("creaNomIn").value = surnomAuHasard(monPerso()); $("creaNomIn").dispatchEvent(new Event("input")); };
+// le dé : tout au hasard (un nouveau look et un nouveau surnom) ; on peut le toucher autant qu'on veut
+$("creaNomDe").onclick = () => { sfx.click(); const p = monPerso(); p.look = persoAuHasard(p.sexe).look; appliquerPerso(); dessinerCrea();
+  $("creaNomIn").value = surnomAuHasard(p); $("creaNomIn").dispatchEvent(new Event("input")); };
 $("creaNomIn").addEventListener("input", () => { const v = filtrerSurnom($("creaNomIn").value);
   $("creaMsg").textContent = v === null ? "Ce surnom ne marche pas : de 2 à 16 lettres, sans gros mot." : "Un surnom, pas ton vrai prénom 😉";
   if (v !== null) { const p = monPerso(); p.nom = v; nommer(v);  } });
 $("creaOk").onclick = () => {
   if (filtrerSurnom($("creaNomIn").value) === null) { sfx.click(); $("creaNomIn").focus(); return; }
-  monPerso().nom = filtrerSurnom($("creaNomIn").value); sauverPersos(); appliquerPerso(); sfx.click(); $("creaView").hidden = true;
-  if (creaRetour) $(creaRetour).hidden = false; else $("intro").hidden = false;
-  dessinerPersos();
+  monPerso().nom = filtrerSurnom($("creaNomIn").value); sauverPersos(); appliquerPerso(); sfx.click(); const venu = creaRetour; fermerCrea();
+  if (!venu || venu === "intro") $("startBtn").click(); else if (venu === "pauseView") $("resumeBtn").click(); // « C'est parti ! » : on va jouer
   if (net) toast("Les autres joueurs verront ton nouveau personnage à la prochaine partie.", 2600);
 };
-$("creaHasard").onclick = () => { const p = monPerso(), n = persoAuHasard(p.sexe); p.look = n.look; sfx.click(); appliquerPerso(); dessinerCrea(); };
+// Retour : on repart comme avant d'ouvrir (un personnage tout neuf est enlevé, sinon il reprend son ancien look)
+function fermerCrea() { $("creaView").hidden = true; if (creaRetour) $(creaRetour).hidden = false; else $("intro").hidden = false; dessinerPersos(); }
+$("creaRetourBtn").onclick = () => { sfx.click(); const A = creaAvant;
+  if (A && A.nouveau) { PERSOS.splice(persoI, 1); persoI = Math.min(A.i, PERSOS.length - 1); } else if (A) PERSOS[persoI] = A.p;
+  sauverPersos(); appliquerPerso(); fermerCrea(); };
+// dans le créateur, on fait tourner son personnage en glissant le doigt (ou la souris) sur lui
+{ let px = null; const cv = renderer.domElement;
+  cv.addEventListener("pointerdown", e => { if (!$("creaView").hidden) px = e.clientX; });
+  addEventListener("pointermove", e => { if (px === null || $("creaView").hidden) return; player.rotation.y += (e.clientX - px) * .012; px = e.clientX; });
+  addEventListener("pointerup", () => { px = null; }); addEventListener("pointercancel", () => { px = null; }); }
+$("creaCopier").onclick = async () => { sfx.click(); const t = $("creaCode").textContent; let ok = false;
+  try { await navigator.clipboard.writeText(t); ok = true; } catch (e) {
+    try { const r = document.createRange(); r.selectNodeContents($("creaCode")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); ok = document.execCommand("copy"); } catch (e2) {} }
+  toast(ok ? "📋 Code copié ! Colle-le sur l'autre appareil." : "Appuie longtemps sur le code pour le copier.", 2400); };
 $("creaSuppr").onclick = () => { if (PERSOS.length < 2) return; PERSOS.splice(persoI, 1); persoI = Math.max(0, persoI - 1); sauverPersos(); sfx.click(); appliquerPerso(); $("creaView").hidden = true; $(creaRetour || "intro").hidden = false; dessinerPersos(); };
 $("creaCodeBtn").onclick = () => { sfx.click(); $("creaImportBox").hidden = true; $("creaCode").textContent = persoEnCode(monPerso()); $("creaCodeBox").hidden = !$("creaCodeBox").hidden; if (!$("creaCodeBox").hidden) $("creaCodeBox").scrollIntoView({ block: "center", behavior: "smooth" }); };
 $("creaImportBtn").onclick = () => { sfx.click(); $("creaCodeBox").hidden = true; $("creaImportBox").hidden = !$("creaImportBox").hidden; $("creaCodeIn").value = ""; if (!$("creaImportBox").hidden) $("creaImportBox").scrollIntoView({ block: "center", behavior: "smooth" }); };
@@ -8029,11 +8046,25 @@ function pushBox(p, x1, x2, z1, z2, r) {
   if (p.x > x1 && p.x < x2 && p.z > z1 && p.z < z2) { const o = [p.x - x1, x2 - p.x, p.z - z1, z2 - p.z], m = Math.min(...o); if (m === o[0]) p.x = x1; else if (m === o[1]) p.x = x2; else if (m === o[2]) p.z = z1; else p.z = z2; }
 }
 const tmpL = { x: 0, z: 0 };
+// Obstacles rangés par cases de 8 m : on ne teste que ceux de la case où l'on est (avant : tous les obstacles du domaine,
+// à chaque image, pour chaque personnage qui bouge). Même résultat : un obstacle est rangé dans toutes les cases qu'il touche, avec de la marge.
+// La grille est refaite quand la liste change, et toutes les 2 s par sécurité ; les promeneurs (qui bougent) sont testés à part.
+const GRILLE = { cases: new Map(), nc: -1, nb: -1, t: 0, vide: { c: [], b: [] } };
+function grilleObstacles(x, z) {
+  const G = GRILLE; if (circles.length !== G.nc || boxes.length !== G.nb || time - G.t > 2) {
+    G.cases.clear(); G.nc = circles.length; G.nb = boxes.length; G.t = time; const cols = new Set(walkers.map(w => w.col));
+    const mettre = (x1, x2, z1, z2, k, o) => { for (let i = Math.floor(x1 / 8); i <= Math.floor(x2 / 8); i++) for (let j = Math.floor(z1 / 8); j <= Math.floor(z2 / 8); j++) { const n = i * 4096 + j; let e = G.cases.get(n); if (!e) G.cases.set(n, e = { c: [], b: [] }); e[k].push(o); } };
+    for (const c of circles) if (!cols.has(c)) { const m = c.r + 2; mettre(c.x - m, c.x + m, c.z - m, c.z + m, "c", c); }
+    for (const b of boxes) mettre(b.x1 - 2, b.x2 + 2, b.z1 - 2, b.z2 + 2, "b", b); }
+  return G.cases.get(Math.floor(x / 8) * 4096 + Math.floor(z / 8)) || G.vide;
+}
 function resolve(p, prev, who) {
   if (crowdOn) for (const a of crowd) { if (a.st !== "queue" && a.st !== "walk" && a.st !== "play") continue; if (Math.abs(a.y - p.y) > 1) continue; const dx = p.x - a.x, dz = p.z - a.z, d = Math.hypot(dx, dz); if (d < .55 && d > 1e-4) { p.x = a.x + dx / d * .55; p.z = a.z + dz / d * .55; } }
-  for (const c of circles) { const dx = p.x - c.x, dz = p.z - c.z, d = Math.hypot(dx, dz), m = c.r + .4; if (d < m && d > 1e-4) { p.x = c.x + dx / d * m; p.z = c.z + dz / d * m; } }
+  const cg = grilleObstacles(p.x, p.z);
+  for (const c of cg.c) { const dx = p.x - c.x, dz = p.z - c.z, d = Math.hypot(dx, dz), m = c.r + .4; if (d < m && d > 1e-4) { p.x = c.x + dx / d * m; p.z = c.z + dz / d * m; } }
+  for (const w of walkers) { const c = w.col, dx = p.x - c.x, dz = p.z - c.z, d = Math.hypot(dx, dz), m = c.r + .4; if (d < m && d > 1e-4) { p.x = c.x + dx / d * m; p.z = c.z + dz / d * m; } }
   for (const m of movers) { if (m === skipM || m.ridden) continue; const dx = p.x - m.x, dz = p.z - m.z, d = Math.hypot(dx, dz), r = m.r + .35; if (d < r && d > 1e-4) { p.x = m.x + dx / d * r; p.z = m.z + dz / d * r; } }
-  for (const b of boxes) { if (b.off) continue; pushBox(p, b.x1, b.x2, b.z1, b.z2, .4); }
+  for (const b of cg.b) { if (b.off) continue; pushBox(p, b.x1, b.x2, b.z1, b.z2, .4); }
   for (const w of WALLS3) if (p.y > w.y0 && p.y < w.y1) pushBox(p, w.x1, w.x2, w.z1, w.z2, .3);
   // murs des cottages, en repère local
   for (const c of cottages) {
@@ -8069,7 +8100,7 @@ function resolve(p, prev, who) {
 function floorY(p) {
   if (onDock(p.x, p.z)) return .38;
   if (inJacuzzi(p.x, p.z)) return -.2; // assis sur le banc du jacuzzi, dans l'eau chaude
-  for (const c of cottages) { const [lx, lz] = c.toLocal(p.x, p.z);
+  for (const c of cottages) { if (Math.abs(p.x - c.x) > 11 || Math.abs(p.z - c.z) > 11) continue; const [lx, lz] = c.toLocal(p.x, p.z); // loin de ce cottage : rien à calculer
     if (lx > -5.2 && lx < 5.2 && lz > -4.2 && lz < 4.2) { if (c.single) return .2; if (inStair(lx, lz)) return Math.max(.2, stairH(lz)); return p.y > 1.8 ? UP : .2; }
     if (lx > -5.2 && lx < 5.2 && lz >= 4.2 && lz < 9.1) return .2; }
   let b = 0; for (const f of SURF) { const h = f(p.x, p.z); if (h !== null && h <= (p.y || 0) + .9 && h > b) b = h; } return b;
@@ -8696,6 +8727,7 @@ const signe = m => LOT_PROPS.map(k => { const v = m[k]; return v && v.isTexture 
 // même matière que le modèle du lot ? On ne regarde que ce que le jeu change en cours de partie (vite fait, à chaque image)
 const memeMat = (m, r) => m.opacity === r.opacity && m.transparent === r.transparent && m.visible === r.visible && m.emissiveIntensity === r.emissiveIntensity && m.map === r.map
   && m.side === r.side && m.depthWrite === r.depthWrite && m.alphaTest === r.alphaTest && m.roughness === r.roughness && m.metalness === r.metalness && (!m.emissive || m.emissive.equals(r.emissive));
+const LOT_CASE = 64; // taille d'un quartier (m)
 const LOTS = [], LOT_MEMBRES = [], LOT_MATS = new Map(), TRI_DE = new Map(TRI.map(t => [t.o, t]));
 if (renderer.extensions.has("WEBGL_multi_draw") && !/sanslots/.test(location.search)) { // (?sanslots dans l'adresse : pour comparer)
   const PROTO_RENDU = THREE.Object3D.prototype.onBeforeRender, PROTO_COMPIL = THREE.Material.prototype.onBeforeCompile;
@@ -8709,7 +8741,7 @@ if (renderer.extensions.has("WEBGL_multi_draw") && !/sanslots/.test(location.sea
     const m = o.material, g = o.geometry;
     if (!TYPES.has(m.type) || m.transparent || m.opacity < 1 || m.vertexColors || m.onBeforeCompile !== PROTO_COMPIL || m.customProgramCacheKey !== THREE.Material.prototype.customProgramCacheKey || murs.has(m)) return;
     if (o.onBeforeRender !== PROTO_RENDU || o.customDepthMaterial || o.customDistanceMaterial || g.morphAttributes.position || !g.attributes.position || g.attributes.position.count > 30000 || !garder(o)) return;
-    const cast = o.castShadow, cle = signe(m) + "|" + cast + "|" + o.receiveShadow;
+    const w = o.getWorldPosition(new THREE.Vector3()), cast = o.castShadow, cle = signe(m) + "|" + cast + "|" + o.receiveShadow + "|" + Math.floor(w.x / LOT_CASE) + "," + Math.floor(w.z / LOT_CASE);
     if (!groupes.has(cle)) groupes.set(cle, { cast, recv: o.receiveShadow, liste: [] }); groupes.get(cle).liste.push(o);
   });
   const geoPour = new Map(); // une géométrie « propre » (index, position, normale, uv) par géométrie d'origine
@@ -8719,16 +8751,16 @@ if (renderer.extensions.has("WEBGL_multi_draw") && !/sanslots/.test(location.sea
     c.setAttribute("uv", g.attributes.uv || new THREE.BufferAttribute(new Float32Array(n * 2), 2)); geoPour.set(g, c); return c; };
   const blanc = new THREE.Color(1, 1, 1);
   for (const { cast, recv, liste } of groupes.values()) {
-    if (liste.length < 8) continue; // pas la peine pour quelques objets (chaque lot a son petit coût fixe par image)
+    if (liste.length < 4) continue; // pas la peine pour trois fois rien (chaque lot a son petit coût fixe par image)
     const geos = [...new Set(liste.map(o => o.geometry))], nv = geos.reduce((a, g) => a + propre(g).attributes.position.count, 0), ni = geos.reduce((a, g) => a + propre(g).index.count, 0);
     const ref = liste[0].material, lm = ref.clone(); lm.color?.copy(blanc);
-    const lot = new THREE.BatchedMesh(liste.length, nv, ni, lm); lot.castShadow = cast; lot.receiveShadow = recv; lot.frustumCulled = false; lot.sortObjects = false; lot.perObjectFrustumCulled = true;
+    const lot = new THREE.BatchedMesh(liste.length, nv, ni, lm); lot.castShadow = cast; lot.receiveShadow = recv; lot.sortObjects = false; lot.perObjectFrustumCulled = false; // un lot = un quartier : il est gardé ou écarté en entier (pas de tri objet par objet à chaque image)
     lot.userData.ref = ref; const ids = new Map(); for (const g of geos) ids.set(g, lot.addGeometry(propre(g)));
     for (const o of liste) { const id = lot.addInstance(ids.get(o.geometry)); lot.setMatrixAt(id, o.matrixWorld); if (o.material.color) lot.setColorAt(id, o.material.color);
       const mb = { o, lot, id, mat: o.material, geo: o.geometry, mw: new Float64Array(o.matrixWorld.elements), cr: o.material.color?.r, cg: o.material.color?.g, cb: o.material.color?.b, vis: true, dehors: false, calme: 0, bouge: 0 };
       LOT_MEMBRES.push(mb); o.userData.lot = mb; o.layers.mask = 0; // l'original n'est plus dessiné : c'est le lot qui le dessine
       if (!LOT_MATS.has(o.material)) LOT_MATS.set(o.material, { ref, membres: [] }); LOT_MATS.get(o.material).membres.push(mb); }
-    scene.add(lot); LOTS.push(lot);
+    lot.computeBoundingSphere(); scene.add(lot); LOTS.push(lot);
   }
 }
 // un objet quitte son lot pour toujours (il redevient un objet normal, que trier() gère comme avant)
@@ -8761,10 +8793,56 @@ scene.onBeforeRender = () => {
     const e = o.matrixWorld.elements, w = mb.mw;
     if (e[12] !== w[12] || e[13] !== w[13] || e[14] !== w[14] || e[0] !== w[0] || e[1] !== w[1] || e[2] !== w[2] || e[4] !== w[4] || e[5] !== w[5] || e[6] !== w[6] || e[8] !== w[8] || e[9] !== w[9] || e[10] !== w[10]) {
       w.set(e); mb.calme = 0; // ce qui bouge sans arrêt (ballons, seau…) quitte le lot : sinon tout le lot repart vers la carte graphique à chaque image
-      if (++mb.bouge > 90) { sortirDuLot(mb); continue; } mb.lot.setMatrixAt(mb.id, o.matrixWorld); }
+      if (++mb.bouge > 90) { sortirDuLot(mb); continue; } mb.lot.setMatrixAt(mb.id, o.matrixWorld); mb.lot.boundingSphere = null; }
     else { mb.calme++; mb.bouge = 0; }
     const c = o.material.color; if (c && (c.r !== mb.cr || c.g !== mb.cg || c.b !== mb.cb)) { mb.cr = c.r; mb.cg = c.g; mb.cb = c.b; mb.lot.setColorAt(mb.id, c); } }
 };
+/* ================= Les objets immobiles ne recalculent plus leur position à chaque image =================
+   three.js recalcule la place de chaque objet (~10 000) à chaque image, même s'il ne bouge jamais. Ici, un objet resté immobile
+   1 seconde est « figé » (matrixAutoUpdate = false) ; à chaque image on compare sa position, sa rotation, sa taille et son parent
+   avec ce qu'ils étaient : au moindre changement (une porte qui s'ouvre, l'intérieur qui change de cottage…) il redevient normal
+   avant le dessin, sans une image de retard. Les personnages (os animés), les lumières et la caméra ne sont pas concernés. */
+/* ================= Vitres : une seule passe pour les vitres plates =================
+   three.js dessine une vitre transparente visible des deux côtés en deux fois (faces arrière, puis faces avant), et refait
+   son programme de couleurs à chaque fois. C'est utile pour une vitre courbe (la coupole : on voit son autre côté au travers),
+   inutile pour une vitre plate (porte, mur vitré) : ses deux faces sont collées, de la même couleur, l'image est la même. */
+const VITRES_SYNC = [];
+{ const PLATES = new Set(["BoxGeometry", "PlaneGeometry", "RoundedBoxGeometry"]), usages = new Map();
+  scene.traverse(o => { const m = o.material; if (!o.isMesh || Array.isArray(m) || !m.transparent || m.side !== THREE.DoubleSide || m.forceSinglePass) return;
+    if (!usages.has(m)) usages.set(m, []); usages.get(m).push(o); });
+  for (const [m, liste] of usages) { const plates = liste.filter(o => PLATES.has(o.geometry.type) || o.geometry.parameters?.depth !== undefined && o.geometry.parameters.width !== undefined);
+    if (plates.length === liste.length) { m.forceSinglePass = true; continue; } // tous plats : la matière passe en une seule passe
+    if (!plates.length) continue;
+    const c = m.clone(); c.forceSinglePass = true; for (const o of plates) o.material = c; VITRES_SYNC.push([m, c]); } } // une copie pour les plats, qui suit l'original
+function suivreVitres() { for (const [m, c] of VITRES_SYNC) { if (c.opacity !== m.opacity) c.opacity = m.opacity; if (c.visible !== m.visible) c.visible = m.visible; if (!c.color.equals(m.color)) c.color.copy(m.color); } }
+let GEL = null; const SANS_GEL = /sansgel/.test(location.search); // (?sansgel dans l'adresse : pour comparer)
+function gel() {
+  if (SANS_GEL) return;
+  if (!GEL) { const objs = [], exclus = new Set([player]), dans = new Set();
+    const prendre = o => { if (o === scene || o.isLight || o.isCamera || o.isBone || exclus.has(o) || o.userData.legs) return false; return o.matrixAutoUpdate; };
+    const parcourir = o => { if (o.userData.legs || exclus.has(o)) return; if (prendre(o)) { objs.push(o); dans.add(o); } for (const c of o.children) parcourir(c); };
+    parcourir(scene);
+    // un groupe du décor peut être sauté en entier si tout ce qu'il contient est surveillé ici (pas de personnage, pas de lumière allumée…)
+    const tops = scene.children.filter(t => { let ok = dans.has(t); t.traverse(x => { if (!dans.has(x) && !(x.isLight && !x.visible)) ok = false; }); return ok; });
+    const topDeI = objs.map(o => { let x = o; while (x.parent && x.parent !== scene) x = x.parent; return tops.indexOf(x); });
+    scene.matrixAutoUpdate = false; scene.updateMatrix(); // la scène ne bouge jamais : elle n'oblige plus tout le monde à se recalculer
+    GEL = { objs, par: objs.map(o => o.parent), snap: new Float64Array(objs.length * 10), calme: new Uint16Array(objs.length), fige: new Uint8Array(objs.length), tops, topDeI, actif: new Uint8Array(tops.length), saute: new Uint8Array(tops.length) };
+    objs.forEach((o, i) => { const k = i * 10, p = o.position, q = o.quaternion, c = o.scale; GEL.snap.set([p.x, p.y, p.z, q._x, q._y, q._z, q._w, c.x, c.y, c.z], k); }); }
+  const { objs, par, snap, calme, fige, tops, topDeI, actif, saute } = GEL; actif.fill(0);
+  const tour = animN & 1;
+  for (let i = 0, k = 0; i < objs.length; i++, k += 10) { if (fige[i] && (i & 1) === tour) continue; // les objets figés : une image sur deux chacun (au pire, une porte démarre une image plus tard)
+    const o = objs[i], p = o.position, q = o.quaternion, c = o.scale;
+    if (p.x !== snap[k] || p.y !== snap[k + 1] || p.z !== snap[k + 2] || q._x !== snap[k + 3] || q._y !== snap[k + 4] || q._z !== snap[k + 5] || q._w !== snap[k + 6] || c.x !== snap[k + 7] || c.y !== snap[k + 8] || c.z !== snap[k + 9] || o.parent !== par[i]) {
+      snap[k] = p.x; snap[k + 1] = p.y; snap[k + 2] = p.z; snap[k + 3] = q._x; snap[k + 4] = q._y; snap[k + 5] = q._z; snap[k + 6] = q._w; snap[k + 7] = c.x; snap[k + 8] = c.y; snap[k + 9] = c.z;
+      if (o.parent !== par[i]) { par[i] = o.parent; o.matrixWorldNeedsUpdate = true; let x = o; while (x.parent && x.parent !== scene) x = x.parent; topDeI[i] = tops.indexOf(x); }
+      calme[i] = 0; if (fige[i]) { fige[i] = 0; o.matrixAutoUpdate = true; } }
+    else if (!fige[i] && ++calme[i] > 60) { fige[i] = 1; o.matrixAutoUpdate = false; }
+    if (!fige[i] && topDeI[i] >= 0) actif[topDeI[i]] = 1; }
+  // les groupes où tout est figé ne sont même plus parcourus par three.js
+  for (let t = 0; t < tops.length; t++) { const T = tops[t], s = !actif[t] && T.parent === scene;
+    if (s !== !!saute[t]) { saute[t] = s ? 1 : 0; if (s) T.updateMatrixWorld = SAUTE; else delete T.updateMatrixWorld; } }
+}
+function SAUTE() {}
 let triT = 0, imageN = 0;
 const _tv = new THREE.Vector3();
 const _sd = new THREE.Vector3(), _sr = new THREE.Vector3(), _su = new THREE.Vector3(), _st = new THREE.Vector3();
@@ -8869,7 +8947,7 @@ function loop() {
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
     let mvx = fx * -iy + rx * ix, mvz = fz * -iy + rz * ix; const L = Math.hypot(mvx, mvz);
     swimming = state === "walk" && inPoolRect(P.x, P.z);
-    if (!swimming) swimFast = false; const sp = swimming ? (swimFast ? 4.4 : 1.8) : inKids(P.x, P.z) ? 3.4 : 6.5 * (runOn || keys["shift"] ? 1.75 : 1);
+    if (!swimming) swimFast = false; const sp = swimming ? (swimFast ? 4.4 : 1.8) : inKids(P.x, P.z) ? 3 : (runOn || keys["shift"] ? 7.5 : 4.2); // marcher 4,2 m/s (avant 6,5 : on aurait dit qu'il courait), courir 7,5
     if (L > .08) { const s = Math.min(L, 1); mvx /= L; mvz /= L; P.x += mvx * sp * s * dt; P.z += mvz * sp * s * dt;
       const target = Math.atan2(mvx, mvz); let d = target - player.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); player.rotation.y += d * Math.min(1, dt * 12); walkT += dt * 9 * s * (!swimming && (runOn || keys["shift"]) ? 1.5 : 1);
       if (!swimming && state === "walk") { stepAcc += dt * s; if (stepAcc > .32) { stepAcc = 0; if (inCottage || inDome) sfx.step(); } }
@@ -8889,7 +8967,7 @@ function loop() {
   if (state === "walk" && ((onRoad(P.x, P.z, .3) && P.z > PARK.z2 + .4 && !onRoad(prev.x, prev.z, .3)) || (onRing(P.x, P.z, .3) && !onRing(prev.x, prev.z, .3))) && !onCrossing(P.x, P.z)) { P.x = prev.x; P.z = prev.z; if (time - roadToastT > 4) { roadToastT = time; toast("🚗 La route, c'est pour les voitures ! Monte dans une voiture pour rouler dessus.", 3000); } }
   inDome = Math.hypot(P.x - DOME.x, P.z - DOME.z) < DOME.r && state !== "ride" || state === "top" || state.startsWith("climb");
   inCottage = null;
-  for (const c of cottages) { const [lx, lz] = c.toLocal(P.x, P.z); if (lx > -5 && lx < 5 && lz > -4 && lz < 4) inCottage = c; }
+  for (const c of cottages) { if (Math.abs(P.x - c.x) > 7 || Math.abs(P.z - c.z) > 7) continue; const [lx, lz] = c.toLocal(P.x, P.z); if (lx > -5 && lx < 5 && lz > -4 && lz < 4) inCottage = c; }
   const where = inCottage ? (P.y > 1.8 ? "🛏️ À l'étage" : inCottage.mine ? `🏡 Ton cottage n°${inCottage.num}` : `🏠 Cottage n°${inCottage.num}`) : state === "boat" ? "🚤 En pédalo" : inDome ? (swimming ? "🏊 Tu nages !" : "🌴 Aquaparc") : state === "drive" ? (veh.kind === "bike" ? "🚲 À vélo" : veh.kind === "pony" ? "🐴 À poney" : lap.t >= 0 ? "⏱️ " + lap.t.toFixed(1).replace(".", ",") + " s" : "🏎️ En kart") : state === "river" ? "🛟 Sur la rivière" : zoneName(P);
   if (where !== lastWhere) { if (where) { $("where").textContent = where; $("where").hidden = false; } else $("where").hidden = true;
     if (where.startsWith("🏡")) toast("Bienvenue dans ton cottage ! 🏡"); if (where === "🌴 Aquaparc" && !lastWhere) toast("Bienvenue à l'Aquaparc ! 🌴"); if (ZTOAST[where] && !seenZ.has(where)) { seenZ.add(where); toast(ZTOAST[where], 3200); } lastWhere = where; }
@@ -9003,7 +9081,8 @@ function loop() {
       if (found === 10) { paused = true; sfx.win(); $("win").hidden = false; } else toast(`Canard trouvé ! ${found} / 10`); } });
 
   // arbre à eau
-  { const pa = jetPts.geometry.attributes.position; let n = 0;
+  // les jets ne se voient que de près ; leur mouvement dépend de l'heure : rien à rattraper
+  if (Math.hypot(camera.position.x - WT.x, camera.position.z - WT.z) < 90) { const pa = jetPts.geometry.attributes.position; let n = 0;
     for (const j of WT.jets) { const dx = Math.cos(j.a), dz = Math.sin(j.a); for (let i = 0; i < 40; i++) { const tt = ((time * .9 + i / 40) % 1) * .75; pa.setXYZ(n++, WT.x + j.p.x + dx * 2.2 * tt, j.p.y + 1.2 * tt - 4.9 * tt * tt, WT.z + j.p.z + dz * 2.2 * tt); } }
     pa.needsUpdate = true;
     WT.next -= dt; if (WT.next <= 0 && !WT.tip) WT.tip = .001;
@@ -9020,12 +9099,13 @@ function loop() {
   // eau qui bouge : reflets au fond des bassins, filets d'eau des toboggans ; visages vivants
   caustics.forEach((c, i) => c.t.offset.set(time * .035 * c.d + i * .3, time * .022 * c.d));
   streamTex.offset.y = -time * 1.6;
-  liveFace(player, dt); liveFace(swimmer, dt); npcs.forEach(n => liveFace(n.g, dt)); if (net) for (const o of net.autres.values()) liveFace(o.g, dt);
+  liveFace(player, dt); liveFace(swimmer, dt); npcs.forEach(n => { if (aAnimer(n, n.g.position.x, n.g.position.z)) liveFace(n.g, dt); }); if (net) for (const o of net.autres.values()) liveFace(o.g, dt);
   // décor vivant
   updateWaves(dt, P); poolWater.material.normalMap.offset.set(time * .02, time * .013); lakeN.offset.set(time * .01, -time * .007);
   if (lake.material.uniforms) lake.material.uniforms.time.value += dt * .5;
   const ba = time * .08; boat.position.set(LAKE.x + Math.cos(ba) * LAKE.r * .55, .02, LAKE.z + Math.sin(ba) * LAKE.r * .55); boat.rotation.y = Math.atan2(-Math.sin(ba), Math.cos(ba)); boat.position.y = Math.sin(time * 2) * .04;
-  if (myCottage.g.userData.flag) { const f = myCottage.g.userData.flag.geometry.attributes.position; for (let i = 0; i < f.count; i++) { const x = f.getX(i); f.setZ(i, Math.sin(x * 3 - time * 5) * .12 * (x + .8)); } f.needsUpdate = true; }
+  // le drapeau flotte selon l'heure : de loin, inutile de le recalculer
+  if (myCottage.g.userData.flag && Math.hypot(camera.position.x - myCottage.x, camera.position.z - myCottage.z) < 80) { const f = myCottage.g.userData.flag.geometry.attributes.position; for (let i = 0; i < f.count; i++) { const x = f.getX(i); f.setZ(i, Math.sin(x * 3 - time * 5) * .12 * (x + .8)); } f.needsUpdate = true; }
   flames.forEach((f, i) => { f.scale.y = .8 + Math.sin(time * 14 + i * 2) * .2 + Math.sin(time * 23 + i) * .1; });
   fireLight.intensity = 5 + Math.sin(time * 13) * 1 + Math.sin(time * 29) * .6;
   if (splashT > 0) { splashT -= dt; splash.scale.setScalar(1 + (1 - splashT) * 4); splash.material.opacity = Math.max(0, splashT); }
@@ -9041,38 +9121,41 @@ function loop() {
     sun.target.position.copy(_st); sun.position.copy(_st).addScaledVector(_sd, 120); }
   const creaOn = !$("creaView").hidden;
   if (creaOn) { // créateur : on se voit en entier, de face, au-dessus (téléphone) ou à gauche (paysage) du panneau
-    const a = player.rotation.y, Q = player.position, H = player.scale.y * 2.2, large = innerWidth > innerHeight, d = H * (large ? 2.4 : 3.1);
+    const a = creaCamA, Q = player.position, H = player.scale.y * 2.2, large = innerWidth > innerHeight, d = H * (large ? 2.4 : 3.1);
     animPerson(player, "idle", 0); camera.position.set(Q.x + Math.sin(a) * d, Q.y + H * .55, Q.z + Math.cos(a) * d); camera.lookAt(Q.x, Q.y + H * .5, Q.z);
     const W = innerWidth, Hh = innerHeight; camera.setViewOffset(W, Hh, large ? W * .22 : 0, large ? 0 : Hh * .27, W, Hh); myLbl.visible = false;
   } else if (camera.view?.enabled) { camera.clearViewOffset(); myLbl.visible = true; }
   document.body.classList.toggle("crea-on", creaOn);
   voituresTick(dt); trier(dt); suivreFeux(dt); majInterieurs(); if (dejaVu) adapterResolution();
-  renderer.render(scene, camera); dejaVu = true; majPerf();
+  suivreVitres(); gel(); renderer.render(scene, camera); dejaVu = true; majPerf();
 }
 window.__pins = { renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
 await souffle(97, "Les couleurs se mélangent…");
 const compiler = () => Promise.race([renderer.compileAsync(scene, camera), new Promise(r => setTimeout(r, 6000))]).catch(() => {});
 await compiler();
-// les murs qui s'effacent quand on entre (cottages, vestiaires, aquarium, boutiques…) : leur version transparente est préparée aussi,
-// sinon elle se fabrique au moment où l'on passe la porte
-{ const murs = MURS_FONDUS.filter(m => !m.transparent);
-  for (const m of murs) { m.transparent = true; m.depthWrite = false; m.needsUpdate = true; }
-  await compiler();
-  for (const m of murs) { m.transparent = false; m.depthWrite = true; m.needsUpdate = true; } }
-// le reflet du lac (sur ordinateur) redessine le décor dans une image à part, avec d'autres réglages de couleurs : ces versions-là sont préparées aussi
-if (!LOWQ) { const rt = new THREE.WebGLRenderTarget(4, 4); renderer.setRenderTarget(rt); const att = compiler(); renderer.setRenderTarget(null); await att; rt.dispose(); }
-// toutes les images peintes partent tout de suite dans la carte graphique (sinon chacune s'y envoie la première fois qu'on la voit : un à-coup)
-await souffle(99, "On range les couleurs…");
-{ const vues = new Set(), envoie = t => { if (t && t.isTexture && !t.isRenderTargetTexture && !vues.has(t)) { vues.add(t); try { renderer.initTexture(t); } catch (e) {} } };
-  scene.traverse(o => { for (const m of [].concat(o.material || [], o.customDepthMaterial || [])) { for (const k in m) envoie(m[k]); if (m.uniforms) for (const k in m.uniforms) envoie(m.uniforms[k].value); } }); }
-// répétition générale, cachée derrière l'écran de chargement : une image de tout le domaine vu du ciel (ombres comprises)
-{ const vue = new THREE.PerspectiveCamera(100, 1, 5, 1500); vue.position.set(0, 240, 0); vue.lookAt(0, 0, 0); renderer.render(scene, vue); }
-// chaque programme est vraiment terminé maintenant (sur iPad, sinon, la fin du travail tombe la première fois qu'il sert, en plein jeu)
-for (const pr of renderer.info.programs) try { pr.getUniforms(); pr.getAttributes(); } catch (e) {}
 chargerPartie(); dessinerPersos();
-document.body.classList.remove("chargement");
+document.body.classList.remove("chargement"); // le bouton JOUER apparaît : le reste se prépare pendant qu'on choisit son personnage
 loop();
+// Finitions, par petits morceaux entre deux images (le menu reste fluide) : rien de tout ça n'est nécessaire pour commencer,
+// mais tout ce qui est prêt ici ne fera pas d'à-coup plus tard en jouant.
+{ const morceau = () => new Promise(r => setTimeout(r, 30)), fin = [];
+  // les murs qui s'effacent quand on entre : leur version transparente (changée puis remise dans la même étape : jamais visible)
+  fin.push(() => { const murs = MURS_FONDUS.filter(m => !m.transparent);
+    for (const m of murs) { m.transparent = true; m.depthWrite = false; m.needsUpdate = true; }
+    try { renderer.compile(scene, camera); } catch (e) {}
+    for (const m of murs) { m.transparent = false; m.depthWrite = true; m.needsUpdate = true; } });
+  // le reflet du lac (sur ordinateur) : le décor dessiné dans une image à part, avec d'autres réglages de couleurs
+  if (!LOWQ) fin.push(() => { const rt = new THREE.WebGLRenderTarget(4, 4); renderer.setRenderTarget(rt); try { renderer.compile(scene, camera); } catch (e) {} renderer.setRenderTarget(null); rt.dispose(); });
+  // toutes les images peintes partent dans la carte graphique, 15 par 15
+  { const vues = new Set(), liste = [], prendre = t => { if (t && t.isTexture && !t.isRenderTargetTexture && !vues.has(t)) { vues.add(t); liste.push(t); } };
+    scene.traverse(o => { for (const m of [].concat(o.material || [], o.customDepthMaterial || [])) { for (const k in m) prendre(m[k]); if (m.uniforms) for (const k in m.uniforms) prendre(m.uniforms[k].value); } });
+    for (let i = 0; i < liste.length; i += 15) fin.push(() => { for (const t of liste.slice(i, i + 15)) try { renderer.initTexture(t); } catch (e) {} }); }
+  // répétition générale (tout le domaine vu du ciel, ombres comprises), seulement tant que l'image d'accueil cache la 3D
+  fin.push(() => { if (introEl.hidden) return; const vue = new THREE.PerspectiveCamera(100, 1, 5, 1500); vue.position.set(0, 240, 0); vue.lookAt(0, 0, 0); renderer.render(scene, vue); });
+  // chaque programme vraiment terminé (sur iPad, sinon, la fin du travail tombe la première fois qu'il sert), 6 par 6
+  fin.push(() => { const P = renderer.info.programs.slice(); for (let i = 0; i < P.length; i += 6) fin.push(() => { for (const pr of P.slice(i, i + 6)) try { pr.getUniforms(); pr.getAttributes(); } catch (e) {} }); });
+  (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
