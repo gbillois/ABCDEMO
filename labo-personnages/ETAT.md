@@ -16,19 +16,19 @@ Travail interrompu à la demande du propriétaire (consommation de tokens), pour
 - Les adultes ont des proportions d'adulte (la grand-mère).
 - Performances : 12 000 triangles au plus par personnage complet, 3 000 pour la foule.
 
-## État des modules (`perso/`)
+## État des modules (`perso/`) — mis à jour : intégré dans `pins/index.html`
 | fichier | état |
 |---|---|
-| `squelette.js` | fini : 24 os, 4 types (garcon, fille, femme, homme), pose A, conventions de l'ancien rig |
-| `corps.js` | première version réaliste finie : peau continue, cage → Catmull-Clark → champ de distance. **Trop dense** (~15 k triangles pour le corps, ~22 k par personnage). La passe « style Mii + 6 k triangles » a été arrêtée au début. |
-| `tete.js`, `visage.js` | première version réaliste (yeux 3D) : **à remplacer** par l'ancien visage dessiné (`atlasVisage` dans `ancien/ancien.js`) sur une tête +10 %. `tete.tmp.js` est un début de cette nouvelle version, inachevé. |
-| `anim.js` | fini et bon : marche, course et sprint (pieds posés, IK), repos, nage, sur-place, échelle, toboggan, saut, vélo, kart, pédalo, poney, chaise, bouée, transat. Les changements d'appel à faire dans le jeu sont listés plus bas. |
-| `materiaux.js` | fini : peau chaude, tissus, cheveux, accessoires, la foule en un seul appel de dessin (`geoLegere`/`matLegere`) |
-| `index.js` | `person()` provisoire : habits peints sur la peau, bonnet et lunettes de natation simples |
-| `habits.js`, `cheveux.js` | **pas commencés** (les équipes ont été arrêtées en lisant le cahier des charges) |
+| `squelette.js`, `anim.js`, `materiaux.js` | finis |
+| `corps.js` | allégé : 5 500 triangles (« plein », corps + tête), 2 566 (« leger ») ; corps mince, épaules étroites |
+| `tete.js`, `visage.js` | tête douce +10 % (champ de distance), ancien visage dessiné en décalque (clignement), visage léger pour la foule |
+| `cheveux.js` | 9 coupes, casquette, nœud, bandeau, lunettes 1..5, bonnet et lunettes de natation |
+| `habits.js` | t-shirt (motifs), sweat, short, pantalon / jean / legging, baskets, tongs, boxer, une-pièce, combinaison |
+| `index.js` | `person`, `setOutfit`, `putGlasses`, `putSwimGear` ; foule : un seul maillage (corps + visage + cheveux + accessoire, habits peints dans le shader) |
 | `mannequin.js` | corps de test pour l'animation |
 
-Rendus de référence dans `rendus/` (ancien vs nouveau, piscine, adultes, marche, course, essai dans le vrai jeu).
+Mesures (labo, SwiftShader) : personnage complet 9 000 à 11 500 triangles, 9 à 12 maillages ; foule 2 800 à 3 000 triangles,
+1 appel de dessin ; construction d'un type ≈ 110-150 ms la première fois (SwiftShader), puis 1-5 ms par personnage.
 
 ## Reprendre
 1. Le labo a besoin de three.js en local (non versionné) :
@@ -43,19 +43,9 @@ Rendus de référence dans `rendus/` (ancien vs nouveau, piscine, adultes, march
    du jeu (section « Personnages » remplacée), puis `node jeu-shot.js /tmp/essai.html out/jeu.png "<actions>"`.
 
 ## Reste à faire
-1. Corps : alléger (≤ 6 k triangles), formes lisses façon figurine, et corriger les défauts relevés (SPEC §13).
-2. Visage : remettre l'ancien visage dessiné sur la tête +10 %, avec le clignement.
-3. Cheveux (9 coupes, casquette, nœud, bandeau, lunettes, bonnet et lunettes de natation).
-4. Vêtements : t-shirts et motifs, sweat, short, pantalon, legging, jean, baskets, tongs, boxer de bain, maillot une
-   pièce, combinaison.
-5. Intégrer dans le jeu (`integrer.js`) et adapter les appels de `animPerson` :
-   - joueur : passer la vitesse (`sp * Math.min(L, 1)`) ;
-   - foule et promeneurs : passer `spd` / `w.sp` ;
-   - transat : mode `lie` ;
-   - sauts et trampoline : mode `jump` ;
-   - pédalo : l'angle du pédalier ;
-   - poney : `V.ph`, `V.v` ;
-   - bras pour manger : `-.45 - k * .65` et `-1 - k * 1.15` ;
-   - plateau du Burger Fast : `userData.porter`.
-6. Vestiaires (bonnet et lunettes de natation), réseau (champ facultatif), vérifications en jeu, perf sur iPad, puis
-   commit sur `main` et republication de l'artefact (CLAUDE.md).
+1. Fait : intégration (`integrer.js`) et appels de `animPerson` (vitesse du joueur, de la foule et des promeneurs, transat
+   `lie`, sauts et trampoline `jump`, poney `V.ph`/`V.v`, bras pour manger, `userData.porter` au Burger Fast).
+2. Petits défauts vus : marche au coude sur le sweat, lanière des tongs au milieu du pied (pas entre les deux premiers orteils),
+   cheveux longs un peu au-dessus de 2 000 triangles.
+3. Vestiaires (bonnet et lunettes de natation dans le jeu), réseau (champ facultatif), perf sur iPad (`LOWQ`), puis commit sur
+   `main` et republication de l'artefact (CLAUDE.md). Après publication : appuyer sur « Mettre à jour » dans l'application.

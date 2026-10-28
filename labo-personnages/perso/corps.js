@@ -532,7 +532,7 @@ function construireCorps(type, qualite = "plein", variante = "") {
   if (qualite !== "plein") variante = ""; const cle = type + "|" + qualite + "|" + variante; if (CACHE.has(cle)) return CACHE.get(cle);
   const t0 = performance.now(), ch = {}, top = n => ch[n] = Math.round(performance.now() - t0), A = anatomie(type, qualite, variante); top("anatomie");
   const cage = construireCage(type, qualite, A, variante); top("cage");
-  const C = qualite === "plein" ? catmull(cage) : cage; top("catmull"); const H = construireTete(type, qualite, A, C), P = H.P, nv = H.G.length, g = [0, 0, 0]; top("tete");
+  const C = cage; top("catmull"); const H = construireTete(type, qualite, A, C), P = H.P, nv = H.G.length, g = [0, 0, 0]; top("tete");
   // le corps : plaquer, détendre une fois, puis un dernier pas pour tous (la tête est déjà sur la surface) qui donne les normales
   const nCorps = H.nCorps, N = new Float32Array(nv * 3);
   plaquer(A.G, P, H.G, 0, nCorps, 2, g, N); top("plaquer");
