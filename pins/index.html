@@ -947,8 +947,8 @@ function makeSlide(cx, cz, a0, dir, turns, color, target, name, HR = 3.6) {
 }
 makeSlide(-15, -52, Math.PI / 2, 1, 2, 0xff5a4e, [-10, -43.5], "Toboggan rouge");
 makeSlide(-5, -52, Math.PI / 2, -1, 3, 0xffc93c, [-4, -43.5], "Toboggan jaune");
-makeSlide(5, -52, Math.PI / 2, 1, 1.5, 0x27ae60, [6, -43.5], "Toboggan vert");
-makeSlide(15, -52, Math.PI / 2, -1, 2.5, 0x2e86de, [15, -43.5], "Toboggan bleu");
+makeSlide(5, -52, Math.PI / 2, 1, 2, 0x27ae60, [6, -43.5], "Toboggan vert"); // un nombre entier de tours : la fin arrive devant la tour (pas à travers)
+makeSlide(15, -52, Math.PI / 2, -1, 3, 0x2e86de, [15, -43.5], "Toboggan bleu");
 makeSlide(-24, -40, Math.atan2(3, 17), 1, 2, 0x8e44ad, [-9.5, -37], "Toboggan violet");
 makeSlide(25, -38, Math.PI - .1, -1, 3, 0xff8a2b, [17.5, -37], "Toboggan orange");
 for (const [x, z, h] of slidePoleQueue) { if (!poleClear(x, z, h)) continue; const pole = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, h, 8), metalMat); circles.push({ x, z, r: .12 }); pole.position.set(x, h / 2, z); pole.castShadow = true; scene.add(pole); }
@@ -2160,6 +2160,7 @@ const PARK_CARS = [];
   spots.forEach(([x, z, h], i) => { if (i % 5 === 3 || (h === 0 && Math.abs(x - 83) < 2.5) || (h !== 0 && Math.abs(x - 86) < 4.4)) return; const c = makeCar(CAR_COLS[i % CAR_COLS.length], i); c.position.set(x, 0, z); c.rotation.y = h; scene.add(c); PARK_CARS.push({ g: c, x, z, h, flash: 0 }); });
 }
 /* ---------- La route d'arrivée : on vient de loin en voiture, on passe sous le portail du Domaine, puis la barrière, et on se gare au parking ---------- */
+let roadToastT = -9;
 const ROAD = { x: 86, w: 7, z1: PARK.z2 - .2, z2: 186, gateZ: 66, barZ: 72 };
 ZONES.push({ x1: ROAD.x - ROAD.w / 2 - 2, x2: ROAD.x + ROAD.w / 2 + 2, z1: ROAD.z1, z2: ROAD.z2 + 4 });
 const onRoad = (x, z, m = 0) => Math.abs(x - ROAD.x) < ROAD.w / 2 + m && z > ROAD.z1 - 1 && z < ROAD.z2 + 3;
@@ -2206,7 +2207,7 @@ const onRoad = (x, z, m = 0) => Math.abs(x - ROAD.x) < ROAD.w / 2 + m && z > ROA
   shadowAll(g);
 }
 // une voiture attend au bout de la route : monte dedans et viens au Domaine !
-{ const c = makeCar(0x2e86de, 7); const x = ROAD.x + 1.6, z = ROAD.z2 - 6; c.position.set(x, 0, z); c.rotation.y = Math.PI; scene.add(c); PARK_CARS.push({ g: c, x, z, h: Math.PI, flash: 0 }); }
+{ const c = makeCar(0x2e86de, 7); const x = ROAD.x + 2.2, z = ROAD.z2 - 6; c.position.set(x, 0, z); c.rotation.y = Math.PI; scene.add(c); PARK_CARS.push({ g: c, x, z, h: Math.PI, flash: 0 }); }
 function updateRoad(dt, P) {
   if (!ROAD.arm || Math.abs(P.z - ROAD.barZ) > 40) return;
   let want = 0; const near = (x, z) => Math.abs(x - ROAD.x) < ROAD.w / 2 + 2 && Math.abs(z - (ROAD.barZ - 1.8)) < 9;
@@ -2438,7 +2439,6 @@ let acroZip = null;
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.42, .6, h + 9, 12), bark); trunk.position.set(x, (h + 9) / 2, z); g.add(trunk); circles.push({ x, z, r: .5 });
     for (let k = 0; k < 3; k++) { const c = new THREE.Mesh(blobGeo(2.6 - k * .4, 2, .25, k), mat(0x3a7d44, .85)); c.position.set(x + (k - 1) * 1.2, h + 8.6 + k * 1.1, z + (k % 2 - .5) * 1.4); g.add(c); }
     const deck = new THREE.Mesh(new THREE.CylinderGeometry(ACRO_R, ACRO_R, .18, 24), plank); deck.position.set(x, h - .09, z); g.add(deck);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(ACRO_R, .05, 6, 32), rope); ring.rotation.x = Math.PI / 2; ring.position.set(x, h + .95, z); g.add(ring);
     SURF.push((px, pz) => harnessOn && (px - x) ** 2 + (pz - z) ** 2 < ACRO_R * ACRO_R ? h : null);
   }
   // les ponts entre les arbres : planches, filet, poutre, pont de singe, planches, filet
@@ -2457,6 +2457,17 @@ let acroZip = null;
     for (const s of [-1, 1]) tube(Array.from({ length: 9 }, (_, k) => { const [x, y, z] = at(k / 8); return [x + vx * s * w / 2, y + .95, z + vz * s * w / 2]; }), .03, rope);
     tube([[sx, ah + 2.1, sz], [ex, bh + 2.1, ez]], .025, cable);
   }
+  // la rambarde ronde de chaque plateforme, avec une ouverture vers chaque pont, l'échelle et la tyrolienne
+  { const ZIPEND = [-142.5, 133];
+    ACRO_P.forEach(([x, z, h], i) => { const gaps = [];
+      const toward = (tx, tz) => gaps.push(Math.atan2(tz - z, tx - x));
+      if (i > 0) toward(ACRO_P[i - 1][0], ACRO_P[i - 1][1]); if (i < ACRO_P.length - 1) toward(ACRO_P[i + 1][0], ACRO_P[i + 1][1]);
+      if (i === 0) toward(-134.2, 107.2); if (i === ACRO_P.length - 1) toward(...ZIPEND);
+      gaps.sort((a, b) => a - b); const W = .42;
+      gaps.forEach((a, k) => { const nx = k + 1 < gaps.length ? gaps[k + 1] : gaps[0] + Math.PI * 2, s0 = a + W, len = nx - W - s0; if (len < .1) return;
+        const geo = new THREE.TorusGeometry(ACRO_R, .05, 6, Math.max(4, Math.round(len * 10)), len); geo.rotateZ(s0); geo.rotateX(Math.PI / 2); const m = new THREE.Mesh(geo, rope); m.position.set(x, h + .95, z); g.add(m);
+        for (const e of [s0, s0 + len]) { const post = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, 1, 6), rope); post.position.set(x + Math.cos(e) * ACRO_R, h + .45, z + Math.sin(e) * ACRO_R); g.add(post); } });
+    }); }
   // l'échelle pour monter sur la première plateforme
   const [p1x, p1z, p1h] = ACRO_P[0], lax = -134.2, laz = 107.2, ldx = p1x - lax, ldz = p1z - laz, ll = Math.hypot(ldx, ldz), lux = ldx / ll, luz = ldz / ll, lex = p1x - lux * (ACRO_R - .3), lez = p1z - luz * (ACRO_R - .3);
   const lf = segSurf(lax, laz, 0, lex, lez, p1h, 1.2); SURF.push((x, z) => { if (!harnessOn) return null; const h = lf(x, z); return h === null ? null : Math.round(h / .4) * .4; });
@@ -2465,10 +2476,17 @@ let acroZip = null;
   const gateBar = rbox(2, .12, .12, mat(0xff5a4e, .5), .04); gateBar.position.set(-134.2, .9, 106.6); g.add(gateBar); ACRO_GATE.bar = gateBar;
   // la tyrolienne, de la dernière plateforme jusqu'en bas
   const [zx, zz, zh] = ACRO_P[ACRO_P.length - 1], endX = -142.5, endZ = 133;
-  const zStart = new THREE.Vector3(zx - 1.2, zh + 2.6, zz + .6), zEnd = new THREE.Vector3(endX, 2.3, endZ);
-  acroZip = { curve: new THREE.CatmullRomCurve3([zStart, zStart.clone().lerp(zEnd, .5).add(new THREE.Vector3(0, -.6, 0)), zEnd]), at: [zx - 1, zz + .4], h: zh };
-  tube([[zStart.x, zStart.y + .3, zStart.z], [(zStart.x + zEnd.x) / 2, (zStart.y + zEnd.y) / 2 - .3, (zStart.z + zEnd.z) / 2], [zEnd.x, zEnd.y + .3, zEnd.z]], .035, cable);
-  const ep = new THREE.Mesh(new THREE.CylinderGeometry(.18, .22, 3.6, 10), bark); ep.position.set(endX - .3, 1.8, endZ + .3); g.add(ep); circles.push({ x: endX - .3, z: endZ + .3, r: .25 });
+  const zux = (endX - zx) / Math.hypot(endX - zx, endZ - zz), zuz = (endZ - zz) / Math.hypot(endX - zx, endZ - zz);
+  const zStart = new THREE.Vector3(zx + zux * .55, zh + 2.6, zz + zuz * .55), zEnd = new THREE.Vector3(endX, 2.3, endZ);
+  // accroches : une plaque et un anneau sur le tronc en haut, un grand poteau en bas avec son câble de retenue
+  { const plate = rbox(.2, .5, .5, cable, .03); plate.position.set(zx + zux * .45, zh + 2.9, zz + zuz * .45); plate.rotation.y = Math.atan2(zux, zuz); g.add(plate);
+    const eye = new THREE.Mesh(new THREE.TorusGeometry(.1, .025, 6, 14), cable); eye.position.set(zStart.x, zStart.y + .3, zStart.z); eye.rotation.y = Math.atan2(zux, zuz) + Math.PI / 2; g.add(eye); }
+  acroZip = { curve: new THREE.CatmullRomCurve3([zStart, zStart.clone().lerp(zEnd, .5).add(new THREE.Vector3(0, -.6, 0)), zEnd]), at: [zx + zux * 1.1, zz + zuz * 1.1], h: zh };
+  const PX = endX + zux * 1.6, PZ = endZ + zuz * 1.6, PH = 2.65; // le poteau d'arrivée, un peu après le point où l'on descend
+  tube([[zStart.x, zStart.y + .3, zStart.z], [(zStart.x + PX) / 2, (zStart.y + PH) / 2 - .2, (zStart.z + PZ) / 2], [PX, PH, PZ]], .035, cable);
+  const ep = new THREE.Mesh(new THREE.CylinderGeometry(.2, .26, PH + .4, 10), bark); ep.position.set(PX, (PH + .4) / 2, PZ); g.add(ep); circles.push({ x: PX, z: PZ, r: .3 });
+  const ec = new THREE.Mesh(new THREE.TorusGeometry(.12, .03, 6, 14), cable); ec.position.set(PX - zux * .2, PH, PZ - zuz * .2); ec.rotation.y = Math.atan2(zux, zuz) + Math.PI / 2; g.add(ec);
+  tube([[PX, PH + .1, PZ], [PX + zux * 2.2, 0, PZ + zuz * 2.2]], .02, cable); const peg = rbox(.25, .2, .25, cable, .03); peg.position.set(PX + zux * 2.2, .1, PZ + zuz * 2.2); g.add(peg);
   const mat2 = rbox(2.2, .25, 2.2, mat(0x2e86de, .9), .1); mat2.position.set(endX + .8, .12, endZ - .8); g.add(mat2);
   // l'accueil : un chalet ouvert avec un comptoir et les baudriers accrochés
   const hut = new THREE.Group(); hut.position.set(-140.5, 0, 104.6); g.add(hut);
@@ -7410,6 +7428,10 @@ function loop() {
   { const jz = updateJacuzzis(dt, time, P); if (jz && state === "walk" && Math.hypot(P.x - prev.x, P.z - prev.z) < .002) animPerson(player, "sit", 0); }
 
   // où suis-je ?
+  // en maillot de bain, on ne sort pas de l'Aquaparc : il faut d'abord se rhabiller dans une cabine des vestiaires
+  if (state === "walk" && wearing && Math.hypot(prev.x - DOME.x, prev.z - DOME.z) < DOME.r - .3 && Math.hypot(P.x - DOME.x, P.z - DOME.z) >= DOME.r - .3) { P.x = prev.x; P.z = prev.z; if (time - suitToastT > 4) { suitToastT = time; toast("👕 Pas de maillot de bain dehors ! Va dans une cabine des vestiaires pour remettre tes habits.", 3200); } }
+  // la route, c'est pour les voitures : à pied, on ne marche pas dessus
+  if (state === "walk" && onRoad(P.x, P.z, .3) && P.z > PARK.z2 + .4 && !onRoad(prev.x, prev.z, .3)) { P.x = prev.x; P.z = prev.z; if (time - roadToastT > 4) { roadToastT = time; toast("🚗 La route, c'est pour les voitures ! Monte dans une voiture pour rouler dessus.", 3000); } }
   inDome = Math.hypot(P.x - DOME.x, P.z - DOME.z) < DOME.r && state !== "ride" || state === "top" || state.startsWith("climb");
   inCottage = null;
   for (const c of cottages) { const [lx, lz] = c.toLocal(P.x, P.z); if (lx > -5 && lx < 5 && lz > -4 && lz < 4) inCottage = c; }
@@ -7561,7 +7583,7 @@ function loop() {
   voituresTick(dt); trier(dt); if (dejaVu) adapterResolution(dt);
   renderer.render(scene, camera); dejaVu = true;
 }
-window.__pins = { animPerson, walkers, HALLO, G3, RACKS, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
+window.__pins = { animPerson, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
 await souffle(97, "Les couleurs se mélangent…");
 try { await Promise.race([renderer.compileAsync(scene, camera), new Promise(r => setTimeout(r, 6000))]); } catch (e) {}
