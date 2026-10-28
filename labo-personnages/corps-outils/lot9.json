@@ -1,0 +1,4 @@
+[["scene=corpsGros&types=homme,femme&tenue=rouge&os=poitrine&taille=.6&vue=34", "out/corps-v9-adultes34.png", 1200, 700],
+ ["scene=corpsGros&types=garcon&tenue=rouge&os=jambe_g&taille=.3", "out/corps-v9-genoux.png", 900, 700],
+ ["scene=corpsGros&types=garcon&tenue=rouge&os=jambe_g&taille=.3&vue=profil", "out/corps-v9-genoux-p.png", 900, 700],
+ ["scene=corpsMains&types=garcon&vue=34g", "out/corps-v9-main-g.png", 900, 700]]
