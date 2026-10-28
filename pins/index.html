@@ -8033,21 +8033,28 @@ const INTERIEURS = [];
     // on garde dehors : les murs (ils dépassent du bord), le toit, l'enseigne, les portes et les vitres (elles brillent la nuit)
     const portes = new Set([...(G.userData.doors || []), ...(SHOPS.find(sh => sh.g === G)?.doors || [])].map(d => d.m));
     const garde = c => { let k = false; c.traverse(m => { if (portes.has(m) || winMats.includes(m.material)) k = true; }); return k; };
-    for (const c of [...G.children]) { if (c.isLight || c === G.userData.roof || garde(c)) continue; b3.setFromObject(c); if (b3.isEmpty()) continue;
-      if (b3.min.x > x - hx - .05 && b3.max.x < x + hx + .05 && b3.min.z > z - hz - .05 && b3.max.z < z + hz + .05 && b3.max.y < h - .05) dedans.add(c); }
+    const inclus = c => { b3.setFromObject(c); return !b3.isEmpty() && b3.min.x > x - hx - .05 && b3.max.x < x + hx + .05 && b3.min.z > z - hz - .05 && b3.max.z < z + hz + .05 && b3.max.y < h - .05; };
+    const caches = [dedans];
+    for (const c of [...G.children]) { if (c.isLight || c === G.userData.roof || c.isMesh || garde(c)) { if (!c.isLight && c !== G.userData.roof && !garde(c) && inclus(c)) dedans.add(c); continue; }
+      if (inclus(c)) { dedans.add(c); continue; }
+      // un sous-groupe qui déborde (ex. décor d'Halloween dedans et dehors) : on cache seulement sa partie intérieure, dans un groupe à lui
+      const w = new THREE.Group(); for (const gc of [...c.children]) if (!gc.isLight && !garde(gc) && inclus(gc)) w.add(gc); if (w.children.length) { c.add(w); caches.push(w); } }
     for (const g of gens) if (g.parent === scene && Math.abs(g.position.x - x) < hx && Math.abs(g.position.z - z) < hz) peuple.add(g);
     // et ce qui est posé à même la scène à l'intérieur (château gonflable, tables d'anniversaire…), sauf ce qui bouge ou s'enlève
     for (const c of [...scene.children]) { if (c.isLight || bouge.has(c) || (c.userData.legs && !gens.includes(c))) continue; b3.setFromObject(c); if (b3.isEmpty()) continue;
       if (b3.min.x > x - hx && b3.max.x < x + hx && b3.min.z > z - hz && b3.max.z < z + hz && b3.max.y < h) peuple.add(c); }
-    G.add(dedans); scene.add(peuple); INTERIEURS.push({ objs: [dedans, peuple], x, z, hx, hz, on: true });
+    G.add(dedans); scene.add(peuple); INTERIEURS.push({ objs: [...caches, peuple], x, z, hx, hz, on: true });
   };
   bat(baloG, BALO.x, BALO.z, BALO.hx, BALO.hz, BALO.h); bat(gtG, GTW.x, GTW.z, GTW.hx, GTW.hz, GTW.h); bat(bfG, BFW.x, BFW.z, BFW.hx, BFW.hz, BFW.h);
   for (const sh of SHOPS) bat(sh.g, sh.x, sh.z, sh.hx, sh.hz, sh.h ?? 4.2);
+  bat(MANOR.g, (MANOR.x1 + MANOR.x2) / 2, (MANOR.z1 + MANOR.z2) / 2, (MANOR.x2 - MANOR.x1) / 2, (MANOR.z2 - MANOR.z1) / 2, MANOR.H); // le manoir hanté
 }
 const PRES_MURS = LOWQ ? 16 : 20;
 function majInterieurs() { const C = camera.position;
   for (const it of INTERIEURS) { const dx = Math.max(0, Math.abs(C.x - it.x) - it.hx), dz = Math.max(0, Math.abs(C.z - it.z) - it.hz), on = Math.hypot(dx, dz) < (it.on ? PRES_MURS + 2 : PRES_MURS);
-    if (on !== it.on) { it.on = on; for (const o of it.objs) o.visible = on; } } }
+    if (on !== it.on) { it.on = on; for (const o of it.objs) o.visible = on; } }
+  // l'intérieur meublé du cottage (200 objets) : seulement près de ce cottage
+  if (interiorHost) { const on = Math.hypot(C.x - interiorHost.x, C.z - interiorHost.z) < (interior.visible ? 30 : 27); if (interior.visible !== on) interior.visible = on; } }
 
 /* ================= Ce qu'on ne voit pas, on ne le dessine pas =================
    - les petits objets lointains passent sur une autre « couche » que la caméra ne regarde pas
