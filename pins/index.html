@@ -7223,7 +7223,7 @@ function liveFace(g, dt) {
   const a = u.blink < .12 && u.blink > 0 ? .12 : 1; for (const l of u.lids) if (l.scale) l.scale.y += (a - l.scale.y) * Math.min(1, dt * 30);
   if (u.blink <= 0) u.blink = 2.5 + Math.random() * 4;
 }
-return { cadence, animPerson, liveFace };
+return { cadence, animPerson, liveFace, putterPoints, gGr, gTe, ZIP_MAINS };
 })();
 // ---------- cheveux.js ----------
 const M_cheveux = (() => {
@@ -7509,7 +7509,8 @@ const { construireVisage } = M_visage;
 const { traitsVisage, apercuVisage } = M_visage; // ré-export
 const { reperesTete } = M_tete;
 
-const { animPerson, liveFace } = M_anim; // ré-export
+const { animPerson, liveFace, putterPoints, gGr, gTe, ZIP_MAINS } = M_anim; // ré-export
+const { HANCHES_ANCIEN } = M_squelette;
 const { coiffer, putGlasses: lunettesPlein, putSwimGear: bainPlein, geoCheveux, geoAccessoire } = M_cheveux;
 const { habiller, maillot } = M_habits;
 // foule (lite) : pas de maillage en plus (un seul appel de dessin) : pas de lunettes, le bonnet de bain recolore les cheveux
