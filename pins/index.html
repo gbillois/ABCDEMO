@@ -2632,7 +2632,7 @@ scene.add(HALLO.g);
     for (const s of [-1, 1]) { const arm = new THREE.Mesh(new THREE.SphereGeometry(.14, 10, 8), gm); arm.position.set(s * .5, .6, .1); arm.scale.set(1.4, .6, .6); g.add(arm); }
     g.position.set(x, 1.4, z); HALLO.g.add(g); HALLO.ghosts.push({ g, x, z, ph: Math.random() * 7, r: 3 + Math.random() * 3, said: 0 });
   }
-  HALLO.gm = gm;
+  HALLO.gm = gm; HALLO.pgeo = geo; HALLO.ghostGeo = lg;
 }
 const C_FOG_HALLO = new THREE.Color(0x3a1f55), C_MOON_HALLO = new THREE.Color(0xffb36b), C_WHITE = new THREE.Color(0xffffff);
 const _bm = new THREE.Matrix4(), _bq = new THREE.Quaternion(), _bq2 = new THREE.Quaternion(), _bv = new THREE.Vector3(), _bs = new THREE.Vector3(1, 1, 1), _be = new THREE.Euler();
@@ -2664,7 +2664,7 @@ function updateHalloween(dt, time, P, night) {
 // au bouton 🎃 : on allume ou on éteint Halloween
 function setHalloBtn() { const b = $("halloBtn"); if (!b) return; b.style.opacity = HALLO.on ? "1" : ".55"; b.setAttribute("aria-label", HALLO.on ? "Enlever Halloween" : "Mettre Halloween"); }
 setHalloBtn();
-$("halloBtn").onclick = () => { HALLO.on = !HALLO.on; try { localStorage.setItem("pins-halloween", HALLO.on ? "1" : "0"); } catch (e) {} setHalloBtn(); sfx.click();
+$("halloBtn").onclick = () => { HALLO.on = !HALLO.on; try { localStorage.setItem("pins-halloween", HALLO.on ? "1" : "0"); } catch (e) {} setHalloBtn(); sfx.click(); for (const c of HALLO.costumes || []) c.visible = HALLO.on;
   if (HALLO.on) { toast("🎃 Joyeux Halloween ! Cherche les fantômes 👻", 2400); [196, 233, 277, 330].forEach((f, i) => tone(f, .5, "triangle", .1, 0, i * .18)); } else toast("Halloween est rangé jusqu'à l'an prochain !", 2000); };
 
 /* ---------- Végétation ---------- */
@@ -6769,10 +6769,54 @@ const PLACES = [
   { e: -88, pts: [[-88, 32.5]], hide: true }, { e: -76, pts: [[-76, 32.5]], hide: true }, { e: -81.5, pts: [[-81.5, 42.4], [-84, 43.4]], hide: true },
 ];
 const walkers = [];
-for (let i = 0; i < 12; i++) {
+for (let i = 0; i < 16; i++) {
   const p = PLACES[i % PLACES.length], lane = LANE + (i % 2 ? .8 : -.8);
   const w = { g: vacationer(i % 3 === 0), place: { e: p.e, pts: [[p.e, lane]], hide: false }, lane, route: [], st: "idle", t: 1 + rnd() * 6, wt: rnd() * 6, sp: 1.5 + rnd() * .6, x: p.e, z: lane, col: { x: p.e, z: lane, r: .35 } };
   w.g.position.set(w.x, 0, w.z); circles.push(w.col); walkers.push(w);
+}
+
+// Halloween : les promeneurs sont déguisés (sorcière, vampire, citrouille, fantôme, diable, magicien, momie)
+HALLO.costumes = [];
+{
+  const black = mat(0x1b1424, .7), purple = mat(0x5b2a86, .7, { side: THREE.DoubleSide }), capeBlack = mat(0x111111, .6, { side: THREE.DoubleSide }), capeRed = mat(0x9b111e, .6, { side: THREE.DoubleSide }),
+    red = mat(0xd21f2b, .5), blue = mat(0x2b3f9e, .6), gold = mat(0xffc93c, .4), sheet = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .8, side: THREE.DoubleSide }), eye = mat(0x111111, .4);
+  const mummyTex = tex(128, (x, s) => { x.fillStyle = "#e9e1cc"; x.fillRect(0, 0, s, s); for (let i = 0; i < 14; i++) { x.strokeStyle = i % 2 ? "#cfc4a8" : "#f7f1e2"; x.lineWidth = 6; x.beginPath(); x.moveTo(0, i * 10 + rnd() * 6); x.lineTo(s, i * 10 + rnd() * 6 - 4); x.stroke(); } x.fillStyle = "#111"; x.fillRect(38, 58, 52, 12); }, 1);
+  const mummy = mat(0xffffff, .9, { map: mummyTex });
+  const KINDS = ["sorciere", "vampire", "citrouille", "fantome", "diable", "magicien", "momie", "sorciere", "citrouille", "fantome"];
+  const v = new THREE.Vector3();
+  scene.updateMatrixWorld(true);
+  walkers.forEach((w, i) => {
+    const h = w.g.userData.head; if (!h) return;
+    const kind = KINDS[i % KINDS.length], c = new THREE.Group(); h.add(c);
+    const s = h.getWorldScale(v).y || 1, hy = h.getWorldPosition(v).y - w.g.position.y, u = 1 / s; // u : 1 mètre, en unités de la tête
+    c.position.set(0, .2, 0);
+    const cape = (m1, m2, len = hy * .78) => { const geo = new THREE.PlaneGeometry(.55 * u, len * u, 1, 6); geo.translate(0, -len * u / 2, 0); const pa = geo.attributes.position; for (let k = 0; k < pa.count; k++) pa.setX(k, pa.getX(k) * (1 + (-pa.getY(k) / (len * u)) * .6));
+      const a = new THREE.Mesh(geo, m1); a.position.set(0, -.18, -.2 * u); a.rotation.x = .12; c.add(a); if (m2) { const b = new THREE.Mesh(geo, m2); b.position.set(0, -.18, -.19 * u); b.rotation.x = .12; c.add(b); } };
+    if (kind === "sorciere" || kind === "magicien") {
+      const brim = new THREE.Mesh(new THREE.CylinderGeometry(.36, .36, .02, 24), kind === "magicien" ? blue : black); brim.position.y = .12; c.add(brim);
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(.2, .55, 20), kind === "magicien" ? blue : black); cone.position.set(0, .4, -.03); cone.rotation.x = -.18; c.add(cone);
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(.2, .21, .05, 20), kind === "magicien" ? gold : purple); band.position.y = .16; c.add(band);
+      if (kind === "magicien") for (let k = 0; k < 4; k++) { const st = new THREE.Mesh(new THREE.OctahedronGeometry(.035), gold); st.position.set(Math.cos(k * 1.6) * .1, .26 + k * .07, Math.sin(k * 1.6) * .1 + .02); c.add(st); }
+      cape(kind === "magicien" ? blue : purple);
+    } else if (kind === "vampire") {
+      cape(capeBlack, capeRed);
+      const col = new THREE.Mesh(new THREE.ConeGeometry(.3, .32, 16, 1, true, Math.PI * .6, Math.PI * .8), capeRed); col.position.set(0, -.2, -.02); col.rotation.x = Math.PI; c.add(col);
+    } else if (kind === "citrouille") {
+      const pk = new THREE.Mesh(HALLO.pgeo, HALLO.pmat); pk.scale.setScalar(.62); pk.position.set(0, -.02, 0); c.add(pk);
+      const st = new THREE.Mesh(new THREE.CylinderGeometry(.03, .05, .12, 6), mat(0x4e6b1f, .8)); st.position.y = .26; c.add(st);
+    } else if (kind === "fantome") {
+      const L = hy + .25, gh = new THREE.Mesh(HALLO.ghostGeo, sheet); gh.scale.set(.48 * u / .56, L * u / 1.15, .48 * u / .56); gh.position.y = -L * u + .18; c.add(gh);
+      for (const sx of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(.045, 8, 6), eye); e.position.set(sx * .08, .02, .2); e.scale.set(1, 1.4, .5); c.add(e); }
+    } else if (kind === "diable") {
+      for (const sx of [-1, 1]) { const hr = new THREE.Mesh(new THREE.ConeGeometry(.05, .18, 10), red); hr.position.set(sx * .1, .17, .02); hr.rotation.z = -sx * .35; c.add(hr); }
+      cape(capeRed);
+      const tail = new THREE.Mesh(new THREE.CylinderGeometry(.015 * u, .015 * u, hy * .4 * u, 6), red); tail.position.set(0, -hy * .55 * u, -.16 * u); tail.rotation.x = -.9; c.add(tail);
+    } else if (kind === "momie") {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(.205, 20, 14), mummy); m.rotation.y = -Math.PI / 2; c.add(m);
+    }
+    c.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    c.visible = HALLO.on; HALLO.costumes.push(c);
+  });
 }
 function nextPlace(w) {
   let np; do np = PLACES[Math.floor(Math.random() * PLACES.length)]; while (np === w.place);
@@ -7183,7 +7227,7 @@ function loop() {
   trier(dt); if (dejaVu) adapterResolution(dt);
   renderer.render(scene, camera); dejaVu = true;
 }
-window.__pins = { animPerson, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
+window.__pins = { animPerson, walkers, HALLO, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
 await souffle(97, "Les couleurs se mélangent…");
 try { await Promise.race([renderer.compileAsync(scene, camera), new Promise(r => setTimeout(r, 6000))]); } catch (e) {}
