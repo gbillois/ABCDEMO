@@ -36,6 +36,19 @@
   color-scheme:light;
 }
 *{box-sizing:border-box;touch-action:manipulation}
+.menuJeu{max-width:520px}
+.menuJeu h3{margin:14px 0 6px;font-size:17px;color:var(--leaf);text-align:left}
+.menuJeu .grille{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.menuJeu .grille .btn{font-size:17px;padding:9px 8px}
+.themes{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:8px;flex-wrap:wrap;font-weight:800}
+.themes .btn{background:#e8e2d2;color:var(--ink);font-size:16px;padding:7px 12px}
+.themes .btn[aria-pressed=true]{background:var(--sun);box-shadow:0 0 0 3px #fff,0 3px 0 rgba(0,0,0,.25)}
+.vol{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:800;margin:6px 0}
+.vol input{width:52%;accent-color:var(--leaf);height:28px}
+.menuJeu .persos{--fond:#1d3b2a}
+.menuJeu .vign{color:var(--ink)}
+.menuJeu .vign span{text-shadow:none}
+#gpPill{display:grid;place-items:center;cursor:default}
 .gp-focus{outline:4px solid var(--sun)!important;outline-offset:3px;box-shadow:0 0 0 7px rgba(255,255,255,.85)!important}
 /* au moins 16 px dans les champs : sinon l'iPhone zoome quand on tape dedans */
 input,textarea,select{font-size:max(16px,1em)}
@@ -90,7 +103,7 @@ body:not(.accueil-on) #accueil img{animation-play-state:paused}
 .amis{font-family:var(--ui);font-weight:800;font-size:min(5vw,3.2vh,20px);color:#fff;border:2px solid rgba(255,255,255,.9);border-radius:999px;padding:.35em 1.1em;background:rgba(142,68,173,.85);box-shadow:0 4px 0 rgba(0,0,0,.25);cursor:pointer;touch-action:manipulation}
 .amis:active{transform:translateY(3px)}
 /* les personnages gardés : visage en miniature et surnom ; celui qu'on joue est entouré, on le touche pour le changer */
-#persos{display:flex;gap:min(2vw,12px);justify-content:safe center;align-items:flex-end;max-width:100%;overflow-x:auto;padding:6px 4px 2px;scrollbar-width:none}
+#persos,.persos{display:flex;gap:min(2vw,12px);justify-content:safe center;align-items:flex-end;max-width:100%;overflow-x:auto;padding:6px 4px 2px;scrollbar-width:none}
 .vign{--t:min(12vw,8.5vh,64px);flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;padding:0;color:#fff;font-family:var(--ui);font-weight:800;font-size:13px;cursor:pointer;touch-action:manipulation;position:relative}
 .vign img,.vign i{width:var(--t);height:var(--t);border-radius:50%;background:#fde9c0;box-shadow:0 0 0 3px rgba(255,255,255,.75),0 4px 8px rgba(0,0,0,.35);object-fit:cover;display:grid;place-items:center;font-style:normal;font-size:calc(var(--t) * .5);color:var(--leaf);transition:transform .15s}
 .vign span{width:calc(var(--t) + 14px);min-height:2.2em;font-size:12.5px;line-height:1.1;text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-shadow:0 1px 4px rgba(0,0,0,.85)}
@@ -172,12 +185,9 @@ html.app .site{display:none!important}
   <button id="multiPill" class="pill" hidden aria-label="Partie à plusieurs"></button>
 </div>
 <div id="hudR">
-  <button id="halloBtn" class="btn ico" aria-label="Enlever Halloween">🎃</button>
-  <button id="dayBtn" class="btn ico" aria-label="Passer à la nuit">🌙</button>
-  <button id="soundBtn" class="btn ico" aria-label="Couper le son">🔊</button>
-  <button id="pauseBtn" class="btn ico" aria-label="Pause">⏸️</button>
+  <span id="gpPill" class="btn ico" hidden role="img" aria-label="Manette reconnue">🎮</span>
   <button id="mapBtn" class="btn ico" aria-label="Carte">🗺️</button>
-  <button id="multiBtn" class="btn ico" aria-label="Jouer à plusieurs">👫</button>
+  <button id="pauseBtn" class="btn ico" aria-label="Menu et réglages">⚙️</button>
 </div>
 <div id="where" class="pill" hidden></div>
 <div id="stick"><div id="knob"></div></div>
@@ -217,14 +227,30 @@ html.app .site{display:none!important}
 </div>
 
 <div id="pauseView" class="overlay" hidden>
-  <div class="card">
-    <h1>Pause</h1>
-    <p>Tu as trouvé <b id="pauseCount">0</b> canard(s) sur 10.</p>
-    <div class="row">
-      <button id="resumeBtn" class="btn">▶ Reprendre</button>
-      <button id="replayBtn" class="btn" style="background:var(--slide)">🔄 Rejouer</button>
-      <a class="btn site" style="background:#34495e" href="../index.html">🏠 Accueil</a>
+  <div class="card menuJeu">
+    <h1>Menu ⚙️</h1>
+    <p class="small">🦆 <b id="pauseCount">0</b> canard(s) sur 10 · <span id="gpEtat">🎮 Pas de manette</span></p>
+    <div class="row"><button id="resumeBtn" class="btn">▶ Reprendre</button><button id="saveBtn" class="btn" style="background:#2e86de">💾 Sauvegarder</button></div>
+    <h3>Ton personnage</h3>
+    <div id="menuPersos" class="persos" role="group" aria-label="Ton personnage"></div>
+    <h3>Le monde</h3>
+    <div class="grille">
+      <button id="dayBtn" class="btn" style="background:#34495e">🌙 Passer à la nuit</button>
+      <button id="multiBtn" class="btn" style="background:var(--violet)">👫 À plusieurs</button>
     </div>
+    <div class="themes" role="group" aria-label="Thème"><span>Thème :</span><button class="btn" data-theme="normal">🌲 Normal</button><button class="btn" data-theme="halloween">🎃 Halloween</button></div>
+    <button id="halloBtn" hidden aria-hidden="true"></button>
+    <h3>Le son</h3>
+    <label class="vol">🔊 Général <input id="volGen" type="range" min="0" max="100" step="5"></label>
+    <label class="vol">🎵 Musique <input id="volMus" type="range" min="0" max="100" step="5"></label>
+    <label class="vol">🐦 Effets <input id="volFx" type="range" min="0" max="100" step="5"></label>
+    <div class="row"><button id="soundBtn" class="btn" style="background:#34495e">🔇 Couper le son</button></div>
+    <h3>La partie</h3>
+    <div class="grille">
+      <button id="menuAccueil" class="btn" style="background:#ff8a2b">🏁 Écran de départ</button>
+      <button id="replayBtn" class="btn" style="background:var(--slide)">🔄 Nouvelle partie</button>
+    </div>
+    <div class="row"><a class="btn site" style="background:#34495e" href="../index.html">🏠 Les autres jeux</a></div>
   </div>
 </div>
 
@@ -2762,7 +2788,7 @@ function updateHalloween(dt, time, P, night) {
   }
 }
 // au bouton 🎃 : on allume ou on éteint Halloween
-function setHalloBtn() { const b = $("halloBtn"); if (!b) return; b.style.opacity = HALLO.on ? "1" : ".55"; b.setAttribute("aria-label", HALLO.on ? "Enlever Halloween" : "Mettre Halloween"); }
+function setHalloBtn() { const b = $("halloBtn"); if (!b) return; document.querySelectorAll(".themes [data-theme]").forEach(t => t.setAttribute("aria-pressed", (t.dataset.theme === "halloween") === HALLO.on ? "true" : "false")); b.setAttribute("aria-label", HALLO.on ? "Enlever Halloween" : "Mettre Halloween"); }
 setHalloBtn();
 $("halloBtn").onclick = () => { HALLO.on = !HALLO.on; try { localStorage.setItem("pins-halloween", HALLO.on ? "1" : "0"); } catch (e) {} setHalloBtn(); sfx.click(); for (const c of HALLO.costumes || []) c.visible = HALLO.on;
   if (HALLO.on) { toast("🎃 Joyeux Halloween ! Cherche les fantômes 👻", 2400); [196, 233, 277, 330].forEach((f, i) => tone(f, .5, "triangle", .1, 0, i * .18)); } else toast("Halloween est rangé jusqu'à l'an prochain !", 2000); };
@@ -5955,7 +5981,7 @@ const VK = { car: { max: 13, acc: 2.2, turn: 1.9, y: .17, z: .15, x: .42, mode: 
 let seatOffer = null, veh = null, engine = null, mountT = null, petT = null, seatT = null, riv = null, food = null, chestGot = false, musWant = "foret";
 function inp() { let ix = jx, iy = jy; if (!paused) { if (keys["arrowup"] || keys["z"] || keys["w"]) iy = -1; if (keys["arrowdown"] || keys["s"]) iy = 1; if (keys["arrowleft"] || keys["q"] || keys["a"]) ix = -1; if (keys["arrowright"] || keys["d"]) ix = 1; } else ix = iy = 0; return [ix, iy]; }
 function engineOn() { if (!actx || engine) return; try { const o = actx.createOscillator(), o2 = actx.createOscillator(), lp = actx.createBiquadFilter(), g = actx.createGain(); o.type = "sawtooth"; o2.type = "square"; lp.type = "lowpass"; lp.frequency.value = 520; g.gain.value = 0;
-  o.connect(lp); o2.connect(lp); lp.connect(g).connect(master); o.frequency.value = 45; o2.frequency.value = 23; o.start(); o2.start(); engine = { o, o2, g }; } catch (e) {} }
+  o.connect(lp); o2.connect(lp); lp.connect(g).connect(fxBus); o.frequency.value = 45; o2.frequency.value = 23; o.start(); o2.start(); engine = { o, o2, g }; } catch (e) {} }
 function engineOff() { if (!engine) return; const e = engine, t = actx.currentTime; engine = null; e.g.gain.setTargetAtTime(0, t, .05); e.o.stop(t + .3); e.o2.stop(t + .3); }
 // une zone permise pour les véhicules : pas dans le dôme, les cottages, l'eau ni les escaliers
 function vehOk(V, q) {
@@ -6206,21 +6232,24 @@ const seenZ = new Set();
 
 await souffle(85,"");
 /* ================= Sons faits maison ================= */
-let actx = null, master = null, muted = false;
+let actx = null, master = null, fxBus = null, muted = false;
+// volumes réglés dans le menu (0 à 1), gardés sur l'appareil
+const VOL = { gen: 1, mus: 1, fx: 1 }; try { Object.assign(VOL, JSON.parse(localStorage.getItem("pins-volumes") || "{}")); } catch (e) {}
+function appliquerVolumes() { if (!actx) return; const t = actx.currentTime; master.gain.setTargetAtTime(.45 * VOL.gen, t, .05); fxBus.gain.setTargetAtTime(VOL.fx, t, .05); }
 try { muted = localStorage.getItem("pins-muet") === "1"; } catch (e) {}
-function audioOn() { try { if (!actx) { actx = new (window.AudioContext || window.webkitAudioContext)(); master = actx.createGain(); master.gain.value = .45; master.connect(actx.destination); musicInit(); } if (actx.state === "suspended") actx.resume(); } catch (e) {} }
+function audioOn() { try { if (!actx) { actx = new (window.AudioContext || window.webkitAudioContext)(); master = actx.createGain(); master.gain.value = .45 * VOL.gen; master.connect(actx.destination); fxBus = actx.createGain(); fxBus.gain.value = VOL.fx; fxBus.connect(master); musicInit(); } if (actx.state === "suspended") actx.resume(); } catch (e) {} }
 function tone(f, dur, type = "sine", vol = .25, slide = 0, delay = 0) {
   if (!actx || muted) return; const t = actx.currentTime + delay, o = actx.createOscillator(), g = actx.createGain();
   o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, f + slide), t + dur);
   g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .012); g.gain.exponentialRampToValueAtTime(.0008, t + dur);
-  o.connect(g).connect(master); o.start(t); o.stop(t + dur + .05);
+  o.connect(g).connect(fxBus); o.start(t); o.stop(t + dur + .05);
 }
 function whoosh(dur, vol = .2, f0 = 600, f1 = 1800, delay = 0) {
   if (!actx || muted) return; const t = actx.currentTime + delay, n = actx.sampleRate * dur, b = actx.createBuffer(1, n, actx.sampleRate), d = b.getChannelData(0);
   for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
   const src = actx.createBufferSource(); src.buffer = b; const f = actx.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 1.2; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
   const g = actx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + dur * .2); g.gain.exponentialRampToValueAtTime(.0008, t + dur);
-  src.connect(f).connect(g).connect(master); src.start(t);
+  src.connect(f).connect(g).connect(fxBus); src.start(t);
 }
 const sfx = {
   duck() { tone(330, .14, "sawtooth", .1, -140); tone(880, .12, "triangle", .2, 0, .12); tone(1320, .2, "triangle", .2, 0, .22); },
@@ -6289,7 +6318,7 @@ function playFerme(step, t, E) {
 const TRACKS = { foret: { E: .32, play: playForet }, aqua: { E: .25, play: playAqua }, ferme: { E: .23, play: playFerme } };
 function scheduleMusic() {
   if (!actx || !musBus) return;
-  musBus.gain.setTargetAtTime(muted ? 0 : paused ? .22 : .42, actx.currentTime, .4);
+  musBus.gain.setTargetAtTime(muted ? 0 : (paused ? .22 : .42) * VOL.mus, actx.currentTime, .4);
   if (muted) { musT = actx.currentTime + .2; return; }
   if (musT < actx.currentTime - .5) musT = actx.currentTime + .1;
   while (musT < actx.currentTime + .4) {
@@ -6297,14 +6326,14 @@ function scheduleMusic() {
     const tr = TRACKS[musTrack]; tr.play(musStep, musT, tr.E); musT += tr.E; musStep++;
   }
 }
-function setMuteIcon() { $("soundBtn").textContent = muted ? "🔇" : "🔊"; $("soundBtn").setAttribute("aria-label", muted ? "Remettre le son" : "Couper le son"); }
+function setMuteIcon() { $("soundBtn").textContent = muted ? "🔊 Remettre le son" : "🔇 Couper le son"; $("soundBtn").setAttribute("aria-label", muted ? "Remettre le son" : "Couper le son"); }
 setMuteIcon();
 $("soundBtn").onclick = () => { muted = !muted; try { localStorage.setItem("pins-muet", muted ? "1" : "0"); } catch (e) {} setMuteIcon(); audioOn(); sfx.click(); };
 
 /* ================= Interface ================= */
 let toastT = 0; function toast(t, ms = 2200) { $("toast").textContent = t; $("toast").hidden = false; toastT = ms / 1000; }
 let paused = true;
-$("startBtn").onclick = () => { audioOn(); sfx.click(); $("intro").hidden = true; paused = false; toast("Va voir Sophie pour dire bonjour !"); };
+$("startBtn").onclick = () => { audioOn(); sfx.click(); $("intro").hidden = true; paused = false; toast(partieReprise ? (found ? `On reprend ta partie : ${found} canard${found > 1 ? "s" : ""} trouvé${found > 1 ? "s" : ""} ! 🦆` : "On reprend ta partie là où tu étais ! 🦆") : "Va voir Sophie pour dire bonjour !", 2600); partieReprise = false; };
 $("pauseBtn").onclick = () => { if (!$("intro").hidden) return; sfx.click(); paused = true; $("pauseCount").textContent = found; $("pauseView").hidden = false; };
 $("resumeBtn").onclick = () => { sfx.click(); $("pauseView").hidden = true; paused = false; };
 function replay() {
@@ -6312,6 +6341,7 @@ function replay() {
   if (state === "drive") dismount(); if (state === "river") endRiver(); if (state === "lie" || state === "eat") standUp(); player.rotation.set(0, 0, 0);
   state = "walk"; tower = null; riding = null; pedalo.g.position.set(MOOR.x, 0, MOOR.z); pedalo.h = MOOR.h; pedalo.v = 0; player.position.set(SPAWN.x, 0, SPAWN.z); player.rotation.y = 0; yaw = Math.PI; pitch = .38;
   $("pauseView").hidden = true; $("win").hidden = true; $("dialog").hidden = true; talking = null; paused = false; toast("C'est reparti ! 🦆");
+  if (wearing) { wearing = null; setOutfit(player, null); } sauverPartie(false);
 }
 $("replayBtn").onclick = replay; $("winReplay").onclick = replay;
 $("winClose").onclick = () => { $("win").hidden = true; paused = false; };
@@ -6630,8 +6660,9 @@ function vignette(p) {
   } catch (e) { renderer.setScissorTest(false); }
   VIGN.set(cle, url); return url;
 }
-function dessinerPersos() {
-  const L = $("persos"); L.innerHTML = "";
+function dessinerPersos() { for (const L of [$("persos"), $("menuPersos")]) dessinerPersosDans(L); }
+function dessinerPersosDans(L) {
+  L.innerHTML = "";
   PERSOS.forEach((q, i) => { const b = document.createElement("button"), nom = q.nom || (i ? "Perso " + (i + 1) : "Théo"); b.className = "vign" + (i === persoI ? " on" : "");
     const u = vignette(q); if (u) { const im = new Image(); im.alt = ""; im.src = u; b.append(im); } else { const e = document.createElement("i"); e.textContent = q.sexe === "f" ? "👧" : "👦"; b.append(e); }
     const n = document.createElement("span"); n.textContent = nom; b.append(n); b.setAttribute("aria-label", i === persoI ? nom + " : changer ce personnage" : "Jouer avec " + nom);
@@ -7095,7 +7126,7 @@ const moonGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color
 const lampGlowM = new THREE.SpriteMaterial({ map: glowTex, color: 0xffcf7a, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
 for (const [x, z] of lampGlowPos) { const g = new THREE.Sprite(lampGlowM); g.position.set(x, 3.9, z); g.scale.setScalar(3.2); scene.add(g); }
 function cricket() { const f = 4000 + Math.random() * 600; for (let i = 0; i < 3; i++) tone(f, .035, "sine", .025, 0, i * .07); }
-function updateDayButton(night) { const b = $("dayBtn"); if (!b) return; b.textContent = night ? "☀️" : "🌙"; b.setAttribute("aria-label", night ? "Passer au jour" : "Passer à la nuit"); }
+function updateDayButton(night) { const b = $("dayBtn"); if (!b) return; b.textContent = night ? "☀️ Passer au jour" : "🌙 Passer à la nuit"; b.setAttribute("aria-label", night ? "Passer au jour" : "Passer à la nuit"); }
 $("dayBtn").onclick = () => { if (!$("intro").hidden) return; const night = realSun.y < -.05; dayFF = night ? .29 : .9; sfx.click(); toast(night ? "☀️ Le soleil va se lever…" : "🌙 La nuit arrive…", 1800); };
 const SM = THREE.MathUtils.smoothstep;
 function updateDayNight(dt) {
@@ -7239,6 +7270,43 @@ function golf3Tick(dt, time, P) {
   if (G3.from) G3.club.position.set(P.x + rx * .3, .95, P.z + rz * .3);
 }
 
+/* ================= Menu du jeu : sauvegarde, personnage, monde, son ================= */
+// La partie (canards trouvés, endroit, maillot, heure du jour) est gardée sur l'appareil : à chaque canard, toutes les 30 s et en quittant
+let dernierEndroit = null, partieReprise = false;
+function sauverPartie(montrer) {
+  const P = player.position; if (state === "walk" && P.y < .4) dernierEndroit = [r2(P.x), r2(P.z), r2(player.rotation.y)];
+  try { localStorage.setItem("pins-partie", JSON.stringify({ canards: ducks.map(d => d.got ? 1 : 0), endroit: dernierEndroit, maillot: wearing, jour: r2(dayT), t: Date.now() }));
+    if (montrer) toast("💾 Partie sauvegardée !", 1800); } catch (e) { if (montrer) toast("Impossible de sauvegarder sur cet appareil.", 2400); }
+}
+function chargerPartie() {
+  let d = null; try { d = JSON.parse(localStorage.getItem("pins-partie") || "null"); } catch (e) {} if (!d) return;
+  if (Array.isArray(d.canards)) ducks.forEach((k, i) => { if (d.canards[i] && !k.got) { k.got = true; scene.remove(k.g); found++; } });
+  $("ducks").textContent = `🦆 ${found} / 10`;
+  const e = d.endroit; if (Array.isArray(e) && e.length === 3 && e.every(Number.isFinite) && Math.abs(e[0]) < WORLD && Math.abs(e[1]) < WORLD) { dernierEndroit = e; player.position.set(e[0], 0, e[1]); player.rotation.y = e[2]; yaw = e[2] + Math.PI; }
+  if (d.maillot && owned.includes(d.maillot)) { wearing = d.maillot; setOutfit(player, wearing); }
+  if (Number.isFinite(d.jour)) dayT = ((d.jour % 1) + 1) % 1;
+  partieReprise = found > 0 || !!e;
+}
+setInterval(() => { if (!paused && $("intro").hidden) sauverPartie(false); }, 30000);
+addEventListener("pagehide", () => sauverPartie(false)); document.addEventListener("visibilitychange", () => { if (document.hidden) sauverPartie(false); });
+$("saveBtn").onclick = () => { sfx.click(); sauverPartie(true); };
+$("menuAccueil").onclick = () => { sfx.click(); sauverPartie(false); $("pauseView").hidden = true; paused = true; $("intro").hidden = false; dessinerPersos(); };
+// les volumes
+for (const [id, k] of [["volGen", "gen"], ["volMus", "mus"], ["volFx", "fx"]]) { const r = $(id); r.value = Math.round(VOL[k] * 100);
+  r.addEventListener("input", () => { VOL[k] = r.value / 100; try { localStorage.setItem("pins-volumes", JSON.stringify(VOL)); } catch (e) {} audioOn(); appliquerVolumes(); });
+  r.addEventListener("change", () => { if (k !== "mus") sfx.click(); }); }
+// les thèmes (pour l'instant : normal ou Halloween)
+document.querySelectorAll(".themes [data-theme]").forEach(t => t.onclick = () => { if ((t.dataset.theme === "halloween") !== HALLO.on) $("halloBtn").click(); else sfx.click(); });
+setHalloBtn();
+// jour / nuit et jeu à plusieurs : on ferme le menu pour voir le ciel changer ou choisir sa partie
+$("dayBtn").addEventListener("click", () => { $("pauseView").hidden = true; paused = false; });
+$("multiBtn").addEventListener("click", () => { $("pauseView").hidden = true; paused = false; });
+$("pauseBtn").addEventListener("click", () => dessinerPersos());
+// le témoin de la manette (en haut et dans le menu)
+let gpNom = null;
+function temoinManette(g) { const n = g ? g.id.replace(/\s*\(.*?\)\s*/g, " ").trim().slice(0, 40) || "manette" : ""; if (n === gpNom) return; gpNom = n;
+  $("gpPill").hidden = !g; $("gpEtat").textContent = g ? "🎮 Manette reconnue : " + n : "🎮 Pas de manette"; }
+temoinManette(null);
 /* ================= Manette de jeu (Bluetooth) =================
    Manette « standard » (Xbox, PlayStation, Switch…). En jeu : stick gauche ou croix pour marcher, stick droit pour la caméra,
    A pour agir (ou sauter s'il n'y a rien à faire), B sauter, X parler, Y deuxième action, gâchettes pour courir,
@@ -7260,7 +7328,7 @@ function bougerFocus(o, dx, dy) {
   if (best) poserFocus(best);
 }
 function manette() {
-  const g = manetteActive(); if (!g) { if (GP.focus) poserFocus(null); return; }
+  const g = manetteActive(); temoinManette(g); if (!g) { if (GP.focus) poserFocus(null); return; }
   const now = performance.now(), dt = Math.min(.05, (now - (GP.t || now)) / 1000); GP.t = now;
   const B = i => !!g.buttons[i]?.pressed, appui = i => B(i) && !GP.prec[i], ax = i => { const v = g.axes[i] ?? 0; return Math.abs(v) < .2 ? 0 : v; };
   const mx = THREE.MathUtils.clamp(ax(0) + (B(15) ? 1 : 0) - (B(14) ? 1 : 0), -1, 1), my = THREE.MathUtils.clamp(ax(1) + (B(13) ? 1 : 0) - (B(12) ? 1 : 0), -1, 1);
@@ -7533,7 +7601,7 @@ function loop() {
 
   // canards
   ducks.forEach((d, i) => { if (d.got) return; if (d.base > 2) d.g.visible = myCottage.upper.visible; d.g.rotation.y += dt * 1.4; d.g.position.y = d.base + Math.sin(time * 2 + i) * .1;
-    if ((state === "walk" || state === "boat" || state === "drive" || state === "river") && Math.hypot(P.x - d.x, P.z - d.z) < (state === "walk" ? 1.8 : 2.6) && Math.abs(P.y - (d.base - .45)) < 1.6) { d.got = true; scene.remove(d.g); found++; $("ducks").textContent = `🦆 ${found} / 10`; sfx.duck();
+    if ((state === "walk" || state === "boat" || state === "drive" || state === "river") && Math.hypot(P.x - d.x, P.z - d.z) < (state === "walk" ? 1.8 : 2.6) && Math.abs(P.y - (d.base - .45)) < 1.6) { d.got = true; scene.remove(d.g); found++; $("ducks").textContent = `🦆 ${found} / 10`; sauverPartie(false); sfx.duck();
       if (found === 10) { paused = true; sfx.win(); $("win").hidden = false; } else toast(`Canard trouvé ! ${found} / 10`); } });
 
   // arbre à eau
@@ -7587,7 +7655,7 @@ window.__pins = { animPerson, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() {
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
 await souffle(97, "Les couleurs se mélangent…");
 try { await Promise.race([renderer.compileAsync(scene, camera), new Promise(r => setTimeout(r, 6000))]); } catch (e) {}
-dessinerPersos();
+chargerPartie(); dessinerPersos();
 document.body.classList.remove("chargement");
 loop();
 </script>
