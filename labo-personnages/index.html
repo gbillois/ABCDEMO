@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Labo des personnages</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #9fc3dd; overflow: hidden; font: 13px system-ui, sans-serif; }
+  #info { position: fixed; left: 8px; top: 6px; color: #12324a; background: rgba(255,255,255,.75); padding: 3px 8px; border-radius: 6px; white-space: pre; z-index: 2; }
+  #err { position: fixed; left: 8px; bottom: 6px; right: 8px; color: #fff; background: rgba(160,20,20,.9); padding: 6px 10px; border-radius: 6px; white-space: pre-wrap; display: none; z-index: 3; }
+  canvas { display: block; }
+</style>
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="info"></div><div id="err"></div>
+<script type="module" src="./lab.js"></script>
+</body>
+</html>

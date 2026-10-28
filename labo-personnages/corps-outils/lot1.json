@@ -1,0 +1,5 @@
+[["scene=corps&mod=index.tmp&vue=34&tenue=rouge", "out/corps-v1-maillot34.png", 1400, 800],
+ ["scene=corps&mod=index.tmp&vue=profil&tenue=rouge", "out/corps-v1-maillotprofil.png", 1400, 800],
+ ["scene=corps&mod=index.tmp&vue=dos&tenue=rouge", "out/corps-v1-maillotdos.png", 1400, 800],
+ ["scene=corpsMains&mod=index.tmp&types=garcon,homme", "out/corps-v1-mains.png", 1000, 700],
+ ["scene=corpsPieds&mod=index.tmp&types=garcon,homme&tenue=rouge&vue=34", "out/corps-v1-pieds.png", 1000, 700]]

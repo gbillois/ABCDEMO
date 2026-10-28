@@ -1,0 +1,5 @@
+[["scene=corps&vue=face", "out/corps-v11-face.png", 1400, 800],
+ ["scene=corps&vue=34", "out/corps-v11-34.png", 1400, 800],
+ ["scene=corps&vue=profil&tenue=rouge", "out/corps-v11-profil.png", 1400, 800],
+ ["scene=corps&vue=dos&tenue=rouge", "out/corps-v11-dos.png", 1400, 800],
+ ["scene=corpsPieds&types=garcon&tenue=rouge&vue=34&taille=.25", "out/corps-v11-pied34.png", 900, 700]]

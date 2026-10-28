@@ -1,0 +1,4 @@
+[["scene=corpsGros&mod=index.tmp&types=garcon,fille&tenue=rouge&os=poitrine&taille=.5", "out/corps-v5-epaules.png", 1200, 700],
+ ["scene=corpsGros&mod=index.tmp&types=garcon&tenue=rouge&os=poitrine&taille=.55&pose=bras levés&vue=34", "out/corps-v5-braslev.png", 900, 800],
+ ["scene=corpsGros&mod=index.tmp&types=garcon&tenue=rouge&os=bassin&taille=.5&pose=assis&vue=34", "out/corps-v5-assis.png", 900, 800],
+ ["scene=corpsGros&mod=index.tmp&types=garcon&tenue=rouge&os=avantbras_g&taille=.3&pose=coudes pliés&vue=profil", "out/corps-v5-coude.png", 900, 800]]

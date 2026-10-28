@@ -61,8 +61,17 @@ test('apparence du personnage : numéros bornés transmis, puis fixe pendant la 
   assert.deepEqual(b.messages, []);
 });
 
+test('apparence à 17 numéros (traits du visage) transmise ; trait hors bornes refusé', async () => {
+  const a = joueur(0), b = joueur(1), salle = salleAvec(a, b), look = [1, 5, 8, 2, 1, 1, 8, 0, 12, 2, 1, 4, 3, 5, 5, 4, 5];
+  await envoyer(salle, a, { t: 'profil', pseudo: 'Lou', sexe: 'f', tenue: null, look });
+  assert.deepEqual(b.messages.pop(), { t: 'profil', s: 0, pseudo: 'Lou', sexe: 'f', tenue: null, look });
+  const c = joueur(0), d = joueur(1), salle2 = salleAvec(c, d);
+  await envoyer(salle2, c, { t: 'profil', pseudo: 'Lou', sexe: 'f', tenue: null, look: [...look.slice(0, 16), 6] });
+  assert.deepEqual(c.messages, [{ t: 'profil_refuse' }]);
+});
+
 test('profil invalide refusé sans diffusion ni stockage', async () => {
-  for (const modifications of [{ pseudo: 'C0NN4RD' }, { sexe: 'autre' }, { tenue: '<script>' }, { pseudo: 'a'.repeat(17) }, { look: [1, 2, 3] }, { look: [99, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }, { look: 'texte' }]) {
+  for (const modifications of [{ pseudo: 'C0NN4RD' }, { sexe: 'autre' }, { tenue: '<script>' }, { pseudo: 'a'.repeat(17) }, { look: [1, 2, 3] }, { look: [1, 5, 8, 2, 1, 1, 8, 0, 12, 2, 1, 4, 3, 0] }, { look: [99, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }, { look: 'texte' }]) {
     const a = joueur(0), b = joueur(1), salle = salleAvec(a, b);
     await envoyer(salle, a, { t: 'profil', pseudo: 'Panda', sexe: 'g', tenue: null, ...modifications });
     assert.deepEqual(a.messages, [{ t: 'profil_refuse' }]);
@@ -103,19 +112,10 @@ test('les positions et phrases continuent de fonctionner pour la place 9', async
   assert.deepEqual(b.messages.pop(), { t: 'part', s: 9 });
 });
 
-test('maillot dédié fille/garçon, habits et combinaison de surf bien séparés', () => {
-  const fonction = jeu.slice(jeu.indexOf('function setOutfit('), jeu.indexOf('\n}', jeu.indexOf('function setOutfit(')) + 2);
-  for (const female of [true, false]) {
-    const material = () => ({ color: { setHex() {}, set() {} } });
-    const top = { visible: true }, sleeve = { visible: true }, shoe = { visible: true }, swim = { visible: false }, pants = { visible: true };
-    const u = { swim: [swim], suit: material(), pantsParts: [pants], female, top: [top], sleeves: [sleeve], shirtParts: [top, sleeve], shoeParts: [shoe], shirt: material(), pants: material(), clothes: { shirt: 1, pants: 2 } };
-    const contexte = vm.createContext({ SUITS: [{ id: 'rouge' }, { id: 'surf', full: true, a: '#000000' }], suitTex: () => 'texture' });
-    const setOutfit = vm.runInContext('(' + fonction + ')', contexte);
-    setOutfit({ userData: u }, 'rouge');
-    assert.equal(swim.visible, true); assert.equal(top.visible, false); assert.equal(pants.visible, false); assert.equal(sleeve.visible, false); assert.equal(shoe.visible, false); assert.equal(u.suit.map, 'texture');
-    setOutfit({ userData: u }, null);
-    assert.equal(swim.visible, false); assert.equal(top.visible, true); assert.equal(pants.visible, true); assert.equal(sleeve.visible, true); assert.equal(shoe.visible, true);
-    setOutfit({ userData: u }, 'surf');
-    assert.equal(swim.visible, false); assert.equal(top.visible, true); assert.equal(pants.visible, true); assert.equal(shoe.visible, false);
-  }
+test('maillots identiques dans le jeu et le relais ; maillot fille/garçon et combinaison gérés par le jeu', () => {
+  const ids = [...jeu.match(/const SUITS = \[([\s\S]*?)\n\];/)[1].matchAll(/id: "(\w+)"/g)].map(m => m[1]);
+  const maillots = vm.runInNewContext(source.match(/const MAILLOTS = (\[[^\]]*\]);/)[1]);
+  assert.deepEqual(ids, [...maillots]);
+  const fonction = jeu.slice(jeu.indexOf('function setOutfitBrut('), jeu.indexOf('\n }', jeu.indexOf('function setOutfitBrut(')));
+  for (const mot of ['su.full', 'u.female', 'suitTex(su)', 'u.tongs']) assert.ok(fonction.includes(mot), mot);
 });

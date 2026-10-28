@@ -51,7 +51,7 @@ Accord du propriétaire pour ce seul jeu : `pins/index.html` peut se connecter
   du relais (64) doit rester supérieur ou égal au nombre total de phrases.
 - Seule exception au texte libre : le champ `pseudo` du message `profil`, court et filtré.
   Le sexe, la tenue et l'apparence (`look` : numéros dans les listes fermées du créateur de
-  personnage, bornes `LOOK_MAX` identiques dans le jeu et le relais) utilisent des listes fermées.
+  personnage, traits du visage compris ; bornes `LOOK_MAX` identiques dans le jeu et le relais) utilisent des listes fermées.
   Les personnages créés restent dans `localStorage` (6 au plus) ; le code de personnage
   (surnom + choix) se recopie à la main d'un appareil à l'autre, sans réseau. Le surnom et le sexe restent fixes
   pendant la connexion ; le maillot peut changer aux vestiaires et suit le personnage.

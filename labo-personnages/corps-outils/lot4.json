@@ -1,0 +1,3 @@
+[["scene=corpsPoses&mod=index.tmp&types=garcon&tenue=rouge", "out/corps-v5-poses-g.png", 1600, 700],
+ ["scene=corpsPoses&mod=index.tmp&types=femme&tenue=rouge&vue=34", "out/corps-v5-poses-f34.png", 1600, 700],
+ ["scene=corpsPieds&mod=index.tmp&types=garcon&tenue=rouge&vue=dos&taille=.25", "out/corps-v5b-pied-dos.png", 900, 700]]
