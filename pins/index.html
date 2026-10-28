@@ -67,7 +67,7 @@ body.crea-on #stick,body.crea-on #moveBtns,body.crea-on #actions,body.crea-on #h
 .prizes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}.prizes .btn{font-size:17px;line-height:1.15}.prizes small{font-size:13px;opacity:.9}
 #ticketsPill{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:#ff4fd8;color:#fff}
 .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px}
-#mapc{width:min(84vw,420px);height:auto;aspect-ratio:1;max-width:100%;border-radius:18px;display:block;margin:6px auto;background:#6bb553}
+#mapc{width:min(88vw,74vh,640px);height:auto;aspect-ratio:1;max-width:100%;border-radius:18px;display:block;margin:6px auto;background:#6bb553}
 #money{background:#fff3c4}
 .suits{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px;text-align:center}
 .suit{background:#fff;border-radius:16px;padding:8px;box-shadow:0 3px 0 rgba(0,0,0,.12);display:grid;gap:4px;justify-items:center}
@@ -160,7 +160,7 @@ html.app .site{display:none!important}
 <div id="mapView" class="overlay" hidden>
   <div class="card">
     <h1>Carte du domaine</h1>
-    <canvas id="mapc" width="420" height="420"></canvas>
+    <canvas id="mapc" width="640" height="640"></canvas>
     <p class="small">🔺 Toi · 🟡 canards à trouver · 🟣 personnages · ronds de couleur : tes amis</p>
     <div class="row"><button id="mapClose" class="btn">Fermer</button></div>
   </div>
@@ -2051,6 +2051,44 @@ const ducks = DUCK_SPOTS.map(([x, z]) => { const g = duckMesh(); g.position.set(
   const inPool = x > POOL.x1 && x < POOL.x2 && z > POOL.z1 && z < POOL.z2; const onLake = Math.hypot(x - LAKE.x, z - LAKE.z) < LAKE.r; return { g, x, z, got: false, base: inPool ? -.15 : onLake ? .15 : (x === -14.5 && z === 43.5 ? UP + .5 : .45) }; });
 let found = 0;
 
+// deuxième entrée de l'Aquaparc, côté lac : une porte automatique dans le mur de verre, et un chemin jusqu'à la plage
+const LDOOR = { a: -.15 }; LDOOR.ux = Math.cos(LDOOR.a); LDOOR.uz = Math.sin(LDOOR.a); LDOOR.tx = -LDOOR.uz; LDOOR.tz = LDOOR.ux;
+LDOOR.x = DOME.x + LDOOR.ux * DOME.r; LDOOR.z = DOME.z + LDOOR.uz * DOME.r;
+let lakeDoorOpen = 0;
+const lakeDoorway = p => { const rx = p.x - DOME.x, rz = p.z - DOME.z; return rx * LDOOR.ux + rz * LDOOR.uz > 0 && Math.abs(rx * LDOOR.tx + rz * LDOOR.tz) < 1.5; };
+{
+  const g = new THREE.Group(); g.position.set(LDOOR.x, 0, LDOOR.z); g.rotation.y = Math.atan2(LDOOR.tx, LDOOR.tz) - Math.PI / 2; scene.add(g);
+  for (const s of [-1, 1]) { const p = rbox(.35, 3.1, .5, mat(0xffffff, .4), .08); p.position.set(s * 1.95, 1.55, 0); g.add(p); }
+  const lin = rbox(4.3, .4, .6, mat(0x1fa5d6, .4), .1); lin.position.set(0, 3.05, 0); g.add(lin);
+  LDOOR.panels = [-1, 1].map(s => { const d = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.8, .08), glassMat.clone()); d.material.opacity = .45; d.material.color.set(0x9fe3ff); d.position.set(s * .8, 1.4, 0); g.add(d); return { m: d, s }; });
+  shadowAll(g);
+  const out = label("🌊 Le lac", "#1fa5d6", "#ffffff", 1.1); out.position.set(LDOOR.x + LDOOR.ux * 1.2, 4.1, LDOOR.z + LDOOR.uz * 1.2); scene.add(out);
+  const inn = label("Sortie : le lac 🌊", "#1fa5d6", "#ffffff", 1); inn.position.set(LDOOR.x - LDOOR.ux * 1.2, 3.9, LDOOR.z - LDOOR.uz * 1.2); scene.add(inn);
+  const sx = LAKE.x - LDOOR.x, sz = LAKE.z - LDOOR.z, sd = Math.hypot(sx, sz), k = (sd - LAKE.r - 1.2) / sd;
+  path([LDOOR.x + LDOOR.ux * .6, LDOOR.z + LDOOR.uz * .6], [LDOOR.x + sx * k, LDOOR.z + sz * k], 2.6);
+}
+/* ---------- Le domaine agrandi : le grand tour de la forêt, avec des coins pique-nique et des panneaux ---------- */
+const WORLD = 190;
+{
+  const R = 150, W = 2.8;
+  path([-R, -R], [R, -R], W); path([R, -R], [R, R], W); path([R, R], [-R, R], W); path([-R, R], [-R, -R], W);
+  path([-91, 30], [-R, 30], W); path([GTW.x + 1.4, 30], [R, 30], W); path([0, 56], [0, R], W); path([-38, -62], [-38, -R], W);
+  const wood = mat(0x9c6b3c, .8), postM = mat(0x6b4a2f, .9);
+  const sign = (x, z, txt, col) => { const p = new THREE.Mesh(new THREE.CylinderGeometry(.08, .1, 2.6, 8), postM); p.position.set(x, 1.3, z); scene.add(shadowAll(p)); circles.push({ x, z, r: .15 }); const l = label(txt, col, "#ffffff", .9); l.position.set(x, 2.9, z); scene.add(l); };
+  sign(-R + 3, 33, "🏠 Domaine →", "#6b4a2f"); sign(R - 3, 33, "← Domaine 🏠", "#6b4a2f"); sign(3, R - 3, "↓ Domaine 🏠", "#6b4a2f"); sign(-35, -R + 3, "↑ Domaine 🏠", "#6b4a2f");
+  sign(-R + 3, -R + 3, "🌲 Grand tour", "#27ae60"); sign(R - 3, -R + 3, "🌲 Grand tour", "#27ae60"); sign(R - 3, R - 3, "🌲 Grand tour", "#27ae60"); sign(-R + 3, R - 3, "🌲 Grand tour", "#27ae60");
+  const picnic = (x, z, ry) => { const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = ry; scene.add(g);
+    const top = rbox(2.2, .1, 1, wood, .03); top.position.y = .8; g.add(top); for (const sz of [-.85, .85]) { const b = rbox(2.2, .08, .35, wood, .03); b.position.set(0, .48, sz); g.add(b); }
+    for (const sx of [-.9, .9]) { const l = rbox(.1, .8, 1.9, wood, .02); l.position.set(sx, .4, 0); g.add(l); } shadowAll(g); boxes.push({ x1: x - 1.3, x2: x + 1.3, z1: z - 1.3, z2: z + 1.3 }); };
+  picnic(-R + 5, -40, 0); picnic(R - 5, -60, Math.PI / 2); picnic(60, R - 5, 0); picnic(-90, R - 5, 0); picnic(-40, -R + 5, 0); picnic(100, -R + 5, 0);
+  // un étang dans la forêt, avec des nénuphars
+  const pond = new THREE.Mesh(new THREE.CircleGeometry(9, 48), new THREE.MeshStandardMaterial({ color: 0x2a6f8f, roughness: .05, metalness: .1 })); pond.rotation.x = -Math.PI / 2; pond.position.set(120, .05, 95); scene.add(pond);
+  const bank = new THREE.Mesh(new THREE.RingGeometry(8.6, 10.4, 48), mat(0xffffff, .95, { map: sandTex, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 })); bank.rotation.x = -Math.PI / 2; bank.position.set(120, .03, 95); scene.add(bank);
+  for (let i = 0; i < 8; i++) { const a = rnd() * 6.28, r = 2 + rnd() * 5.5; const pad = new THREE.Mesh(new THREE.CircleGeometry(.6, 16, .3, 5.9), mat(0x3e9a4c, .7)); pad.rotation.x = -Math.PI / 2; pad.position.set(120 + Math.cos(a) * r, .07, 95 + Math.sin(a) * r); scene.add(pad); }
+  circles.push({ x: 120, z: 95, r: 9 }); ZONES.push({ x1: 109, x2: 131, z1: 84, z2: 106 });
+  const pl = label("L'étang 🐸", "#2a6f8f", "#ffffff", 1); pl.position.set(120, 3, 95); scene.add(pl);
+}
+
 /* ---------- Végétation ---------- */
 function nearPath(x, z, pad) { return paths.some(([a, b, w]) => { const dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz; let t = ((x - a[0]) * dx + (z - a[1]) * dz) / L2; t = Math.max(0, Math.min(1, t)); return Math.hypot(x - (a[0] + t * dx), z - (a[1] + t * dz)) < w / 2 + pad; }); }
 function blocked(x, z, pad) {
@@ -2067,11 +2105,11 @@ function blocked(x, z, pad) {
   if (nearPath(x, z, pad)) return true;
   if (DUCK_SPOTS.some(([dx, dz]) => Math.hypot(x - dx, z - dz) < 2.5 + pad)) return true;
   if (lampPos.some(([lx, lz]) => Math.hypot(x - lx, z - lz) < 1 + pad)) return true;
-  return Math.abs(x) > 96 || Math.abs(z) > 96;
+  return Math.abs(x) > WORLD + 1 || Math.abs(z) > WORLD + 1;
 }
 const pines = [], leafy = [];
-for (let i = 0; i < 1400 && pines.length + leafy.length < 380; i++) {
-  const x = rnd() * 190 - 95, z = rnd() * 190 - 95; if (blocked(x, z, 2)) continue;
+for (let i = 0; i < 6000 && pines.length + leafy.length < (LOWQ ? 800 : 1150); i++) {
+  const x = (rnd() * 2 - 1) * WORLD, z = (rnd() * 2 - 1) * WORLD; if (blocked(x, z, 2)) continue;
   (rnd() < .68 ? pines : leafy).push({ x, z, s: .8 + rnd() * .6, r: rnd() * 6.28, c: rnd() });
 }
 function instanced(geo, material, list, y, colorFn) {
@@ -2141,9 +2179,9 @@ const trunkGeo = new THREE.CylinderGeometry(.18, .36, 4.6, 12); trunkGeo.transla
 pines.concat(leafy).forEach(t => circles.push({ x: t.x, z: t.z, r: .4 * t.s }));
 // buissons, fleurs, herbes, rochers
 const bushes = [], flowers = [], tufts = [], rocks = [];
-for (let i = 0; i < 2500 && bushes.length < 220; i++) { const x = rnd() * 190 - 95, z = rnd() * 190 - 95; if (!blocked(x, z, 1)) bushes.push({ x, z, s: .6 + rnd() * .9, r: rnd() * 6, c: rnd() }); }
+for (let i = 0; i < 8000 && bushes.length < 600; i++) { const x = (rnd() * 2 - 1) * WORLD, z = (rnd() * 2 - 1) * WORLD; if (!blocked(x, z, 1)) bushes.push({ x, z, s: .6 + rnd() * .9, r: rnd() * 6, c: rnd() }); }
 { const bd = depthOf(leafTex2, .45); for (const im of instancedParCase(clusterGeo(30, .9).translate(0, .55, 0), leafMat2, bushes, (t, c) => c.setRGB(.55 + t.c * .2, .65 + t.c * .2, .45 + t.c * .15), 32, LOWQ ? 70 : 100)) im.customDepthMaterial = bd; }
-for (let i = 0; i < 6000 && flowers.length < 900; i++) { const x = rnd() * 190 - 95, z = rnd() * 190 - 95; if (!blocked(x, z, .3)) flowers.push({ x, z, s: .7 + rnd() * .6, r: 0, c: rnd() }); }
+for (let i = 0; i < 16000 && flowers.length < 2200; i++) { const x = (rnd() * 2 - 1) * WORLD, z = (rnd() * 2 - 1) * WORLD; if (!blocked(x, z, .3)) flowers.push({ x, z, s: .7 + rnd() * .6, r: 0, c: rnd() }); }
 const fCols = [0xffffff, 0xffe066, 0xff8fb1, 0xb39ddb, 0xff6b6b];
 { const parts = []; for (let k = 0; k < 6; k++) { const pg = new THREE.SphereGeometry(.06, 6, 3); pg.scale(1.3, .22, .55); pg.translate(.07, 0, 0); pg.rotateY(k / 6 * Math.PI * 2); pg.translate(0, .24, 0); parts.push(pg); }
   const ctr = new THREE.SphereGeometry(.035, 6, 4); ctr.scale(1, .6, 1); ctr.translate(0, .25, 0); parts.push(ctr); const stem = new THREE.CylinderGeometry(.006, .008, .24, 3); stem.translate(0, .12, 0); parts.push(stem);
@@ -2163,7 +2201,7 @@ grassM.onBeforeCompile = sh => { sh.uniforms.uTime = uTime; sh.vertexShader = "u
   #endif`); };
 for (const tm of instancedParCase(tuftGeo, grassM, tufts, (t, c) => c.setRGB(.75 + t.c * .4, .85 + t.c * .25, .7 + t.c * .25), 20, LOWQ ? 36 : 55)) tm.castShadow = false;
 for (let i = 0; i < 26; i++) { const a = i / 26 * 6.28 + rnd() * .2, r = LAKE.r + 1.4 + rnd() * 1.2; rocks.push({ x: LAKE.x + Math.cos(a) * r, z: LAKE.z + Math.sin(a) * r, s: .4 + rnd() * .5, r: rnd() * 6, c: rnd() }); }
-for (let i = 0; i < 400 && rocks.length < 60; i++) { const x = rnd() * 190 - 95, z = rnd() * 190 - 95; if (!blocked(x, z, 1)) rocks.push({ x, z, s: .5 + rnd() * .9, r: rnd() * 6, c: rnd() }); }
+for (let i = 0; i < 1500 && rocks.length < 170; i++) { const x = (rnd() * 2 - 1) * WORLD, z = (rnd() * 2 - 1) * WORLD; if (!blocked(x, z, 1)) rocks.push({ x, z, s: .5 + rnd() * .9, r: rnd() * 6, c: rnd() }); }
 const rockGeo = new THREE.DodecahedronGeometry(1, 1); { const p = rockGeo.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i); const f = 1 + .25 * Math.sin(x * 4 + y * 3) * Math.cos(z * 3.5 + x); p.setXYZ(i, x * f, y * f * .6, z * f); } rockGeo.computeVertexNormals(); rockGeo.translate(0, .15, 0); }
 instanced(rockGeo, mat(0xffffff, .95), rocks, 0, (t, c) => c.setHSL(.08, .05, .45 + t.c * .15));
 rocks.forEach(r => { if (r.s > .5) circles.push({ x: r.x, z: r.z, r: .8 * r.s }); }); bushes.forEach(b => circles.push({ x: b.x, z: b.z, r: .55 * b.s }));
@@ -3457,7 +3495,7 @@ const mc = $("mapc"), mx = mc.getContext("2d"); let mapOpen = false;
 $("mapBtn").onclick = () => { sfx.click(); mapOpen = true; $("mapView").hidden = false; };
 $("mapClose").onclick = () => { mapOpen = false; $("mapView").hidden = true; };
 function drawMap() {
-  const S = 420, k = S / 200, X = x => (x + 100) * k, Z = z => (z + 100) * k;
+  const S = 640, k = S / (WORLD * 2 + 10), X = x => (x + WORLD + 5) * k, Z = z => (z + WORLD + 5) * k;
   mx.fillStyle = "#6bb553"; mx.fillRect(0, 0, S, S);
   mx.fillStyle = "#3f8f52"; pines.concat(leafy).forEach(t => { mx.beginPath(); mx.arc(X(t.x), Z(t.z), 2.2, 0, 7); mx.fill(); });
   mx.strokeStyle = "#e3d2a6"; mx.lineCap = "round"; paths.forEach(([a, b, w]) => { mx.lineWidth = w * k; mx.beginPath(); mx.moveTo(X(a[0]), Z(a[1])); mx.lineTo(X(b[0]), Z(b[1])); mx.stroke(); });
@@ -3892,8 +3930,8 @@ function resolve(p, prev, who) {
   }
   // paroi du dôme : on ne passe que par la porte
   const d = Math.hypot(p.x - DOME.x, p.z - DOME.z), pd = Math.hypot(prev.x - DOME.x, prev.z - DOME.z);
-  const doorway = Math.abs(p.x - DOME.x) < 2.6 && p.z > DOME.z && domeDoorOpen > .6;
-  const doorwayInside = Math.abs(p.x - DOME.x) < 2.6 && p.z > DOME.z;
+  const doorway = Math.abs(p.x - DOME.x) < 2.6 && p.z > DOME.z && domeDoorOpen > .6 || lakeDoorway(p) && lakeDoorOpen > .6;
+  const doorwayInside = Math.abs(p.x - DOME.x) < 2.6 && p.z > DOME.z || lakeDoorway(p);
   if (!(doorway || (doorwayInside && pd < DOME.r))) {
     if (pd < DOME.r && d > DOME.r - .5) { p.x = DOME.x + (p.x - DOME.x) / d * (DOME.r - .5); p.z = DOME.z + (p.z - DOME.z) / d * (DOME.r - .5); }
     else if (pd >= DOME.r && d < DOME.r + .5) { p.x = DOME.x + (p.x - DOME.x) / d * (DOME.r + .5); p.z = DOME.z + (p.z - DOME.z) / d * (DOME.r + .5); }
@@ -3908,7 +3946,7 @@ function resolve(p, prev, who) {
   // la barrière du manège : on entre par la porte
   if (Math.abs(p.x - ARENA.x) < ARENA.rx + 2 && Math.abs(p.z - ARENA.z) < ARENA.rz + 2) { const ins = (x, z) => Math.hypot((x - ARENA.x) / ARENA.rx, (z - ARENA.z) / ARENA.rz) < 1, gate = (x, z) => Math.abs(Math.atan2((z - ARENA.z) / ARENA.rz, (x - ARENA.x) / ARENA.rx)) < .12, a0 = ins(prev.x, prev.z);
     if (ins(p.x, p.z) !== a0 && !gate(p.x, p.z) && !gate(prev.x, prev.z)) { if (ins(p.x, prev.z) === a0) p.z = prev.z; else if (ins(prev.x, p.z) === a0) p.x = prev.x; else { p.x = prev.x; p.z = prev.z; } } }
-  p.x = Math.max(-95, Math.min(95, p.x)); p.z = Math.max(-95, Math.min(95, p.z));
+  p.x = Math.max(-WORLD, Math.min(WORLD, p.x)); p.z = Math.max(-WORLD, Math.min(WORLD, p.z));
 }
 // hauteur du sol sous les pieds : ponton, terrasse, escalier, étage
 function floorY(p) {
@@ -4212,6 +4250,8 @@ function loop() {
   // toits qu'on enlève quand on entre (grange, cabanes)
   const inBarn = inRect(BARN, P.x, P.z), inTreeHut = P.y > 3 && inRect(TREEHUT, P.x, P.z); let inCab = false;
   farmRoofs[0].roof.visible = !inBarn; treeRoof.visible = !inTreeHut; for (const h of cabRoofs) { const i = Math.abs(P.x - h.x) < 2 && Math.abs(P.z - h.z) < 2; h.roof.visible = !i; if (i) inCab = true; }
+  const lWant = Math.hypot(P.x - LDOOR.x, P.z - LDOOR.z) < 4.5 ? 1 : 0; if (lWant && lakeDoorOpen < .05) sfx.door();
+  lakeDoorOpen += (lWant - lakeDoorOpen) * Math.min(1, dt * 5); LDOOR.panels.forEach(d => d.m.position.x = d.s * (.8 + lakeDoorOpen * 1.5));
   const dWant = Math.hypot(P.x, P.z - 7.5) < 5 ? 1 : 0; if (dWant && domeDoorOpen < .05) sfx.door();
   domeDoorOpen += (dWant - domeDoorOpen) * Math.min(1, dt * 5); domeDoors.forEach(d => d.m.position.x = d.s * (1.4 + domeDoorOpen * 2.7)); domeDoorBox.off = domeDoorOpen > .6;
   const inAq = updateAquarium(dt, time, P), inBalo = updateBaloba(dt, time, P), inGT = updateGameTown(dt, time, P), nightK = updateDayNight(dt), inBF = updateBurger(dt, time, P), inShop = updateShops(dt, P), inLock = updateLocker(dt, P);
