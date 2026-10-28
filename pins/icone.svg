@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-<!-- Icône du Domaine des Pins, dessinée en code : la bulle de l'Aquaparc et son toboggan, les grands pins, le lac et un canard en plastique. -->
+<!-- Icône du Domaine des Pins, dessinée en code : la bulle de l'Aquaparc et son toboggan, les grands pins et le lac. -->
 <defs>
   <linearGradient id="ciel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b8fe0"/><stop offset=".55" stop-color="#7cc8f2"/><stop offset="1" stop-color="#d9f2ff"/></linearGradient>
   <radialGradient id="soleil" cx=".8" cy=".16" r=".34"><stop offset="0" stop-color="#fffbe0"/><stop offset=".18" stop-color="#ffe98a"/><stop offset=".45" stop-color="#ffe28a" stop-opacity=".35"/><stop offset="1" stop-color="#ffe28a" stop-opacity="0"/></radialGradient>
@@ -61,17 +61,5 @@
   <rect x="890" y="860" width="36" height="120" fill="#6b4a2f"/>
   <path d="M908 400 L838 545 L876 541 L816 680 L866 672 L798 840 L866 832 L790 915 L1030 915 L960 832 L1022 840 L956 672 L1004 680 L944 541 L980 545 Z" fill="url(#pin)"/>
   <path d="M908 400 L944 541 L980 545 L962 545 Z" fill="#4aa36a" opacity=".55"/>
-</g>
-<!-- le canard en plastique, ta mission -->
-<g transform="translate(600 815)">
-  <ellipse cx="0" cy="92" rx="150" ry="22" fill="#0b4f86" opacity=".35"/>
-  <path d="M-130 30 C-140 -30 -80 -60 -10 -50 C40 -44 70 -20 120 -40 C150 -50 160 -20 140 10 C120 60 70 92 -20 92 C-90 92 -125 70 -130 30 Z" fill="url(#canard)"/>
-  <path d="M-150 -10 C-170 -30 -170 -60 -140 -70 C-140 -45 -128 -25 -112 -10 Z" fill="#f5b800"/>
-  <circle cx="40" cy="-110" r="78" fill="url(#canard)"/>
-  <path d="M100 -100 C150 -112 175 -95 170 -80 C150 -70 120 -72 98 -78 Z" fill="#ff8a1a"/>
-  <path d="M98 -80 C130 -72 160 -72 168 -80 C160 -62 120 -58 100 -66 Z" fill="#e8650a"/>
-  <circle cx="58" cy="-128" r="13" fill="#1b1b1b"/><circle cx="62" cy="-133" r="4.5" fill="#ffffff"/>
-  <path d="M-60 0 C-20 -18 30 -10 50 20" stroke="#f0a800" stroke-width="10" fill="none" stroke-linecap="round"/>
-  <ellipse cx="10" cy="-150" rx="26" ry="12" fill="#ffffff" opacity=".55" transform="rotate(-20 10 -150)"/>
 </g>
 </svg>
