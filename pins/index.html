@@ -135,7 +135,7 @@ html.app .site{display:none!important}
 <div id="intro" class="overlay">
   <div class="card">
     <h1>Le Domaine des Pins</h1>
-    <p>Des vacances dans la forêt : ton cottage et sa terrasse, l'Aquaparc et ses toboggans, l'aquarium, le Multi Parcs (Baloba et Game Town), Burger Fast, l'accueil, la boulangerie, le Market Speed, la rivière sauvage, la ferme, le poney club, les karts, les vélos, la maison dans les arbres, le lac et son pédalo… et un chat roux qui vient te voir !</p>
+    <p>Des vacances dans la forêt : ton cottage et sa terrasse, l'Aquaparc et ses toboggans, l'aquarium, le Multi Parcs (Baloba et Game Town), Burger Fast, l'acrobranche, l'accueil, la boulangerie, le Market Speed, la rivière sauvage, la ferme, le poney club, les karts, les vélos, la maison dans les arbres, le lac et son pédalo… et un chat roux qui vient te voir !</p>
     <p><b>Mission :</b> 10 canards en plastique se sont échappés. Retrouve-les tous ! 🦆</p>
     <p class="small">Joystick à gauche pour marcher. Glisse ton doigt sur l'écran pour tourner la caméra. Sur ordinateur : flèches ou ZQSD, E pour agir (ouvrir une porte, nager, se changer…), T pour parler, J pour sauter, Maj pour courir. Tu as 4000 € pour la boutique de maillots de bain.</p>
     <div class="row"><button id="persoBtn" class="btn" style="background:var(--violet)">🎨 Mon personnage : <b id="persoNom">Théo</b></button></div>
@@ -230,6 +230,21 @@ html.app .site{display:none!important}
       <li>🤕 <b>Dans la vraie vie</b>, si quelqu'un se fait mal, préviens tout de suite un adulte. En cas d'urgence, les grands appellent le 112.</li>
     </ul>
     <div class="row"><button id="progClose" class="btn" style="background:#2e86de">J'ai compris !</button></div>
+  </div>
+</div>
+<div id="acroView" class="overlay" hidden>
+  <div class="card prog">
+    <h1 style="color:#27ae60">L'acrobranche 🧗</h1>
+    <p>Bonjour ! Moi c'est Hugo, le moniteur. Avant de monter dans les arbres, écoute bien :</p>
+    <ul>
+      <li>🦺 Tu mets ton <b>baudrier</b> autour de la taille et des jambes, et ton <b>casque</b>.</li>
+      <li>🔗 Là-haut, tu restes toujours accroché à la <b>ligne de vie</b> avec tes deux mousquetons.</li>
+      <li>🪜 Tu montes par l'échelle, puis tu passes les ponts : planches, filet, poutre, pont de singe…</li>
+      <li>🚶 On ne court pas et on ne pousse personne. Un seul enfant à la fois sur un pont.</li>
+      <li>🪂 À la fin, la <b>tyrolienne</b> te ramène en bas en glissant. Wiiii !</li>
+      <li>🙋 Si tu as peur ou si tu es bloqué, tu appelles le moniteur : il vient t'aider.</li>
+    </ul>
+    <div class="row"><button id="acroGo" class="btn" style="background:#27ae60">🦺 Je mets mon baudrier et mon casque !</button><button id="acroClose" class="btn" style="background:#34495e">Plus tard</button></div>
   </div>
 </div>
 <div id="lockerView" class="overlay" hidden>
@@ -2089,6 +2104,89 @@ const WORLD = 190;
   const pl = label("L'étang 🐸", "#2a6f8f", "#ffffff", 1); pl.position.set(120, 3, 95); scene.add(pl);
 }
 
+/* ---------- L'acrobranche, dans la forêt au nord-ouest : un accueil, le baudrier, des ponts dans les arbres et une tyrolienne ---------- */
+const ACRO = { x1: -147, x2: -106, z1: 97, z2: 140, desk: [-139, 104.6], gate: [-134.2, 106.6] };
+ZONES.push({ x1: ACRO.x1, x2: ACRO.x2, z1: ACRO.z1, z2: ACRO.z2 });
+path([-150, 100.8], [-137.3, 100.8], 2.2); path([-137.3, 100.8], [-137.3, 106.5], 2.2); path([-137.3, 106.5], [-134.2, 106.2], 2.2);
+let harnessOn = false, acroToastT = -9;
+// plateformes autour des troncs : [x, z, hauteur]
+const ACRO_P = [[-130, 112, 4], [-123, 116.5, 4.6], [-116.5, 112.5, 5.2], [-112.5, 120, 5.6], [-119, 126, 6], [-127.5, 127.5, 6.3]];
+const ACRO_R = 1.8;
+const segSurf = (ax, az, ay, bx, bz, by, w, sag = 0) => (x, z) => { const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz, t = ((x - ax) * dx + (z - az) * dz) / L2; if (t < 0 || t > 1) return null;
+  const px = ax + dx * t, pz = az + dz * t; if ((x - px) ** 2 + (z - pz) ** 2 > (w / 2) ** 2) return null; return ay + (by - ay) * t - sag * Math.sin(Math.PI * t); };
+const ACRO_GATE = { x1: -135.2, x2: -133.2, z1: 106.4, z2: 106.8, off: false }; boxes.push(ACRO_GATE);
+let acroZip = null;
+{
+  const g = new THREE.Group(); scene.add(g);
+  const bark = mat(0x6b4a2f, .95), plank = mat(0xb5864f, .85), rope = mat(0xd9c49a, .9), cable = mat(0x8c939a, .35, { metalness: .7 }), netM = new THREE.MeshStandardMaterial({ color: 0x2d6a4f, transparent: true, opacity: .55, side: THREE.DoubleSide, depthWrite: false });
+  const tube = (pts, r, m) => { const t = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p))), Math.max(8, pts.length * 4), r, 6), m); g.add(t); return t; };
+  // les grands arbres et leurs plateformes rondes
+  for (const [x, z, h] of ACRO_P) {
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.42, .6, h + 9, 12), bark); trunk.position.set(x, (h + 9) / 2, z); g.add(trunk); circles.push({ x, z, r: .5 });
+    for (let k = 0; k < 3; k++) { const c = new THREE.Mesh(blobGeo(2.6 - k * .4, 2, .25, k), mat(0x3a7d44, .85)); c.position.set(x + (k - 1) * 1.2, h + 8.6 + k * 1.1, z + (k % 2 - .5) * 1.4); g.add(c); }
+    const deck = new THREE.Mesh(new THREE.CylinderGeometry(ACRO_R, ACRO_R, .18, 24), plank); deck.position.set(x, h - .09, z); g.add(deck);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(ACRO_R, .05, 6, 32), rope); ring.rotation.x = Math.PI / 2; ring.position.set(x, h + .95, z); g.add(ring);
+    SURF.push((px, pz) => harnessOn && (px - x) ** 2 + (pz - z) ** 2 < ACRO_R * ACRO_R ? h : null);
+  }
+  // les ponts entre les arbres : planches, filet, poutre, pont de singe, planches, filet
+  const kinds = ["planches", "filet", "poutre", "singe", "planches"];
+  for (let i = 0; i < ACRO_P.length - 1; i++) {
+    const [ax, az, ah] = ACRO_P[i], [bx, bz, bh] = ACRO_P[i + 1], dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz), ux = dx / L, uz = dz / L, vx = -uz, vz = ux;
+    const sx = ax + ux * (ACRO_R - .2), sz = az + uz * (ACRO_R - .2), ex = bx - ux * (ACRO_R - .2), ez = bz - uz * (ACRO_R - .2), kind = kinds[i], sag = kind === "poutre" ? 0 : .35, w = kind === "poutre" ? .7 : 1.1;
+    const f = segSurf(sx, sz, ah, ex, ez, bh, w, sag); SURF.push((x, z) => harnessOn ? f(x, z) : null);
+    const len = Math.hypot(ex - sx, ez - sz), at = t => [sx + (ex - sx) * t, ah + (bh - ah) * t - sag * Math.sin(Math.PI * t), sz + (ez - sz) * t];
+    if (kind === "planches" || kind === "singe") { const n = Math.floor(len / (kind === "singe" ? .55 : .32)); for (let k = 0; k <= n; k++) { const [x, y, z] = at(k / n); const p = rbox(kind === "singe" ? .12 : .26, .06, w, plank, .02); p.position.set(x, y - .03, z); p.rotation.y = Math.atan2(-dz, dx); g.add(p); } }
+    if (kind === "filet") { const pts = []; for (let k = 0; k <= 12; k++) pts.push(at(k / 12)); const geo = new THREE.BufferGeometry(), pos = [], idx = [];
+      pts.forEach(([x, y, z]) => { pos.push(x + vx * w / 2, y, z + vz * w / 2, x - vx * w / 2, y, z - vz * w / 2); }); for (let k = 0; k < 12; k++) { const a = k * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+      geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals(); g.add(new THREE.Mesh(geo, netM)); }
+    if (kind === "poutre") { const [x, y, z] = at(.5); const log = new THREE.Mesh(new THREE.CylinderGeometry(.2, .22, len, 10), bark); log.position.set(x, y - .2, z); log.rotation.z = Math.PI / 2; log.rotation.y = Math.atan2(-dz, dx); g.add(log); }
+    // cordes des rambardes et ligne de vie au-dessus
+    for (const s of [-1, 1]) tube(Array.from({ length: 9 }, (_, k) => { const [x, y, z] = at(k / 8); return [x + vx * s * w / 2, y + .95, z + vz * s * w / 2]; }), .03, rope);
+    tube([[sx, ah + 2.1, sz], [ex, bh + 2.1, ez]], .025, cable);
+  }
+  // l'échelle pour monter sur la première plateforme
+  const [p1x, p1z, p1h] = ACRO_P[0], lax = -134.2, laz = 107.2, ldx = p1x - lax, ldz = p1z - laz, ll = Math.hypot(ldx, ldz), lux = ldx / ll, luz = ldz / ll, lex = p1x - lux * (ACRO_R - .3), lez = p1z - luz * (ACRO_R - .3);
+  const lf = segSurf(lax, laz, 0, lex, lez, p1h, 1.2); SURF.push((x, z) => { if (!harnessOn) return null; const h = lf(x, z); return h === null ? null : Math.round(h / .4) * .4; });
+  const nSteps = Math.round(p1h / .4); for (let k = 1; k <= nSteps; k++) { const t = k / nSteps, st = rbox(1.2, .08, .35, plank, .02); st.position.set(lax + (lex - lax) * t, p1h * t - .04, laz + (lez - laz) * t); st.rotation.y = Math.atan2(-ldz, ldx) + Math.PI / 2; g.add(st); }
+  for (const s of [-1, 1]) tube([[lax - luz * s * .6, .9, laz + lux * s * .6], [lex - luz * s * .6, p1h + .9, lez + lux * s * .6]], .035, rope);
+  const gateBar = rbox(2, .12, .12, mat(0xff5a4e, .5), .04); gateBar.position.set(-134.2, .9, 106.6); g.add(gateBar); ACRO_GATE.bar = gateBar;
+  // la tyrolienne, de la dernière plateforme jusqu'en bas
+  const [zx, zz, zh] = ACRO_P[ACRO_P.length - 1], endX = -142.5, endZ = 133;
+  const zStart = new THREE.Vector3(zx - 1.2, zh + 2.6, zz + .6), zEnd = new THREE.Vector3(endX, 2.3, endZ);
+  acroZip = { curve: new THREE.CatmullRomCurve3([zStart, zStart.clone().lerp(zEnd, .5).add(new THREE.Vector3(0, -.6, 0)), zEnd]), at: [zx - 1, zz + .4], h: zh };
+  tube([[zStart.x, zStart.y + .3, zStart.z], [(zStart.x + zEnd.x) / 2, (zStart.y + zEnd.y) / 2 - .3, (zStart.z + zEnd.z) / 2], [zEnd.x, zEnd.y + .3, zEnd.z]], .035, cable);
+  const ep = new THREE.Mesh(new THREE.CylinderGeometry(.18, .22, 3.6, 10), bark); ep.position.set(endX - .3, 1.8, endZ + .3); g.add(ep); circles.push({ x: endX - .3, z: endZ + .3, r: .25 });
+  const mat2 = rbox(2.2, .25, 2.2, mat(0x2e86de, .9), .1); mat2.position.set(endX + .8, .12, endZ - .8); g.add(mat2);
+  // l'accueil : un chalet ouvert avec un comptoir et les baudriers accrochés
+  const hut = new THREE.Group(); hut.position.set(-140.5, 0, 104.6); g.add(hut);
+  const back = rbox(.25, 2.8, 4, mat(0xffffff, .8, { map: woodTex }), .05); back.position.set(-1.3, 1.4, 0); hut.add(back);
+  for (const s of [-1, 1]) { const side = rbox(2.8, 2.8, .25, mat(0xffffff, .8, { map: woodTex }), .05); side.position.set(0, 1.4, s * 2); hut.add(side); }
+  const roof = rbox(3.6, .25, 4.8, mat(0x27ae60, .6), .08); roof.position.set(0, 3, 0); roof.rotation.z = .12; hut.add(roof);
+  const counter = rbox(.8, 1.1, 3, mat(0xffffff, .6, { map: woodTex }), .06); counter.position.set(.9, .55, 0); hut.add(counter);
+  for (let k = 0; k < 4; k++) { const hz = -1.2 + k * .8, hook = new THREE.Mesh(new THREE.TorusGeometry(.18, .05, 6, 14), mat([0xff5a4e, 0x2e86de, 0xffc93c, 0x27ae60][k], .6)); hook.position.set(-1.1, 1.9, hz); hook.rotation.y = Math.PI / 2; hut.add(hook); const helm = new THREE.Mesh(new THREE.SphereGeometry(.17, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat([0xff5a4e, 0x2e86de, 0xffc93c, 0x27ae60][k], .4)); helm.position.set(-1.05, 1.3, hz); hut.add(helm); }
+  boxes.push({ x1: -142, x2: -139.1, z1: 102.4, z2: 106.8 });
+  const sign = label("ACROBRANCHE 🧗", "#27ae60", "#ffffff", 1.6); sign.position.set(-140.5, 4.4, 104.6); g.add(sign);
+  const s2 = label("Départ ↑ (avec le baudrier)", "#ff5a4e", "#ffffff", .9); s2.position.set(-134.2, 2.4, 106.4); g.add(s2);
+  shadowAll(g);
+}
+// le baudrier et le casque sur ton personnage
+function putHarness(on) {
+  const g = player, old = g.userData.harness; if (old) { old.forEach(o => o.parent && o.parent.remove(o)); g.userData.harness = null; } if (!on) return;
+  const red = mat(0xff5a4e, .6), metal = mat(0xc0c7cc, .3, { metalness: .8 }), parts = [];
+  const belt = new THREE.Mesh(new THREE.TorusGeometry(.3, .04, 8, 24), red); belt.rotation.x = Math.PI / 2; belt.scale.set(1, .8, 1); belt.position.y = 1.0; g.add(belt); parts.push(belt);
+  for (const s of [-1, 1]) { const leg = new THREE.Mesh(new THREE.TorusGeometry(.13, .035, 6, 16), red); leg.rotation.x = Math.PI / 2; leg.position.set(s * .15, .82, 0); g.add(leg); parts.push(leg);
+    const lan = new THREE.Mesh(new THREE.CylinderGeometry(.015, .015, .5, 6), mat(0x2e86de, .6)); lan.position.set(s * .1, 1.2, .18); lan.rotation.x = -.5; g.add(lan); parts.push(lan);
+    const kar = new THREE.Mesh(new THREE.TorusGeometry(.05, .012, 6, 12), metal); kar.position.set(s * .1, 1.42, .3); g.add(kar); parts.push(kar); }
+  const h = g.userData.head; if (h) { const helm = new THREE.Mesh(new THREE.SphereGeometry(.27, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xffc93c, .4)); helm.position.set(0, .07, -.01); helm.scale.set(1, .85, 1.05); h.add(helm); parts.push(helm); }
+  g.userData.harness = parts;
+}
+function setHarness(on) { harnessOn = on; ACRO_GATE.off = on; ACRO_GATE.bar.position.y = on ? 2.6 : .9; putHarness(on); }
+function updateAcro(P) {
+  if (!harnessOn && Math.hypot(P.x - ACRO.gate[0], P.z - ACRO.gate[1]) < 1.8 && time - acroToastT > 5) { acroToastT = time; toast("Il faut le baudrier ! Va voir Hugo à l'accueil de l'acrobranche 🧗", 2800); }
+}
+$("acroGo").onclick = () => { setHarness(true); fermer("acroView"); sfx.click(); tone(660, .1, "triangle", .1); tone(880, .12, "triangle", .1, 0, .1); toast("Baudrier et casque mis ! Monte l'échelle 🧗", 2600); };
+$("acroClose").onclick = () => fermer("acroView");
+
 /* ---------- Végétation ---------- */
 function nearPath(x, z, pad) { return paths.some(([a, b, w]) => { const dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz; let t = ((x - a[0]) * dx + (z - a[1]) * dz) / L2; t = Math.max(0, Math.min(1, t)); return Math.hypot(x - (a[0] + t * dx), z - (a[1] + t * dz)) < w / 2 + pad; }); }
 function blocked(x, z, pad) {
@@ -3017,6 +3115,7 @@ const npcs = [
   { name: "Léon, de Game Town", pos: gw(2.6, 7.2), o: { shirt: 0x8e44ad, pants: 0x1b1035, hair: 0x111111, cap: 0xff4fd8, skin: 0xd9a27a }, lines: ["Bienvenue au Multi Parcs ! Ici, c'est Game Town 🎮", "Le Baloba est juste derrière, par la porte du fond 🎈", "Approche-toi d'une borne et appuie sur Jouer. Il y a Tape-Taupe, Panier Magique et Attrape-Étoiles !", "Chaque partie te fait gagner des tickets 🎟️.", "Avec 3 tickets, tu peux essayer la machine à pince… si tu as de la chance, tu gagnes une peluche !", "Au comptoir des cadeaux, au fond, tu échanges tes tickets contre des cadeaux 🎁"] },
   { name: "Zoé, de Burger Fast", pos: fw(-1.2, -4.4), o: { shirt: 0xff7a2f, pants: 0x1f9e8f, hair: 0x5a3a22, long: true, cap: 0xff7a2f }, lines: ["Bienvenue chez Burger Fast ! 🍔", "Approche-toi de la caisse et appuie sur Commander pour choisir ton menu.", "Quand ta commande est prête, viens chercher ton plateau au bout du comptoir.", "Ensuite, va t'asseoir à une table pour manger. Bon appétit ! 😋"] },
   { name: "Margot, de l'accueil", pos: ACCUEIL.w(0, 2.3), o: { shirt: 0x2e86de, pants: 0x2d3436, hair: 0xd4a017, long: true }, lines: ["Bonjour et bienvenue au Domaine des Pins ! 😊", "Ici, je t'explique ce qui va se passer pendant tes vacances, et quoi faire si tu as un problème.", "Approche-toi du comptoir et appuie sur Le programme pour tout lire.", "Le grand plan du domaine est accroché au mur, derrière moi !"] },
+  { name: "Hugo, moniteur d'acrobranche", pos: [-140.3, 103.4], o: { shirt: 0x27ae60, pants: 0x3b5998, hair: 0x5a3a22, cap: 0xff5a4e, skin: 0xe0ac85 }, lines: ["Salut ! Bienvenue à l'acrobranche 🧗", "D'abord, il faut ton baudrier et ton casque : approche-toi du comptoir.", "Ensuite tu montes l'échelle, tu passes les ponts dans les arbres…", "…et tu redescends par la tyrolienne ! 🪂"] },
   { name: "Bernard, le boulanger", pos: BOULANGERIE.w(0, 2), o: { shirt: 0xffffff, pants: 0xf3e2c3, hair: 0x9a9a9a, cap: 0xffffff, skin: 0xe0ac85 }, lines: ["Bonjour ! Mes croissants sortent du four 🥐", "J'ai des baguettes, des pains au chocolat, des chouquettes, des éclairs et des tartes aux fraises.", "Approche-toi de la vitrine et appuie sur Acheter !"] },
   { name: "Inès, du Market Speed", pos: MARKET.w(5.6, 2.7), o: { shirt: 0x27ae60, pants: 0x2d3436, hair: 0x2d2018, long: true, skin: 0x8d5a3b }, lines: ["Bienvenue au Market Speed ! 🛒⚡", "On a des fruits, des céréales, des pizzas, des bonbons, de la crème solaire, des ballons…", "Viens à la caisse et appuie sur Faire les courses."] },
 ];
@@ -3272,6 +3371,7 @@ function zoneName(P) {
   if (inBaloba(P.x, P.z)) return "🎈 Multi Parcs · Baloba";
   if (inGameTown(P.x, P.z)) return "🎮 Multi Parcs · Game Town";
   if (inBurger(P.x, P.z)) return "🍔 Burger Fast";
+  if (inRect(ACRO, P.x, P.z)) return "🧗 Acrobranche";
   if (inLockerRoom(P.x, P.z)) return "👕 Vestiaires";
   for (const sh of SHOPS) if (sh.in(P.x, P.z)) return sh.where;
   if (inRect(PARK, P.x, P.z)) return "🅿️ Parking";
@@ -3285,7 +3385,7 @@ function zoneName(P) {
   if (riverNear(P.x, P.z).d < 7) return "🌊 Rivière sauvage";
   return "";
 }
-const ZTOAST = { "👕 Vestiaires": "Les vestiaires ! Entre dans une cabine pour te changer 👕", "🏨 Accueil": "L'accueil ! Margot t'explique tout : approche-toi du comptoir 📋", "🥖 Boulangerie": "Ça sent bon le pain chaud ! 🥖", "🛒 Market Speed": "Le Market Speed ! Va à la caisse pour faire tes courses 🛒⚡", "🅿️ Parking": "Le parking ! Approche-toi d'une voiture pour klaxonner 📯. Les vélos sous l'abri, tu peux les prendre 🚲", "🍔 Burger Fast": "Burger Fast ! Va à la caisse pour commander ton menu 🍔🍟", "🎮 Multi Parcs · Game Town": "Bienvenue au Multi Parcs ! Ici, Game Town : Joue aux bornes d'arcade pour gagner des tickets 🎟️", "🎈 Multi Parcs · Baloba": "Le Baloba ! Grimpe dans la structure, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
+const ZTOAST = { "🧗 Acrobranche": "L'acrobranche ! Va à l'accueil pour mettre ton baudrier 🦺", "👕 Vestiaires": "Les vestiaires ! Entre dans une cabine pour te changer 👕", "🏨 Accueil": "L'accueil ! Margot t'explique tout : approche-toi du comptoir 📋", "🥖 Boulangerie": "Ça sent bon le pain chaud ! 🥖", "🛒 Market Speed": "Le Market Speed ! Va à la caisse pour faire tes courses 🛒⚡", "🅿️ Parking": "Le parking ! Approche-toi d'une voiture pour klaxonner 📯. Les vélos sous l'abri, tu peux les prendre 🚲", "🍔 Burger Fast": "Burger Fast ! Va à la caisse pour commander ton menu 🍔🍟", "🎮 Multi Parcs · Game Town": "Bienvenue au Multi Parcs ! Ici, Game Town : Joue aux bornes d'arcade pour gagner des tickets 🎟️", "🎈 Multi Parcs · Baloba": "Le Baloba ! Grimpe dans la structure, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
   "🌊 Rivière sauvage": "La rivière sauvage ! Va au ponton pour prendre une bouée 🛟", "🌳 Maison dans les arbres": "Tu es dans les arbres ! Traverse le pont de singe… et descends par le toboggan 🛝", "🛖 Une cabane": "Une petite cabane en rondins 🛖" };
 const seenZ = new Set();
 
@@ -3458,6 +3558,8 @@ let act1 = null, act2 = null, doorNear = null;
 function doAct(a) {
   if (!a) return; sfx.click();
   if (a === "feed") { feedFish(); return; }
+  if (a === "acro") { if (harnessOn) { setHarness(false); toast("Tu as rendu ton baudrier. À bientôt ! 👋", 2000); } else ouvrir("acroView"); return; }
+  if (a === "zip") { state = "ride"; riding = { curve: acroZip.curve, u: 0, dry: true, msg: "Youpi ! Quelle tyrolienne ! 🪂" }; $("dialog").hidden = true; talking = null; sfx.slide(); toast("Wiiiiii ! 🪂", 1600); return; }
   if (a === "prog") { ouvrir("progView"); return; }
   if (a === "boul" || a === "market") { openBuy(a); return; }
   if (a === "honk" && honkCar) { honk(honkCar); return; }
@@ -3521,11 +3623,12 @@ function drawMap() {
   mx.fillStyle = "#3b2a7a"; mx.fillRect(X(GTW.x - GTW.hx), Z(GTW.z - GTW.hz), GTW.hx * 2 * k, GTW.hz * 2 * k); mx.strokeStyle = "#ff4fd8"; mx.lineWidth = 3; mx.strokeRect(X(GTW.x - GTW.hx), Z(GTW.z - GTW.hz), GTW.hx * 2 * k, GTW.hz * 2 * k);
   mx.fillStyle = "#5a5e64"; mx.fillRect(X(PARK.x1), Z(PARK.z1), (PARK.x2 - PARK.x1) * k, (PARK.z2 - PARK.z1) * k);
   for (const sh of SHOPS) { mx.fillStyle = sh === ACCUEIL ? "#2e86de" : sh === MARKET ? "#27ae60" : "#8a4b2a"; mx.fillRect(X(sh.x - sh.hx), Z(sh.z - sh.hz), sh.hx * 2 * k, sh.hz * 2 * k); }
+  mx.fillStyle = "#2d6a4f"; mx.fillRect(X(ACRO.x1), Z(ACRO.z1), (ACRO.x2 - ACRO.x1) * k, (ACRO.z2 - ACRO.z1) * k);
   mx.fillStyle = "#ff7a2f"; mx.fillRect(X(BFW.x - BFW.hx), Z(BFW.z - BFW.hz), BFW.hx * 2 * k, BFW.hz * 2 * k);
   mx.fillStyle = "#1f8fae"; mx.beginPath(); mx.arc(X(AQU.x), Z(AQU.z), AQU.r * k, 0, 7); mx.fill(); mx.strokeStyle = "#ffffff"; mx.lineWidth = 2; mx.stroke();
   mx.fillStyle = "#e84393"; mx.fillRect(X(11.3), Z(21), 5.4 * k, 2 * k);
   mx.font = '700 13px "Baloo 2",sans-serif'; mx.textAlign = "center"; mx.fillStyle = "#0d3b52";
-  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2)); mx.fillText("Multi Parcs", X(BALO.x + 2), Z(BALO.z + BALO.hz + .5)); mx.fillText("Burger Fast", X(BFW.x), Z(BFW.z - BFW.hz - 2)); mx.fillText("Accueil", X(ACCUEIL.x), Z(ACCUEIL.z - 5.5)); mx.fillText("Boulangerie", X(BOULANGERIE.x + 1), Z(BOULANGERIE.z - 5)); mx.fillText("Market Speed", X(MARKET.x), Z(MARKET.z + 6.5)); mx.fillStyle = "#ffffff"; mx.fillText("P Parking", X((PARK.x1 + PARK.x2) / 2), Z((PARK.z1 + PARK.z2) / 2)); mx.fillStyle = "#1d3b2a";
+  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2)); mx.fillText("Multi Parcs", X(BALO.x + 2), Z(BALO.z + BALO.hz + .5)); mx.fillText("Burger Fast", X(BFW.x), Z(BFW.z - BFW.hz - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Acrobranche", X((ACRO.x1 + ACRO.x2) / 2), Z((ACRO.z1 + ACRO.z2) / 2)); mx.fillStyle = "#1d3b2a"; mx.fillText("Accueil", X(ACCUEIL.x), Z(ACCUEIL.z - 5.5)); mx.fillText("Boulangerie", X(BOULANGERIE.x + 1), Z(BOULANGERIE.z - 5)); mx.fillText("Market Speed", X(MARKET.x), Z(MARKET.z + 6.5)); mx.fillStyle = "#ffffff"; mx.fillText("P Parking", X((PARK.x1 + PARK.x2) / 2), Z((PARK.z1 + PARK.z2) / 2)); mx.fillStyle = "#1d3b2a";
   mx.fillText("Ferme", X(-70), Z(-36)); mx.fillText("Poney club", X(ARENA.x), Z(ARENA.z - ARENA.rz - 2)); mx.fillText("Karts", X(0), Z(-80)); mx.fillText("Rivière sauvage", X(-50), Z(75)); mx.fillText("Maison dans les arbres", X(50), Z(84)); mx.fillText("Vélos", X(6), Z(41));
   mx.font = '700 11px "Baloo 2",sans-serif';
   npcs.forEach(n => { const nx = X(n.g.position.x), nz = Z(n.g.position.z); mx.fillStyle = "#8e44ad"; mx.beginPath(); mx.arc(nx, nz, 4, 0, 7); mx.fill(); mx.fillText(n.name.split(",")[0], nx, nz - 7); });
@@ -4255,6 +4358,7 @@ function loop() {
   const dWant = Math.hypot(P.x, P.z - 7.5) < 5 ? 1 : 0; if (dWant && domeDoorOpen < .05) sfx.door();
   domeDoorOpen += (dWant - domeDoorOpen) * Math.min(1, dt * 5); domeDoors.forEach(d => d.m.position.x = d.s * (1.4 + domeDoorOpen * 2.7)); domeDoorBox.off = domeDoorOpen > .6;
   const inAq = updateAquarium(dt, time, P), inBalo = updateBaloba(dt, time, P), inGT = updateGameTown(dt, time, P), nightK = updateDayNight(dt), inBF = updateBurger(dt, time, P), inShop = updateShops(dt, P), inLock = updateLocker(dt, P);
+  updateAcro(P);
   updateVacationers(dt, time, P);
 
   // caméra
@@ -4310,6 +4414,8 @@ function loop() {
     if (state === "walk" && P.y < 1) { if (ACCUEIL.in(P.x, P.z) && Math.hypot(P.x - ACCUEIL.x, P.z - (ACCUEIL.z - .1)) < 1.9) offer("prog", "📋 Le programme");
       if (BOULANGERIE.in(P.x, P.z) && Math.hypot(P.x - BOULANGERIE.x, P.z - (BOULANGERIE.z - .4)) < 2.6) offer("boul", "🥐 Acheter");
       if (MARKET.in(P.x, P.z) && Math.hypot(P.x - (MARKET.x + 5.6), P.z - (MARKET.z + .6)) < 1.7) offer("market", "🛒 Faire les courses"); }
+    if (state === "walk" && P.y < 1 && Math.hypot(P.x - (ACRO.desk[0] + .8), P.z - ACRO.desk[1]) < 1.7) offer("acro", harnessOn ? "🧗 Enlever le baudrier" : "🦺 Mettre le baudrier");
+    if (state === "walk" && harnessOn && P.y > acroZip.h - .5 && Math.hypot(P.x - acroZip.at[0], P.z - acroZip.at[1]) < 1.5) offer("zip", "🪂 Tyrolienne !");
     if (state === "walk" && P.y < 1 && inBurger(P.x, P.z)) { if (Math.hypot(P.x - BF_ORDER[0], P.z - BF_ORDER[1]) < 1.4) offer("bforder", "🍔 Commander");
       if (bf.state === "ready" && Math.hypot(P.x - BF_PICK[0], P.z - BF_PICK[1]) < 1.5) offer("bfpick", "🍽️ Prendre mon plateau");
       if (bf.state === "carry") { const t = BF_TABLES.find(t => Math.hypot(P.x - t.x, P.z - t.z) < 2); if (t) { bf.table = t; offer("bfeat", "😋 Manger ici"); } } }
