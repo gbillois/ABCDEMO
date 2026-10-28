@@ -2321,6 +2321,63 @@ function updateAcro(P) {
 $("acroGo").onclick = () => { setHarness(true); fermer("acroView"); sfx.click(); tone(660, .1, "triangle", .1); tone(880, .12, "triangle", .1, 0, .1); toast("Baudrier et casque mis ! Monte l'échelle 🧗", 2600); };
 $("acroClose").onclick = () => fermer("acroView");
 
+/* ---------- Dans le dôme : deux jacuzzis et de la végétation tropicale ---------- */
+const JACUZZIS = [{ x: 24, z: -18, r: 2.3 }, { x: 13, z: -15, r: 2.3 }];
+const inJacuzzi = (x, z) => JACUZZIS.find(j => Math.hypot(x - j.x, z - j.z) < j.r - .35) || null;
+{
+  const rimM = mat(0xf2ede4, .5), stepM = mat(0xd9cfc0, .7);
+  for (const j of JACUZZIS) {
+    const g = new THREE.Group(); g.position.set(j.x, 0, j.z); scene.add(g);
+    const wall = new THREE.Mesh(new THREE.CylinderGeometry(j.r + .25, j.r + .3, .55, 40, 1, true), mat(0xffffff, .5, { map: tileTex.clone(), side: THREE.DoubleSide })); wall.material.map.repeat.set(6, .4); wall.position.y = .27; g.add(wall);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(j.r + .27, .14, 10, 48), rimM); rim.rotation.x = Math.PI / 2; rim.position.y = .55; g.add(rim);
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(j.r + .25, 40), mat(0x3fb8e0, .3)); floor.rotation.x = -Math.PI / 2; floor.position.y = -.45; g.add(floor);
+    const bench = new THREE.Mesh(new THREE.TorusGeometry(j.r - .15, .28, 8, 40), stepM); bench.rotation.x = Math.PI / 2; bench.position.y = -.2; g.add(bench);
+    const wn = waterNormal.clone(); wn.repeat.set(2, 2); j.wn = wn;
+    const water = new THREE.Mesh(new THREE.CircleGeometry(j.r + .24, 40), new THREE.MeshStandardMaterial({ color: 0x7fe3f7, roughness: .05, transparent: true, opacity: .6, normalMap: wn, normalScale: new THREE.Vector2(.6, .6), emissive: 0x1a6f8f, emissiveIntensity: .25 }));
+    water.rotation.x = -Math.PI / 2; water.position.y = .4; water.renderOrder = 1; g.add(water);
+    // les bulles qui remontent
+    const N = 70, bub = new THREE.InstancedMesh(new THREE.SphereGeometry(.05, 8, 6), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: .7, roughness: .1 }), N); g.add(bub);
+    j.bub = bub; j.bubs = Array.from({ length: N }, () => { const a = Math.random() * 6.28, r = Math.sqrt(Math.random()) * (j.r - .2); return { x: Math.cos(a) * r, z: Math.sin(a) * r, y: -.4 + Math.random() * .8, s: .6 + Math.random() * .9 }; });
+    const lb = label("Jacuzzi 🫧", "#1fa5d6", "#ffffff", .9); lb.position.set(0, 2.6, 0); g.add(lb);
+    // une petite échelle pour entrer
+    for (const s of [-1, 1]) { const h = new THREE.Mesh(new THREE.TorusGeometry(.35, .03, 6, 12, Math.PI), metalMat); h.position.set(s * .25, .6, j.r + .2); h.rotation.y = Math.PI / 2; g.add(h); }
+    shadowAll(g, false, true);
+  }
+  // la végétation tropicale : des massifs de plantes et de fleurs tout autour, contre la verrière
+  const leafCols = [0x2f9a52, 0x3fae5e, 0x267f45, 0x4fbf6b], flowerCols = [0xff4f6d, 0xffc93c, 0xff8a2b, 0xe84393, 0xffffff];
+  const ok = (x, z) => {
+    if (inPoolRect(x, z, -3) || Math.hypot(x - KIDS.x, z - KIDS.z) < KIDS.r + 3) return false;
+    if (JACUZZIS.some(j => Math.hypot(x - j.x, z - j.z) < j.r + 2)) return false;
+    if (slides.some(s => Math.hypot(x - s.cx, z - s.cz) < 7.5 || Math.hypot(x - s.base.x, z - s.base.z) < 3)) return false;
+    if (Math.hypot(x - DOME.x, z - (DOME.z + DOME.r)) < 7 || Math.hypot(x - LDOOR.x, z - LDOOR.z) < 6) return false;
+    if (Math.abs(x) < 4 && z > DOME.z + 20) return false;
+    if (boxes.some(b => x > b.x1 - 1.5 && x < b.x2 + 1.5 && z > b.z1 - 1.5 && z < b.z2 + 1.5)) return false;
+    if (circles.some(c => c.r < 3 && Math.hypot(x - c.x, z - c.z) < c.r + 1.5)) return false;
+    return true; };
+  const clump = (x, z, big) => { const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+    const soil = new THREE.Mesh(new THREE.CylinderGeometry(big ? 1.6 : 1.1, big ? 1.7 : 1.2, .3, 20), mat(0x6b4a2f, .95)); soil.position.y = .15; g.add(soil);
+    const edge = new THREE.Mesh(new THREE.TorusGeometry(big ? 1.65 : 1.15, .12, 8, 24), mat(0xd9cfc0, .7)); edge.rotation.x = Math.PI / 2; edge.position.y = .3; g.add(edge);
+    for (let k = 0; k < (big ? 5 : 3); k++) { const b = new THREE.Mesh(blobGeo(.5 + Math.random() * .4, 2, .3, k), mat(leafCols[k % 4], .8)); const a = Math.random() * 6.28, r = Math.random() * (big ? .9 : .5); b.position.set(Math.cos(a) * r, .6 + Math.random() * .5, Math.sin(a) * r); b.scale.y = 1.2; g.add(b); }
+    for (let k = 0; k < (big ? 7 : 4); k++) { const f = new THREE.Mesh(new THREE.SphereGeometry(.12, 10, 8), mat(flowerCols[Math.floor(Math.random() * 5)], .5)); const a = Math.random() * 6.28, r = .4 + Math.random() * (big ? 1.1 : .7); f.position.set(Math.cos(a) * r, .7 + Math.random() * .7, Math.sin(a) * r); g.add(f); }
+    // de grandes feuilles qui retombent
+    for (let k = 0; k < 6; k++) { const l = new THREE.Mesh(leafGeo, leafMat); l.position.y = .3; l.rotation.order = "YXZ"; l.rotation.y = k / 6 * 6.28 + Math.random(); l.rotation.x = .9 + Math.random() * .4; l.scale.setScalar(big ? .5 : .38); g.add(l); }
+    shadowAll(g); circles.push({ x, z, r: big ? 1.6 : 1.1 }); };
+  let n = 0;
+  for (let i = 0; i < 64 && n < 22; i++) { const a = i / 64 * Math.PI * 2 + .05, rr = DOME.r - 3.2, x = DOME.x + Math.cos(a) * rr, z = DOME.z + Math.sin(a) * rr; if (ok(x, z)) { clump(x, z, i % 3 === 0); n++; i += 2; } }
+  for (const [x, z] of [[28, -20], [18, -11], [9, -18], [-26, -18], [-8, -20], [24, -33]]) if (ok(x, z)) clump(x, z, false);
+  for (const [x, z] of [[29, -13], [-28, -26], [-26, -38], [27, -40]]) if (ok(x, z)) palm(x, z, 6 + Math.random() * 2);
+}
+let jacSoundT = 0;
+function updateJacuzzis(dt, time, P) {
+  if (Math.hypot(P.x - DOME.x, P.z - DOME.z) > DOME.r + 20) return null;
+  const m4 = new THREE.Matrix4();
+  for (const j of JACUZZIS) { j.wn.offset.set(time * .15, time * .11);
+    j.bubs.forEach((b, i) => { b.y += dt * .9 * b.s; if (b.y > .42) b.y = -.4; m4.makeTranslation(b.x + Math.sin(time * 3 + i) * .03, b.y, b.z); j.bub.setMatrixAt(i, m4); }); j.bub.instanceMatrix.needsUpdate = true; }
+  const jz = state === "walk" ? inJacuzzi(P.x, P.z) : null;
+  if (jz) { jacSoundT -= dt; if (jacSoundT < 0) { jacSoundT = 1.4; whoosh(1.2, .03, 900, 1400); } }
+  return jz;
+}
+
 /* ---------- Végétation ---------- */
 function nearPath(x, z, pad) { return paths.some(([a, b, w]) => { const dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz; let t = ((x - a[0]) * dx + (z - a[1]) * dz) / L2; t = Math.max(0, Math.min(1, t)); return Math.hypot(x - (a[0] + t * dx), z - (a[1] + t * dz)) < w / 2 + pad; }); }
 // pour placer vite des milliers d'arbres et de brins d'herbe : une grille de 10 m où chaque case
@@ -6370,7 +6427,7 @@ function resolve(p, prev, who) {
   }
   aqCollide(p, prev);
   // le lac : on ne marche que sur le ponton
-  if (!wearing && !who) { const wp = (x, z) => inPoolRect(x, z, 0) || inKids(x, z); if (wp(p.x, p.z)) { if (!wp(p.x, prev.z)) p.z = prev.z; else if (!wp(prev.x, p.z)) p.x = prev.x; else { p.x = prev.x; p.z = prev.z; } if (time - suitToastT > 4) { suitToastT = time; toast("Il faut un maillot de bain : va aux vestiaires ! 👕", 2600); } } }
+  if (!wearing && !who) { const wp = (x, z) => inPoolRect(x, z, 0) || inKids(x, z) || !!inJacuzzi(x, z); if (wp(p.x, p.z)) { if (!wp(p.x, prev.z)) p.z = prev.z; else if (!wp(prev.x, p.z)) p.x = prev.x; else { p.x = prev.x; p.z = prev.z; } if (time - suitToastT > 4) { suitToastT = time; toast("Il faut un maillot de bain : va aux vestiaires ! 👕", 2600); } } }
   const wet = (x, z) => inWater(x, z) && !onDock(x, z);
   if (wet(p.x, p.z)) { if (!wet(p.x, prev.z)) p.z = prev.z; else if (!wet(prev.x, p.z)) p.x = prev.x; else { p.x = prev.x; p.z = prev.z; } }
   // la rivière : on ne la traverse que sur les ponts
@@ -6383,6 +6440,7 @@ function resolve(p, prev, who) {
 // hauteur du sol sous les pieds : ponton, terrasse, escalier, étage
 function floorY(p) {
   if (onDock(p.x, p.z)) return .38;
+  if (inJacuzzi(p.x, p.z)) return -.2; // assis sur le banc du jacuzzi, dans l'eau chaude
   for (const c of cottages) { const [lx, lz] = c.toLocal(p.x, p.z);
     if (lx > -5.2 && lx < 5.2 && lz > -4.2 && lz < 4.2) { if (c.single) return .2; if (inStair(lx, lz)) return Math.max(.2, stairH(lz)); return p.y > 1.8 ? UP : .2; }
     if (lx > -5.2 && lx < 5.2 && lz >= 4.2 && lz < 9.1) return .2; }
@@ -6436,6 +6494,8 @@ const players = [];
   const ball = new THREE.Mesh(new THREE.SphereGeometry(.18, 16, 12), mat(0xff5a4e, .4)); scene.add(ball); ballKids[0].ball = ball;
   for (const p of players) { p.g.position.set(p.x ?? 0, 0, p.z ?? 0); if (p.kind !== "pit" && p.kind !== "tramp" && p.kind !== "slide") circles.push({ x: p.x, z: p.z, r: .3 }); }
 }
+// des vacanciers qui se détendent dans les jacuzzis
+for (const [k, j] of JACUZZIS.entries()) { const g = bather(k === 1); g.visible = true; const a = k ? Math.PI * .75 : -Math.PI / 4; g.position.set(j.x + Math.cos(a) * (j.r - .7), -.2, j.z + Math.sin(a) * (j.r - .7)); g.rotation.y = Math.atan2(-Math.cos(a), -Math.sin(a)); animPerson(g, "sit", 0); circles.push({ x: g.position.x, z: g.position.z, r: .35 }); }
 function updateVacationers(dt, time, P) {
   for (const c of PARK_CARS) if (c.flash > 0) { c.flash -= dt; c.g.userData.lights.emissiveIntensity = c.flash > 0 && Math.sin(c.flash * 18) > 0 ? 3 : .2; }
   for (const w of walkers) {
@@ -6666,6 +6726,7 @@ function loop() {
     if (swimming) animPerson(player, swimFast ? "swim" : "tread", time * 4); else if (L > .08) animPerson(player, "walk", walkT, sp * Math.min(L, 1)); else animPerson(player, "idle", 0);
   }
   afterWalkJump(dt);
+  { const jz = updateJacuzzis(dt, time, P); if (jz && state === "walk" && Math.hypot(P.x - prev.x, P.z - prev.z) < .002) animPerson(player, "sit", 0); }
 
   // où suis-je ?
   inDome = Math.hypot(P.x - DOME.x, P.z - DOME.z) < DOME.r && state !== "ride" || state === "top" || state.startsWith("climb");
