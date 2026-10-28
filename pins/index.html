@@ -37,7 +37,8 @@
 }
 *{box-sizing:border-box;touch-action:manipulation}
 .menuJeu{max-width:520px}
-#svTexte{width:100%;font:600 14px ui-monospace,Menlo,monospace;border:3px solid #1d3b2a;border-radius:12px;padding:8px;word-break:break-all;user-select:text;-webkit-user-select:text;background:#fff;color:#1d3b2a}
+.svGrand{font:800 44px ui-monospace,Menlo,monospace;letter-spacing:.12em;margin:6px 0;color:#1d3b2a}
+#svSaisie{font:800 28px ui-monospace,Menlo,monospace;letter-spacing:.1em;width:9ch;text-align:center;border:3px solid #1d3b2a;border-radius:12px;padding:6px;background:#fff;color:#1d3b2a;user-select:text;-webkit-user-select:text}
 #invView .card{max-width:520px}
 .inv-sous{font-size:20px}
 #invListe h3{margin:12px 0 6px;font-size:17px;color:var(--leaf);text-align:left}
@@ -288,16 +289,17 @@ html.app .site{display:none!important}
     </div>
     <h3>Mettre ma partie sur un autre appareil</h3>
     <div class="grille">
-      <button id="svCodeBtn" class="btn" style="background:#2e86de">🔗 Code de partage</button>
-      <button id="svCodeInBtn" class="btn" style="background:#2e86de">🔑 J'ai un code</button>
+      <button id="svEnvoyer" class="btn" style="background:#2e86de">📲 Envoyer</button>
+      <button id="svRecevoir" class="btn" style="background:#2e86de">📥 Recevoir</button>
       <button id="svExport" class="btn" style="background:#34495e">📤 Exporter le fichier</button>
-      <button id="svImport" class="btn" style="background:#34495e">📥 Ouvrir un fichier</button>
+      <button id="svImport" class="btn" style="background:#34495e">📂 Ouvrir un fichier</button>
     </div>
     <input id="svFichier" type="file" accept="application/json,.json" hidden>
     <div id="svBox" hidden>
       <p id="svInfo" class="small"></p>
-      <textarea id="svTexte" rows="4" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
-      <div class="row"><button id="svCopier" class="btn">📋 Copier</button><button id="svPartager" class="btn" style="background:var(--violet)">✉️ Envoyer</button><button id="svCharger" class="btn" style="background:#ff8a2b">✅ Charger cette partie</button></div>
+      <p id="svGrand" class="svGrand" hidden></p>
+      <div id="svSaisieL" class="row" hidden><input id="svSaisie" type="text" inputmode="numeric" maxlength="7" autocomplete="off" placeholder="123 456" aria-label="Code à 6 chiffres"><button id="svRecevoirOk" class="btn">OK</button></div>
+      <div class="row"><button id="svCharger" class="btn" style="background:#ff8a2b" hidden>✅ Charger cette partie</button><button id="svAnnuler" class="btn" style="background:#34495e">Fermer</button></div>
     </div>
     <div class="row"><a class="btn site" style="background:#34495e" href="../index.html">🏠 Les autres jeux</a></div>
   </div>
@@ -8344,29 +8346,69 @@ $("lockerHabits").onclick = () => { sfx.click(); ouvrirCrea(); };
 const SV_CLES = ["pins-persos", "pins-perso", "pins-partie", "pins-argent", "pins-maillots", "pins-sac", "pins-coffre", "pins-gametown", "pins-golf", "pins-golf3", "pins-kart", "pins-halloween"];
 function svPaquet() { sauverPartie(false); const d = {}; for (const k of SV_CLES) { try { const v = localStorage.getItem(k); if (v !== null) d[k] = v; } catch (e) {} } return { jeu: "domaine-des-pins", version: 1, date: new Date().toISOString(), donnees: d }; }
 function svValide(o) { return o && o.jeu === "domaine-des-pins" && o.donnees && typeof o.donnees === "object" && Object.entries(o.donnees).every(([k, v]) => SV_CLES.includes(k) && typeof v === "string" && v.length < 60000); }
-const b64u = { en: u => { let b = ""; for (let i = 0; i < u.length; i += 8192) b += String.fromCharCode(...u.subarray(i, i + 8192)); return btoa(b).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); },
-  de: t => Uint8Array.from(atob(t.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0)) };
-const flux = async (u, T) => new Uint8Array(await new Response(new Blob([u]).stream().pipeThrough(new T("deflate-raw"))).arrayBuffer());
-async function svEnCode(o) { let u = new TextEncoder().encode(JSON.stringify(o)), z = "J"; if (window.CompressionStream) try { u = await flux(u, CompressionStream); z = "Z"; } catch (e) {} return "PINS-" + z + b64u.en(u); }
-async function svDeCode(t) { const m = String(t).replace(/\s+/g, "").match(/^PINS-([JZ])([A-Za-z0-9_-]+)$/); if (!m) return null;
-  try { let u = b64u.de(m[2]); if (m[1] === "Z") u = await flux(u, DecompressionStream); const o = JSON.parse(new TextDecoder().decode(u)); return svValide(o) ? o : null; } catch (e) { return null; } }
-let svAttente = null; // la partie lue, en attente du « Charger »
+let svAttente = null; // la partie reçue ou lue, en attente du « Charger »
 function svResume(o) { const d = o.donnees; let canards = 0, argent = "?", noms = [];
   try { canards = (JSON.parse(d["pins-partie"] || "{}").canards || []).filter(Boolean).length; } catch (e) {} try { argent = JSON.parse(d["pins-argent"] ?? "null") ?? "?"; } catch (e) {}
   try { noms = JSON.parse(d["pins-persos"] || "[]").map(p => p.nom || "Théo"); } catch (e) {}
-  return `🦆 ${canards} canard${canards > 1 ? "s" : ""} · 💶 ${argent} € · ${noms.length ? "🎨 " + noms.join(", ") : ""}`; }
-function svMontrer(mode, info, texte = "") { $("svBox").hidden = false; $("svInfo").textContent = info; $("svTexte").value = texte; $("svTexte").readOnly = mode === "code";
-  $("svCopier").hidden = $("svPartager").hidden = mode !== "code"; $("svPartager").hidden ||= !navigator.share; $("svCharger").hidden = mode !== "lire";
-  $("svBox").scrollIntoView({ block: "center", behavior: "smooth" }); }
-$("svCodeBtn").onclick = async () => { sfx.click(); const c = await svEnCode(svPaquet()); svAttente = null;
-  svMontrer("code", "Ton code de partage. Envoie-le sur l'autre téléphone ou ordinateur, puis là-bas : Menu ⚙️ → « J'ai un code ».", c); };
-$("svCodeInBtn").onclick = () => { sfx.click(); svAttente = null; svMontrer("lire", "Colle ici le code de partage (il commence par PINS-) :"); $("svTexte").focus(); };
-$("svTexte").addEventListener("keydown", e => e.stopPropagation());
-$("svTexte").addEventListener("input", async () => { if ($("svTexte").readOnly) return; const o = await svDeCode($("svTexte").value); svAttente = o;
-  $("svInfo").textContent = o ? "Partie trouvée : " + svResume(o) + ". Elle remplacera ta partie sur cet appareil." : "Colle ici le code de partage (il commence par PINS-) :"; });
-$("svCopier").onclick = async () => { sfx.click(); try { await navigator.clipboard.writeText($("svTexte").value); toast("📋 Code copié !", 1600); } catch (e) { $("svTexte").select(); toast("Sélectionne le code et copie-le.", 2000); } };
-$("svPartager").onclick = async () => { sfx.click(); try { await navigator.share({ title: "Ma partie du Domaine des Pins", text: $("svTexte").value }); } catch (e) {} };
-$("svCharger").onclick = () => { sfx.click(); if (!svAttente) { $("svInfo").textContent = "Ce code ne marche pas : vérifie qu'il est complet."; return; }
+  return `🦆 ${canards} canard${canards > 1 ? "s" : ""} · 💶 ${argent} €${noms.length ? " · 🎨 " + noms.join(", ") : ""}`; }
+// En direct, comme dans Millepoques : l'appareil qui a la partie montre un code de 6 chiffres, l'autre le tape. Les deux se
+// rejoignent sur le relais (serveur/pins-relais : /transfert/<code>), qui passe les messages sans rien écrire et coupe au
+// bout de 10 minutes. La partie est chiffrée de bout en bout avec le chiffrement du navigateur (clés ECDH P-256 tirées
+// à chaque fois, HKDF salé par le code, AES-GCM) : le relais ne voit que des octets illisibles.
+const b64 = u => { let b = ""; for (let i = 0; i < u.length; i += 8192) b += String.fromCharCode(...u.subarray(i, i + 8192)); return btoa(b); }, unb64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
+const T_INFO = new TextEncoder().encode("pins-transfert-v1");
+const T_RAISON = { 4404: "Ce code n'existe pas, ou il est fini. Vérifie les 6 chiffres.", 4409: "Ce code est déjà utilisé.", 4408: "Le code est fini (10 minutes). Recommence.", 4413: "La partie est trop grosse." };
+const clePaire = () => crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, false, ["deriveBits"]);
+const clePub = async k => b64(new Uint8Array(await crypto.subtle.exportKey("raw", k.publicKey)));
+async function cleCommune(k, pub, code) {
+  const lui = await crypto.subtle.importKey("raw", unb64(pub), { name: "ECDH", namedCurve: "P-256" }, false, []);
+  const bits = await crypto.subtle.deriveBits({ name: "ECDH", public: lui }, k.privateKey, 256), hk = await crypto.subtle.importKey("raw", bits, "HKDF", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt: new TextEncoder().encode(code), info: T_INFO }, hk, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+}
+const flux = async (u, T) => new Uint8Array(await new Response(new Blob([u]).stream().pipeThrough(new T("gzip"))).arrayBuffer());
+async function emballer(o, cle, gz) { let u = new TextEncoder().encode(JSON.stringify(o)); if (gz) u = await flux(u, CompressionStream); const iv = crypto.getRandomValues(new Uint8Array(12)), ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, cle, u));
+  const out = new Uint8Array(13 + ct.length); out[0] = gz ? 1 : 0; out.set(iv, 1); out.set(ct, 13); return b64(out); }
+async function deballer(t, cle) { const u = unb64(t), clair = new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv: u.subarray(1, 13) }, cle, u.subarray(13)));
+  return JSON.parse(new TextDecoder().decode(u[0] ? await flux(clair, DecompressionStream) : clair)); }
+const peutGz = () => typeof CompressionStream === "function" && typeof DecompressionStream === "function";
+let svLien = null, svMinuteur = 0;
+function svFin() { clearInterval(svMinuteur); if (svLien) { const w = svLien; svLien = null; w.onclose = w.onmessage = null; try { w.close(1000); } catch (e) {} } }
+function svLier(code, role, surMessage, surFin) {
+  let ws; try { ws = new WebSocket(`${RELAIS}/transfert/${code}?r=${role}`); } catch (e) { surFin("Pas de connexion internet : utilise plutôt le fichier."); return null; }
+  let ouvert = false; ws.onopen = () => { ouvert = true; }; ws.onmessage = e => { let m = null; try { m = JSON.parse(e.data); } catch (x) {} if (m) surMessage(m); };
+  ws.onclose = e => { if (svLien !== ws) return; svLien = null; clearInterval(svMinuteur); surFin(T_RAISON[e.code] || (ouvert ? "L'autre appareil est parti." : "Pas de connexion internet : utilise plutôt le fichier.")); };
+  return svLien = ws;
+}
+function svMontrer(info, { grand = null, saisie = false, charger = false } = {}) { $("svBox").hidden = false; $("svInfo").textContent = info; $("svGrand").hidden = !grand; $("svGrand").textContent = grand || "";
+  $("svSaisieL").hidden = !saisie; $("svCharger").hidden = !charger; $("svBox").scrollIntoView({ block: "center", behavior: "smooth" }); }
+// envoyer : on montre le code, on attend l'autre appareil, puis on envoie la partie chiffrée
+$("svEnvoyer").onclick = async () => { sfx.click(); svFin(); svAttente = null;
+  const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1e6).padStart(6, "0"), joli = code.slice(0, 3) + " " + code.slice(3), k = await clePaire(), pub = await clePub(k), fin = Date.now() + 10 * 60e3;
+  const reste = () => { const s = Math.max(0, Math.round((fin - Date.now()) / 1000)); return `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")}`; };
+  const attente = () => svMontrer(`Sur l'autre téléphone ou ordinateur : Menu ⚙️ → 📥 Recevoir, puis tape ce code (encore ${reste()}).`, { grand: joli });
+  let dit = false; const bonjour = () => { if (!dit) { dit = true; svLien?.send(JSON.stringify({ t: "hello", pub, gz: peutGz() })); } };
+  const ws = svLier(code, "send", async m => {
+    if (m.relay === "peer") { bonjour(); svMontrer("L'autre appareil est là ! Envoi de ta partie…", { grand: joli }); }
+    else if (m.relay === "gone") { dit = false; attente(); }
+    else if (m.t === "hello" && typeof m.pub === "string") { bonjour(); try { const cle = await cleCommune(k, m.pub, code); svLien?.send(JSON.stringify({ t: "data", d: await emballer(svPaquet(), cle, !!m.gz && peutGz()) })); } catch (e) { svMontrer("Impossible d'envoyer la partie."); svFin(); } }
+    else if (m.t === "done") { sfx.win(); svMontrer(m.ok ? "✅ Ta partie est arrivée sur l'autre appareil !" : "L'autre appareil n'a pas pu lire la partie."); svFin(); }
+  }, raison => svMontrer(raison));
+  if (ws) { attente(); svMinuteur = setInterval(() => { if (Date.now() > fin) { svFin(); svMontrer("Le code est fini (10 minutes). Recommence."); } else if (!$("svGrand").hidden && $("svInfo").textContent.startsWith("Sur l'autre")) attente(); }, 1000); } };
+// recevoir : on tape le code, on reçoit la partie, on montre ce qu'elle contient, puis « Charger »
+$("svRecevoir").onclick = () => { sfx.click(); svFin(); svAttente = null; $("svSaisie").value = ""; svMontrer("Tape le code à 6 chiffres affiché sur l'autre appareil :", { saisie: true }); $("svSaisie").focus(); };
+$("svSaisie").addEventListener("keydown", e => { e.stopPropagation(); if (e.key === "Enter") $("svRecevoirOk").click(); });
+$("svRecevoirOk").onclick = async () => { sfx.click(); const code = $("svSaisie").value.replace(/\D/g, ""); if (code.length !== 6) { $("svInfo").textContent = "Il faut les 6 chiffres du code."; return; }
+  svFin(); const k = await clePaire(), pub = await clePub(k); let cle = null, dit = false; const bonjour = () => { if (!dit) { dit = true; svLien?.send(JSON.stringify({ t: "hello", pub, gz: peutGz() })); } };
+  svMontrer("Connexion à l'autre appareil…");
+  svLier(code, "recv", async m => {
+    if (m.relay === "peer") bonjour();
+    else if (m.t === "hello" && typeof m.pub === "string" && !cle) { bonjour(); try { cle = await cleCommune(k, m.pub, code); } catch (e) {} svMontrer("Réception de la partie…"); }
+    else if (m.t === "data" && cle) { let o = null; try { o = await deballer(m.d, cle); } catch (e) {} const ok = svValide(o); svLien?.send(JSON.stringify({ t: "done", ok })); svFin();
+      if (!ok) { svMontrer("La partie reçue est illisible. Recommence."); return; } svAttente = o; sfx.duck(); svMontrer("Partie reçue : " + svResume(o) + ". Elle remplacera ta partie sur cet appareil.", { charger: true }); }
+    else if (m.relay === "gone") { svMontrer("L'autre appareil est parti. Recommence."); svFin(); }
+  }, raison => svMontrer(raison)); };
+$("svAnnuler").onclick = () => { sfx.click(); svFin(); $("svBox").hidden = true; };
+$("svCharger").onclick = () => { sfx.click(); if (!svAttente) return;
   try { for (const k of SV_CLES) localStorage.removeItem(k); for (const [k, v] of Object.entries(svAttente.donnees)) localStorage.setItem(k, v); } catch (e) { $("svInfo").textContent = "Impossible d'écrire la partie sur cet appareil."; return; }
   chargementEnCours = true; toast("✅ Partie chargée ! Le jeu redémarre…", 2000); setTimeout(() => location.reload(), 900); };
 $("svExport").onclick = async () => { sfx.click(); const txt = JSON.stringify(svPaquet(), null, 1), nom = "domaine-des-pins-" + new Date().toISOString().slice(0, 10) + ".json";
@@ -8375,8 +8417,8 @@ $("svExport").onclick = async () => { sfx.click(); const txt = JSON.stringify(sv
   const a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = nom; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast("📤 Fichier enregistré : " + nom, 2600); };
 $("svImport").onclick = () => { sfx.click(); $("svFichier").value = ""; $("svFichier").click(); };
 $("svFichier").onchange = async () => { const f = $("svFichier").files[0]; if (!f) return; let o = null; try { o = JSON.parse(await f.text()); } catch (e) {}
-  if (!svValide(o)) { svMontrer("info", "Ce fichier n'est pas une partie du Domaine des Pins."); svAttente = null; return; }
-  svAttente = o; svMontrer("lire", "Partie trouvée : " + svResume(o) + ". Elle remplacera ta partie sur cet appareil."); $("svTexte").value = f.name; $("svTexte").readOnly = true; };
+  svFin(); if (!svValide(o)) { svAttente = null; svMontrer("Ce fichier n'est pas une partie du Domaine des Pins."); return; }
+  svAttente = o; svMontrer("Partie trouvée dans « " + f.name + " » : " + svResume(o) + ". Elle remplacera ta partie sur cet appareil.", { charger: true }); };
 /* ================= Manette de jeu (Bluetooth) =================
    Manette « standard » (Xbox, PlayStation, Switch…). En jeu : stick gauche ou croix pour marcher, stick droit pour la caméra,
    A pour agir (ou sauter s'il n'y a rien à faire), B sauter, X parler, Y deuxième action, gâchettes pour courir,
