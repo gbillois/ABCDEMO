@@ -37,6 +37,12 @@
 }
 *{box-sizing:border-box;touch-action:manipulation}
 .menuJeu{max-width:520px}
+#invView .card{max-width:520px}
+.inv-sous{font-size:20px}
+#invListe h3{margin:12px 0 6px;font-size:17px;color:var(--leaf);text-align:left}
+#invListe .objets{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-start}
+#invListe .objet{background:#f1ebdc;border-radius:12px;padding:5px 10px;font-weight:700;font-size:16px}
+#invListe .vide{opacity:.6;text-align:left;margin:0}
 .menuJeu h3{margin:14px 0 6px;font-size:17px;color:var(--leaf);text-align:left}
 .menuJeu .grille{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .menuJeu .grille .btn{font-size:17px;padding:9px 8px}
@@ -63,7 +69,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#9fc7e0;color:var(--in
 .ico{width:46px;height:46px;padding:0;font-size:22px;border-radius:14px;background:var(--panel);color:var(--ink)}
 #hudL{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));display:flex;gap:8px;align-items:center;flex-wrap:wrap;max-width:55vw}
 #hudR{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));display:flex;gap:8px}
-@media (max-width:520px){#hudR{display:grid;grid-template-columns:repeat(3,46px);justify-content:end}#hudL{max-width:calc(100vw - 190px)}}
+@media (max-width:520px){#hudR{gap:6px}#hudL{max-width:calc(100vw - 236px)}}
 #where{position:fixed;top:calc(64px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));font-size:15px;background:var(--water);color:#fff}
 #moveBtns{position:fixed;left:calc(18px + env(safe-area-inset-left,0px));bottom:calc(164px + env(safe-area-inset-bottom,0px));display:flex;gap:10px}
 .btn.round{width:60px;height:60px;border-radius:50%;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:22px;line-height:1.05;background:rgba(52,73,94,.85)}.btn.round small{font-size:11px}#runBtn[aria-pressed="true"]{background:#e84393}
@@ -186,6 +192,7 @@ html.app .site{display:none!important}
 </div>
 <div id="hudR">
   <span id="gpPill" class="btn ico" hidden role="img" aria-label="Manette reconnue">🎮</span>
+  <button id="invBtn" class="btn ico" aria-label="Mon sac à dos">🎒</button>
   <button id="mapBtn" class="btn ico" aria-label="Carte">🗺️</button>
   <button id="pauseBtn" class="btn ico" aria-label="Menu et réglages">⚙️</button>
 </div>
@@ -358,11 +365,21 @@ html.app .site{display:none!important}
     <div class="row"><button id="golfAgain" class="btn" style="background:#27ae60">🔄 Recommencer</button><button id="golfClose" class="btn" style="background:#34495e">Fermer</button></div>
   </div>
 </div>
+<div id="invView" class="overlay" hidden>
+  <div class="card">
+    <h1>Mon sac à dos 🎒</h1>
+    <p class="inv-sous"><b id="invArgent"></b> · <b id="invTickets"></b></p>
+    <div id="invListe"></div>
+    <p class="small">Pour te changer, va dans ton cottage ou aux vestiaires de l'Aquaparc 👕</p>
+    <div class="row"><button id="invClose" class="btn" style="background:#34495e">Fermer</button></div>
+  </div>
+</div>
 <div id="lockerView" class="overlay" hidden>
   <div class="card">
-    <h1>Vestiaires 👕</h1>
+    <h1 id="lockerTitre">Vestiaires 👕</h1>
     <p>Choisis ce que tu mets. Il faut un maillot de bain pour aller dans l'eau.</p>
     <div id="lockerList" class="suits"></div>
+    <div class="row"><button id="lockerHabits" class="btn" style="background:var(--violet)">🎨 Changer mes habits</button></div>
     <div class="row"><button id="lockerClose" class="btn" style="background:#34495e">Fermer</button></div>
   </div>
 </div>
@@ -6581,7 +6598,7 @@ function renderLocker() {
   L.append(suitCard(null, wearing ? "Mettre" : "Je les porte ✓", !wearing, () => wear(null), "Pour se promener"));
   for (const id of owned) { const su = SUITS.find(x => x.id === id); L.append(suitCard(su, wearing === id ? "Je le porte ✓" : "Mettre", wearing === id, () => wear(id), su.price ? "Acheté" : "Offert")); }
 }
-function nomMaillot(su) { return player.userData.female ? su.name.replace(/^Short/, "Maillot une pièce") : su.name; }
+function nomMaillot(su) { return player.userData.female ? su.name.replace(/^Short de bain/, "Maillot de bain").replace(/^Short/, "Maillot une pièce") : su.name; }
 function wear(id) { wearing = id; setOutfit(player, id); envoyerProfil(); sfx.click(); whoosh(.4, .06, 800, 300); renderLocker(); toast(id ? "Te voilà en maillot de bain ! Direction l'eau !" : "Tu as remis tes habits.", 2400); }
 $("shopClose").onclick = () => { sfx.click(); fermer("shopView"); }; $("lockerClose").onclick = () => { sfx.click(); fermer("lockerView"); };
 updMoney();
@@ -6617,7 +6634,7 @@ function doAct(a) {
   if (a === "chest") { openChest(); return; }
   if (a === "treeslide") { state = "ride"; riding = { curve: treeSlide, u: 0, dry: true }; $("dialog").hidden = true; talking = null; sfx.slide(); toast("Wiiiiii ! 🛝", 1600); return; }
   if (a === "climb" && !wearing) { toast("Il faut un maillot de bain pour le toboggan : va aux vestiaires ! 👕", 2600); return; }
-  if (a === "locker") { renderLocker(); ouvrir("lockerView"); return; }
+  if (a === "locker") { $("lockerTitre").textContent = inCottage ? "Mon armoire 👕" : "Vestiaires 👕"; renderLocker(); ouvrir("lockerView"); return; }
   if (a === "shop") { renderShop(); ouvrir("shopView"); return; }
   if (a === "swim") { swimFast = !swimFast; toast(swimFast ? "Tu nages ! 🏊" : "Tu fais du sur-place dans l'eau.", 1500); return; }
   if (a === "climb") { state = "climbUp"; climbT = 0; $("dialog").hidden = true; talking = null; }
@@ -6826,7 +6843,7 @@ function dessinerCrea() {
   }
 }
 function ouvrirCrea() {
-  creaRetour = ["intro", "pauseView"].find(id => !$(id).hidden) || null; if (creaRetour) $(creaRetour).hidden = true;
+  creaRetour = ["intro", "pauseView", "lockerView"].find(id => !$(id).hidden) || null; if (creaRetour) $(creaRetour).hidden = true;
   $("creaCodeBox").hidden = $("creaImportBox").hidden = true; dessinerCrea(); $("creaView").hidden = false;
 }
 // l'écran de lancement montre les personnages gardés : on touche un visage pour le choisir, encore une fois pour le changer
@@ -7463,6 +7480,7 @@ function golf3Tick(dt, time, P) {
 // La partie (canards trouvés, endroit, maillot, heure du jour) est gardée sur l'appareil : à chaque canard, toutes les 30 s et en quittant
 let dernierEndroit = null, partieReprise = false;
 function sauverPartie(montrer) {
+  saveShop(); gtSave(); try { localStorage.setItem("pins-sac", JSON.stringify(bag.slice(-60))); } catch (e) {} // argent, maillots, cadeaux, courses
   const P = player.position; if (state === "walk" && P.y < .4) dernierEndroit = [r2(P.x), r2(P.z), r2(player.rotation.y)];
   try { localStorage.setItem("pins-partie", JSON.stringify({ canards: ducks.map(d => d.got ? 1 : 0), endroit: dernierEndroit, maillot: wearing, jour: r2(dayT), t: Date.now() }));
     if (montrer) toast("💾 Partie sauvegardée !", 1800); } catch (e) { if (montrer) toast("Impossible de sauvegarder sur cet appareil.", 2400); }
@@ -7496,6 +7514,22 @@ let gpNom = null;
 function temoinManette(g) { const n = g ? g.id.replace(/\s*\(.*?\)\s*/g, " ").trim().slice(0, 40) || "manette" : ""; if (n === gpNom) return; gpNom = n;
   $("gpPill").hidden = !g; $("gpEtat").textContent = g ? "🎮 Manette reconnue : " + n : "🎮 Pas de manette"; }
 temoinManette(null);
+// le sac à dos : tout ce qu'on a acheté ou gagné (déjà gardé sur l'appareil : argent, maillots, courses, cadeaux)
+function remplirSac() {
+  $("invArgent").textContent = "💶 " + money + " €"; $("invTickets").textContent = "🎟️ " + gtData.tickets + " ticket" + (gtData.tickets > 1 ? "s" : "");
+  const L = $("invListe"); L.textContent = "";
+  const groupe = (titre, objets, vide) => { const h = document.createElement("h3"); h.textContent = titre; L.append(h);
+    if (!objets.length) { const p = document.createElement("p"); p.className = "vide"; p.textContent = vide; L.append(p); return; }
+    const d = document.createElement("div"); d.className = "objets"; const n = {}; objets.forEach(o => n[o] = (n[o] || 0) + 1);
+    for (const [o, k] of Object.entries(n)) { const e = document.createElement("span"); e.className = "objet"; e.textContent = k > 1 ? `${o} ×${k}` : o; d.append(e); } L.append(d); };
+  groupe("🩱 Mes maillots", owned.map(id => { const su = SUITS.find(x => x.id === id); return (wearing === id ? "✅ " : "") + (su ? nomMaillot(su) : id); }), "Pas encore de maillot.");
+  groupe("🛍️ Mes courses", bag, "Rien pour l'instant : va à la boulangerie ou au Market Speed !");
+  groupe("🎁 Mes cadeaux", gtData.owned, "Gagne des tickets à Game Town pour avoir des cadeaux !");
+}
+$("invBtn").onclick = () => { if (!$("intro").hidden) return; sfx.click(); remplirSac(); ouvrir("invView"); };
+$("invClose").onclick = () => { sfx.click(); fermer("invView"); };
+// changer de haut, de bas, de couleurs : le créateur, depuis l'armoire du cottage ou les vestiaires
+$("lockerHabits").onclick = () => { sfx.click(); ouvrirCrea(); };
 /* ================= Manette de jeu (Bluetooth) =================
    Manette « standard » (Xbox, PlayStation, Switch…). En jeu : stick gauche ou croix pour marcher, stick droit pour la caméra,
    A pour agir (ou sauter s'il n'y a rien à faire), B sauter, X parler, Y deuxième action, gâchettes pour courir,
@@ -7751,6 +7785,7 @@ function loop() {
     if (state === "boat" && Math.hypot(pedalo.g.position.x - DOCK_END.x, pedalo.g.position.z - DOCK_END.z) < 4.5) { act1 = "unboat"; t1 = "🧍 Descendre sur le ponton"; }
     // nouveautés : véhicules, animaux, terrasse, rivière, maison dans les arbres
     const offer = (a, t) => { if (!act1) { act1 = a; t1 = t; } else if (!act2) { act2 = a; t2 = t; } };
+    if (state === "walk" && inCottage && inCottage.mine) offer("locker", "👕 Me changer");
     mountT = petT = seatOffer = null;
     if (state === "walk" && P.y < 1) {
       let bv = null, bd = 2.3; for (const v of vehicles) { const d = Math.hypot(P.x - v.x, P.z - v.z); if (d < bd) { bd = d; bv = v; } }
