@@ -386,7 +386,7 @@ const metalMat = mat(0xf0f2f2, 0.35, { metalness: 0.6 });
 function shadowAll(o, cast = true, recv = true) { o.traverse(m => { if (m.isMesh) { m.castShadow = cast; m.receiveShadow = recv; } }); return o; }
 function tex(size, draw, rx = 1, ry = rx) {
   const c = document.createElement("canvas"); c.width = c.height = size;
-  draw(c.getContext("2d"), size);
+  draw(c.getContext("2d", { willReadFrequently: true }), size); // dessin en mémoire : plus rapide pour des milliers de petits traits, et relu sans attendre la carte graphique
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); t.repeat.set(rx, ry); return t;
 }
