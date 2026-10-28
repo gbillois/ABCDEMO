@@ -6653,12 +6653,17 @@ let actx = null, master = null, fxBus = null, muted = false;
 const VOL = { gen: 1, mus: 1, fx: 1 }; try { Object.assign(VOL, JSON.parse(localStorage.getItem("pins-volumes") || "{}")); } catch (e) {}
 function appliquerVolumes() { if (!actx) return; const t = actx.currentTime; master.gain.setTargetAtTime(.45 * VOL.gen, t, .05); fxBus.gain.setTargetAtTime(VOL.fx, t, .05); }
 try { muted = localStorage.getItem("pins-muet") === "1"; } catch (e) {}
-function audioOn() { try { if (!actx) { actx = new (window.AudioContext || window.webkitAudioContext)(); master = actx.createGain(); master.gain.value = .45 * VOL.gen; master.connect(actx.destination); fxBus = actx.createGain(); fxBus.gain.value = VOL.fx; fxBus.connect(master); musicInit(); } if (actx.state === "suspended") actx.resume(); } catch (e) {} }
+function audioOn() { try { if (!actx) { actx = new (window.AudioContext || window.webkitAudioContext)(); master = actx.createGain(); master.gain.value = .45 * VOL.gen; master.connect(actx.destination); fxBus = actx.createGain(); fxBus.gain.value = VOL.fx; { const lp = actx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 5200; lp.Q.value = .5; fxBus.connect(lp).connect(master); // des bruits plus doux, avec un peu d'écho
+      const len = actx.sampleRate * 1.2, ir = actx.createBuffer(2, len, actx.sampleRate); for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 4); }
+      const rv = actx.createConvolver(), wet = actx.createGain(); rv.buffer = ir; wet.gain.value = .16; lp.connect(wet).connect(rv).connect(master); }
+      musicInit(); ambInit(); } if (actx.state === "suspended") actx.resume(); } catch (e) {} }
 function tone(f, dur, type = "sine", vol = .25, slide = 0, delay = 0) {
   if (!actx || muted) return; const t = actx.currentTime + delay, o = actx.createOscillator(), g = actx.createGain();
   o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, f + slide), t + dur);
+  const harsh = type === "square" || type === "sawtooth"; if (harsh) vol *= .6; // les sons « carrés » sont adoucis : moins forts, et sans les aigus qui piquent
   g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .012); g.gain.exponentialRampToValueAtTime(.0008, t + dur);
-  o.connect(g).connect(fxBus); o.start(t); o.stop(t + dur + .05);
+  if (harsh) { const lp = actx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = Math.min(2400, f * 3.5); o.connect(lp).connect(g); } else o.connect(g);
+  g.connect(fxBus); o.start(t); o.stop(t + dur + .05);
 }
 function whoosh(dur, vol = .2, f0 = 600, f1 = 1800, delay = 0) {
   if (!actx || muted) return; const t = actx.currentTime + delay, n = actx.sampleRate * dur, b = actx.createBuffer(1, n, actx.sampleRate), d = b.getChannelData(0);
@@ -6672,12 +6677,42 @@ const sfx = {
   door(open) { tone(open ? 190 : 150, .35, "sawtooth", .025, open ? -60 : 40); whoosh(.3, .05, 300, 700); tone(open ? 900 : 700, .05, "square", .04, 0, open ? .02 : .3); },
   splash() { whoosh(.9, .35, 2400, 300); whoosh(.4, .2, 900, 400, .1); },
   slide() { whoosh(2.6, .14, 300, 1600); },
-  step() { tone(520 + Math.random() * 80, .05, "square", .03); },
-  talk() { tone(620, .05, "square", .05); tone(760, .05, "square", .04, 0, .06); },
+  step() { tone(170 + Math.random() * 40, .07, "sine", .06, -60); whoosh(.06, .025, 900, 500); },
+  talk() { tone(660, .07, "triangle", .07, 60); tone(880, .08, "triangle", .06, 40, .07); },
   win() { [523, 659, 784, 1046, 1318].forEach((f, i) => tone(f, .3, "triangle", .2, 0, i * .12)); },
-  bird() { const f = 2200 + Math.random() * 900; tone(f, .09, "sine", .045, 700); tone(f * 1.1, .08, "sine", .04, 600, .13); },
-  click() { tone(880, .05, "triangle", .08); },
+  bird() { BIRDS[Math.floor(Math.random() * BIRDS.length)](0); },
+  click() { tone(1046, .06, "sine", .07); tone(1568, .05, "sine", .03, 0, .02); },
 };
+/* ---------- L'ambiance de la nature : le vent dans les pins, les feuilles, et des oiseaux variés (le soir, les grillons et les grenouilles) ---------- */
+let ambBus = null, ambWind = null, ambLeaves = null;
+function ambInit() {
+  if (ambBus || !actx) return;
+  ambBus = actx.createGain(); ambBus.gain.value = 0; ambBus.connect(master);
+  const n = actx.sampleRate * 4, b = actx.createBuffer(1, n, actx.sampleRate), d = b.getChannelData(0); let last = 0;
+  for (let i = 0; i < n; i++) { const w = Math.random() * 2 - 1; last = (last + .02 * w) / 1.02; d[i] = last * 3.5; } // bruit « brun » : un souffle doux
+  const loop = (fType, freq, q, vol) => { const s = actx.createBufferSource(); s.buffer = b; s.loop = true; const f = actx.createBiquadFilter(); f.type = fType; f.frequency.value = freq; f.Q.value = q; const g = actx.createGain(); g.gain.value = vol; s.connect(f).connect(g).connect(ambBus); s.start(); return { f, g, vol }; };
+  ambWind = loop("lowpass", 420, .7, .55); ambLeaves = loop("bandpass", 2600, .6, .05);
+}
+const BIRDS = [
+  t => { const f = 2400 + Math.random() * 600; for (let i = 0; i < 3; i++) tone(f + i * 120, .1, "sine", .035, 500, t + i * .14); }, // petit sifflement qui monte
+  t => { const f = 3000 + Math.random() * 400; for (let i = 0; i < 7; i++) tone(f, .04, "sine", .025, -200, t + i * .055); }, // trille
+  t => { tone(784, .3, "sine", .04, 0, t); tone(622, .45, "sine", .04, 0, t + .38); }, // coucou !
+  t => { const f = 1900 + Math.random() * 300; tone(f, .22, "sine", .035, 900, t); tone(f * 1.25, .2, "sine", .03, -500, t + .25); }, // merle
+  t => { for (let i = 0; i < 6; i++) tone(1100, .015, "triangle", .04, 0, t + i * .07); }, // pic-vert qui tape
+];
+let ambBirdT = 2, ambFrogT = 3;
+function ambTick(dt, outdoor, nightK, time) {
+  if (!ambBus) return;
+  const want = muted ? 0 : (paused ? .25 : outdoor ? 1 : .25) * VOL.mus * .5;
+  ambBus.gain.setTargetAtTime(want, actx.currentTime, .6);
+  // le vent souffle plus ou moins fort, doucement
+  const gust = .6 + .4 * Math.sin(time * .13) * Math.sin(time * .07 + 1);
+  ambWind.g.gain.setTargetAtTime(ambWind.vol * gust, actx.currentTime, .8); ambLeaves.g.gain.setTargetAtTime(ambLeaves.vol * (gust * gust) * (1 - nightK * .6), actx.currentTime, .8);
+  ambWind.f.frequency.setTargetAtTime(330 + gust * 220, actx.currentTime, 1);
+  if (paused || !outdoor || muted) return;
+  ambBirdT -= dt; if (ambBirdT < 0) { if (nightK > .5) { ambBirdT = .8 + Math.random() * 1.8; cricket(); } else { ambBirdT = 1.8 + Math.random() * 4.5; BIRDS[Math.floor(Math.random() * BIRDS.length)](0); } }
+  if (nightK > .5) { ambFrogT -= dt; if (ambFrogT < 0) { ambFrogT = 2 + Math.random() * 4; for (let i = 0; i < 2; i++) tone(150 + Math.random() * 30, .12, "triangle", .05, -40, i * .18); } } // les grenouilles, la nuit
+}
 /* ---------- Musique de forêt, faite maison : harpe, flûte et nappe douce en ré majeur, avec de l'écho ---------- */
 let musBus = null, musT = 0, musStep = 0;
 function musicInit() {
@@ -8078,7 +8113,7 @@ function loop() {
   if (splashT > 0) { splashT -= dt; splash.scale.setScalar(1 + (1 - splashT) * 4); splash.material.opacity = Math.max(0, splashT); }
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $("toast").hidden = true; }
   scheduleMusic();
-  if (!paused && !inCottage && !inDome) { birdT -= dt; if (birdT < 0) { birdT = nightK > .5 ? 1 + Math.random() * 2 : 3 + Math.random() * 6; if (nightK > .5) cricket(); else sfx.bird(); } }
+  ambTick(dt, !inCottage && !inDome && !inBalo && !inGT && !inBF && !inShop && !inAq, nightK, time);
   if (mapOpen) drawMap();
   netTick(dt);
 
