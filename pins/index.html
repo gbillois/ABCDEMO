@@ -1003,8 +1003,10 @@ function palm(x, z, h = 6) {
   g.position.set(x, 0, z); shadowAll(g); scene.add(g); circles.push({ x, z, r: .45 });
 }
 [[-22, -10], [21, -12], [-22, -46.5], [22, -46.5], [0, -58], [-18, -11], [26, -26]].forEach(p => palm(p[0], p[1], 6 + rnd() * 2));
-// transats
+// transats (on peut s'y allonger)
+const LOUNGERS = [];
 function lounger(x, z, ry) {
+  LOUNGERS.push({ x, z, ry });
   const g = new THREE.Group(); const frame = rbox(.75, .12, 1.9, mat(0xffffff, .4), .05); frame.position.y = .38; const cushion = rbox(.68, .1, 1.3, mat(0x2fa7d6, .8), .05); cushion.position.set(0, .48, .25);
   const back = rbox(.68, .1, .8, mat(0x2fa7d6, .8), .05); back.position.set(0, .7, -.62); back.rotation.x = .7;
   g.add(frame, cushion, back); for (const sx of [-.3, .3]) for (const sz of [-.8, .8]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .38), metalMat); leg.position.set(sx, .19, sz); g.add(leg); }
@@ -6860,7 +6862,13 @@ function sitDown(c, kind, k) {
     food.position.set(px, 1.05, pz); scene.add(shadowAll(food)); toast("Bon appétit ! 🥞", 1800); }
   else { const [wx, wz] = c.toWorld(TERR.loungers[k], TERR.ly + .78); player.position.set(wx, .8, wz); player.rotation.set(0, c.g.rotation.y, 0); state = "lie"; toast("Ahhh… on est bien au soleil 😎", 2200); }
 }
-function standUp() { if (!seatT) { state = "walk"; return; } const { c, kind } = seatT, [wx, wz] = kind === "eat" ? c.toWorld(-1.1, 7) : c.toWorld(.4, 7.4); player.position.set(wx, .2, wz); player.rotation.x = 0; if (food) { scene.remove(food); food = null; } seatT = null; state = "walk"; }
+// s'allonger sur un transat de l'Aquaparc : les pieds au bout, le dos sur le dossier (comme sur la terrasse)
+function allongerTransat(l) {
+  seatT = { l, kind: "lie", t: 0, done: false }; $("dialog").hidden = true; talking = null;
+  player.position.set(l.x + Math.sin(l.ry) * .78, .58, l.z + Math.cos(l.ry) * .78); player.rotation.set(0, l.ry, 0); state = "lie"; toast("Ahhh… on est bien au bord de la piscine 😎", 2200);
+}
+function standUp() { if (seatT && seatT.l) { const l = seatT.l; player.position.set(l.x + Math.cos(l.ry) * 1.1, 0, l.z - Math.sin(l.ry) * 1.1); player.rotation.x = 0; seatT = null; state = "walk"; return; }
+  if (!seatT) { state = "walk"; return; } const { c, kind } = seatT, [wx, wz] = kind === "eat" ? c.toWorld(-1.1, 7) : c.toWorld(.4, 7.4); player.position.set(wx, .2, wz); player.rotation.x = 0; if (food) { scene.remove(food); food = null; } seatT = null; state = "walk"; }
 function seatTick(dt) {
   const [ix, iy] = inp(); if (Math.hypot(ix, iy) > .3) { standUp(); return; }
   seatT.t += dt;
@@ -7130,7 +7138,7 @@ function doAct(a) {
   if (a === "dismount") { dismount(); return; }
   if (a === "lockbike") { lockBike(); return; }
   if (a === "pet" && petT) { petAnimal(petT); return; }
-  if ((a === "eat" || a === "lie") && seatOffer) { sitDown(seatOffer.c, a, seatOffer.k); return; }
+  if ((a === "eat" || a === "lie") && seatOffer) { if (seatOffer.l) allongerTransat(seatOffer.l); else sitDown(seatOffer.c, a, seatOffer.k); return; }
   if (a === "getup") { standUp(); return; }
   if (a === "river") { startRiver(); return; }
   if (a === "riverout") { endRiver(); return; }
@@ -8405,6 +8413,8 @@ function loop() {
       for (const c of cottages) { if (Math.abs(P.x - c.x) > 7 || Math.abs(P.z - c.z) > 11) continue; const [lx, lz] = c.toLocal(P.x, P.z); if (lz < 4.2 || lz > 9.3 || Math.abs(lx) > 5.2) continue;
         if (Math.hypot(lx - TERR.table[0], lz - TERR.table[1]) < 2.2) { let k = 0, kd = 1e9; TERR.chairs.forEach(([x, z], i) => { const d = Math.hypot(lx - x, lz - z); if (d < kd) { kd = d; k = i; } }); seatOffer = { c, k }; offer("eat", "🍽️ Manger à table"); }
         TERR.loungers.forEach((x, k) => { if (!seatOffer && Math.hypot(lx - x, lz - TERR.ly) < 1.6) { seatOffer = { c, k }; offer("lie", "😎 Se reposer"); } }); }
+      // les transats de l'Aquaparc (sauf ceux où un vacancier bronze déjà)
+      if (!seatOffer && P.y < .5) for (const l of LOUNGERS) if (Math.hypot(P.x - l.x, P.z - l.z) < 1.5 && !crowd.some(a => a.kind === "lounge" && Math.hypot(a.x - l.x, a.z - l.z) < 1.4)) { seatOffer = { l }; offer("lie", "😎 S'allonger"); break; }
       if (Math.hypot(P.x - RDOCK.x, P.z - RDOCK.z) < 2.6) offer("river", "🛟 Descendre la rivière");
     }
     if (state === "walk" && P.y > 4) { if (Math.hypot(P.x - CHEST.x, P.z - CHEST.z) < 1.8) offer("chest", "🎁 Ouvrir le coffre"); if (Math.hypot(P.x - 63.3, P.z - 69) < 1.5) offer("treeslide", "🛝 Glisser !"); }
