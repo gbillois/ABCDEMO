@@ -1437,7 +1437,7 @@ const DOCK = { ux: Math.cos(DOCK_A), uz: Math.sin(DOCK_A), u0: LAKE.r - 6.5, u1:
   for (const sx of [-1.1, 1.1]) { const b = new THREE.Mesh(new THREE.CylinderGeometry(.13, .13, .7, 12), post); b.position.set(sx, .62, DOCK.u0 + .15); g.add(b); const rope = new THREE.Mesh(new THREE.TorusGeometry(.14, .03, 8, 16), mat(0xd8c08a, .9)); rope.rotation.x = Math.PI / 2; rope.position.set(sx, .82, DOCK.u0 + .15); g.add(rope); }
   const sign = label("Pédalos", "#1f6fb2", "#ffffff", .5); sign.position.set(1.6, 2.15, DOCK.u1 - .5); g.add(sign);
   const sp = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, 2, 8), post); sp.position.set(1.6, 1, DOCK.u1 - .5); g.add(sp);
-  g.rotation.y = Math.PI / 2 - DOCK_A; g.position.set(LAKE.x, 0, LAKE.z); shadowAll(g); scene.add(g); }
+  g.rotation.y = Math.PI / 2 - DOCK_A; g.position.set(LAKE.x, 0, LAKE.z); shadowAll(g); scene.add(fondre(g)); } // le ponton : 46 planches et poteaux → 3 maillages
 path(LAKE_PATH, [LAKE.x + DOCK.ux * (DOCK.u1 + .6), LAKE.z + DOCK.uz * (DOCK.u1 + .6)], 2.4);
 // pédalo à pédales (on peut monter dedans)
 function makePedalo() {
@@ -1635,7 +1635,7 @@ let aqDoorOpen = 0, aqFeedT = 0, aqFade = 1;
 circles.push({ x: AQU.x, z: AQU.z, r: AQU.mid + .25 });
 const aqM = new THREE.Matrix4(), aqQ = new THREE.Quaternion(), aqV = new THREE.Vector3(), aqS = new THREE.Vector3();
 function updateAquarium(dt, time, P) {
-  const near = Math.hypot(P.x - AQU.x, P.z - AQU.z) < 60; aqInside.visible = near; if (!near) return false;
+  const near = Math.hypot(P.x - AQU.x, P.z - AQU.z) < 60; aqInside.visible = near && Math.hypot(camera.position.x - AQU.x, camera.position.z - AQU.z) < AQU.r + (LOWQ ? 16 : 20); if (!near) return false; // l'intérieur (460 objets) : seulement près des murs
   const l = aqLocal(P.x, P.z), inside = Math.hypot(l.u, l.v) < AQU.r - .3;
   // porte automatique
   const want = Math.hypot(l.u - AQU.r, l.v) < 4.2 ? 1 : 0; if (want && aqDoorOpen < .05) sfx.door();
@@ -2427,7 +2427,7 @@ const PARK_CARS = [];
   const shelter = rbox(1.6, .12, 8.5, roofM, .05); shelter.position.set(PARK.x1 + 1.2, 2.3, cz); shelter.rotation.z = .1; g.add(shelter);
   for (const z of [cz - 4, cz + 4]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, 2.3, 8), metalMat); p.position.set(PARK.x1 + 1.9, 1.15, z); g.add(p); }
   for (let i = 0; i < 6; i++) { const arc = new THREE.Mesh(new THREE.TorusGeometry(.35, .035, 8, 16, Math.PI), metalMat); arc.position.set(PARK.x1 + .9, .02, cz - 3.2 + i * 1.3); g.add(arc); }
-  shadowAll(g);
+  shadowAll(g); fondre(g); // rien ne bouge ici : les lignes, bordures, poteaux… deviennent quelques maillages
   // les voitures garées
   const CAR_COLS = [0xd62d20, 0x2e6fd8, 0xf4f4f4, 0x2b2b2b, 0xffc93c, 0x27ae60, 0x9b59b6, 0xff8a2b, 0x7f8c99];
   const spots = []; for (let i = 0; i < 7; i++) { spots.push([PARK.x1 + 4.8 + i * 2.6, PARK.z1 + 2.8, 0]); spots.push([PARK.x1 + 4.8 + i * 2.6, PARK.z2 - 2.8, Math.PI]); }
@@ -2521,7 +2521,7 @@ function makeCar(col, seed) {
   for (const sx of [-.6, .6]) { const hl = new THREE.Mesh(new THREE.SphereGeometry(.12, 12, 8), hm); hl.scale.z = .4; hl.position.set(sx, .7, 2); g.add(hl); heads.push(hl);
     const tl = new THREE.Mesh(new THREE.BoxGeometry(.3, .12, .05), new THREE.MeshStandardMaterial({ color: 0xc0392b, emissive: 0x7a1010, emissiveIntensity: .5 })); tl.position.set(sx, .72, -2.01); g.add(tl); }
   const plate = new THREE.Mesh(new THREE.BoxGeometry(.5, .14, .03), mat(0xffffff, .4)); plate.position.set(0, .45, 2.02); g.add(plate);
-  g.userData.lights = hm; return shadowAll(g);
+  g.userData.lights = hm; shadowAll(g); return fondre(g, wheels); // la carrosserie en quelques maillages (les roues tournent : on les garde)
 }
 function honk(c) { c.flash = 1.2; tone(392, .22, "square", .09); tone(330, .22, "square", .09, 0, .02); tone(392, .3, "square", .09, 0, .3); tone(330, .3, "square", .09, 0, .32); }
 let honkCar = null;
@@ -2872,7 +2872,7 @@ let acroZip = null; const ACRO_SWING = [];
   boxes.push({ x1: -142, x2: -139.1, z1: 102.4, z2: 106.8 });
   const sign = label("ACROBRANCHE 🧗", "#27ae60", "#ffffff", 1.6); sign.position.set(-140.5, 4.4, 104.6); g.add(sign);
   const s2 = label("Départ ↑ (avec le baudrier)", "#ff5a4e", "#ffffff", .9); s2.position.set(-115.8, 2.4, 126.2); g.add(s2);
-  shadowAll(g);
+  shadowAll(g); fondre(g, ACRO_SWING.map(sw => sw.g)); // 340 pièces immobiles → quelques maillages (les planches de la balançoire bougent : on les garde)
 }
 function updateAcroSwing(time) { for (const s of ACRO_SWING) { const a = Math.sin(time * 1.6 + s.ph) * .12; s.g.rotation.set(s.az * a, 0, -s.ax * a); } }
 // le baudrier et le casque sur ton personnage
@@ -2926,7 +2926,7 @@ const inJacuzzi = (x, z) => JACUZZIS.find(j => Math.hypot(x - j.x, z - j.z) < j.
     if (boxes.some(b => x > b.x1 - 1.5 && x < b.x2 + 1.5 && z > b.z1 - 1.5 && z < b.z2 + 1.5)) return false;
     if (circles.some(c => c.r < 3 && Math.hypot(x - c.x, z - c.z) < c.r + 1.5)) return false;
     return true; };
-  const clump = (x, z, big) => { const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+  const touffes = [], clump = (x, z, big) => { const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g); touffes.push(g);
     const soil = new THREE.Mesh(new THREE.CylinderGeometry(big ? 1.6 : 1.1, big ? 1.7 : 1.2, .3, 20), mat(0x6b4a2f, .95)); soil.position.y = .15; g.add(soil);
     const edge = new THREE.Mesh(new THREE.TorusGeometry(big ? 1.65 : 1.15, .12, 8, 24), mat(0xd9cfc0, .7)); edge.rotation.x = Math.PI / 2; edge.position.y = .3; g.add(edge);
     for (let k = 0; k < (big ? 5 : 3); k++) { const b = new THREE.Mesh(blobGeo(.5 + Math.random() * .4, 2, .3, k), mat(leafCols[k % 4], .8)); const a = Math.random() * 6.28, r = Math.random() * (big ? .9 : .5); b.position.set(Math.cos(a) * r, .6 + Math.random() * .5, Math.sin(a) * r); b.scale.y = 1.2; g.add(b); }
@@ -2937,6 +2937,8 @@ const inJacuzzi = (x, z) => JACUZZIS.find(j => Math.hypot(x - j.x, z - j.z) < j.
   let n = 0;
   for (let i = 0; i < 64 && n < 22; i++) { const a = i / 64 * Math.PI * 2 + .05, rr = DOME.r - 3.2, x = DOME.x + Math.cos(a) * rr, z = DOME.z + Math.sin(a) * rr; if (ok(x, z)) { clump(x, z, i % 3 === 0); n++; i += 2; } }
   for (const [x, z] of [[28, -20], [18, -11], [9, -18], [-26, -18], [-8, -20], [24, -33]]) if (ok(x, z)) clump(x, z, false);
+  // les ~28 massifs fleuris (15 à 20 pièces chacun) ne bougent pas : tous ensemble, ils ne font plus qu'une dizaine de maillages
+  { const T = new THREE.Group(); scene.add(T); for (const g of touffes) T.attach(g); fondre(T); }
   for (const [x, z] of [[29, -13], [-28, -26], [-26, -38], [27, -40]]) if (ok(x, z)) palm(x, z, 6 + Math.random() * 2);
 }
 let jacSoundT = 0;
@@ -3369,6 +3371,7 @@ path([PP.gx, 30], [PP.gx, PP.z2 + .6], 2.6);
     const roof = rbox(2.2, .1, 2, mat(0xe84393, .5), .03); roof.position.y = 2.25; cb.add(roof); const cur = rbox(1.9, 1.8, .04, mat(0xffc93c, .7), .01); cur.position.set(0, 1.2, .9); cur.scale.x = .45; cur.position.x = -.5; cb.add(cur);
     const lb = label("Cabine 👕", "#2e86de", "#ffffff", .7); lb.position.set(0, 2.8, 0); cb.add(lb); boxes.push({ x1: PP.x1 + .3, x2: PP.x1 + 2.5, z1: PP.z2 - 2.6, z2: PP.z2 - 2.4 }); PP.cabin = [PP.x1 + 1.4, PP.z2 - 1.6]; }
   shadowAll(g); water.castShadow = false;
+  fondre(g, [water, PP.gate, ...PP.floats.map(f => f.m)]); // barrière (180 piquets), fanions, ballons… en quelques maillages ; le portail et les bouées bougent
 }
 const inPartyZone = (x, z) => x > PP.x1 && x < PP.x2 && z > PP.z1 && z < PP.z2;
 function updatePartyPool(dt, time, P) {
@@ -3779,7 +3782,9 @@ function makeBike(col) {
   const ring = new THREE.Mesh(new THREE.TorusGeometry(.09, .012, 6, 24), steel); ring.rotation.y = Math.PI / 2; ring.position.set(.05, .3, -.02); g.add(ring);
   const crank = new THREE.Group(); crank.position.set(0, .3, -.02); for (const s of [-1, 1]) { const arm = rbox(.02, .17, .03, steel, .008); arm.position.set(s * .09, s * .08, 0); crank.add(arm); const ped = rbox(.1, .025, .07, dark, .01); ped.position.set(s * .14, s * .16, 0); crank.add(ped); } g.add(crank);
   const guard = new THREE.Mesh(new THREE.TorusGeometry(R + .05, .02, 6, 30, Math.PI * .7), fm); guard.rotation.set(0, Math.PI / 2, 0); guard.position.set(0, R, -.52); guard.rotation.z = .3; g.add(guard);
-  g.userData = { wheels, crank }; g.rotation.order = "YXZ"; return shadowAll(g);
+  g.userData = { wheels, crank }; g.rotation.order = "YXZ"; shadowAll(g);
+  // un vélo, c'est 57 petites pièces (rayons, tubes…) : chaque roue, le pédalier et le cadre deviennent chacun 2 ou 3 maillages
+  for (const w of wheels) fondre(w, [], "velo-roue"); fondre(crank, [], "velo-pedalier"); return fondre(g, [...wheels, crank]);
 }
 const vehicles = [];
 const BIKE_COLS = [0xe74c3c, 0x2e86de, 0xf1c40f, 0x27ae60, 0xe84393];
@@ -8015,6 +8020,35 @@ function setBtn(el, txt) { if (txt) { if (el.textContent !== txt) el.textContent
 function inPoolRect(x, z, m = .35) { return x > POOL.x1 + m && x < POOL.x2 - m && z > POOL.z1 + m && z < POOL.z2 - m || x > PPOOL.x1 + m && x < PPOOL.x2 - m && z > PPOOL.z1 + m && z < PPOOL.z2 - m; }
 camera.position.set(-16, 6, 26); camera.lookAt(-16, 1.5, 35);
 
+/* ================= Les intérieurs : ce qui est derrière les murs ne se dessine que de près =================
+   Comme dans les jeux vidéo (« occlusion » à la main) : de loin, les murs cachent tout ce qu'il y a dedans. Les meubles,
+   les jeux et les gens d'un bâtiment passent dans un groupe à part, affiché seulement quand la caméra approche des murs.
+   (Depuis le parking, on dessinait 2000 objets par image, dont plus de 1000 enfermés dans des bâtiments.) */
+const INTERIEURS = [];
+{
+  const b3 = new THREE.Box3(), gens = [...players.map(p => p.g), ...npcs.map(n => n.g)], bouge = new Set([player, ...ducks.map(d => d.g), ...vehicles.map(v => v.g), ...animals.map(a => a.g), ...movers.map(m => m.g), cat.g || cat].filter(Boolean));
+  scene.updateMatrixWorld(true);
+  const bat = (G, x, z, hx, hz, h) => {
+    const dedans = new THREE.Group(), peuple = new THREE.Group(); // peuple : dans le repère du monde, comme avant
+    // on garde dehors : les murs (ils dépassent du bord), le toit, l'enseigne, les portes et les vitres (elles brillent la nuit)
+    const portes = new Set([...(G.userData.doors || []), ...(SHOPS.find(sh => sh.g === G)?.doors || [])].map(d => d.m));
+    const garde = c => { let k = false; c.traverse(m => { if (portes.has(m) || winMats.includes(m.material)) k = true; }); return k; };
+    for (const c of [...G.children]) { if (c.isLight || c === G.userData.roof || garde(c)) continue; b3.setFromObject(c); if (b3.isEmpty()) continue;
+      if (b3.min.x > x - hx - .05 && b3.max.x < x + hx + .05 && b3.min.z > z - hz - .05 && b3.max.z < z + hz + .05 && b3.max.y < h - .05) dedans.add(c); }
+    for (const g of gens) if (g.parent === scene && Math.abs(g.position.x - x) < hx && Math.abs(g.position.z - z) < hz) peuple.add(g);
+    // et ce qui est posé à même la scène à l'intérieur (château gonflable, tables d'anniversaire…), sauf ce qui bouge ou s'enlève
+    for (const c of [...scene.children]) { if (c.isLight || bouge.has(c) || (c.userData.legs && !gens.includes(c))) continue; b3.setFromObject(c); if (b3.isEmpty()) continue;
+      if (b3.min.x > x - hx && b3.max.x < x + hx && b3.min.z > z - hz && b3.max.z < z + hz && b3.max.y < h) peuple.add(c); }
+    G.add(dedans); scene.add(peuple); INTERIEURS.push({ objs: [dedans, peuple], x, z, hx, hz, on: true });
+  };
+  bat(baloG, BALO.x, BALO.z, BALO.hx, BALO.hz, BALO.h); bat(gtG, GTW.x, GTW.z, GTW.hx, GTW.hz, GTW.h); bat(bfG, BFW.x, BFW.z, BFW.hx, BFW.hz, BFW.h);
+  for (const sh of SHOPS) bat(sh.g, sh.x, sh.z, sh.hx, sh.hz, sh.h ?? 4.2);
+}
+const PRES_MURS = LOWQ ? 16 : 20;
+function majInterieurs() { const C = camera.position;
+  for (const it of INTERIEURS) { const dx = Math.max(0, Math.abs(C.x - it.x) - it.hx), dz = Math.max(0, Math.abs(C.z - it.z) - it.hz), on = Math.hypot(dx, dz) < (it.on ? PRES_MURS + 2 : PRES_MURS);
+    if (on !== it.on) { it.on = on; for (const o of it.objs) o.visible = on; } } }
+
 /* ================= Ce qu'on ne voit pas, on ne le dessine pas =================
    - les petits objets lointains passent sur une autre « couche » que la caméra ne regarde pas
      (ils reviennent en s'approchant) ; plus un objet est grand, plus on le voit de loin ;
@@ -8324,7 +8358,7 @@ function loop() {
     const W = innerWidth, Hh = innerHeight; camera.setViewOffset(W, Hh, large ? W * .22 : 0, large ? 0 : Hh * .27, W, Hh); myLbl.visible = false;
   } else if (camera.view?.enabled) { camera.clearViewOffset(); myLbl.visible = true; }
   document.body.classList.toggle("crea-on", creaOn);
-  voituresTick(dt); trier(dt); suivreFeux(dt); if (dejaVu) adapterResolution();
+  voituresTick(dt); trier(dt); suivreFeux(dt); majInterieurs(); if (dejaVu) adapterResolution();
   renderer.render(scene, camera); dejaVu = true;
 }
 window.__pins = { renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
