@@ -65,25 +65,36 @@ body:not(.accueil-on) #accueil img{animation-play-state:paused}
 .jouer{font-family:var(--ui);font-weight:800;font-size:min(9vw,6vh,40px);letter-spacing:.06em;color:#fff;border:4px solid #fff;border-radius:999px;padding:.25em 1.6em .2em;background:linear-gradient(#4fd17f,#24934f);box-shadow:0 7px 0 #135e32,0 12px 30px rgba(0,0,0,.45);cursor:pointer;animation:pouls 1.6s ease-in-out infinite;touch-action:manipulation}
 .jouer:active{transform:translateY(5px) scale(.98);box-shadow:0 2px 0 #135e32}
 @keyframes pouls{50%{transform:scale(1.05)}}
-.menu{display:flex;gap:min(1.5vw,18px);justify-content:center}
-.rond{--d:min(14vw,9vh,64px);position:relative;isolation:isolate;font-family:var(--ui);display:flex;flex-direction:column;align-items:center;width:min(16.5vw,84px);font-size:min(7.5vw,5vh,30px);line-height:1;padding:calc((var(--d) - 1em) / 2) 0 0;border:0;background:none;color:#fff;text-decoration:none;cursor:pointer;touch-action:manipulation}
-.rond::after{content:"";position:absolute;top:0;left:50%;width:var(--d);height:var(--d);margin-left:calc(var(--d) / -2);border-radius:50%;background:rgba(255,253,244,.92);box-shadow:0 4px 0 rgba(0,0,0,.25);z-index:-1}
-.rond small{margin-top:calc((var(--d) - 1em) / 2 + 6px);font-size:12.5px;line-height:1.1;font-weight:800;max-width:100%;overflow-wrap:anywhere;text-shadow:0 1px 4px rgba(0,0,0,.8)}
-.rond:active::after{transform:translateY(3px)}
-#majBtn.neuf::after{background:var(--sun);box-shadow:0 0 0 4px #fff,0 4px 14px rgba(255,201,60,.9)}
+.coins{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:12px;right:12px;display:flex;gap:10px;z-index:1}
+.coins span{flex:1}
+.coin{width:44px;height:44px;border-radius:50%;border:0;padding:0;display:grid;place-items:center;font-size:22px;background:rgba(255,253,244,.85);box-shadow:0 3px 0 rgba(0,0,0,.22);text-decoration:none;cursor:pointer;touch-action:manipulation}
+.coin:active{transform:translateY(2px)}
+#majBtn.neuf{background:var(--sun);box-shadow:0 0 0 3px #fff,0 3px 12px rgba(255,201,60,.9);animation:pouls 1.6s ease-in-out infinite}
+.amis{font-family:var(--ui);font-weight:800;font-size:min(5vw,3.2vh,20px);color:#fff;border:2px solid rgba(255,255,255,.9);border-radius:999px;padding:.35em 1.1em;background:rgba(142,68,173,.85);box-shadow:0 4px 0 rgba(0,0,0,.25);cursor:pointer;touch-action:manipulation}
+.amis:active{transform:translateY(3px)}
+/* les personnages gardés : visage en miniature et surnom ; celui qu'on joue est entouré, on le touche pour le changer */
+#persos{display:flex;gap:min(2.5vw,14px);justify-content:center;align-items:flex-end;max-width:100%;overflow-x:auto;padding:6px 4px 2px;scrollbar-width:none}
+.vign{--t:min(14vw,8.5vh,64px);flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;padding:0;color:#fff;font-family:var(--ui);font-weight:800;font-size:13px;cursor:pointer;touch-action:manipulation;position:relative}
+.vign img,.vign i{width:var(--t);height:var(--t);border-radius:50%;background:#fde9c0;box-shadow:0 0 0 3px rgba(255,255,255,.75),0 4px 8px rgba(0,0,0,.35);object-fit:cover;display:grid;place-items:center;font-style:normal;font-size:calc(var(--t) * .5);color:var(--leaf);transition:transform .15s}
+.vign span{max-width:calc(var(--t) + 16px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 4px rgba(0,0,0,.85)}
+.vign.on{--t:min(20vw,12vh,88px)}
+.vign.on img{box-shadow:0 0 0 4px var(--sun),0 0 0 7px #fff,0 6px 14px rgba(0,0,0,.4)}
+.vign.on::after{content:"✏️";position:absolute;top:calc(var(--t) - 26px);right:-4px;width:30px;height:30px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:16px;box-shadow:0 2px 4px rgba(0,0,0,.3)}
+.vign.nouveau i{background:rgba(255,253,244,.8)}
+.vign:active img,.vign:active i{transform:scale(.94)}
 #majMsg{margin:0;min-height:1em;font-size:14px;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.8)}
 #charge{display:none;width:min(360px,80vw);font-weight:800;font-size:16px;text-shadow:0 1px 4px rgba(0,0,0,.8)}
 #charge .barre{height:12px;margin-bottom:8px;border-radius:999px;background:rgba(255,255,255,.3);overflow:hidden;box-shadow:0 0 0 2px rgba(255,255,255,.85)}
 #charge i{display:block;height:100%;width:3%;border-radius:999px;background:linear-gradient(90deg,var(--sun),#ffe28a);transition:width .25s}
 body.chargement #charge{display:block}
-body.chargement #intro .jouer,body.chargement #intro .menu{display:none}
+body.chargement #intro .jouer,body.chargement #intro .amis,body.chargement #persos{display:none}
 .overlay{z-index:2;position:fixed;inset:0;background:rgba(10,40,30,.55);display:flex;align-items:center;justify-content:center;padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px));padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));overflow:auto}
 .card{background:var(--panel);border-radius:24px;padding:20px;max-width:460px;width:100%;text-align:center;box-shadow:0 6px 0 rgba(0,0,0,.2);margin:auto}
 .card h1{margin:0 0 6px;font-size:30px;line-height:1.1;text-wrap:balance;color:var(--leaf)}
 .card p{font-size:18px;line-height:1.35;margin:8px 0}
 .card .small{font-size:15px;opacity:.75}
 .prog{text-align:left;max-width:560px}.prog h1{text-align:center}.prog h3{margin:12px 0 4px;color:#1d5fa8}.prog ul{margin:0;padding-left:4px;list-style:none;display:grid;gap:6px;font-size:16px;line-height:1.35}.prog .row{justify-content:center}
-body.crea-on #stick,body.crea-on #moveBtns,body.crea-on #actions,body.crea-on #hudR,body.crea-on #where{display:none!important}
+body.crea-on #stick,body.crea-on #moveBtns,body.crea-on #actions,body.crea-on #hudR,body.crea-on #hudL,body.crea-on #where{display:none!important}
 .crea{align-items:flex-end;background:transparent;pointer-events:none}.crea .card{pointer-events:auto;margin:auto 0 0;max-height:56vh;overflow:auto;max-width:560px;padding:14px;background:rgba(255,253,244,.96)}
 @media (orientation:landscape){.crea{justify-content:flex-end;align-items:center}.crea .card{margin:auto 0 auto auto;max-height:calc(100vh - 32px);max-width:min(460px,52vw)}}
 .crea h1{font-size:24px}.crea h3{margin:10px 0 4px;font-size:16px;text-align:left;color:var(--leaf)}.crea .opts{display:flex;flex-wrap:wrap;gap:6px}
@@ -164,20 +175,16 @@ html.app .site{display:none!important}
 <div id="dialog" hidden><b id="dName"></b><p id="dText"></p><small>Appuie encore sur Parler pour continuer</small></div>
 
 <div id="intro" class="overlay">
+  <div class="coins"><a class="coin site" href="../index.html" aria-label="Accueil des jeux">🏠</a><span></span><button id="aideBtn" class="coin" aria-label="Aide">❓</button><button id="majBtn" class="coin" aria-label="Mettre à jour le jeu" hidden>🔄</button></div>
   <div class="titre">
     <div class="logo"><span>Le Domaine</span><b>des Pins</b></div>
     <p class="slogan">Retrouve les 10 canards&nbsp;!&nbsp;🦆</p>
   </div>
   <div class="bas">
     <div id="charge"><div class="barre"><i id="chargeBar"></i></div><span id="chargeTxt">Le domaine se prépare…</span></div>
+    <div id="persos" role="group" aria-label="Ton personnage"></div>
     <button id="startBtn" class="jouer">▶ JOUER</button>
-    <div class="menu">
-      <button id="persoBtn" class="rond">🎨<small id="persoNom">Théo</small></button>
-      <button id="introMulti" class="rond">👫<small>Avec des amis</small></button>
-      <button id="aideBtn" class="rond">❓<small>Aide</small></button>
-      <a class="rond site" href="../index.html">🏠<small>Accueil</small></a>
-      <button id="majBtn" class="rond" hidden>🔄<small>Mise à jour</small></button>
-    </div>
+    <button id="introMulti" class="amis">👫 Avec des amis</button>
     <p id="majMsg"></p>
   </div>
 </div>
@@ -311,9 +318,8 @@ html.app .site{display:none!important}
 <div id="creaView" class="overlay crea" hidden>
   <div class="card">
     <h1>Ton personnage 🎨</h1>
-    <div id="creaListe" class="row"></div>
     <label class="creaNom">Ton surnom <input id="creaNomIn" type="text" maxlength="16" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Théo"></label>
-    <p id="creaMsg" class="small">Quand tu joues à plusieurs, les autres voient ce surnom : pas ton vrai prénom.</p>
+    <p id="creaMsg" class="small">Un surnom, pas ton vrai prénom 😉</p>
     <div id="creaOpts"></div>
     <div class="row"><button id="creaOk" class="btn">✅ C'est moi !</button><button id="creaHasard" class="btn" style="background:#ff8a2b">🎲 Au hasard</button></div>
     <div class="row"><button id="creaCodeBtn" class="btn" style="background:#34495e">🔑 Mon code</button><button id="creaImportBtn" class="btn" style="background:#34495e">📥 J'ai un code</button><button id="creaSuppr" class="btn" style="background:#9aa0b4">🗑️ Effacer</button></div>
@@ -327,7 +333,7 @@ html.app .site{display:none!important}
     <div id="multiOff">
       <fieldset class="profil">
         <legend>Ton personnage</legend>
-        <p class="small" style="margin:4px 0">Tu joues avec ton personnage : <b id="multiPerso"></b> (bouton 🎨 pour le changer).</p>
+        <p class="small" style="margin:4px 0">Tu joues avec ton personnage : <b id="multiPerso"></b> (touche son visage sur l'écran de départ pour le changer).</p>
         <label for="pseudoIn">Ton surnom (facultatif, 2 à 16 caractères)</label>
         <input id="pseudoIn" type="text" maxlength="16" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Exemple : Petit Panda" aria-describedby="pseudoAide">
         <small id="pseudoAide">Choisis un surnom, pas ton vrai prénom. Sans surnom, tu gardes le nom de ton animal. Les insultes sont refusées.</small>
@@ -5970,7 +5976,7 @@ function optsDePerso(p, extra = {}) {
     shorts: l[12] === 0, motifHaut: [null, "rayures", "etoiles", null, "arcenciel"][l[11]], manches: l[11] === 3, capuche: l[11] === 3, motifBas: [null, null, "cerises", "jean"][l[12]],
     traits: l.length > 16 ? { yeux: l[13], sourcils: l[14], nez: l[15], bouche: l[16] } : undefined, ...extra };
 }
-function persoAuHasard(sexe) { const l = LOOK_MAX.map(m => Math.floor(Math.random() * m)); l[2] = sexe === "f" ? [1, 2, 3, 4, 6][Math.floor(Math.random() * 5)] : [0, 5, 7][Math.floor(Math.random() * 3)]; l[4] = 1; l[5] = 1; l[6] = Math.random() < .6 ? 0 : l[6]; l[12] = Math.random() < .5 ? 0 : l[12]; return { nom: "", sexe, look: l }; }
+function persoAuHasard(sexe) { const l = LOOK_MAX.map(m => Math.floor(Math.random() * m)); l[2] = sexe === "f" ? [1, 2, 3, 4, 6][Math.floor(Math.random() * 5)] : [0, 5, 7][Math.floor(Math.random() * 3)]; l[1] = Math.floor(Math.random() * 9); l[3] = Math.floor(Math.random() * 5); l[4] = 1; l[5] = 1; l[6] = Math.random() < .6 ? 0 : l[6]; l[12] = Math.random() < .5 ? 0 : l[12]; return { nom: "", sexe, look: l }; }
 // code : le tout dans un grand nombre, écrit avec 32 signes faciles à lire (sans I, O, 0 ni 1), avec une petite somme de contrôle
 const CODE32 = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", NOM_CH = " abcdefghijklmnopqrstuvwxyz0123456789-'_éèêëàâäçîïôöùûüÿñòóõãáíì";
 const nomPourCode = n => [...n].map(c => { const l = c.toLowerCase(); if (NOM_CH.includes(l)) return c; const b = c.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); return NOM_CH.includes(b.toLowerCase()) ? b : ""; }).join("").slice(0, 16);
@@ -5996,9 +6002,9 @@ function codeEnPerso(code) {
 let PERSOS = [], persoI = 0;
 try { const v = JSON.parse(localStorage.getItem("pins-persos") || "[]"); if (Array.isArray(v)) PERSOS = v.map(p => p && { ...p, look: migrerLook(p.look) }).filter(p => p && ["f", "g"].includes(p.sexe) && lookValide(p.look) && filtrerSurnom(p.nom ?? "") !== null).slice(0, 6); persoI = Math.min(PERSOS.length - 1, Math.max(0, +localStorage.getItem("pins-perso") || 0)); } catch (e) {}
 const premiereFois = !PERSOS.length;
-if (premiereFois) { // on reprend les anciens choix (fille/garçon, nom, lunettes) s'il y en a
-  let sx = "g", nom = "", lu = 0; try { sx = localStorage.getItem("pins-sexe") === "f" ? "f" : "g"; nom = filtrerSurnom(localStorage.getItem("pins-nom") || "") || ""; lu = Math.min(4, Math.max(0, +localStorage.getItem("pins-lunettes") || 0)); } catch (e) {}
-  const p = { nom, sexe: sx, look: [1, sx === "f" ? 3 : 2, sx === "f" ? 1 : 0, 0, 1, 1, lu || (sx === "f" ? 0 : 5), 0, sx === "f" ? 11 : 5, sx === "f" ? 6 : 0, 0, 0, 0, sx === "f" ? 4 : 0, sx === "f" ? 1 : 3, 0, 0] }; PERSOS = [p]; persoI = 0; }
+if (premiereFois) { // on reprend les anciens choix (fille/garçon, nom, lunettes) s'il y en a, sinon un personnage au hasard
+  let sx = "g", nom = "", lu = 0, ancien = false; try { ancien = localStorage.getItem("pins-sexe") !== null; sx = localStorage.getItem("pins-sexe") === "f" ? "f" : "g"; nom = filtrerSurnom(localStorage.getItem("pins-nom") || "") || ""; lu = Math.min(4, Math.max(0, +localStorage.getItem("pins-lunettes") || 0)); } catch (e) {}
+  const p = { nom, sexe: sx, look: [1, sx === "f" ? 3 : 2, sx === "f" ? 1 : 0, 0, 1, 1, lu || (sx === "f" ? 0 : 5), 0, sx === "f" ? 11 : 5, sx === "f" ? 6 : 0, 0, 0, 0, sx === "f" ? 4 : 0, sx === "f" ? 1 : 3, 0, 0] }; PERSOS = [ancien ? p : { ...persoAuHasard(Math.random() < .5 ? "f" : "g"), nom }]; persoI = 0; }
 const monPerso = () => PERSOS[persoI];
 function sauverPersos() { try { localStorage.setItem("pins-persos", JSON.stringify(PERSOS)); localStorage.setItem("pins-perso", persoI); } catch (e) {} }
 // le joueur prend l'apparence du personnage choisi
@@ -6007,7 +6013,7 @@ function appliquerPerso() {
   player = person(o); player.position.copy(ancien.position); player.rotation.copy(ancien.rotation);
   ancien.remove(myLbl); player.add(myLbl); scene.add(player); scene.remove(ancien); libererPersonnage(ancien);
   putGlasses(player, o.lunettes); setOutfit(player, wearing); nommer(p.nom);
-  $("persoNom").textContent = monNom; $("multiPerso").textContent = (p.sexe === "f" ? "👧 " : "👦 ") + monNom;
+  $("multiPerso").textContent = (p.sexe === "f" ? "👧 " : "👦 ") + monNom;
 }
 // nom affiché au-dessus du personnage ; les animateurs l'appellent par ce nom
 let monNom = "Théo";
@@ -6020,10 +6026,7 @@ const CREA = [["Tu es", "sexe"], ["Peau", 0, PEAUX], ["Couleur des cheveux", 1, 
   ["Accessoire", 6, ACCS], ["Couleur de l'accessoire", 7, ACC_COULS], ["Haut", 11, HAUTS], ["Couleur du haut", 8, TSHIRTS], ["Bas", 12, BAS], ["Couleur du bas", 9, SHORTS], ["Chaussures", 10, CHAUSS]];
 let creaRetour = null;
 function dessinerCrea() {
-  const p = monPerso(), L = $("creaListe"); L.innerHTML = "";
-  PERSOS.forEach((q, i) => { const b = document.createElement("button"); b.className = "btn perso" + (i === persoI ? " on" : ""); b.textContent = (q.sexe === "f" ? "👧 " : "👦 ") + (q.nom || "Sans nom");
-    b.onclick = () => { persoI = i; sfx.click(); appliquerPerso(); dessinerCrea(); }; L.append(b); });
-  if (PERSOS.length < 6) { const b = document.createElement("button"); b.className = "btn perso"; b.textContent = "➕ Nouveau"; b.onclick = () => { PERSOS.push(persoAuHasard(Math.random() < .5 ? "f" : "g")); persoI = PERSOS.length - 1; sfx.click(); appliquerPerso(); dessinerCrea(); }; L.append(b); }
+  const p = monPerso();
   $("creaNomIn").value = p.nom; $("creaSuppr").hidden = PERSOS.length < 2;
   const O = $("creaOpts"); O.innerHTML = "";
   for (const [titre, k, liste] of CREA) {
@@ -6041,19 +6044,49 @@ function ouvrirCrea() {
   creaRetour = ["intro", "pauseView"].find(id => !$(id).hidden) || null; if (creaRetour) $(creaRetour).hidden = true;
   $("creaCodeBox").hidden = $("creaImportBox").hidden = true; dessinerCrea(); $("creaView").hidden = false;
 }
-$("persoBtn").onclick = () => { audioOn(); sfx.click(); ouvrirCrea(); };
+// l'écran de lancement montre les personnages gardés : on touche un visage pour le choisir, encore une fois pour le changer
+const VIGN = new Map(), vScene = new THREE.Scene(), vCam = new THREE.PerspectiveCamera(22, 1, .05, 30);
+vScene.background = new THREE.Color(0xfde9c0); vScene.add(new THREE.HemisphereLight(0xffffff, 0xb59a7a, 2.4));
+{ const d = new THREE.DirectionalLight(0xfff4e6, 2.4); d.position.set(1.5, 2.5, 4); vScene.add(d); }
+// photo du visage : dessinée dans un coin de l'écran (caché par l'image d'accueil), puis recopiée dans une petite image
+function vignette(p) {
+  const cle = JSON.stringify([p.sexe, p.look]); if (VIGN.has(cle)) return VIGN.get(cle);
+  let url = "";
+  try {
+    const o = optsDePerso(p), g = person(o); putGlasses(g, o.lunettes); animPerson(g, "idle", 0); vScene.add(g); g.updateMatrixWorld(true);
+    const t = g.userData.head.getWorldPosition(new THREE.Vector3()), s = g.scale.y * (o.tete ?? 1); t.y += .14 * s;
+    vCam.position.set(t.x + .18 * s, t.y + .05 * s, t.z + 1.6 * s); vCam.lookAt(t);
+    const pr = renderer.getPixelRatio(), N = 128, H = renderer.domElement.height, vp = renderer.getViewport(new THREE.Vector4());
+    renderer.setScissorTest(true); renderer.setViewport(0, 0, N / pr, N / pr); renderer.setScissor(0, 0, N / pr, N / pr);
+    renderer.render(vScene, vCam);
+    const c = document.createElement("canvas"); c.width = c.height = N; c.getContext("2d").drawImage(renderer.domElement, 0, H - N, N, N, 0, 0, N, N); url = c.toDataURL("image/png");
+    renderer.setScissorTest(false); renderer.setViewport(vp); vScene.remove(g); libererPersonnage(g);
+  } catch (e) { renderer.setScissorTest(false); }
+  VIGN.set(cle, url); return url;
+}
+function dessinerPersos() {
+  const L = $("persos"); L.innerHTML = "";
+  PERSOS.forEach((q, i) => { const b = document.createElement("button"), nom = q.nom || (i ? "Perso " + (i + 1) : "Théo"); b.className = "vign" + (i === persoI ? " on" : "");
+    const u = vignette(q); if (u) { const im = new Image(); im.alt = ""; im.src = u; b.append(im); } else { const e = document.createElement("i"); e.textContent = q.sexe === "f" ? "👧" : "👦"; b.append(e); }
+    const n = document.createElement("span"); n.textContent = nom; b.append(n); b.setAttribute("aria-label", i === persoI ? nom + " : changer ce personnage" : "Jouer avec " + nom);
+    b.onclick = () => { audioOn(); sfx.click(); if (i === persoI) { ouvrirCrea(); return; } persoI = i; sauverPersos(); appliquerPerso(); dessinerPersos(); }; L.append(b); });
+  if (PERSOS.length < 6) { const b = document.createElement("button"), e = document.createElement("i"), n = document.createElement("span"); b.className = "vign nouveau"; e.textContent = "＋"; n.textContent = "Nouveau"; b.append(e, n);
+    b.setAttribute("aria-label", "Créer un nouveau personnage");
+    b.onclick = () => { audioOn(); sfx.click(); PERSOS.push(persoAuHasard(Math.random() < .5 ? "f" : "g")); persoI = PERSOS.length - 1; sauverPersos(); appliquerPerso(); ouvrirCrea(); }; L.append(b); }
+}
 $("creaNomIn").addEventListener("keydown", e => e.stopPropagation());
 $("creaNomIn").addEventListener("input", () => { const v = filtrerSurnom($("creaNomIn").value);
-  $("creaMsg").textContent = v === null ? "Ce surnom ne marche pas : de 2 à 16 lettres, sans gros mot." : "Quand tu joues à plusieurs, les autres voient ce surnom : pas ton vrai prénom.";
-  if (v !== null) { const p = monPerso(); p.nom = v; nommer(v); $("persoNom").textContent = monNom; const b = $("creaListe").children[persoI]; if (b) b.textContent = (p.sexe === "f" ? "👧 " : "👦 ") + (v || "Sans nom"); } });
+  $("creaMsg").textContent = v === null ? "Ce surnom ne marche pas : de 2 à 16 lettres, sans gros mot." : "Un surnom, pas ton vrai prénom 😉";
+  if (v !== null) { const p = monPerso(); p.nom = v; nommer(v);  } });
 $("creaOk").onclick = () => {
   if (filtrerSurnom($("creaNomIn").value) === null) { sfx.click(); $("creaNomIn").focus(); return; }
   monPerso().nom = filtrerSurnom($("creaNomIn").value); sauverPersos(); appliquerPerso(); sfx.click(); $("creaView").hidden = true;
   if (creaRetour) $(creaRetour).hidden = false; else $("intro").hidden = false;
+  dessinerPersos();
   if (net) toast("Les autres joueurs verront ton nouveau personnage à la prochaine partie.", 2600);
 };
 $("creaHasard").onclick = () => { const p = monPerso(), n = persoAuHasard(p.sexe); p.look = n.look; sfx.click(); appliquerPerso(); dessinerCrea(); };
-$("creaSuppr").onclick = () => { if (PERSOS.length < 2) return; PERSOS.splice(persoI, 1); persoI = Math.max(0, persoI - 1); sauverPersos(); sfx.click(); appliquerPerso(); dessinerCrea(); };
+$("creaSuppr").onclick = () => { if (PERSOS.length < 2) return; PERSOS.splice(persoI, 1); persoI = Math.max(0, persoI - 1); sauverPersos(); sfx.click(); appliquerPerso(); $("creaView").hidden = true; $(creaRetour || "intro").hidden = false; dessinerPersos(); };
 $("creaCodeBtn").onclick = () => { sfx.click(); $("creaImportBox").hidden = true; $("creaCode").textContent = persoEnCode(monPerso()); $("creaCodeBox").hidden = !$("creaCodeBox").hidden; };
 $("creaImportBtn").onclick = () => { sfx.click(); $("creaCodeBox").hidden = true; $("creaImportBox").hidden = !$("creaImportBox").hidden; $("creaCodeIn").value = ""; };
 $("creaCodeIn").addEventListener("keydown", e => { e.stopPropagation(); if (e.key === "Enter") $("creaCodeOk").click(); });
@@ -6419,7 +6452,7 @@ $("runBtn").onclick = () => { runOn = !runOn; $("runBtn").setAttribute("aria-pre
 addEventListener("keydown", e => { if (e.repeat || paused) return; const k = e.key.toLowerCase(); if (k === "j" || (k === " " && !act1 && !act2)) doJump(); });
 const GLASSES = [null, ["Lunettes rouges", 0xd62d20, 0xcfeefa], ["Lunettes bleues", 0x2e6fd8, 0xcfeefa], ["Lunettes de soleil", 0x1b1b1b, 0x1b1b1b], ["Lunettes en or", 0xd4af37, 0xfff2c0], ["Lunettes roses", 0xf2b8c6, 0xf6e9ee]];
 // au lancement : le personnage gardé sur l'appareil ; la toute première fois, on commence par le créer
-appliquerPerso(); if (premiereFois) { $("intro").hidden = true; ouvrirCrea(); }
+appliquerPerso(); if (premiereFois) sauverPersos();
 
 /* ================= Jour et nuit : le soleil se lève à l'est, se couche à l'ouest, puis la lune et les étoiles ================= */
 const DAY_LEN = 480; // une journée entière dure 8 minutes
@@ -6755,6 +6788,7 @@ window.__pins = { animPerson, wear: id => wear(id), get veh() { return veh; }, g
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
 await souffle(97, "Les couleurs se mélangent…");
 try { await Promise.race([renderer.compileAsync(scene, camera), new Promise(r => setTimeout(r, 6000))]); } catch (e) {}
+dessinerPersos();
 document.body.classList.remove("chargement");
 loop();
 </script>
