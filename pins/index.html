@@ -73,11 +73,11 @@ body:not(.accueil-on) #accueil img{animation-play-state:paused}
 .amis{font-family:var(--ui);font-weight:800;font-size:min(5vw,3.2vh,20px);color:#fff;border:2px solid rgba(255,255,255,.9);border-radius:999px;padding:.35em 1.1em;background:rgba(142,68,173,.85);box-shadow:0 4px 0 rgba(0,0,0,.25);cursor:pointer;touch-action:manipulation}
 .amis:active{transform:translateY(3px)}
 /* les personnages gardés : visage en miniature et surnom ; celui qu'on joue est entouré, on le touche pour le changer */
-#persos{display:flex;gap:min(2.5vw,14px);justify-content:center;align-items:flex-end;max-width:100%;overflow-x:auto;padding:6px 4px 2px;scrollbar-width:none}
-.vign{--t:min(14vw,8.5vh,64px);flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;padding:0;color:#fff;font-family:var(--ui);font-weight:800;font-size:13px;cursor:pointer;touch-action:manipulation;position:relative}
+#persos{display:flex;gap:min(2vw,12px);justify-content:safe center;align-items:flex-end;max-width:100%;overflow-x:auto;padding:6px 4px 2px;scrollbar-width:none}
+.vign{--t:min(12vw,8.5vh,64px);flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;padding:0;color:#fff;font-family:var(--ui);font-weight:800;font-size:13px;cursor:pointer;touch-action:manipulation;position:relative}
 .vign img,.vign i{width:var(--t);height:var(--t);border-radius:50%;background:#fde9c0;box-shadow:0 0 0 3px rgba(255,255,255,.75),0 4px 8px rgba(0,0,0,.35);object-fit:cover;display:grid;place-items:center;font-style:normal;font-size:calc(var(--t) * .5);color:var(--leaf);transition:transform .15s}
-.vign span{max-width:calc(var(--t) + 16px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 4px rgba(0,0,0,.85)}
-.vign.on{--t:min(20vw,12vh,88px)}
+.vign span{width:calc(var(--t) + 14px);min-height:2.2em;font-size:12.5px;line-height:1.1;text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-shadow:0 1px 4px rgba(0,0,0,.85)}
+.vign.on{--t:min(16.5vw,12vh,88px)}
 .vign.on img{box-shadow:0 0 0 4px var(--sun),0 0 0 7px #fff,0 6px 14px rgba(0,0,0,.4)}
 .vign.on::after{content:"✏️";position:absolute;top:calc(var(--t) - 26px);right:-4px;width:30px;height:30px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:16px;box-shadow:0 2px 4px rgba(0,0,0,.3)}
 .vign.nouveau i{background:rgba(255,253,244,.8)}
@@ -100,7 +100,7 @@ body.crea-on #stick,body.crea-on #moveBtns,body.crea-on #actions,body.crea-on #h
 .crea h1{font-size:24px}.crea h3{margin:10px 0 4px;font-size:16px;text-align:left;color:var(--leaf)}.crea .opts{display:flex;flex-wrap:wrap;gap:6px}
 .crea .opt{min-width:44px;height:44px;border-radius:12px;border:3px solid transparent;font:inherit;font-size:15px;font-weight:800;padding:0 10px;background:#e8e4d6;color:#1d3b2a;cursor:pointer}
 .crea .opt.coul{width:44px;padding:0;border-color:rgba(0,0,0,.15)}.crea .opt.dessin{width:66px;padding:0;overflow:hidden}.crea .opt.dessin img{display:block;width:100%;height:100%;object-fit:cover}.crea .opt[aria-pressed="true"]{border-color:#ff7a2f;box-shadow:0 0 0 3px #ffc93c}
-.crea .creaNom{display:block;font-weight:800;margin:6px 0}.crea input{font:inherit;font-size:18px;padding:8px 12px;border-radius:12px;border:3px solid #1d3b2a;width:min(240px,64vw);text-align:center;background:#fff;color:#1d3b2a;user-select:text;-webkit-user-select:text;touch-action:manipulation}
+.crea .creaNom{display:block;font-weight:800;margin:6px 0}.crea .creaNom label{display:block}.nomLigne{display:flex;gap:8px;justify-content:center;align-items:center;margin-top:4px}.de{width:46px;height:46px;flex:none;border:0;border-radius:12px;background:#ff8a2b;font-size:24px;box-shadow:0 3px 0 rgba(0,0,0,.25);cursor:pointer;touch-action:manipulation}.de:active{transform:translateY(2px)}.crea input{font:inherit;font-size:18px;padding:8px 12px;border-radius:12px;border:3px solid #1d3b2a;width:min(240px,64vw);text-align:center;background:#fff;color:#1d3b2a;user-select:text;-webkit-user-select:text;touch-action:manipulation}
 .crea .perso{background:#9aa0b4;font-size:15px;padding:6px 10px}.crea .perso.on{background:var(--violet);outline:3px solid #ffc93c}.crea .code{font-size:24px;font-weight:800;letter-spacing:1px;word-break:break-all;user-select:text;-webkit-user-select:text}
 .sexe .btn{background:#9aa0b4}.sexe .btn[aria-checked="true"]{background:#e84393;outline:3px solid #ffc93c}.sexe #sexeG[aria-checked="true"]{background:#2e86de}
 .bfmenu h3{margin:10px 0 4px;font-size:17px;text-align:left;color:#1f9e8f}.bfrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.bfrow .btn{font-size:16px;padding:7px 8px;background:#9aa0b4}.bfrow .btn.on{background:#ff7a2f;outline:3px solid #ffc93c}
@@ -300,6 +300,15 @@ html.app .site{display:none!important}
     <div class="row"><button id="acroGo" class="btn" style="background:#27ae60">🦺 Je mets mon baudrier et mon casque !</button><button id="acroClose" class="btn" style="background:#34495e">Plus tard</button></div>
   </div>
 </div>
+<div id="golfView" class="overlay" hidden>
+  <div class="card">
+    <h1>Minigolf ⛳</h1>
+    <p id="golfInfo" class="small"></p>
+    <canvas id="golfCanvas" width="360" height="480" style="width:min(78vw,52vh,360px);height:auto;aspect-ratio:3/4;max-width:100%;border-radius:16px;touch-action:none;display:block;margin:6px auto"></canvas>
+    <p class="small">Pose ton doigt sur le terrain, tire en arrière comme un lance-pierre, et lâche !</p>
+    <div class="row"><button id="golfAgain" class="btn" style="background:#27ae60">🔄 Recommencer</button><button id="golfClose" class="btn" style="background:#34495e">Fermer</button></div>
+  </div>
+</div>
 <div id="lockerView" class="overlay" hidden>
   <div class="card">
     <h1>Vestiaires 👕</h1>
@@ -318,7 +327,7 @@ html.app .site{display:none!important}
 <div id="creaView" class="overlay crea" hidden>
   <div class="card">
     <h1>Ton personnage 🎨</h1>
-    <label class="creaNom">Ton surnom <input id="creaNomIn" type="text" maxlength="16" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Théo"></label>
+    <div class="creaNom"><label for="creaNomIn">Ton surnom</label><div class="nomLigne"><input id="creaNomIn" type="text" maxlength="16" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Théo"><button id="creaNomDe" class="de" type="button" aria-label="Un surnom au hasard">🎲</button></div></div>
     <p id="creaMsg" class="small">Un surnom, pas ton vrai prénom 😉</p>
     <div id="creaOpts"></div>
     <div class="row"><button id="creaOk" class="btn">✅ C'est moi !</button><button id="creaHasard" class="btn" style="background:#ff8a2b">🎲 Au hasard</button></div>
@@ -2417,6 +2426,99 @@ function updateJacuzzis(dt, time, P) {
   if (jz) { jacSoundT -= dt; if (jacSoundT < 0) { jacSoundT = 1.4; whoosh(1.2, .03, 900, 1400); } }
   return jz;
 }
+
+/* ---------- Le minigolf, à l'est du parking : 6 trous, un moulin, un petit pont ---------- */
+const GOLF = { x1: 100, x2: 130, z1: 35, z2: 57, kiosk: [103.5, 37] };
+ZONES.push({ x1: GOLF.x1 - 1, x2: GOLF.x2 + 1, z1: GOLF.z1 - 1, z2: GOLF.z2 + 1 });
+path([115, 30], [115, GOLF.z1 - .3], 2.6);
+{
+  const g = new THREE.Group(); scene.add(g);
+  const felt = mat(0x2fa85a, .9), border = mat(0xd9cfc0, .7), wood = mat(0x9c6b3c, .8);
+  const base = new THREE.Mesh(new THREE.PlaneGeometry(GOLF.x2 - GOLF.x1, GOLF.z2 - GOLF.z1), mat(0xe8dcc0, .95, { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 })); base.rotation.x = -Math.PI / 2; base.position.set((GOLF.x1 + GOLF.x2) / 2, .02, (GOLF.z1 + GOLF.z2) / 2); g.add(base);
+  // six pistes vertes avec bordures, un drapeau au bout de chacune
+  const lanes = [[106, 41, 9, 2.2, 0], [106, 47, 9, 2.2, 0], [106, 53, 9, 2.2, 0], [122, 41, 10, 2.4, 0], [122, 47, 10, 2.4, 0], [122, 53, 10, 2.4, 0]];
+  lanes.forEach(([x, z, L, W], i) => {
+    const f = rbox(L, .12, W, felt, .05); f.position.set(x, .06, z); g.add(f);
+    for (const s of [-1, 1]) { const b = rbox(L + .3, .25, .15, border, .05); b.position.set(x, .12, z + s * (W / 2 + .07)); g.add(b); }
+    for (const s of [-1, 1]) { const b = rbox(.15, .25, W + .3, border, .05); b.position.set(x + s * (L / 2 + .07), .12, z); g.add(b); }
+    const hole = new THREE.Mesh(new THREE.CircleGeometry(.12, 16), mat(0x111111, .9)); hole.rotation.x = -Math.PI / 2; hole.position.set(x + L / 2 - .8, .125, z); g.add(hole);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, 1.2, 6), mat(0xffffff, .4)); pole.position.set(x + L / 2 - .8, .7, z); g.add(pole);
+    const flag = new THREE.Mesh(new THREE.PlaneGeometry(.4, .26), mat([0xff5a4e, 0xffc93c, 0x2e86de, 0xe84393, 0x9b59b6, 0xff8a2b][i], .6, { side: THREE.DoubleSide })); flag.position.set(x + L / 2 - .6, 1.15, z); g.add(flag);
+    const num = label(String(i + 1), "#ffffff", "#1d3b2a", .4); num.position.set(x - L / 2 + .3, .7, z); g.add(num);
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(.06, 10, 8), mat(0xffffff, .3)); ball.position.set(x - L / 2 + .7, .18, z + .3); g.add(ball);
+    boxes.push({ x1: x - L / 2 - .15, x2: x + L / 2 + .15, z1: z - W / 2 - .15, z2: z + W / 2 + .15 });
+  });
+  // le moulin sur la piste 4
+  const mill = new THREE.Group(); mill.position.set(122, 0, 41 - 1.6); g.add(mill);
+  const tower = new THREE.Mesh(new THREE.CylinderGeometry(.45, .65, 2.2, 12), mat(0xf4efe6, .7)); tower.position.y = 1.1; mill.add(tower);
+  const cap = new THREE.Mesh(new THREE.ConeGeometry(.65, .7, 12), mat(0xc0392b, .6)); cap.position.y = 2.55; mill.add(cap);
+  const blades = new THREE.Group(); blades.position.set(0, 1.9, .5); mill.add(blades);
+  for (let k = 0; k < 4; k++) { const b = rbox(.18, 1.3, .04, mat(0xffffff, .6), .02); b.position.y = .65; const p = new THREE.Group(); p.rotation.z = k * Math.PI / 2; p.add(b); blades.add(p); }
+  GOLF.blades = blades;
+  // le petit pont sur la piste 5 et des rochers sur la 6
+  const bridge = new THREE.Mesh(new THREE.CylinderGeometry(.9, .9, 2.2, 16, 1, true, 0, Math.PI), wood); bridge.rotation.z = Math.PI / 2; bridge.rotation.y = Math.PI / 2; bridge.position.set(122, .1, 47); bridge.scale.set(1, 1, .5); g.add(bridge);
+  for (let k = 0; k < 3; k++) { const r = new THREE.Mesh(blobGeo(.3, 2, .3, k), mat(0x8d8f96, .9)); r.position.set(119 + k * 2.2, .25, 53 + (k % 2 ? .5 : -.5)); g.add(r); }
+  // le kiosque où l'on prend sa balle et son club
+  const k = new THREE.Group(); k.position.set(GOLF.kiosk[0], 0, GOLF.kiosk[1]); g.add(k);
+  const kb = rbox(2.6, 1.1, 1.2, mat(0x27ae60, .6), .08); kb.position.y = .55; k.add(kb);
+  const kr = rbox(3.2, .2, 1.8, mat(0xffffff, .6), .08); kr.position.y = 2.5; k.add(kr);
+  for (const s of [-1, 1]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, 2.4, 8), metalMat); p.position.set(s * 1.4, 1.2, -.6); k.add(p); }
+  for (let i = 0; i < 5; i++) { const club = new THREE.Mesh(new THREE.CylinderGeometry(.015, .015, .9, 6), metalMat); club.position.set(-1 + i * .3, 1.4, .3); club.rotation.z = .2; k.add(club); }
+  boxes.push({ x1: GOLF.kiosk[0] - 1.3, x2: GOLF.kiosk[0] + 1.3, z1: GOLF.kiosk[1] - .6, z2: GOLF.kiosk[1] + .6 });
+  const sign = label("MINIGOLF ⛳", "#27ae60", "#ffffff", 1.6); sign.position.set(GOLF.kiosk[0], 3.7, GOLF.kiosk[1]); g.add(sign);
+  shadowAll(g);
+}
+// le jeu de minigolf, vu de dessus : tire en glissant le doigt depuis la balle (comme un lance-pierre)
+const GOLF_HOLES = [
+  { par: 2, start: [60, 400], hole: [300, 80], walls: [] },
+  { par: 2, start: [60, 420], hole: [300, 70], walls: [[120, 200, 240, 24]] },
+  { par: 3, start: [180, 430], hole: [180, 60], walls: [[0, 280, 230, 22], [130, 160, 230, 22]] },
+  { par: 3, start: [60, 420], hole: [300, 70], walls: [], mill: [180, 240, 90] },
+  { par: 3, start: [180, 430], hole: [180, 60], walls: [], bumpers: [[110, 220, 26], [250, 220, 26], [180, 150, 22], [180, 300, 22]] },
+  { par: 4, start: [50, 430], hole: [310, 60], walls: [[0, 330, 250, 20], [110, 220, 250, 20], [0, 110, 250, 20]] },
+];
+const gcv = $("golfCanvas"), gx = gcv.getContext("2d"); let golf = null;
+let golfBest = null; try { const b = parseInt(localStorage.getItem("pins-golf")); if (b > 0) golfBest = b; } catch (e) {}
+function golfStart() { golf = { h: 0, strokes: 0, total: 0, scores: [], ball: null, aim: null, done: false, t: 0, last: performance.now() }; golfHole(0); ouvrir("golfView"); requestAnimationFrame(golfLoop); }
+function golfHole(i) { const H = GOLF_HOLES[i]; golf.h = i; golf.strokes = 0; golf.ball = { x: H.start[0], y: H.start[1], vx: 0, vy: 0, inHole: 0 }; golf.aim = null; $("golfInfo").textContent = `Trou ${i + 1} sur 6 · par ${H.par}`; }
+function golfPos(e) { const r = gcv.getBoundingClientRect(); return [(e.clientX - r.left) * 360 / r.width, (e.clientY - r.top) * 480 / r.height]; }
+gcv.addEventListener("pointerdown", e => { if (!golf || golf.done) return; const b = golf.ball; if (Math.hypot(b.vx, b.vy) > 2 || b.inHole) return; const [x, y] = golfPos(e); golf.aim = { x, y }; gcv.setPointerCapture(e.pointerId); });
+gcv.addEventListener("pointermove", e => { if (golf && golf.aim) { const [x, y] = golfPos(e); golf.aim.x = x; golf.aim.y = y; } });
+gcv.addEventListener("pointerup", () => { if (!golf || !golf.aim) return; const b = golf.ball, dx = b.x - golf.aim.x, dy = b.y - golf.aim.y, d = Math.hypot(dx, dy); golf.aim = null; if (d < 8) return;
+  const p = Math.min(d, 160) * 4.2; b.vx = dx / d * p; b.vy = dy / d * p; golf.strokes++; tone(300 + Math.min(d, 160) * 2, .06, "triangle", .1); });
+function golfLoop(now) {
+  if (!golf || $("golfView").hidden) return; const dt = Math.min(.03, (now - golf.last) / 1000); golf.last = now; golf.t += dt;
+  const H = GOLF_HOLES[golf.h], b = golf.ball, x = gx;
+  // le moulin tourne : ses 4 pales sont des segments
+  const segs = []; if (H.mill) { const [mx, my, ml] = H.mill; for (let k = 0; k < 4; k++) { const a = golf.t * 1.4 + k * Math.PI / 2; segs.push([mx, my, mx + Math.cos(a) * ml, my + Math.sin(a) * ml]); } }
+  if (!b.inHole) for (let step = 0; step < 3; step++) { const h = dt / 3;
+    b.x += b.vx * h; b.y += b.vy * h; const fr = Math.pow(.35, h); b.vx *= fr; b.vy *= fr; if (Math.hypot(b.vx, b.vy) < 6) { b.vx = 0; b.vy = 0; }
+    if (b.x < 18) { b.x = 18; b.vx = Math.abs(b.vx) * .8; } if (b.x > 342) { b.x = 342; b.vx = -Math.abs(b.vx) * .8; } if (b.y < 18) { b.y = 18; b.vy = Math.abs(b.vy) * .8; } if (b.y > 462) { b.y = 462; b.vy = -Math.abs(b.vy) * .8; }
+    for (const [wx, wy, ww, wh] of H.walls) { const cx = Math.max(wx, Math.min(wx + ww, b.x)), cy = Math.max(wy, Math.min(wy + wh, b.y)), dx = b.x - cx, dy = b.y - cy, d = Math.hypot(dx, dy);
+      if (d < 8) { const nx = d ? dx / d : 0, ny = d ? dy / d : -1; b.x = cx + nx * 8; b.y = cy + ny * 8; const vn = b.vx * nx + b.vy * ny; if (vn < 0) { b.vx -= 1.8 * vn * nx; b.vy -= 1.8 * vn * ny; tone(180, .04, "square", .04); } } }
+    for (const [bx, by, br] of H.bumpers || []) { const dx = b.x - bx, dy = b.y - by, d = Math.hypot(dx, dy); if (d < br + 8) { const nx = dx / d, ny = dy / d; b.x = bx + nx * (br + 8); b.y = by + ny * (br + 8); const vn = b.vx * nx + b.vy * ny; b.vx -= 2.2 * vn * nx; b.vy -= 2.2 * vn * ny; b.vx += nx * 60; b.vy += ny * 60; tone(660, .06, "sine", .08); } }
+    for (const [x1, y1, x2, y2] of segs) { const sx = x2 - x1, sy = y2 - y1, L2 = sx * sx + sy * sy, t = Math.max(0, Math.min(1, ((b.x - x1) * sx + (b.y - y1) * sy) / L2)), px = x1 + sx * t, py = y1 + sy * t, dx = b.x - px, dy = b.y - py, d = Math.hypot(dx, dy);
+      if (d < 9) { const nx = d ? dx / d : 1, ny = d ? dy / d : 0; b.x = px + nx * 9; b.y = py + ny * 9; b.vx += nx * 140; b.vy += ny * 140; tone(150, .05, "square", .05); } }
+    const hd = Math.hypot(b.x - H.hole[0], b.y - H.hole[1]), sp = Math.hypot(b.vx, b.vy);
+    if (hd < 11 && sp < 380) { b.inHole = .01; b.vx = b.vy = 0; b.x = H.hole[0]; b.y = H.hole[1]; [784, 988, 1175].forEach((f, i) => tone(f, .14, "triangle", .1, 0, i * .1)); } }
+  if (b.inHole && !golf.done) { b.inHole += dt; if (b.inHole > 1.2) { golf.scores.push(golf.strokes); golf.total += golf.strokes; if (golf.h < 5) golfHole(golf.h + 1); else { golf.done = true; const rec = !golfBest || golf.total < golfBest; if (rec) { golfBest = golf.total; try { localStorage.setItem("pins-golf", String(golf.total)); } catch (e) {} } sfx.win();
+    $("golfInfo").textContent = `Bravo ! ${golf.total} coups pour les 6 trous (par 17).${rec ? " Nouveau record ! 🏆" : ` Record : ${golfBest} coups.`}`; } } }
+  // dessin
+  x.fillStyle = "#1f7a3e"; x.fillRect(0, 0, 360, 480); x.fillStyle = "#2fa85a"; x.fillRect(10, 10, 340, 460);
+  x.strokeStyle = "#d9cfc0"; x.lineWidth = 10; x.strokeRect(5, 5, 350, 470);
+  x.fillStyle = "#d9cfc0"; for (const [wx, wy, ww, wh] of H.walls) x.fillRect(wx, wy, ww, wh);
+  for (const [bx, by, br] of H.bumpers || []) { x.fillStyle = "#ff5a4e"; x.beginPath(); x.arc(bx, by, br, 0, 7); x.fill(); x.fillStyle = "#ffd0c4"; x.beginPath(); x.arc(bx - br * .3, by - br * .3, br * .35, 0, 7); x.fill(); }
+  if (H.mill) { const [mx, my] = H.mill; x.strokeStyle = "#ffffff"; x.lineWidth = 12; x.lineCap = "round"; for (const [x1, y1, x2, y2] of segs) { x.beginPath(); x.moveTo(x1, y1); x.lineTo(x2, y2); x.stroke(); } x.fillStyle = "#c0392b"; x.beginPath(); x.arc(mx, my, 16, 0, 7); x.fill(); }
+  x.fillStyle = "#111"; x.beginPath(); x.arc(H.hole[0], H.hole[1], 12, 0, 7); x.fill(); x.strokeStyle = "#fff"; x.lineWidth = 3; x.beginPath(); x.moveTo(H.hole[0], H.hole[1]); x.lineTo(H.hole[0], H.hole[1] - 46); x.stroke();
+  x.fillStyle = "#ff5a4e"; x.beginPath(); x.moveTo(H.hole[0], H.hole[1] - 46); x.lineTo(H.hole[0] + 26, H.hole[1] - 38); x.lineTo(H.hole[0], H.hole[1] - 30); x.fill();
+  if (golf.aim) { const dx = b.x - golf.aim.x, dy = b.y - golf.aim.y, d = Math.min(Math.hypot(dx, dy), 160), k = d / Math.max(1, Math.hypot(dx, dy)); x.strokeStyle = `rgba(255,255,255,.85)`; x.setLineDash([8, 8]); x.lineWidth = 4; x.beginPath(); x.moveTo(b.x, b.y); x.lineTo(b.x + dx * k, b.y + dy * k); x.stroke(); x.setLineDash([]);
+    x.fillStyle = d > 120 ? "#ff5a4e" : d > 60 ? "#ffc93c" : "#7cff6b"; x.fillRect(20, 448, d / 160 * 120, 12); x.strokeStyle = "#fff"; x.lineWidth = 2; x.strokeRect(20, 448, 120, 12); }
+  if (!b.inHole || b.inHole < .5) { x.fillStyle = "rgba(0,0,0,.25)"; x.beginPath(); x.arc(b.x + 2, b.y + 3, 8, 0, 7); x.fill(); x.fillStyle = "#ffffff"; x.beginPath(); x.arc(b.x, b.y, 8, 0, 7); x.fill(); }
+  x.fillStyle = "#ffffff"; x.font = "bold 18px sans-serif"; x.textAlign = "right"; x.fillText(`Coups : ${golf.strokes}`, 340, 34); x.textAlign = "left"; x.fillText(`Total : ${golf.total + (golf.done ? 0 : golf.strokes)}`, 20, 34);
+  requestAnimationFrame(golfLoop);
+}
+$("golfAgain").onclick = () => { fermer("golfView"); golfStart(); };
+$("golfClose").onclick = () => { fermer("golfView"); golf = null; };
 
 /* ---------- Végétation ---------- */
 function nearPath(x, z, pad) { return paths.some(([a, b, w]) => { const dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz; let t = ((x - a[0]) * dx + (z - a[1]) * dz) / L2; t = Math.max(0, Math.min(1, t)); return Math.hypot(x - (a[0] + t * dx), z - (a[1] + t * dz)) < w / 2 + pad; }); }
@@ -5762,6 +5864,7 @@ function zoneName(P) {
   if (inBaloba(P.x, P.z)) return "🎈 Multi Parcs";
   if (inGameTown(P.x, P.z)) return "🎈 Multi Parcs";
   if (inBurger(P.x, P.z)) return "🍔 Burger Fast";
+  if (inRect(GOLF, P.x, P.z)) return "⛳ Minigolf";
   if (inRect(ACRO, P.x, P.z)) return "🧗 Acrobranche";
   if (inLockerRoom(P.x, P.z)) return "👕 Vestiaires";
   for (const sh of SHOPS) if (sh.in(P.x, P.z)) return sh.where;
@@ -5775,7 +5878,7 @@ function zoneName(P) {
   if (riverNear(P.x, P.z).d < 7) return "🌊 Rivière sauvage";
   return "";
 }
-const ZTOAST = { "🧗 Acrobranche": "L'acrobranche ! Va à l'accueil pour mettre ton baudrier 🦺", "👕 Vestiaires": "Les vestiaires ! Entre dans une cabine pour te changer 👕", "🏨 Accueil": "L'accueil ! Margot t'explique tout : approche-toi du comptoir 📋", "🥖 Boulangerie": "Ça sent bon le pain chaud ! 🥖", "🛒 Market Speed": "Le Market Speed ! Va à la caisse pour faire tes courses 🛒⚡", "🅿️ Parking": "Le parking ! Approche-toi d'une voiture pour klaxonner 📯. Les vélos sous l'abri, tu peux les prendre 🚲", "🍔 Burger Fast": "Burger Fast ! Va à la caisse pour commander ton menu 🍔🍟", "🎈 Multi Parcs": "Bienvenue au Multi Parcs ! Joue aux bornes d'arcade pour gagner des tickets 🎟️. Au fond : grimpe, glisse, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
+const ZTOAST = { "⛳ Minigolf": "Le minigolf ! Va au kiosque vert pour jouer les 6 trous ⛳", "🧗 Acrobranche": "L'acrobranche ! Va à l'accueil pour mettre ton baudrier 🦺", "👕 Vestiaires": "Les vestiaires ! Entre dans une cabine pour te changer 👕", "🏨 Accueil": "L'accueil ! Margot t'explique tout : approche-toi du comptoir 📋", "🥖 Boulangerie": "Ça sent bon le pain chaud ! 🥖", "🛒 Market Speed": "Le Market Speed ! Va à la caisse pour faire tes courses 🛒⚡", "🅿️ Parking": "Le parking ! Approche-toi d'une voiture pour klaxonner 📯. Les vélos sous l'abri, tu peux les prendre 🚲", "🍔 Burger Fast": "Burger Fast ! Va à la caisse pour commander ton menu 🍔🍟", "🎈 Multi Parcs": "Bienvenue au Multi Parcs ! Joue aux bornes d'arcade pour gagner des tickets 🎟️. Au fond : grimpe, glisse, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
   "🌊 Rivière sauvage": "La rivière sauvage ! Va au ponton pour prendre une bouée 🛟", "🌳 Maison dans les arbres": "Tu es dans les arbres ! Traverse le pont de singe… et descends par le toboggan 🛝", "🛖 Une cabane": "Une petite cabane en rondins 🛖" };
 const seenZ = new Set();
 
@@ -5950,6 +6053,7 @@ function doAct(a) {
   if (!a) return; sfx.click();
   if (a === "feed") { feedFish(); return; }
   if (a === "waves") { pressWaves(); return; }
+  if (a === "golf") { golfStart(); return; }
   if (/^bday\d$/.test(a)) { blowCandles(BDAY[+a.slice(4)]); return; }
   if (a === "acro") { if (harnessOn) { setHarness(false); toast("Tu as rendu ton baudrier. À bientôt ! 👋", 2000); } else ouvrir("acroView"); return; }
   if (a === "zip") { state = "ride"; riding = { curve: acroZip.curve, u: 0, dry: true, msg: "Youpi ! Quelle tyrolienne ! 🪂" }; $("dialog").hidden = true; talking = null; sfx.slide(); toast("Wiiiiii ! 🪂", 1600); return; }
@@ -6015,12 +6119,13 @@ function drawMap() {
   mx.fillStyle = "#3b2a7a"; mx.fillRect(X(GTW.x - GTW.hx), Z(GTW.z - GTW.hz), GTW.hx * 2 * k, GTW.hz * 2 * k); mx.strokeStyle = "#ff4fd8"; mx.lineWidth = 3; mx.strokeRect(X(GTW.x - GTW.hx), Z(GTW.z - GTW.hz), GTW.hx * 2 * k, GTW.hz * 2 * k);
   mx.fillStyle = "#5a5e64"; mx.fillRect(X(PARK.x1), Z(PARK.z1), (PARK.x2 - PARK.x1) * k, (PARK.z2 - PARK.z1) * k);
   for (const sh of SHOPS) { mx.fillStyle = sh === ACCUEIL ? "#2e86de" : sh === MARKET ? "#27ae60" : "#8a4b2a"; mx.fillRect(X(sh.x - sh.hx), Z(sh.z - sh.hz), sh.hx * 2 * k, sh.hz * 2 * k); }
+  mx.fillStyle = "#2fa85a"; mx.fillRect(X(GOLF.x1), Z(GOLF.z1), (GOLF.x2 - GOLF.x1) * k, (GOLF.z2 - GOLF.z1) * k);
   mx.fillStyle = "#2d6a4f"; mx.fillRect(X(ACRO.x1), Z(ACRO.z1), (ACRO.x2 - ACRO.x1) * k, (ACRO.z2 - ACRO.z1) * k);
   mx.fillStyle = "#ff7a2f"; mx.fillRect(X(BFW.x - BFW.hx), Z(BFW.z - BFW.hz), BFW.hx * 2 * k, BFW.hz * 2 * k);
   mx.fillStyle = "#1f8fae"; mx.beginPath(); mx.arc(X(AQU.x), Z(AQU.z), AQU.r * k, 0, 7); mx.fill(); mx.strokeStyle = "#ffffff"; mx.lineWidth = 2; mx.stroke();
   mx.fillStyle = "#e84393"; mx.fillRect(X(11.3), Z(21), 5.4 * k, 2 * k);
   mx.font = '700 13px "Baloo 2",sans-serif'; mx.textAlign = "center"; mx.fillStyle = "#0d3b52";
-  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2)); mx.fillText("Multi Parcs", X(BALO.x + 2), Z(BALO.z + BALO.hz + .5)); mx.fillText("Burger Fast", X(BFW.x), Z(BFW.z - BFW.hz - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Acrobranche", X((ACRO.x1 + ACRO.x2) / 2), Z((ACRO.z1 + ACRO.z2) / 2)); mx.fillStyle = "#1d3b2a"; mx.fillText("Accueil", X(ACCUEIL.x), Z(ACCUEIL.z - 5.5)); mx.fillText("Boulangerie", X(BOULANGERIE.x + 1), Z(BOULANGERIE.z - 5)); mx.fillText("Market Speed", X(MARKET.x), Z(MARKET.z + 6.5)); mx.fillStyle = "#ffffff"; mx.fillText("P Parking", X((PARK.x1 + PARK.x2) / 2), Z((PARK.z1 + PARK.z2) / 2)); mx.fillStyle = "#1d3b2a";
+  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2)); mx.fillText("Multi Parcs", X(BALO.x + 2), Z(BALO.z + BALO.hz + .5)); mx.fillText("Burger Fast", X(BFW.x), Z(BFW.z - BFW.hz - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Acrobranche", X((ACRO.x1 + ACRO.x2) / 2), Z((ACRO.z1 + ACRO.z2) / 2)); mx.fillText("Minigolf", X((GOLF.x1 + GOLF.x2) / 2), Z((GOLF.z1 + GOLF.z2) / 2)); mx.fillStyle = "#1d3b2a"; mx.fillText("Accueil", X(ACCUEIL.x), Z(ACCUEIL.z - 5.5)); mx.fillText("Boulangerie", X(BOULANGERIE.x + 1), Z(BOULANGERIE.z - 5)); mx.fillText("Market Speed", X(MARKET.x), Z(MARKET.z + 6.5)); mx.fillStyle = "#ffffff"; mx.fillText("P Parking", X((PARK.x1 + PARK.x2) / 2), Z((PARK.z1 + PARK.z2) / 2)); mx.fillStyle = "#1d3b2a";
   mx.fillText("Ferme", X(-70), Z(-36)); mx.fillText("Poney club", X(ARENA.x), Z(ARENA.z - ARENA.rz - 2)); mx.fillText("Rivière sauvage", X(-50), Z(75)); mx.fillText("Maison dans les arbres", X(50), Z(84)); mx.fillText("Vélos", X(6), Z(41));
   mx.font = '700 11px "Baloo 2",sans-serif';
   npcs.forEach(n => { const nx = X(n.g.position.x), nz = Z(n.g.position.z); mx.fillStyle = "#8e44ad"; mx.beginPath(); mx.arc(nx, nz, 4, 0, 7); mx.fill(); mx.fillText(n.name.split(",")[0], nx, nz - 7); });
@@ -6105,7 +6210,14 @@ function optsDePerso(p, extra = {}) {
     shorts: l[12] === 0, motifHaut: [null, "rayures", "etoiles", null, "arcenciel"][l[11]], manches: l[11] === 3, capuche: l[11] === 3, motifBas: [null, null, "cerises", "jean"][l[12]],
     traits: l.length > 16 ? { yeux: l[13], sourcils: l[14], nez: l[15], bouche: l[16] } : undefined, ...extra };
 }
-function persoAuHasard(sexe) { const l = LOOK_MAX.map(m => Math.floor(Math.random() * m)); l[2] = sexe === "f" ? [1, 2, 3, 4, 6][Math.floor(Math.random() * 5)] : [0, 5, 7][Math.floor(Math.random() * 3)]; l[1] = Math.floor(Math.random() * 9); l[3] = Math.floor(Math.random() * 5); l[4] = 1; l[5] = 1; l[6] = Math.random() < .6 ? 0 : l[6]; l[12] = Math.random() < .5 ? 0 : l[12]; return { nom: "", sexe, look: l }; }
+// surnoms tirés au hasard pour un nouveau personnage (liste fermée, tous acceptés par le filtre des surnoms)
+const SURNOMS = ["Petit Panda", "Renard Malin", "Écureuil Agile", "Lapin Rapide", "Koala Câlin", "Hibou Sage", "Pingouin Cool", "Dauphin Joyeux", "Castor Futé", "Ours Gourmand", "Chaton Rigolo", "Loup Rieur",
+  "Zèbre Zinzin", "Grenouille Zen", "Tortue Turbo", "Abeille Pressée", "Coccinelle", "Licorne Rose", "Étoile Filante", "Pirate Malin", "Capitaine Pins", "Super Canard", "Nuage Doux", "Soleil Rieur", "Fusée Bleue",
+  "Biscotte", "Pépite", "Myrtille", "Noisette", "Cookie", "Praline", "Grizzli Cool", "Ouistiti", "Hérisson Zen", "Mouette Folle", "Phoque Farceur", "Lama Rigolo", "Girafe Géante", "Panda Roux", "Petit Pirate",
+  "Roi des Pins", "Reine des Pins", "Explorateur", "Bulle de Savon", "Croquette", "Mini Requin"];
+// un surnom que n'a encore aucun des personnages gardés (sauf « sauf », celui qu'on renomme)
+function surnomAuHasard(sauf) { const pris = new Set(PERSOS.filter(q => q !== sauf).map(q => q.nom)), libres = SURNOMS.filter(n => !pris.has(n) && n !== sauf?.nom), L = libres.length ? libres : SURNOMS; return L[Math.floor(Math.random() * L.length)]; }
+function persoAuHasard(sexe) { const l = LOOK_MAX.map(m => Math.floor(Math.random() * m)); l[2] = sexe === "f" ? [1, 2, 3, 4, 6][Math.floor(Math.random() * 5)] : [0, 5, 7][Math.floor(Math.random() * 3)]; l[1] = Math.floor(Math.random() * 9); l[3] = Math.floor(Math.random() * 5); l[4] = 1; l[5] = 1; l[6] = Math.random() < .6 ? 0 : l[6]; l[12] = Math.random() < .5 ? 0 : l[12]; return { nom: surnomAuHasard(), sexe, look: l }; }
 // code : le tout dans un grand nombre, écrit avec 32 signes faciles à lire (sans I, O, 0 ni 1), avec une petite somme de contrôle
 const CODE32 = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", NOM_CH = " abcdefghijklmnopqrstuvwxyz0123456789-'_éèêëàâäçîïôöùûüÿñòóõãáíì";
 const nomPourCode = n => [...n].map(c => { const l = c.toLowerCase(); if (NOM_CH.includes(l)) return c; const b = c.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); return NOM_CH.includes(b.toLowerCase()) ? b : ""; }).join("").slice(0, 16);
@@ -6133,7 +6245,7 @@ try { const v = JSON.parse(localStorage.getItem("pins-persos") || "[]"); if (Arr
 const premiereFois = !PERSOS.length;
 if (premiereFois) { // on reprend les anciens choix (fille/garçon, nom, lunettes) s'il y en a, sinon un personnage au hasard
   let sx = "g", nom = "", lu = 0, ancien = false; try { ancien = localStorage.getItem("pins-sexe") !== null; sx = localStorage.getItem("pins-sexe") === "f" ? "f" : "g"; nom = filtrerSurnom(localStorage.getItem("pins-nom") || "") || ""; lu = Math.min(4, Math.max(0, +localStorage.getItem("pins-lunettes") || 0)); } catch (e) {}
-  const p = { nom, sexe: sx, look: [1, sx === "f" ? 3 : 2, sx === "f" ? 1 : 0, 0, 1, 1, lu || (sx === "f" ? 0 : 5), 0, sx === "f" ? 11 : 5, sx === "f" ? 6 : 0, 0, 0, 0, sx === "f" ? 4 : 0, sx === "f" ? 1 : 3, 0, 0] }; PERSOS = [ancien ? p : { ...persoAuHasard(Math.random() < .5 ? "f" : "g"), nom }]; persoI = 0; }
+  const p = { nom, sexe: sx, look: [1, sx === "f" ? 3 : 2, sx === "f" ? 1 : 0, 0, 1, 1, lu || (sx === "f" ? 0 : 5), 0, sx === "f" ? 11 : 5, sx === "f" ? 6 : 0, 0, 0, 0, sx === "f" ? 4 : 0, sx === "f" ? 1 : 3, 0, 0] }; PERSOS = [ancien ? p : { ...persoAuHasard(Math.random() < .5 ? "f" : "g"), ...(nom ? { nom } : {}) }]; persoI = 0; }
 const monPerso = () => PERSOS[persoI];
 function sauverPersos() { try { localStorage.setItem("pins-persos", JSON.stringify(PERSOS)); localStorage.setItem("pins-perso", persoI); } catch (e) {} }
 // le joueur prend l'apparence du personnage choisi
@@ -6204,6 +6316,7 @@ function dessinerPersos() {
     b.onclick = () => { audioOn(); sfx.click(); PERSOS.push(persoAuHasard(Math.random() < .5 ? "f" : "g")); persoI = PERSOS.length - 1; sauverPersos(); appliquerPerso(); ouvrirCrea(); }; L.append(b); }
 }
 $("creaNomIn").addEventListener("keydown", e => e.stopPropagation());
+$("creaNomDe").onclick = () => { sfx.click(); $("creaNomIn").value = surnomAuHasard(monPerso()); $("creaNomIn").dispatchEvent(new Event("input")); };
 $("creaNomIn").addEventListener("input", () => { const v = filtrerSurnom($("creaNomIn").value);
   $("creaMsg").textContent = v === null ? "Ce surnom ne marche pas : de 2 à 16 lettres, sans gros mot." : "Un surnom, pas ton vrai prénom 😉";
   if (v !== null) { const p = monPerso(); p.nom = v; nommer(v);  } });
@@ -6845,6 +6958,7 @@ function loop() {
     }
     if (state === "walk" && P.y > 4) { if (Math.hypot(P.x - CHEST.x, P.z - CHEST.z) < 1.8) offer("chest", "🎁 Ouvrir le coffre"); if (Math.hypot(P.x - 63.3, P.z - 69) < 1.5) offer("treeslide", "🛝 Glisser !"); }
     if (state === "walk" && P.y < 1) BDAY.forEach((r, i) => { if (Math.hypot(P.x - r.table[0], P.z - r.table[1]) < 1.9) offer("bday" + i, r.out > 0 ? "🎉 Joyeux anniversaire !" : "🎂 Souffler les bougies"); });
+    if (state === "walk" && P.y < 1 && Math.hypot(P.x - GOLF.kiosk[0], P.z - (GOLF.kiosk[1] - 1.3)) < 1.8) offer("golf", "⛳ Jouer au minigolf");
     if (state === "walk" && P.y < 1 && Math.hypot(P.x - WAVE_BTN.x, P.z - WAVE_BTN.z) < 1.7) offer("waves", WAVES.t < 0 ? "🌊 Lancer les vagues (5 min)" : "⏹️ Arrêter les vagues");
     if (state === "walk") BSLIDES.forEach((b, i) => { if (P.y > b.y0 && P.y < b.y1 && Math.hypot(P.x - b.x, P.z - b.z) < 1.3) offer("balo" + i, b.name); });
     if (state === "walk" && P.y < 1 && inGameTown(P.x, P.z)) { GT_CABS.forEach((c, i) => { if (Math.hypot(P.x - c.x, P.z - c.z) < 1.1) offer("gt" + i, "🕹️ Jouer à " + GT_GAMES[c.k].name); });
