@@ -193,6 +193,9 @@ html.app .site{display:none!important}
 .ph-note{text-align:center;color:#fff;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.3)}
 .ph-home{margin:14px auto 0;display:block;background:#1d2340;color:#fff;border:0;border-radius:999px;padding:10px 18px;font:700 15px inherit}
 .ph-btn{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);width:44px;height:26px;border-radius:13px;border:3px solid #444;background:#1a1a1a;cursor:pointer}
+.book{max-width:min(92vw,460px)}.bk-page{min-height:260px;display:flex;align-items:center;justify-content:center;background:#fffaf0;border-radius:14px;padding:18px;box-shadow:inset 0 0 0 2px #f0e2c4}
+.bk-text{font-size:20px;line-height:1.55;color:#2b2420;margin:0}.bk-cover{width:200px;height:260px;border-radius:8px 14px 14px 8px;box-shadow:inset 8px 0 0 rgba(0,0,0,.18),0 6px 14px rgba(0,0,0,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;text-align:center;color:#fff}
+.bk-emoji{font-size:64px}.bk-title{font-weight:800;font-size:19px;text-shadow:0 2px 4px rgba(0,0,0,.3);margin-top:10px}
 </style>
 </head>
 <body class="chargement accueil-on">
@@ -336,6 +339,10 @@ html.app .site{display:none!important}
     <p id="bfRecap" class="small"></p>
     <div class="row"><button id="bfGo" class="btn" style="background:#ff7a2f">✅ Commander</button><button id="bfClose" class="btn" style="background:#34495e">Fermer</button></div>
   </div>
+</div>
+<div id="bookView" class="overlay" hidden>
+  <div class="card book"><div id="bookPage" class="bk-page"></div><p id="bookNum" class="small" style="text-align:center"></p>
+    <div class="row"><button id="bookPrev" class="btn" style="background:#8e44ad">◀</button><button id="bookNext" class="btn" style="background:#27ae60">Page suivante ▶</button><button id="bookClose" class="btn" style="background:#34495e">Fermer</button></div></div>
 </div>
 <div id="phoneView" class="overlay" hidden>
   <div class="phone"><div class="ph-notch"></div><div id="phoneScreen" class="ph-screen"></div><button id="phoneClose" class="ph-btn" aria-label="Ranger le téléphone"></button></div>
@@ -1003,16 +1010,16 @@ function palm(x, z, h = 6) {
   g.position.set(x, 0, z); shadowAll(g); scene.add(g); circles.push({ x, z, r: .45 });
 }
 [[-22, -10], [21, -12], [-22, -46.5], [22, -46.5], [0, -58], [-18, -11], [26, -26]].forEach(p => palm(p[0], p[1], 6 + rnd() * 2));
-// transats (on peut s'y allonger)
-const LOUNGERS = [];
+// transats
 function lounger(x, z, ry) {
-  LOUNGERS.push({ x, z, ry });
   const g = new THREE.Group(); const frame = rbox(.75, .12, 1.9, mat(0xffffff, .4), .05); frame.position.y = .38; const cushion = rbox(.68, .1, 1.3, mat(0x2fa7d6, .8), .05); cushion.position.set(0, .48, .25);
   const back = rbox(.68, .1, .8, mat(0x2fa7d6, .8), .05); back.position.set(0, .7, -.62); back.rotation.x = .7;
   g.add(frame, cushion, back); for (const sx of [-.3, .3]) for (const sz of [-.8, .8]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .38), metalMat); leg.position.set(sx, .19, sz); g.add(leg); }
   g.position.set(x, 0, z); g.rotation.y = ry; shadowAll(g); scene.add(g); const side = Math.abs(Math.sin(ry)) > .5; boxes.push(side ? { x1: x - 1, x2: x + 1, z1: z - .5, z2: z + .5 } : { x1: x - .5, x2: x + .5, z1: z - 1, z2: z + 1 });
 }
-[-6, -2, 2, 6, 10, 14].forEach(x => lounger(x, -23.5, Math.PI)); [-31, -35, -39, -43].forEach(z => lounger(-15.2, z, Math.PI / 2));
+const DOME_LOUNGERS = []; // on peut s'y allonger (sauf ceux où un vacancier bronze déjà)
+[-6, -2, 2, 6, 10, 14].forEach(x => { lounger(x, -23.5, Math.PI); if (x !== 6) DOME_LOUNGERS.push({ x, z: -23.5, ry: Math.PI }); }); [-31, -35, -39, -43].forEach(z => { lounger(-15.2, z, Math.PI / 2); if (z !== -35 && z !== -43) DOME_LOUNGERS.push({ x: -15.2, z, ry: Math.PI / 2 }); });
+const lzW = (L, lx, lz) => [L.x + lx * Math.cos(L.ry) + lz * Math.sin(L.ry), L.z - lx * Math.sin(L.ry) + lz * Math.cos(L.ry)];
 
 // entrée vitrée avec portes automatiques
 const vest = new THREE.Group(); scene.add(vest);
@@ -1924,7 +1931,7 @@ await souffle(39, "On allume la salle d'arcade…");
 // Repère local : bornes d'arcade le long des murs est et ouest, air hockey au milieu, pince et piste lumineuse près de l'entrée, cadeaux à l'est.
 const GTW = { x: 86.5, z: 19.6, hx: 6.5, hz: 8.5, h: 5.5, door: 1.2 };
 const gw = (lx, lz) => [GTW.x + lx, GTW.z + lz];
-const inArcade = (x, z) => Math.abs(x - GTW.x) < GTW.hx - .2 && Math.abs(z - GTW.z) < GTW.hz - .2;
+const inArcade = (x, z) => Math.abs(x - GTW.x) < GTW.hx - .2 && Math.abs(z - GTW.z) < GTW.hz - .2 || (typeof GT_ANNEX !== "undefined" && x > GT_ANNEX.x1 - .2 && x < GT_ANNEX.x2 - .2 && z > GT_ANNEX.z1 + .2 && z < GT_ANNEX.z2 - .2);
 path(gw(0, GTW.hz + .3), [GTW.x, 30], 2.6);
 const gtG = new THREE.Group(); gtG.position.set(GTW.x, 0, GTW.z); scene.add(gtG);
 const gtWallTex = tex(512, (x, s) => {
@@ -1943,11 +1950,11 @@ const gtCarpetTex = tex(256, (x, s) => {
   const { hx, hz, h, door } = GTW, wallMat = mat(0xffffff, .8, { map: gtWallTex });
   const wall = (x1, x2, z1, z2, y0 = 0, y1 = h) => { const w = x2 - x1, d = z2 - z1, hh = y1 - y0, m = new THREE.Mesh(new THREE.BoxGeometry(w, hh, d), wallMat); m.position.set((x1 + x2) / 2, (y0 + y1) / 2, (z1 + z2) / 2); m.receiveShadow = true; gtG.add(m); };
   // le mur sud est celui de la grande salle de jeux (avec sa porte automatique) : on ne le double pas
-  wall(-hx - .15, -hx + .15, -hz, hz); wall(hx - .15, hx + .15, -hz, hz);
+  wall(-hx - .15, -hx + .15, -hz, hz); wall(hx - .15, hx + .15, -hz, -.3); wall(hx - .15, hx + .15, 2.5, hz); wall(hx - .15, hx + .15, -.3, 2.5, 3.3, h); // une grande ouverture vers la salle n°2
   wall(-hx, -door, hz - .15, hz + .15); wall(door, hx, hz - .15, hz + .15); wall(-door, door, hz - .15, hz + .15, 3.3, h);
   gtG.userData.wallMat = wallMat;
   const [x1, z1] = gw(-hx, -hz), [x2, z2] = gw(hx, hz);
-  boxes.push({ x1: x1 - .15, x2: x1 + .15, z1, z2 }, { x1: x2 - .15, x2: x2 + .15, z1, z2 },
+  boxes.push({ x1: x1 - .15, x2: x1 + .15, z1, z2 }, { x1: x2 - .15, x2: x2 + .15, z1, z2: GTW.z - .3 }, { x1: x2 - .15, x2: x2 + .15, z1: GTW.z + 2.5, z2 },
     { x1, x2: GTW.x - door, z1: z2 - .15, z2: z2 + .15 }, { x1: GTW.x + door, x2, z1: z2 - .15, z2: z2 + .15 });
   const db = { x1: GTW.x - door, x2: GTW.x + door, z1: z2 - .1, z2: z2 + .1, off: false }; boxes.push(db); gtG.userData.doorBox = db;
   gtG.userData.doors = [-1, 1].map(s => { const d = new THREE.Mesh(new THREE.BoxGeometry(door, 3.1, .08), glassMat.clone()); d.material.opacity = .5; d.material.color.set(0xff9bea); d.position.set(s * door / 2, 1.55, hz); gtG.add(d); return { m: d, s }; });
@@ -1984,7 +1991,7 @@ function drawScreens(time) {
 drawScreens(0);
 const GT_CABS = [];
 {
-  const spots = [[5.6, -6.5, 0], [5.6, -4.1, 1], [5.6, -1.7, 2], [5.6, .7, 3], [-5.6, -.5, 1], [-5.6, 1.9, 2], [-5.6, 4.3, 3]];
+  const spots = [[5.6, -6.5, 0], [5.6, -4.1, 1], [5.6, -1.7, 2], [-5.6, -.5, 1], [-5.6, 1.9, 2], [-5.6, 4.3, 3]];
   for (const [lx, lz, k] of spots) {
     const face = lx < 0 ? 1 : -1, g = new THREE.Group(); g.position.set(lx, 0, lz); g.rotation.y = face * Math.PI / 2; gtG.add(g);
     const gm = GT_GAMES[k], body = rbox(1.3, 2.3, .95, mat(0x1b1035, .5), .1); body.position.y = 1.15; g.add(body);
@@ -2000,6 +2007,40 @@ const GT_CABS = [];
     GT_CABS.push({ k, x: wx + face * 1.25, z: wz, face: face > 0 ? -Math.PI / 2 : Math.PI / 2 });
   }
 }
+// la deuxième salle d'arcade, à côté (on y passe par la grande ouverture du mur est) : encore plus de bornes !
+const GT_ANNEX = { x1: GTW.x + GTW.hx, x2: GTW.x + GTW.hx + 11, z1: GTW.z - GTW.hz, z2: GTW.z + GTW.hz };
+ZONES.push({ x1: GT_ANNEX.x1, x2: GT_ANNEX.x2 + 2, z1: GT_ANNEX.z1, z2: GT_ANNEX.z2 + 1.5 });
+function buildCab(parent, lx, lz, k, face) {
+  const g = new THREE.Group(); g.position.set(lx, 0, lz); g.rotation.y = face; parent.add(g);
+  const gm = GT_GAMES[k], body = rbox(1.3, 2.3, .95, mat(0x1b1035, .5), .1); body.position.y = 1.15; g.add(body);
+  const side = rbox(1.36, 2.1, .7, mat(gm.c3, .4), .06); side.position.set(0, 1.1, -.05); g.add(side);
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(1.0, .75), new THREE.MeshBasicMaterial({ map: gtScreens[k].t })); scr.position.set(0, 1.6, .49); scr.rotation.x = -.15; g.add(scr);
+  const panel = rbox(1.25, .14, .5, mat(0x111111, .5), .04); panel.position.set(0, 1.0, .6); panel.rotation.x = -.25; g.add(panel);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(.07, 12, 8), mat(0xff5a4e, .3)); knob.position.set(-.3, 1.27, .6); g.add(knob);
+  [0xff5a4e, 0xffc93c, 0x2fd3ff].forEach((c, i) => { const b = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, .05, 12), new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: .5 })); b.position.set(.05 + i * .17, 1.1, .62); b.rotation.x = -.25; g.add(b); });
+  const marq = new THREE.Mesh(new THREE.BoxGeometry(1.3, .35, .5), new THREE.MeshStandardMaterial({ color: gm.c3, emissive: gm.c3, emissiveIntensity: .7 })); marq.position.set(0, 2.45, .2); g.add(marq);
+  shadowAll(g); g.updateMatrixWorld(true);
+  const wp = new THREE.Vector3(); g.getWorldPosition(wp); const fx = Math.sin(face), fz = Math.cos(face);
+  boxes.push({ x1: wp.x - (Math.abs(fx) > .5 ? .55 : .7), x2: wp.x + (Math.abs(fx) > .5 ? .55 : .7), z1: wp.z - (Math.abs(fx) > .5 ? .7 : .55), z2: wp.z + (Math.abs(fx) > .5 ? .7 : .55) });
+  GT_CABS.push({ k, x: wp.x + fx * 1.25, z: wp.z + fz * 1.25, face: face + Math.PI });
+}
+{
+  const { h } = GTW, wm = gtG.userData.wallMat, L = (x, z) => [x - GTW.x, z - GTW.z], A = GT_ANNEX;
+  const wall = (x1, x2, z1, z2) => { const [a, b] = L(x1, z1), [c, d] = L(x2, z2), m = new THREE.Mesh(new THREE.BoxGeometry(c - a, h, d - b), wm); m.position.set((a + c) / 2, h / 2, (b + d) / 2); gtG.add(m); boxes.push({ x1, x2, z1, z2 }); };
+  wall(A.x1, A.x2, A.z2 - .15, A.z2 + .15); wall(A.x2 - .15, A.x2 + .15, A.z1, A.z2);
+  const [fx, fz] = L((A.x1 + A.x2) / 2, (A.z1 + A.z2) / 2);
+  const fl = new THREE.Mesh(new THREE.PlaneGeometry(A.x2 - A.x1, A.z2 - A.z1), mat(0xffffff, .95, { map: gtCarpetTex, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 })); fl.rotation.x = -Math.PI / 2; fl.position.set(fx, .03, fz); gtG.add(fl);
+  const slab = rbox(A.x2 - A.x1 + .6, .5, A.z2 - A.z1 + .6, mat(0x2b1d5f, .5), .25); slab.position.set(fx, h + .25, fz); gtG.userData.roof.add(slab);
+  const n = new THREE.Mesh(new THREE.BoxGeometry(.1, .1, A.z2 - A.z1 - .6), new THREE.MeshBasicMaterial({ color: 0x7cff6b })); n.position.set(L(A.x2 - .2, 0)[0], h - .4, fz); gtG.add(n);
+  for (const z of [-4, 4]) { const l = new THREE.PointLight(z < 0 ? 0x7cff6b : 0xffc93c, 12, 14, 1.4); l.position.set(fx, h - .8, z); gtG.add(l); }
+  const sign = label("🕹️ Salle d'arcade n°2", "#7cff6b", "#1b1035", 1); sign.position.set(L(A.x1, 0)[0], 3.9, L(0, GTW.z + 1.1)[1]); gtG.add(sign);
+  // 6 bornes contre le mur est, 4 contre le mur nord, et un îlot de 4 bornes au milieu
+  let k = 0; const nextK = () => [3, 0, 1, 2][k++ % 4];
+  for (let i = 0; i < 6; i++) { const [lx, lz] = L(A.x2 - .7, A.z1 + 2 + i * 2.5); buildCab(gtG, lx, lz, nextK(), -Math.PI / 2); }
+  for (let i = 0; i < 4; i++) { const [lx, lz] = L(A.x1 + 1.6 + i * 2.1, A.z2 - .7); buildCab(gtG, lx, lz, nextK(), Math.PI); }
+  for (let i = 0; i < 2; i++) for (const s of [-1, 1]) { const [lx, lz] = L((A.x1 + A.x2) / 2 - .2 + s * .75, A.z1 + 4.5 + i * 3.2); buildCab(gtG, lx, lz, nextK(), s * Math.PI / 2); }
+}
+
 // la table de air hockey (le palet bouge tout seul)
 const gtPuck = { x: 0, z: 0, vx: 2.2, vz: 1.5 };
 {
@@ -2699,12 +2740,75 @@ $("buyList").addEventListener("click", e => { const b = e.target.closest("button
   if (money < p) { $("buyBag").textContent = `Il te manque ${p - money} € pour ${em} ${n}.`; return; }
   money -= p; saveShop(); updMoney(); const food = buyShop === "boul" && !/Baguette/.test(n);
   if (food) { tone(160, .07, "square", .05); tone(150, .07, "square", .05, 0, .15); tone(170, .07, "square", .05, 0, .3); renderBuy(); $("buyBag").textContent = `Miam ! Tu as mangé : ${em} ${n} 😋`; }
-  else { bag.push(em + " " + n); try { localStorage.setItem("pins-sac", JSON.stringify(bag.slice(-60))); } catch (e) {} sfx.duck(); renderBuy(); } });
+  else { bag.push(em + " " + n); try { localStorage.setItem("pins-sac", JSON.stringify(bag.slice(-60))); } catch (e) {} sfx.duck(); renderBuy();
+    if (buyShop === "livres") { const bk = BOOKS.find(x => x.t === n); ownBook(bk.id); $("buyBag").innerHTML = `📚 Tu as acheté « ${n} » ! <button class="btn" id="readNow" style="background:#8e44ad">📖 Le lire maintenant</button>`; $("readNow").onclick = () => { fermer("buyView"); openBook(bk.id); }; } } });
 $("buyClose").onclick = () => fermer("buyView");
 function openBuy(k) { buyShop = k; renderBuy(); ouvrir("buyView"); }
+/* ---------- La librairie 📚 : des livres inventés, qu'on achète et qu'on lit (aussi sur le téléphone) ---------- */
+const BOOKS = [
+  { id: "hamster", e: "🐹", t: "Gaspard Pirouette et le hamster évadé", p: 3, c: ["#ff8a2b", "#ffd23f"], pages: [
+    "Gaspard Pirouette a neuf ans, un crayon toujours derrière l'oreille et une idée par minute. Ce lundi, c'est lui qui ramène Biscotte, le hamster de la classe, à l'école.",
+    "Mais dans le bus, la cage est… vide ! Biscotte a filé. Gaspard devient tout blanc. Madame Sauterelle, la maîtresse, déteste les retards ET les catastrophes.",
+    "Gaspard sort son carnet et dessine un plan : « Un hamster aime trois choses : les graines, les coins sombres et les poches. » Il regarde autour de lui… Les poches !",
+    "Il fouille son cartable, son blouson, sa capuche. Rien. Puis Basile Pistache, son meilleur copain, se met à rire : « Arrête, ça chatouille ! »",
+    "Biscotte est installé dans la poche de Basile, au milieu des miettes de son goûter. Évidemment : Basile a toujours des biscuits sur lui !",
+    "En classe, Madame Sauterelle ne s'aperçoit de rien. Mais à la récré, Biscotte a reçu un nouveau surnom : Biscotte-Pistache. Et Basile garde maintenant ses goûters dans une boîte. FIN 🐹" ] },
+  { id: "verte", e: "🌲", t: "Gaspard Pirouette et la classe verte", p: 3, c: ["#27ae60", "#a8e6a1"], pages: [
+    "Toute la classe part trois jours en classe verte, dans une forêt pleine de sapins. Lila Carambole a emporté une loupe : elle veut trouver la plus grosse grenouille du monde.",
+    "Le premier soir, quelqu'un entend un bruit bizarre : « Hou-hou… crac… hou-hou ! » Tout le monde se cache sous les couvertures. Même Rémi Ronchon, qui dit toujours qu'il n'a peur de rien.",
+    "Gaspard, lui, prend sa lampe de poche et son carnet. Il note : « Hou-hou = chouette. Crac = branche. Donc : une chouette qui marche sur une branche. Pas un monstre. »",
+    "Pour le prouver, il entraîne Lila et Basile dehors, en pyjama. Sur une branche, deux gros yeux jaunes les regardent. C'est une chouette, toute ronde, qui mange… une grosse sauterelle.",
+    "« Une sauterelle ! » chuchote Basile. « Ne le dis surtout pas à la maîtresse ! » Lila éclate de rire si fort que la chouette s'envole.",
+    "Le lendemain, Madame Sauterelle félicite Gaspard pour son exposé sur les oiseaux de nuit. Il a eu 20 sur 20. Et Rémi Ronchon dort maintenant avec une lampe. FIN 🦉" ] },
+  { id: "cabane", e: "🪵", t: "Gaspard Pirouette et le concours de cabanes", p: 4, c: ["#8a5a35", "#f3c98b"], pages: [
+    "L'école organise un grand concours : construire la plus belle cabane avec du carton, de la ficelle et beaucoup d'imagination.",
+    "Rémi Ronchon annonce que la sienne aura un toboggan, une sonnette et une piscine. Gaspard, Lila et Basile, eux, n'ont que trois cartons et un rouleau de scotch.",
+    "Gaspard dessine, gomme, redessine. « On ne fera pas la plus grande… on fera la plus maligne ! » Il imagine une cabane qui se plie comme un livre.",
+    "Le jour du concours, il pleut. La cabane géante de Rémi devient toute molle, puis s'écroule comme un gâteau trop cuit. Plouf.",
+    "La cabane-livre de Gaspard se referme, et tout le monde se met à l'abri dedans, même Rémi, trempé comme une soupe.",
+    "Le directeur, Monsieur Grosbouton, donne le premier prix à l'équipe de Gaspard. Et pour une fois, Rémi dit merci. FIN 🏆" ] },
+  { id: "cantine", e: "🍝", t: "Gaspard Pirouette et le mystère de la cantine", p: 4, c: ["#e74c3c", "#ffb3a7"], pages: [
+    "Depuis une semaine, à la cantine, les desserts disparaissent. Les yaourts, les compotes, et même la tarte aux pommes du vendredi.",
+    "Madame Patate, la cuisinière, est furieuse : « Je trouverai le voleur, foi de louche ! » Tout le monde soupçonne Basile, parce qu'il a toujours faim.",
+    "Gaspard ouvre une enquête. Il colle des miettes de biscuit en ligne, comme dans les contes, du frigo jusqu'à la porte du jardin.",
+    "Le lendemain, les miettes ont disparu… et il y a de toutes petites traces de pattes dans la farine. Lila sort sa loupe : « Ce sont des traces de hérisson ! »",
+    "Derrière la cantine, sous un buisson, une maman hérisson et ses quatre bébés dorment au milieu de pots de compote vides. Les voleurs, c'étaient eux !",
+    "Madame Patate leur prépare maintenant une petite assiette chaque soir. Et Basile a reçu une part de tarte en plus, pour s'excuser de l'avoir soupçonné. FIN 🦔" ] },
+  { id: "domaine", e: "🏊", t: "Gaspard Pirouette au Domaine des Pins", p: 5, c: ["#2e86de", "#9fd8ff"], pages: [
+    "C'est les vacances ! Gaspard et sa petite sœur Zoé arrivent au Domaine des Pins, avec ses cottages en bois, son grand dôme et son lac.",
+    "Le premier jour, Zoé perd son doudou, un canard jaune qui s'appelle Coin-Coin. Elle pleure si fort que même les poneys tournent la tête.",
+    "Gaspard sort son carnet et dessine une carte du domaine : l'Aquaparc, le Multi Parcs, la boulangerie, le lac… « On va chercher partout ! »",
+    "Ils regardent sous les toboggans, dans la piscine à balles, derrière le minigolf. Ils trouvent plein de petits canards en plastique… mais pas Coin-Coin.",
+    "Le soir, à la boum de l'Aquaparc, une bouée passe devant eux. Assis dessus, fier comme un capitaine : Coin-Coin ! Un maître-nageur l'avait trouvé dans le bassin.",
+    "Zoé serre son doudou très fort. « Tu es le meilleur grand frère du monde. » Gaspard rougit, et il note dans son carnet : « Vacances : excellentes. » FIN 🦆" ] },
+  { id: "dragon", e: "🐉", t: "Le petit dragon qui avait peur du noir", p: 3, c: ["#8e44ad", "#d7b5f0"], pages: [
+    "Il était une fois Flammèche, un tout petit dragon vert qui crachait du feu… mais qui avait très peur du noir.",
+    "Chaque soir, quand le soleil se couchait, il se cachait sous son aile et tremblait comme une feuille.",
+    "Un soir, une luciole s'approcha. « Pourquoi tu as peur ? Tu as une lampe magique dans le ventre ! »",
+    "Flammèche souffla tout doucement. Une petite flamme orange éclaira la grotte, toute chaude et toute jolie.",
+    "Depuis, c'est lui qui éclaire la forêt la nuit, pour tous les animaux qui ont peur du noir. FIN 🐉" ] },
+  { id: "canards", e: "🦆", t: "Les dix canards du lac", p: 2, c: ["#ffc93c", "#fff1a8"], pages: [
+    "Sur le lac, il y avait dix canards. Un matin, le plus petit dit : « Et si on jouait à cache-cache dans tout le domaine ? »",
+    "Un canard se cacha dans la piscine, un autre près de la boulangerie, un autre sous un pont, un autre dans un cottage…",
+    "Si bien qu'aujourd'hui encore, dix canards attendent quelque part qu'un enfant malin les retrouve.",
+    "Et toi, tu les as trouvés ? 🦆 FIN" ] },
+];
+let ownBooks = []; try { ownBooks = JSON.parse(localStorage.getItem("pins-livres") || "[]").filter(id => BOOKS.some(b => b.id === id)); } catch (e) {}
+function ownBook(id) { if (!ownBooks.includes(id)) { ownBooks.push(id); try { localStorage.setItem("pins-livres", JSON.stringify(ownBooks)); } catch (e) {} } }
+BUY.livres = { title: "La librairie 📚", items: BOOKS.map(b => [b.e, b.t, b.p]) };
+// la liseuse : une page à la fois, avec une couverture dessinée
+let reading = null;
+function bookCover(b) { return `<div class="bk-cover" style="background:linear-gradient(160deg,${b.c[0]},${b.c[1]})"><div class="bk-emoji">${b.e}</div><div class="bk-title">${b.t}</div></div>`; }
+function renderBook() { const b = BOOKS.find(x => x.id === reading.id), i = reading.page;
+  $("bookPage").innerHTML = i < 0 ? bookCover(b) : `<p class="bk-text">${b.pages[i]}</p>`;
+  $("bookNum").textContent = i < 0 ? "Couverture" : `Page ${i + 1} / ${b.pages.length}`; $("bookPrev").disabled = i < 0; $("bookNext").textContent = i >= b.pages.length - 1 ? "Fin ✓" : "Page suivante ▶"; }
+function openBook(id) { reading = { id, page: -1 }; renderBook(); ouvrir("bookView"); whoosh(.3, .04, 900, 2200); }
+$("bookPrev").onclick = () => { if (reading.page > -1) { reading.page--; renderBook(); whoosh(.25, .03, 1400, 2400); } };
+$("bookNext").onclick = () => { const b = BOOKS.find(x => x.id === reading.id); if (reading.page >= b.pages.length - 1) { fermer("bookView"); return; } reading.page++; renderBook(); whoosh(.25, .03, 1400, 2400); };
+$("bookClose").onclick = () => fermer("bookView");
 /* ---------- Le téléphone 📱 : commander à distance (livré au cottage) et appeler l'accueil ---------- */
 const PHONE_BF = { title: "Burger Fast 🍔", items: [["🍔", "Burger", 4], ["🍟", "Frites", 2], ["🍗", "Nuggets", 3], ["🥤", "Milkshake", 3], ["🍦", "Glace", 2], ["🥗", "Salade", 3]] };
-const PHONE_APPS = [["boul", "🥖", "Boulangerie", "#c47a3a"], ["market", "🛒", "Market Speed", "#27ae60"], ["bf", "🍔", "Burger Fast", "#e74c3c"], ["accueil", "📞", "Accueil", "#2e86de"]];
+const PHONE_APPS = [["boul", "🥖", "Boulangerie", "#c47a3a"], ["market", "🛒", "Market Speed", "#27ae60"], ["bf", "🍔", "Burger Fast", "#e74c3c"], ["livres", "📚", "Librairie", "#8e44ad"], ["accueil", "📞", "Accueil", "#2e86de"]];
 const deliveries = [];
 let phoneApp = null;
 function phoneShop(k) { return k === "bf" ? PHONE_BF : BUY[k]; }
@@ -2714,6 +2818,10 @@ function phoneRender(msg) {
   if (!phoneApp) {
     h += `<div class="ph-title">Domaine des Pins</div><div class="ph-apps">` + PHONE_APPS.map(([k, e, n, c]) => `<button class="ph-app" data-app="${k}"><span style="background:${c}">${e}</span>${n}</button>`).join("") + `</div>`;
     if (deliveries.length) h += `<p class="ph-note">🚲 ${deliveries.length} livraison${deliveries.length > 1 ? "s" : ""} en route vers ton cottage…</p>`;
+  } else if (phoneApp === "livres") {
+    h += `<div class="ph-title">📚 Librairie</div><p class="ph-note">Tu as <b>${money} €</b>. Un livre acheté ici se lit tout de suite sur le téléphone !</p><div class="ph-list">`
+      + BOOKS.map(b => ownBooks.includes(b.id) ? `<button class="ph-item" data-read="${b.id}">${b.e} ${b.t} <b>📖 Lire</b></button>` : `<button class="ph-item" data-book="${b.id}" ${money < b.p ? "style='opacity:.5'" : ""}>${b.e} ${b.t} <b>${b.p} €</b></button>`).join("") + `</div>`;
+    if (msg) h += `<p class="ph-msg">${msg}</p>`;
   } else if (phoneApp === "accueil") {
     h += `<div class="ph-title">📞 Accueil du Domaine</div><p class="ph-msg">${msg || "Bonjour, ici l'accueil du Domaine des Pins ! 😊 Comment je peux t'aider ?"}</p><div class="ph-list">`
       + [["perdu", "🗺️ Je suis perdu"], ["canard", "🦆 Où est un canard ?"], ["anniv", "🎂 Pour un anniversaire"], ["bloque", "🚐 Je suis bloqué, ramenez-moi"], ["merci", "📵 Raccrocher"]].map(([k, t]) => `<button class="ph-item" data-call="${k}">${t}</button>`).join("") + `</div>`;
@@ -2733,6 +2841,8 @@ $("phoneScreen").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return; tone(1046, .04, "sine", .05);
   if (b.dataset.home) { phoneApp = null; phoneRender(); return; }
   if (b.dataset.app) { phoneApp = b.dataset.app; if (phoneApp === "accueil") { phoneRender("📞 Ça sonne… dring… dring…"); [0, .5, 1.4, 1.9].forEach(d => tone(440, .35, "sine", .05, 0, d)); setTimeout(() => { if (phoneApp === "accueil" && !$("phoneView").hidden) phoneRender(); }, 2600); } else phoneRender(); return; }
+  if (b.dataset.read) { fermer("phoneView"); openBook(b.dataset.read); return; }
+  if (b.dataset.book) { const bk = BOOKS.find(x => x.id === b.dataset.book); if (money < bk.p) { phoneRender(`Il te manque ${bk.p - money} € pour ce livre.`); return; } money -= bk.p; saveShop(); updMoney(); ownBook(bk.id); [880, 1175].forEach((f, i) => tone(f, .08, "triangle", .07, 0, i * .08)); phoneRender(`✅ « ${bk.t} » est dans ton téléphone. Touche-le pour le lire ! 📖`); return; }
   if (b.dataset.buy) { const [em, n, p] = phoneShop(phoneApp).items[+b.dataset.buy];
     if (money < p) { phoneRender(`Il te manque ${p - money} € pour ${em} ${n}.`); return; }
     money -= p; saveShop(); updMoney(); deliveries.push({ item: em + " " + n, t: 20 + Math.random() * 10 });
@@ -2754,6 +2864,26 @@ setInterval(() => { if (!deliveries.length) return; try { if (paused && $("phone
 
 $("progClose").onclick = () => fermer("progView");
 ACCUEIL.where = "🏨 Accueil"; BOULANGERIE.where = "🥖 Boulangerie"; MARKET.where = "🛒 Market Speed";
+// --- la librairie ---
+path([-80, 30], [-80, 26.5], 2.4); ZONES.push({ x1: -86, x2: -74, z1: 17, z2: 28 });
+const LIBRAIRIE = makeShop({ name: "Librairie", x: -80, z: 22, hx: 5, hz: 4, side: 1, wallTex: shopWall("#efe4f7", "#8e44ad"), floorTex: tileFloor("#c8a27a", "#b48d66"), roofCol: 0x6c3483, awnA: "#8e44ad", awnB: "#ffffff",
+  sign: "LIBRAIRIE 📚", signBg: "#8e44ad", signFg: "#ffffff", signScale: 1.5, build(g) {
+    const wood = mat(0x8a5a35, .7), cols = [0xc0392b, 0x2e86de, 0x27ae60, 0xf39c12, 0x8e44ad, 0x16a085, 0xe84393, 0xff8a2b];
+    const shelf = (x, z, w, ry) => { const s = new THREE.Group(); s.position.set(x, 0, z); s.rotation.y = ry; g.add(s); const back = rbox(w, 2.6, .35, wood, .03); back.position.y = 1.3; s.add(back);
+      for (let k = 0; k < 4; k++) { const b = rbox(w, .06, .4, wood, .01); b.position.set(0, .4 + k * .6, .05); s.add(b); let x0 = -w / 2 + .1; while (x0 < w / 2 - .2) { const bw = .06 + Math.random() * .06, bh = .32 + Math.random() * .14; const bk = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, .26), mat(cols[(Math.random() * cols.length) | 0], .7)); bk.position.set(x0 + bw / 2, .43 + k * .6 + bh / 2, .08); s.add(bk); x0 += bw + .01; } } };
+    shelf(0, -3.6, 8, 0); shelf(-4.6, -.5, 5, Math.PI / 2); shelf(4.6, -.5, 5, -Math.PI / 2);
+    // la table des nouveautés, avec des piles de livres
+    const t = rbox(2.6, .08, 1.2, wood, .03); t.position.set(-1.6, .85, .4); g.add(t); for (const [dx, dz] of [[-1.2, -.5], [1.2, -.5], [-1.2, .5], [1.2, .5]]) { const l = rbox(.08, .85, .08, wood, .01); l.position.set(-1.6 + dx, .42, .4 + dz); g.add(l); }
+    for (let k = 0; k < 6; k++) { const n = 2 + (k % 3); for (let j = 0; j < n; j++) { const bk = rbox(.36, .07, .5, mat(cols[(k + j) % 8], .6), .01); bk.position.set(-2.5 + k * .38, .93 + j * .075, .4); bk.rotation.y = (j % 2) * .2; g.add(bk); } }
+    // le comptoir et le coin lecture (poufs et tapis)
+    const c = rbox(2.2, 1.05, .8, mat(0xffffff, .5, { map: woodTex }), .06); c.position.set(2.6, .52, 1.6); g.add(c); const ct = rbox(2.3, .07, .9, mat(0x8e44ad, .4), .02); ct.position.set(2.6, 1.08, 1.6); g.add(ct);
+    const rug = new THREE.Mesh(new THREE.CircleGeometry(1.3, 32), mat(0xffd1f0, .95)); rug.rotation.x = -Math.PI / 2; rug.position.set(2.2, .04, -1.8); g.add(rug);
+    for (const [x, z, col] of [[1.5, -1.6, 0xffc93c], [2.9, -2.2, 0x2e86de]]) { const p = new THREE.Mesh(new THREE.SphereGeometry(.45, 16, 10), mat(col, .9)); p.scale.y = .6; p.position.set(x, .27, z); g.add(p); }
+    const lamp = new THREE.Mesh(new THREE.SphereGeometry(.18, 14, 10), new THREE.MeshStandardMaterial({ color: 0xfff1c8, emissive: 0xffd27a, emissiveIntensity: .8 })); lamp.position.set(2.2, 2.2, -1.8); g.add(lamp);
+  } });
+boxes.push({ x1: -80 - 4, x2: -80 + 4, z1: 22 - 4, z2: 22 - 3.3 }, { x1: -80 - 5, x2: -80 - 4.3, z1: 22 - 3, z2: 22 + 2 }, { x1: -80 + 4.3, x2: -80 + 5, z1: 22 - 3, z2: 22 + 2 }, { x1: -80 - 3, x2: -80 - .2, z1: 22 - .25, z2: 22 + 1.05 }, { x1: -80 + 1.5, x2: -80 + 3.7, z1: 22 + 1.2, z2: 22 + 2 });
+LIBRAIRIE.where = "📚 Librairie";
+
 
 /* ---------- Canards ---------- */
 const DUCK_SPOTS = [[3, -18], [-22, -26], [17, -15.5], [48, -20], [70, -48], [-72, 0], [-31, 53.5], [-14.5, 43.5], [14, 18.6], [-16, 53]];
@@ -6648,7 +6778,7 @@ const floaters = [.12, .4, .58, .9].map((u, i) => { const b = makeBuoy(), g = ba
 const myBuoy = makeBuoy(); myBuoy.visible = false; scene.add(myBuoy);
 // réglages de conduite : vitesse, accélération, virage, place du pilote
 const VK = { cart: { max: 7.5, acc: 2.4, turn: 2.4, y: .25, z: -.05, x: .3, mode: "kart" }, car: { max: 13, acc: 2.2, turn: 1.9, y: .17, z: .15, x: .42, mode: "kart" }, bike: { max: 7.5, acc: 1.5, turn: 2.6, y: .33, z: -.27, mode: "bike" }, kart: { max: 10, acc: 2, turn: 2.4, y: -.2, z: -.3, mode: "kart" }, pony: { max: 6.5, acc: 1.3, turn: 2.1, y: 1.03, z: .05, mode: "saddle" } };
-let seatOffer = null, veh = null, engine = null, mountT = null, petT = null, seatT = null, riv = null, food = null, chestGot = false, musWant = "foret";
+let domeLieT = null, seatOffer = null, veh = null, engine = null, mountT = null, petT = null, seatT = null, riv = null, food = null, chestGot = false, musWant = "foret";
 function inp() { let ix = jx, iy = jy; if (!paused) { if (keys["arrowup"] || keys["z"] || keys["w"]) iy = -1; if (keys["arrowdown"] || keys["s"]) iy = 1; if (keys["arrowleft"] || keys["q"] || keys["a"]) ix = -1; if (keys["arrowright"] || keys["d"]) ix = 1; } else ix = iy = 0; return [ix, iy]; }
 function engineOn() { if (!actx || engine) return; try { const o = actx.createOscillator(), o2 = actx.createOscillator(), lp = actx.createBiquadFilter(), g = actx.createGain(); o.type = "sawtooth"; o2.type = "square"; lp.type = "lowpass"; lp.frequency.value = 520; g.gain.value = 0;
   o.connect(lp); o2.connect(lp); lp.connect(g).connect(fxBus); o.frequency.value = 45; o2.frequency.value = 23; o.start(); o2.start(); engine = { o, o2, g }; } catch (e) {} }
@@ -6853,6 +6983,7 @@ function updateTraffic(dt) {
     k.g.position.set(k.x, 0, k.z); k.g.rotation.y = Math.atan2(-ax * Math.sin(k.th), az * Math.cos(k.th)); k.g.userData.wheels.forEach(x => x.rotation.x += sp * dt / .19); }
 }
 // ---------- la terrasse : manger et bronzer ----------
+function lieDome(L) { seatT = { dome: L, kind: "lie", t: 0 }; $("dialog").hidden = true; talking = null; const [wx, wz] = lzW(L, 0, .78); player.position.set(wx, .8, wz); player.rotation.set(0, L.ry, 0); state = "lie"; toast("Ahhh… un petit repos au bord de la piscine 😎 (bouge pour te lever)", 2600); }
 function sitDown(c, kind, k) {
   seatT = { c, kind, k, t: 0, done: false }; $("dialog").hidden = true; talking = null;
   if (kind === "eat") { const [lx, lz, a] = TERR.chairs[k], [wx, wz] = c.toWorld(lx, lz), [tx, tz] = TERR.table, [px, pz] = c.toWorld(tx + Math.sin(a) * .45, tz + Math.cos(a) * .45);
@@ -6862,13 +6993,8 @@ function sitDown(c, kind, k) {
     food.position.set(px, 1.05, pz); scene.add(shadowAll(food)); toast("Bon appétit ! 🥞", 1800); }
   else { const [wx, wz] = c.toWorld(TERR.loungers[k], TERR.ly + .78); player.position.set(wx, .8, wz); player.rotation.set(0, c.g.rotation.y, 0); state = "lie"; toast("Ahhh… on est bien au soleil 😎", 2200); }
 }
-// s'allonger sur un transat de l'Aquaparc : les pieds au bout, le dos sur le dossier (comme sur la terrasse)
-function allongerTransat(l) {
-  seatT = { l, kind: "lie", t: 0, done: false }; $("dialog").hidden = true; talking = null;
-  player.position.set(l.x + Math.sin(l.ry) * .78, .58, l.z + Math.cos(l.ry) * .78); player.rotation.set(0, l.ry, 0); state = "lie"; toast("Ahhh… on est bien au bord de la piscine 😎", 2200);
-}
-function standUp() { if (seatT && seatT.l) { const l = seatT.l; player.position.set(l.x + Math.cos(l.ry) * 1.1, 0, l.z - Math.sin(l.ry) * 1.1); player.rotation.x = 0; seatT = null; state = "walk"; return; }
-  if (!seatT) { state = "walk"; return; } const { c, kind } = seatT, [wx, wz] = kind === "eat" ? c.toWorld(-1.1, 7) : c.toWorld(.4, 7.4); player.position.set(wx, .2, wz); player.rotation.x = 0; if (food) { scene.remove(food); food = null; } seatT = null; state = "walk"; }
+function standUp() { if (!seatT) { state = "walk"; return; }
+  if (seatT.dome) { const [wx, wz] = lzW(seatT.dome, 1.1, .3); player.position.set(wx, 0, wz); player.rotation.x = 0; seatT = null; state = "walk"; return; } const { c, kind } = seatT, [wx, wz] = kind === "eat" ? c.toWorld(-1.1, 7) : c.toWorld(.4, 7.4); player.position.set(wx, .2, wz); player.rotation.x = 0; if (food) { scene.remove(food); food = null; } seatT = null; state = "walk"; }
 function seatTick(dt) {
   const [ix, iy] = inp(); if (Math.hypot(ix, iy) > .3) { standUp(); return; }
   seatT.t += dt;
@@ -7127,7 +7253,8 @@ function doAct(a) {
   if (a === "acro") { if (harnessOn) { setHarness(false); toast("Tu as rendu ton baudrier. À bientôt ! 👋", 2000); } else ouvrir("acroView"); return; }
   if (a === "zip") { state = "ride"; riding = { curve: acroZip.curve, u: 0, dry: true, msg: "Youpi ! Quelle tyrolienne ! 🪂" }; $("dialog").hidden = true; talking = null; sfx.slide(); toast("Wiiiiii ! 🪂", 1600); return; }
   if (a === "prog") { ouvrir("progView"); return; }
-  if (a === "boul" || a === "market") { openBuy(a); return; }
+  if (a === "boul" || a === "market" || a === "livres") { openBuy(a); return; }
+  if (a === "mybooks") { phoneApp = "livres"; phoneRender("Touche un livre que tu as déjà pour le lire 📖"); ouvrir("phoneView"); return; }
   if (a === "honk" && honkCar) { honk(honkCar); return; }
   if (/^bf(order|pick|eat)$/.test(a)) { bfAct(a); return; }
   if (/^gt\d$/.test(a)) { openArcade(GT_CABS[+a.slice(2)].k); return; }
@@ -7138,7 +7265,8 @@ function doAct(a) {
   if (a === "dismount") { dismount(); return; }
   if (a === "lockbike") { lockBike(); return; }
   if (a === "pet" && petT) { petAnimal(petT); return; }
-  if ((a === "eat" || a === "lie") && seatOffer) { if (seatOffer.l) allongerTransat(seatOffer.l); else sitDown(seatOffer.c, a, seatOffer.k); return; }
+  if ((a === "eat" || a === "lie") && seatOffer) { sitDown(seatOffer.c, a, seatOffer.k); return; }
+  if (a === "domelie" && domeLieT) { lieDome(domeLieT); return; }
   if (a === "getup") { standUp(); return; }
   if (a === "river") { startRiver(); return; }
   if (a === "riverout") { endRiver(); return; }
@@ -7188,7 +7316,7 @@ function drawMap() {
   mx.fillStyle = "#e84393"; mx.fillRect(X(BALO.x - BALO.hx), Z(BALO.z - BALO.hz), BALO.hx * 2 * k, BALO.hz * 2 * k); mx.strokeStyle = "#ffc93c"; mx.lineWidth = 3; mx.strokeRect(X(BALO.x - BALO.hx), Z(BALO.z - BALO.hz), BALO.hx * 2 * k, BALO.hz * 2 * k);
   mx.fillStyle = "#3b2a7a"; mx.fillRect(X(GTW.x - GTW.hx), Z(GTW.z - GTW.hz), GTW.hx * 2 * k, GTW.hz * 2 * k); mx.strokeStyle = "#ff4fd8"; mx.lineWidth = 3; mx.strokeRect(X(GTW.x - GTW.hx), Z(GTW.z - GTW.hz), GTW.hx * 2 * k, GTW.hz * 2 * k);
   mx.fillStyle = "#5a5e64"; mx.fillRect(X(PARK.x1), Z(PARK.z1), (PARK.x2 - PARK.x1) * k, (PARK.z2 - PARK.z1) * k);
-  for (const sh of SHOPS) { mx.fillStyle = sh === ACCUEIL ? "#2e86de" : sh === MARKET ? "#27ae60" : "#8a4b2a"; mx.fillRect(X(sh.x - sh.hx), Z(sh.z - sh.hz), sh.hx * 2 * k, sh.hz * 2 * k); }
+  for (const sh of SHOPS) { mx.fillStyle = sh === ACCUEIL ? "#2e86de" : sh === MARKET ? "#27ae60" : sh === LIBRAIRIE ? "#8e44ad" : "#8a4b2a"; mx.fillRect(X(sh.x - sh.hx), Z(sh.z - sh.hz), sh.hx * 2 * k, sh.hz * 2 * k); }
   mx.fillStyle = HALLO.on ? "#4a2a6a" : "#c9a27e"; mx.fillRect(X(MANOR.x1), Z(MANOR.z1), (MANOR.x2 - MANOR.x1) * k, (MANOR.z2 - MANOR.z1) * k);
   mx.fillStyle = "#f3c6dd"; mx.fillRect(X(PP.x1), Z(PP.z1), (PP.x2 - PP.x1) * k, (PP.z2 - PP.z1) * k); mx.fillStyle = "#5fd8ff"; mx.fillRect(X(PPOOL.x1), Z(PPOOL.z1), (PPOOL.x2 - PPOOL.x1) * k, (PPOOL.z2 - PPOOL.z1) * k);
   mx.strokeStyle = "#5c6066"; mx.lineWidth = RING.w * k; mx.strokeRect(X(-RING.r), Z(-RING.r), 2 * RING.r * k, 2 * RING.r * k);
@@ -8413,8 +8541,6 @@ function loop() {
       for (const c of cottages) { if (Math.abs(P.x - c.x) > 7 || Math.abs(P.z - c.z) > 11) continue; const [lx, lz] = c.toLocal(P.x, P.z); if (lz < 4.2 || lz > 9.3 || Math.abs(lx) > 5.2) continue;
         if (Math.hypot(lx - TERR.table[0], lz - TERR.table[1]) < 2.2) { let k = 0, kd = 1e9; TERR.chairs.forEach(([x, z], i) => { const d = Math.hypot(lx - x, lz - z); if (d < kd) { kd = d; k = i; } }); seatOffer = { c, k }; offer("eat", "🍽️ Manger à table"); }
         TERR.loungers.forEach((x, k) => { if (!seatOffer && Math.hypot(lx - x, lz - TERR.ly) < 1.6) { seatOffer = { c, k }; offer("lie", "😎 Se reposer"); } }); }
-      // les transats de l'Aquaparc (sauf ceux où un vacancier bronze déjà)
-      if (!seatOffer && P.y < .5) for (const l of LOUNGERS) if (Math.hypot(P.x - l.x, P.z - l.z) < 1.5 && !crowd.some(a => a.kind === "lounge" && Math.hypot(a.x - l.x, a.z - l.z) < 1.4)) { seatOffer = { l }; offer("lie", "😎 S'allonger"); break; }
       if (Math.hypot(P.x - RDOCK.x, P.z - RDOCK.z) < 2.6) offer("river", "🛟 Descendre la rivière");
     }
     if (state === "walk" && P.y > 4) { if (Math.hypot(P.x - CHEST.x, P.z - CHEST.z) < 1.8) offer("chest", "🎁 Ouvrir le coffre"); if (Math.hypot(P.x - 63.3, P.z - 69) < 1.5) offer("treeslide", "🛝 Glisser !"); }
@@ -8436,7 +8562,8 @@ function loop() {
     honkCar = null; if (state === "walk" && P.y < 1 && inRect(PARK, P.x, P.z)) { honkCar = PARK_CARS.find(c => Math.hypot(P.x - c.g.position.x, P.z - c.g.position.z) < 2.9) || null; if (honkCar) offer("honk", "📯 Klaxonner"); }
     if (state === "walk" && P.y < 1) { if (ACCUEIL.in(P.x, P.z) && Math.hypot(P.x - ACCUEIL.x, P.z - (ACCUEIL.z - .1)) < 1.9) offer("prog", "📋 Le programme");
       if (BOULANGERIE.in(P.x, P.z) && Math.hypot(P.x - BOULANGERIE.x, P.z - (BOULANGERIE.z - .4)) < 2.6) offer("boul", "🥐 Acheter");
-      if (MARKET.in(P.x, P.z) && Math.hypot(P.x - (MARKET.x + 5.6), P.z - (MARKET.z + .6)) < 1.7) offer("market", "🛒 Faire les courses"); }
+      if (MARKET.in(P.x, P.z) && Math.hypot(P.x - (MARKET.x + 5.6), P.z - (MARKET.z + .6)) < 1.7) offer("market", "🛒 Faire les courses");
+      if (LIBRAIRIE.in(P.x, P.z)) { offer("livres", "📚 Acheter des livres"); if (ownBooks.length) offer("mybooks", "📖 Lire un de mes livres"); } }
     if (state === "walk" && P.y < 1 && Math.hypot(P.x - (ACRO.desk[0] + .8), P.z - ACRO.desk[1]) < 1.7) offer("acro", harnessOn ? "🧗 Enlever le baudrier" : "🦺 Mettre le baudrier");
     if (state === "walk" && harnessOn && P.y > acroZip.h - .5 && Math.hypot(P.x - acroZip.at[0], P.z - acroZip.at[1]) < 1.5) offer("zip", "🪂 Tyrolienne !");
     if (state === "walk" && P.y < 1 && inBurger(P.x, P.z)) { if (Math.hypot(P.x - BF_ORDER[0], P.z - BF_ORDER[1]) < 1.4) offer("bforder", "🍔 Commander");
@@ -8447,6 +8574,7 @@ function loop() {
     if (state === "river" && (riv.stop || riv.dist > 10 && Math.hypot(P.x - RDOCK.x, P.z - RDOCK.z) < 6)) offer("riverout", "🧍 Sortir sur le ponton");
     if (state === "river" && riv.stop) offer("riveragain", "🔁 Refaire un tour");
     if (state === "lie" || state === "eat") offer("getup", "🧍 Se lever");
+    domeLieT = null; if (state === "walk" && inDome && P.y < .6) for (const L of DOME_LOUNGERS) if (Math.hypot(P.x - L.x, P.z - L.z) < 1.4) { domeLieT = L; offer("domelie", "😎 Se reposer sur le transat"); break; }
   }
   setBtn($("actBtn"), t1); setBtn($("act2Btn"), t2);
 
