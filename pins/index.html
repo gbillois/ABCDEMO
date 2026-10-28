@@ -36,6 +36,7 @@
   color-scheme:light;
 }
 *{box-sizing:border-box;touch-action:manipulation}
+.ic{width:1.25em;height:1.25em;vertical-align:-.28em;flex:none;display:inline-block;overflow:visible}
 .menuJeu{max-width:520px}
 .svGrand{font:800 44px ui-monospace,Menlo,monospace;letter-spacing:.12em;margin:6px 0;color:#1d3b2a}
 #svSaisie{font:800 28px ui-monospace,Menlo,monospace;letter-spacing:.1em;width:9ch;text-align:center;border:3px solid #1d3b2a;border-radius:12px;padding:6px;background:#fff;color:#1d3b2a;user-select:text;-webkit-user-select:text}
@@ -500,6 +501,67 @@ html.app .site{display:none!important}
 <div id="vig" aria-hidden="true"></div>
 <div id="fade"></div>
 
+<script>
+// Icônes du jeu, dessinées en SVG (pas d'émoticônes) : couleurs vives, contour vert sapin, formes rondes.
+// icone("sac") renvoie le SVG ; dans le HTML : <i data-ico="sac"></i> est remplacé au chargement.
+(() => {
+  const T = '#1d3b2a', g = s => `<g fill="none" stroke="${T}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">${s}</g>`;
+  const ICO = {
+    sac: `<path d="M17 13c0-5 3-8 7-8s7 3 7 8" fill="none" stroke="${T}" stroke-width="3" stroke-linecap="round"/><rect x="9" y="12" width="30" height="31" rx="9" fill="#ff8a2b" stroke="${T}" stroke-width="3"/><rect x="15" y="27" width="18" height="12" rx="4" fill="#e8651c" stroke="${T}" stroke-width="3"/><path d="M15 20h18" stroke="${T}" stroke-width="3" stroke-linecap="round"/><circle cx="24" cy="31" r="1.8" fill="${T}"/>`,
+    carte: `<path d="M5 12l12-5 14 5 12-5v29l-12 5-14-5-12 5z" fill="#9be38a" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M17 7v29M31 12v29" stroke="${T}" stroke-width="3"/><path d="M31 12l12-5v29l-12 5z" fill="#5fc0ea"/><path d="M31 12l12-5v29l-12 5z" fill="none" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M24 30c-4-5-6-8-6-11a6 6 0 0112 0c0 3-2 6-6 11z" fill="#ff5a4e" stroke="${T}" stroke-width="2.6" stroke-linejoin="round"/><circle cx="24" cy="19" r="2.2" fill="#fff"/>`,
+    telephone: `<rect x="12" y="3" width="24" height="42" rx="6" fill="#2c3e50" stroke="${T}" stroke-width="3"/><rect x="15.5" y="8" width="17" height="29" rx="2.5" fill="#5fc0ea"/><rect x="18" y="12" width="5" height="5" rx="1.5" fill="#ffc93c"/><rect x="25" y="12" width="5" height="5" rx="1.5" fill="#ff5a4e"/><rect x="18" y="20" width="5" height="5" rx="1.5" fill="#7cdc6b"/><rect x="25" y="20" width="5" height="5" rx="1.5" fill="#fff"/><circle cx="24" cy="41" r="1.8" fill="#fff"/>`,
+    reglages: `<path d="M24 4l4 5 6-2 1 6 6 2-2 6 5 4-5 4 2 6-6 2-1 6-6-2-4 5-4-5-6 2-1-6-6-2 2-6-5-4 5-4-2-6 6-2 1-6 6 2z" fill="#8fd3c4" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><circle cx="24" cy="24" r="7" fill="#fffdf4" stroke="${T}" stroke-width="3"/>`,
+    cible: `<circle cx="24" cy="24" r="19" fill="#ff5a4e" stroke="${T}" stroke-width="3"/><circle cx="24" cy="24" r="12.5" fill="#fff"/><circle cx="24" cy="24" r="6.5" fill="#ff5a4e"/>${g('<circle cx="24" cy="24" r="19"/>')}`,
+    canard: `<path d="M10 30c0-6 5-9 11-8l3-6c1-6 9-8 12-3 2 3 1 6-1 8 5 2 7 6 6 10-1 6-8 9-16 9-9 0-15-4-15-10z" fill="#ffd23f" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M35 14l7-1-5 5" fill="#ff8a2b" stroke="${T}" stroke-width="2.6" stroke-linejoin="round"/><circle cx="31" cy="13" r="2" fill="${T}"/><path d="M17 31c3 3 9 3 12 0" fill="none" stroke="${T}" stroke-width="2.6" stroke-linecap="round"/>`,
+    piece: `<circle cx="24" cy="24" r="19" fill="#ffc93c" stroke="${T}" stroke-width="3"/><circle cx="24" cy="24" r="13.5" fill="#ffdf6e" stroke="#c99a18" stroke-width="2"/><path d="M29 17a8 8 0 100 14M15 22h11M15 27h11" fill="none" stroke="${T}" stroke-width="3" stroke-linecap="round"/>`,
+    portefeuille: `<rect x="5" y="12" width="38" height="28" rx="6" fill="#b07a45" stroke="${T}" stroke-width="3"/><path d="M9 12l20-6 4 6" fill="#7cdc6b" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><rect x="28" y="21" width="15" height="10" rx="4" fill="#8a5a2e" stroke="${T}" stroke-width="3"/><circle cx="34" cy="26" r="2" fill="#ffc93c"/>`,
+    maison: `<path d="M6 23L24 7l18 16" fill="#ff5a4e" stroke="${T}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><path d="M11 21v20h26V21" fill="#fff3d6" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><rect x="20" y="28" width="8" height="13" rx="2" fill="#b07a45" stroke="${T}" stroke-width="2.6"/>`,
+    jouer: `<circle cx="24" cy="24" r="19" fill="#2fbf6a" stroke="${T}" stroke-width="3"/><path d="M19 15l14 9-14 9z" fill="#fff" stroke="${T}" stroke-width="2.6" stroke-linejoin="round"/>`,
+    son: `<path d="M8 18h8l10-8v28l-10-8H8z" fill="#ffc93c" stroke="${T}" stroke-width="3" stroke-linejoin="round"/>${g('<path d="M32 17c3 4 3 10 0 14M37 12c6 7 6 17 0 24"/>')}`,
+    sonCoupe: `<path d="M8 18h8l10-8v28l-10-8H8z" fill="#c9cfd6" stroke="${T}" stroke-width="3" stroke-linejoin="round"/>${g('<path d="M32 18l10 12M42 18L32 30"/>')}`,
+    musique: `<path d="M18 34V10l20-4v24" fill="none" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><ellipse cx="13" cy="35" rx="6" ry="5" fill="#8e44ad" stroke="${T}" stroke-width="3"/><ellipse cx="33" cy="31" rx="6" ry="5" fill="#8e44ad" stroke="${T}" stroke-width="3"/>`,
+    oiseau: `<path d="M8 28c0-9 7-15 16-15 6 0 9 3 11 6l7 1-6 4c0 9-7 14-16 14-7 0-12-4-12-10z" fill="#5fc0ea" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M14 27c4 5 11 5 15 0" fill="#fff" stroke="${T}" stroke-width="2.6" stroke-linejoin="round"/><circle cx="31" cy="19" r="2" fill="${T}"/>`,
+    soleil: `<circle cx="24" cy="24" r="9" fill="#ffc93c" stroke="${T}" stroke-width="3"/>${g('<path d="M24 5v6M24 37v6M5 24h6M37 24h6M10.5 10.5l4 4M33.5 33.5l4 4M37.5 10.5l-4 4M14.5 33.5l-4 4"/>')}`,
+    lune: `<path d="M30 6a18 18 0 1012 30A15 15 0 0130 6z" fill="#ffe58a" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><circle cx="20" cy="30" r="2.5" fill="#e8c95a"/><circle cx="26" cy="20" r="1.8" fill="#e8c95a"/>`,
+    amis: `<circle cx="17" cy="16" r="7" fill="#ffd6b0" stroke="${T}" stroke-width="3"/><circle cx="32" cy="18" r="6" fill="#c98a5a" stroke="${T}" stroke-width="3"/><path d="M5 42c0-9 5-14 12-14s12 5 12 14z" fill="#ff5a4e" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M27 42c0-8 2-13 6-13 6 0 10 5 10 13z" fill="#5fc0ea" stroke="${T}" stroke-width="3" stroke-linejoin="round"/>`,
+    sauver: `<rect x="7" y="7" width="34" height="34" rx="5" fill="#2e86de" stroke="${T}" stroke-width="3"/><rect x="14" y="7" width="20" height="12" fill="#e8f2fb" stroke="${T}" stroke-width="3"/><rect x="13" y="26" width="22" height="15" rx="2" fill="#fff" stroke="${T}" stroke-width="3"/><path d="M28 10v6" stroke="${T}" stroke-width="3"/>`,
+    nouvelle: `${g('<path d="M38 20a15 15 0 10-1 12"/><path d="M39 9v11H28"/>')}`,
+    depart: `<path d="M12 44V6" stroke="${T}" stroke-width="3.4" stroke-linecap="round"/><path d="M13 8h24l-5 8 5 8H13z" fill="#ff5a4e" stroke="${T}" stroke-width="3" stroke-linejoin="round"/>`,
+    graphique: `<rect x="7" y="27" width="8" height="14" rx="2" fill="#7cdc6b" stroke="${T}" stroke-width="3"/><rect x="20" y="17" width="8" height="24" rx="2" fill="#ffc93c" stroke="${T}" stroke-width="3"/><rect x="33" y="8" width="8" height="33" rx="2" fill="#ff5a4e" stroke="${T}" stroke-width="3"/>`,
+    envoyer: `<rect x="6" y="20" width="36" height="22" rx="5" fill="#fff3d6" stroke="${T}" stroke-width="3"/>${g('<path d="M24 32V5M15 13l9-9 9 9"/>')}`,
+    recevoir: `<rect x="6" y="20" width="36" height="22" rx="5" fill="#fff3d6" stroke="${T}" stroke-width="3"/>${g('<path d="M24 4v27M15 23l9 9 9-9"/>')}`,
+    dossier: `<path d="M5 12a4 4 0 014-4h10l4 5h16a4 4 0 014 4v20a4 4 0 01-4 4H9a4 4 0 01-4-4z" fill="#ffc93c" stroke="${T}" stroke-width="3" stroke-linejoin="round"/>`,
+    fermer: `<circle cx="24" cy="24" r="19" fill="#ff5a4e" stroke="${T}" stroke-width="3"/>${g('<path d="M17 17l14 14M31 17L17 31" stroke="#fff"/>')}`,
+    retour: `${g('<path d="M18 10L8 20l10 10"/><path d="M8 20h20a12 12 0 010 24h-6"/>')}`,
+    message: `<path d="M6 10a5 5 0 015-5h26a5 5 0 015 5v18a5 5 0 01-5 5H22l-10 9v-9h-1a5 5 0 01-5-5z" fill="#2fbf6a" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><circle cx="16" cy="19" r="2.4" fill="#fff"/><circle cx="24" cy="19" r="2.4" fill="#fff"/><circle cx="32" cy="19" r="2.4" fill="#fff"/>`,
+    appel: `<path d="M14 6l6 9-4 4c2 5 6 9 11 11l4-4 9 6-3 7c-17 1-31-13-30-30z" fill="#2fbf6a" stroke="${T}" stroke-width="3" stroke-linejoin="round"/>`,
+    etoile: `<path d="M24 5l5.6 11.6 12.7 1.8-9.2 8.9 2.2 12.6L24 34l-11.3 5.9 2.2-12.6-9.2-8.9 12.7-1.8z" fill="#ffc93c" stroke="${T}" stroke-width="3" stroke-linejoin="round"/>`,
+    citrouille: `<path d="M24 12c-3-5 0-8 3-8" fill="none" stroke="${T}" stroke-width="3" stroke-linecap="round"/><ellipse cx="24" cy="28" rx="19" ry="15" fill="#ff8a2b" stroke="${T}" stroke-width="3"/><path d="M24 13c-5 4-5 26 0 30M24 13c5 4 5 26 0 30" fill="none" stroke="${T}" stroke-width="2.4"/><path d="M15 25l4 3-4 2zM33 25l-4 3 4 2z" fill="${T}"/>`,
+    sapin: `<path d="M24 4L10 22h7L8 34h32l-9-12h7z" fill="#2fbf6a" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><rect x="20" y="34" width="8" height="9" fill="#b07a45" stroke="${T}" stroke-width="3"/>`,
+    manette: `<path d="M10 16h28c4 0 7 4 8 10 1 7-2 12-6 12-3 0-5-3-7-6H15c-2 3-4 6-7 6-4 0-7-5-6-12 1-6 4-10 8-10z" fill="#8e44ad" stroke="${T}" stroke-width="3" stroke-linejoin="round"/>${g('<path d="M14 22v8M10 26h8" stroke="#fff"/>')}<circle cx="32" cy="23" r="2.3" fill="#ffc93c"/><circle cx="36" cy="28" r="2.3" fill="#7cdc6b"/>`,
+    personnage: `<circle cx="24" cy="15" r="9" fill="#ffd6b0" stroke="${T}" stroke-width="3"/><path d="M8 44c0-10 7-16 16-16s16 6 16 16z" fill="#5fc0ea" stroke="${T}" stroke-width="3" stroke-linejoin="round"/>`,
+    croissant: `<path d="M6 30c4-14 32-14 36 0-4 6-8 2-10 0-3 4-9 4-12 0-2 2-6 6-14 0z" fill="#f0b45a" stroke="${T}" stroke-width="3" stroke-linejoin="round"/>${g('<path d="M18 22l2 8M30 22l-2 8M24 20v10" stroke="#b5762a"/>')}`,
+    caddie: `${g('<path d="M4 8h6l5 22h22l4-15H12"/>')}<rect x="13" y="15" width="27" height="14" fill="#5fc0ea" opacity=".6"/><circle cx="18" cy="38" r="3.5" fill="#fff" stroke="${T}" stroke-width="3"/><circle cx="34" cy="38" r="3.5" fill="#fff" stroke="${T}" stroke-width="3"/>`,
+    burger: `<path d="M8 22c0-9 7-14 16-14s16 5 16 14z" fill="#f0a845" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><rect x="6" y="24" width="36" height="6" rx="3" fill="#8a4b2a" stroke="${T}" stroke-width="3"/><path d="M7 31h34c0 6-4 9-8 9H15c-4 0-8-3-8-9z" fill="#f0a845" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M8 24l6-3 6 3 6-3 6 3 6-3 4 2" fill="none" stroke="#7cdc6b" stroke-width="3" stroke-linejoin="round"/>`,
+    cloche: `<path d="M10 34c3-3 3-6 3-12a11 11 0 0122 0c0 6 0 9 3 12z" fill="#ffc93c" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M19 38a5 5 0 0010 0" fill="none" stroke="${T}" stroke-width="3"/><path d="M7 34h34" stroke="${T}" stroke-width="3" stroke-linecap="round"/>`,
+    fleche: `<path d="M24 4l14 22h-8v18H18V26h-8z" fill="#ffc93c" stroke="${T}" stroke-width="3" stroke-linejoin="round"/>`,
+    pin: `<path d="M24 44C15 33 10 25 10 18a14 14 0 0128 0c0 7-5 15-14 26z" fill="#ff5a4e" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><circle cx="24" cy="18" r="5.5" fill="#fff" stroke="${T}" stroke-width="2.6"/>`,
+    teleport: `<ellipse cx="24" cy="38" rx="17" ry="6" fill="#8e44ad" stroke="${T}" stroke-width="3"/><ellipse cx="24" cy="38" rx="9" ry="3" fill="#d6a2ff"/><path d="M15 36V12M24 36V6M33 36V12" stroke="#d6a2ff" stroke-width="3" stroke-linecap="round" stroke-dasharray="3 5"/>`,
+    loupe: `<circle cx="20" cy="20" r="13" fill="#d8f1fb" stroke="${T}" stroke-width="3"/>${g('<path d="M30 30l12 12" stroke-width="5"/>')}`,
+    poubelle: `<path d="M11 14h26l-2 28H13z" fill="#c9cfd6" stroke="${T}" stroke-width="3" stroke-linejoin="round"/>${g('<path d="M7 14h34M19 14V8h10v6M20 21v14M28 21v14"/>')}`,
+    copier: `<rect x="15" y="15" width="25" height="27" rx="4" fill="#fff" stroke="${T}" stroke-width="3"/><path d="M9 33V9a3 3 0 013-3h20" fill="none" stroke="${T}" stroke-width="3" stroke-linecap="round"/>`,
+    cle: `<circle cx="15" cy="24" r="9" fill="#ffc93c" stroke="${T}" stroke-width="3"/><circle cx="15" cy="24" r="3" fill="#fff" stroke="${T}" stroke-width="2.4"/>${g('<path d="M24 24h19M36 24v7M42 24v5"/>')}`,
+    de: `<rect x="7" y="7" width="34" height="34" rx="8" fill="#fff" stroke="${T}" stroke-width="3"/><circle cx="16" cy="16" r="3" fill="#ff5a4e"/><circle cx="32" cy="16" r="3" fill="#ff5a4e"/><circle cx="24" cy="24" r="3" fill="#ff5a4e"/><circle cx="16" cy="32" r="3" fill="#ff5a4e"/><circle cx="32" cy="32" r="3" fill="#ff5a4e"/>`,
+    ticket: `<path d="M5 14h38v7a3 3 0 000 6v7H5v-7a3 3 0 000-6z" fill="#ff4fd8" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M17 14v20" stroke="#fff" stroke-width="2.4" stroke-dasharray="3 3"/>`,
+    pause: `<circle cx="24" cy="24" r="19" fill="#5fc0ea" stroke="${T}" stroke-width="3"/><rect x="17" y="15" width="5" height="18" rx="1.5" fill="#fff"/><rect x="26" y="15" width="5" height="18" rx="1.5" fill="#fff"/>`,
+  };
+  window.ICO = ICO;
+  window.icone = (n, cls = "ic") => ICO[n] ? `<svg class="${cls}" viewBox="0 0 48 48" aria-hidden="true">${ICO[n]}</svg>` : "";
+  const remplir = r => r.querySelectorAll("i[data-ico]").forEach(i => { i.outerHTML = icone(i.dataset.ico, "ic " + (i.className || "")); });
+  window.remplirIcones = remplir;
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => remplir(document)); else remplir(document);
+})();
+</script>
 <script type="importmap">
 { "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
@@ -533,7 +595,7 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = LOWQ ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap; // ombres douces plus coûteuses : seulement sur ordinateur
 $("game").appendChild(renderer.domElement);
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(58, 1, 0.1, 3000);
+const camera = new THREE.PerspectiveCamera(58, 1, 0.25, 3000); // près = 0,25 m (et pas 0,1) : 2,5 fois plus de précision de profondeur, plus de surfaces qui « clignotent » (iPhone)
 function resize() { const h = Math.max(innerHeight, $("game").clientHeight); renderer.setSize(innerWidth, h); camera.aspect = innerWidth / h; camera.updateProjectionMatrix(); } // toute la hauteur de l'écran (pas de bande en bas)
 addEventListener("resize", resize); resize();
 
@@ -794,6 +856,7 @@ function vcMesh(items, m = VC) {
 // Sol avec un trou pour le bassin de la piscine (coordonnées de forme : z du monde = -y)
 function poolHole() { const h = new THREE.Path(); h.moveTo(POOL.x1, -POOL.z2); h.lineTo(POOL.x1, -POOL.z1); h.lineTo(POOL.x2, -POOL.z1); h.lineTo(POOL.x2, -POOL.z2); h.lineTo(POOL.x1, -POOL.z2); return h; }
 const gShape = new THREE.Shape(); gShape.moveTo(-700, -700); gShape.lineTo(700, -700); gShape.lineTo(700, 700); gShape.lineTo(-700, 700); gShape.holes.push(poolHole()); { const h = new THREE.Path(); h.moveTo(PPOOL.x1, -PPOOL.z2); h.lineTo(PPOOL.x1, -PPOOL.z1); h.lineTo(PPOOL.x2, -PPOOL.z1); h.lineTo(PPOOL.x2, -PPOOL.z2); h.lineTo(PPOOL.x1, -PPOOL.z2); gShape.holes.push(h); }
+{ const h = new THREE.Path(); h.absarc(LAKE.x, -LAKE.z, LAKE.r - .3, 0, Math.PI * 2, true); gShape.holes.push(h); } // pas d'herbe sous le lac : sinon l'eau et l'herbe, presque à la même hauteur, se disputent les pixels (spirales sur iPhone)
 const ground = new THREE.Mesh(new THREE.ShapeGeometry(gShape), mat(0xffffff, 0.95, { map: grassTex }));
 ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
 
@@ -1085,12 +1148,19 @@ function makeSlide(cx, cz, a0, dir, turns, color, target, name, HR = 3.6) {
   const pts = [new THREE.Vector3(cx + 2.1 * Math.cos(a0), 10.4, cz + 2.1 * Math.sin(a0))];
   const N = 60; for (let i = 0; i <= N; i++) { const t = i / N, a = a0 + dir * (0.45 + t * (turns * Math.PI * 2 - 0.45)); pts.push(new THREE.Vector3(cx + HR * Math.cos(a), 9.7 * (1 - t) + 2.0 * t, cz + HR * Math.sin(a))); }
   const last = pts[pts.length - 1];
-  pts.push(new THREE.Vector3(THREE.MathUtils.lerp(last.x, target[0], .5), 1.0, THREE.MathUtils.lerp(last.z, target[1], .5)), new THREE.Vector3(target[0], -0.05, target[1]));
+  // la fin de la descente passe AU-DESSUS de la margelle du bassin (sinon le bord traverse la glissière), puis plonge dans l'eau
+  const dansBassin = (x, z) => x > POOL.x1 - .7 && x < POOL.x2 + .7 && z > POOL.z1 - .7 && z < POOL.z2 + .7;
+  let ue = -1; for (let k = 0; k <= 100; k++) { const u = k / 100, x = THREE.MathUtils.lerp(last.x, target[0], u), z = THREE.MathUtils.lerp(last.z, target[1], u); if (dansBassin(x, z)) { ue = u; break; } }
+  const at = (u, y) => new THREE.Vector3(THREE.MathUtils.lerp(last.x, target[0], u), y, THREE.MathUtils.lerp(last.z, target[1], u));
+  if (ue > .2 && ue < .9) pts.push(at(ue * .5, 1.45), at(ue, 1.2), at(Math.min(.95, ue + .5 * (1 - ue)), .55), new THREE.Vector3(target[0], -0.05, target[1]));
+  else pts.push(at(.5, 1.0), new THREE.Vector3(target[0], -0.05, target[1]));
   const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
   const water = new THREE.Mesh(halfPipe(curve, .8, 320, 8, .28, .72), streamMat); water.renderOrder = 3; scene.add(water);
   const tube = new THREE.Mesh(halfPipe(curve), mat(color, .25, { side: THREE.DoubleSide, envMapIntensity: 1.2 })); tube.castShadow = true; tube.receiveShadow = true; scene.add(tube);
   // poteaux de soutien
   addSlideSamples(curve);
+  // là où la glissière passe bas, au-dessus du sol (pas dans l'eau), on ne la traverse plus à pied
+  for (let t = .6; t <= 1; t += .02) { const p = curve.getPointAt(t); if (p.y < 2.2 && p.y > .3 && !inPoolRect(p.x, p.z, -.6)) circles.push({ x: p.x, z: p.z, r: .55 }); }
   for (let t = 0.05; t < 0.88; t += 0.055) { const p = curve.getPointAt(t); const h = p.y - .95; if (h < .5) continue; slidePoleQueue.push([p.x, p.z, h]); }
   // tour rayée
   const tower = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.75, 9.8, 32), mat(0xffffff, .5, { map: stripeTex("#ffffff", "#" + color.toString(16).padStart(6, "0"), 2) }));
@@ -1466,6 +1536,7 @@ if (!LOWQ) { // vraie eau : reflets du ciel, des arbres et du pédalo
   const refl = lake.onBeforeRender; let reflN = 0;
   lake.onBeforeRender = (r, sc, cam) => { if (cam.position.distanceTo(lake.position) < 75 && (reflN++ & 1) === 0) refl.call(lake, r, sc, cam); };
 } else lake = new THREE.Mesh(new THREE.CircleGeometry(LAKE.r + .4, 96), new THREE.MeshStandardMaterial({ color: 0x245f78, roughness: .03, metalness: .1, normalMap: lakeN, normalScale: new THREE.Vector2(.45, .45) }));
+lake.material.polygonOffset = true; lake.material.polygonOffsetFactor = -3; lake.material.polygonOffsetUnits = -6; // l'eau passe devant le sable du bord
 lake.rotation.x = -Math.PI / 2; lake.position.set(LAKE.x, .06, LAKE.z); scene.add(lake);
 const lakeLbl = label("Le lac", "#2a6f8f", "#ffffff", 1.4); lakeLbl.position.set(LAKE.x, 5, LAKE.z); scene.add(lakeLbl);
 for (let i = 0; i < 44; i++) { const a = rnd() * 6.28, r = 5 + rnd() * (LAKE.r - 9); const pad = new THREE.Mesh(new THREE.CircleGeometry(.5 + rnd() * .35, 24, .3, 5.9), mat(0x3e8a44, .6)); pad.rotation.x = -Math.PI / 2; pad.rotation.z = rnd() * 6; pad.position.set(LAKE.x + Math.cos(a) * r, .09, LAKE.z + Math.sin(a) * r); scene.add(pad);
@@ -2721,12 +2792,12 @@ const BOULANGERIE = makeShop({ name: "Boulangerie", x: -76, z: 36.5, hx: 4, hz: 
     for (let i = 0; i < 4; i++) { const p = rbox(.24, .08, .14, gold, .03); p.position.set(-.9 + i * .3, 1.06, .7); g.add(p); }
     for (let i = 0; i < 3; i++) { const e = new THREE.Mesh(new THREE.CapsuleGeometry(.05, .25, 4, 8), choc); e.rotation.z = Math.PI / 2; e.position.set(.5 + i * .35, 1.07, .75); g.add(e); }
     for (let i = 0; i < 3; i++) { const t = new THREE.Mesh(new THREE.CylinderGeometry(.16, .16, .1, 20), i === 1 ? pink : dark); t.position.set(1.8 + i * .4, 1.07, .75); g.add(t); }
-    // les baguettes et les pains derrière
-    const shelf = rbox(6.5, 2.4, .5, mat(0xa8724a, .7), .05); shelf.position.set(0, 1.2, -3.1); g.add(shelf);
-    for (let i = 0; i < 14; i++) { const b = new THREE.Mesh(new THREE.CapsuleGeometry(.05, .6, 4, 8), gold); b.position.set(-3 + i * .2, 2.65, -3.0); b.rotation.z = .25; g.add(b); }
-    for (let y of [.8, 1.6]) for (let i = 0; i < 6; i++) { const b = new THREE.Mesh(new THREE.SphereGeometry(.2, 14, 10), i % 2 ? dark : gold); b.scale.set(1.3, .7, 1); b.position.set(-2.6 + i * 1, y, -2.8); g.add(b); }
-    const oven = rbox(1.6, 1.8, .2, mat(0x5a3a22, .6), .1); oven.position.set(2.9, 1.2, -3.35); g.add(oven);
-    const fire = new THREE.Mesh(new THREE.PlaneGeometry(.8, .5), new THREE.MeshBasicMaterial({ color: 0xff8a2b })); fire.position.set(2.9, .9, -3.24); g.add(fire);
+    // les baguettes et les pains derrière, contre le mur du fond (la porte est du côté des z négatifs)
+    const shelf = rbox(6.5, 2.4, .5, mat(0xa8724a, .7), .05); shelf.position.set(0, 1.2, 3.1); g.add(shelf);
+    for (let i = 0; i < 14; i++) { const b = new THREE.Mesh(new THREE.CapsuleGeometry(.05, .6, 4, 8), gold); b.position.set(-3 + i * .2, 2.65, 3.0); b.rotation.z = .25; g.add(b); }
+    for (let y of [.8, 1.6]) for (let i = 0; i < 6; i++) { const b = new THREE.Mesh(new THREE.SphereGeometry(.2, 14, 10), i % 2 ? dark : gold); b.scale.set(1.3, .7, 1); b.position.set(-2.6 + i * 1, y, 2.8); g.add(b); }
+    const oven = rbox(1.6, 1.8, .2, mat(0x5a3a22, .6), .1); oven.position.set(2.9, 1.2, 3.35); g.add(oven);
+    const fire = new THREE.Mesh(new THREE.PlaneGeometry(.8, .5), new THREE.MeshBasicMaterial({ color: 0xff8a2b })); fire.position.set(2.9, .9, 3.24); fire.rotation.y = Math.PI; g.add(fire);
   } });
 boxes.push({ x1: -76 - 3.1, x2: -76 + 3.1, z1: 36.5 + .3, z2: 36.5 + 3.5 });
 // --- le Market ---
@@ -7207,6 +7278,8 @@ function uniformesHabits(meta) {
 // géométrie, partagée par type, coupe et accessoire ; région 9 = pièces collées à la tête, couleurs codées remplacées dans
 // le shader par celles du personnage : rouge = iris, vert = sourcils (visage), bleu = cheveux, magenta = accessoire
 const CORPS_LEGERS = new Map(), CODE_YEUX = 0xff0000, CODE_SOURCIL = 0x00ff00, H_LEGER = .06;
+// cheveux de la foule : maillage un peu plus fin que le corps, sinon la fine couche de cheveux derrière la tête disparaît (crâne nu vu de dos)
+const H_CHEVEUX_LEGER = .036;
 function corpsLeger(cle, geo, pieces, meta) {
   if (CORPS_LEGERS.has(cle)) return CORPS_LEGERS.get(cle);
   const n0 = geo.attributes.position.count, A = geo.attributes, Jt = meta.joints.tete, N = pieces.reduce((n, p) => n + p.geo.attributes.position.count, n0);
@@ -7240,7 +7313,7 @@ function personBrut(o) {
     clothes: { shirt: o.shirt ?? 0x2e86de, pants: o.pants ?? 0x3a4a63, shoe: o.shoe ?? 0xf5f5f5, shorts: !!o.shorts, manches: !!o.manches, motifHaut: o.motifHaut ?? null, motifBas: o.motifBas ?? null } };
   let gc = geo;
   if (lite) { const vis = construireVisage(g, os, type, { ...o, eyes: CODE_YEUX, hair: CODE_SOURCIL, visageDansLeCorps: true }, qualite), coupe = o.coiffure ?? (o.long ? 1 : 0), acc = o.cap != null ? "casquette" : o.acc ?? null;
-    const pieces = [vis.geoLeger && { geo: vis.geoLeger }, { geo: geoCheveux(type, coupe, H_LEGER), code: 0x0000ff }, acc && { geo: geoAccessoire(type, acc, H_LEGER), code: 0xff00ff }].filter(Boolean);
+    const pieces = [vis.geoLeger && { geo: vis.geoLeger }, { geo: geoCheveux(type, coupe, H_CHEVEUX_LEGER), code: 0x0000ff }, acc && { geo: geoAccessoire(type, acc, H_LEGER), code: 0xff00ff }].filter(Boolean);
     gc = corpsLeger([type, coupe, acc].join("|"), geo, pieces, meta); g.userData.visage = vis; g.userData.une = U;
     U.uHCheveux.value.setHex(hair); U.uHAcc.value.setHex(o.cap ?? o.accCol ?? 0xe8534a); }
   const corps = new THREE.SkinnedMesh(gc, mc); corps.bind(skeleton, new THREE.Matrix4()); corps.boundingSphere = ZONE_PERSO;
@@ -8533,7 +8606,7 @@ HALLO.costumes = [];
       if (kind === "magicien") for (let k = 0; k < 4; k++) { const st = new THREE.Mesh(new THREE.OctahedronGeometry(.035), gold); st.position.set(Math.cos(k * 1.6) * .1, .26 + k * .07, Math.sin(k * 1.6) * .1 + .02); c.add(st); }
       cape(kind === "magicien" ? blue : purple);
     } else if (kind === "vampire") {
-      cape(capeBlack, capeRed);
+      cape(capeRed, capeBlack); // doublure rouge contre le dos, noir dehors
       const col = new THREE.Mesh(new THREE.ConeGeometry(.3, .32, 16, 1, true, Math.PI * .6, Math.PI * .8), capeRed); col.position.set(0, -.2, -.02); col.rotation.x = Math.PI; c.add(col);
     } else if (kind === "citrouille") {
       const pk = new THREE.Mesh(HALLO.pgeo, HALLO.pmat); pk.scale.setScalar(.62); pk.position.set(0, -.02, 0); c.add(pk);
@@ -9237,13 +9310,14 @@ const introEl = $("intro"); let dejaVu = false;
 // Résolution qui s'adapte : si les images ralentissent, on dessine un peu moins de pixels, et on remonte quand tout va bien.
 // Changer la taille de l'image fait lui-même un petit à-coup : on ne fait pas le yoyo. On baisse après 2 mesures lentes de suite (4 s),
 // on remonte après 5 bonnes (10 s), et après 3 baisses on ne remonte plus. Une très longue image (pause, autre appli) ne compte pas.
-const PR_MAX = renderer.getPixelRatio(), PR_MIN = Math.min(PR_MAX, LOWQ ? .9 : 1); let prN = 0, prT = 0, prBas = 0, prBon = 0, prBaisses = 0, prAvant = 0;
+const PR_MAX = renderer.getPixelRatio(), PR_MIN = Math.min(PR_MAX, LOWQ ? .9 : 1); let prN = 0, prT = 0, prBas = 0, prBon = 0, prBaisses = 0, prAvant = 0, prCap = 0;
 function adapterResolution() {
   const now = performance.now(), d = (now - prAvant) / 1000; prAvant = now;
   if (d > .25) { prN = prT = 0; return; }
-  prN++; prT += d; if (prT < 2) return;
-  const ips = prN / prT, pr = renderer.getPixelRatio(); prN = 0; prT = 0;
-  if (ips < 45) { prBon = 0; if (++prBas >= 2 && pr > PR_MIN) { renderer.setPixelRatio(Math.max(PR_MIN, pr - .2)); prBas = 0; prBaisses++; } }
+  prN++; prT += d; if (d > .029 && d < .038) prCap++; if (prT < 2) return;
+  // iPhone en mode économie d'énergie : bloqué à 30 images/s bien régulières. Baisser la netteté n'y changerait rien : on la garde.
+  const ips = prN / prT, pr = renderer.getPixelRatio(), bloque30 = prCap > prN * .8; prN = 0; prT = 0; prCap = 0;
+  if (ips < 45 && !bloque30) { prBon = 0; if (++prBas >= 2 && pr > PR_MIN) { renderer.setPixelRatio(Math.max(PR_MIN, pr - .2)); prBas = 0; prBaisses++; } }
   else { prBas = 0; if (ips > 57 && pr < PR_MAX && prBaisses < 3 && ++prBon >= 5) { renderer.setPixelRatio(Math.min(PR_MAX, pr + .1)); prBon = 0; } }
 }
 // Compteur de fluidité (menu ⚙️) : images par seconde, pire image, à-coups, objets dessinés. Pour voir, sur l'iPad, où ça ralentit.
