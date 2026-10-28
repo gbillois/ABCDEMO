@@ -393,14 +393,15 @@ function tex(size, draw, rx = 1, ry = rx) {
 // UV d'une boîte en unités du monde (pour que les textures ne soient pas étirées)
 // relief : carte de normales tirée de la luminosité d'une texture peinte
 const NMAP = new Map();
-function withRelief(t, str) {
-  const src = t.image, S = src.width, H = src.height, c = document.createElement("canvas"); c.width = S; c.height = H;
-  const sd = src.getContext("2d").getImageData(0, 0, S, H).data, x = c.getContext("2d"), img = x.createImageData(S, H), L = i => (sd[i * 4] + sd[i * 4 + 1] + sd[i * 4 + 2]) / 765;
-  for (let j = 0; j < H; j++) for (let i = 0; i < S; i++) {
-    const l = L(j * S + (i - 1 + S) % S), r = L(j * S + (i + 1) % S), u = L(((j - 1 + H) % H) * S + i), d = L(((j + 1) % H) * S + i);
-    const nx = (l - r) * str, ny = (d - u) * str, n = Math.hypot(nx, ny, 1), k = (j * S + i) * 4;
-    img.data[k] = (nx / n * .5 + .5) * 255; img.data[k + 1] = (ny / n * .5 + .5) * 255; img.data[k + 2] = (1 / n * .5 + .5) * 255; img.data[k + 3] = 255;
-  }
+function withRelief(t, str) { // version rapide : luminosité précalculée, sans Math.hypot, à demi-résolution pour les grandes textures
+  const src = t.image, f = src.width > 512 ? 2 : 1, S = src.width / f, H = src.height / f; str /= f;
+  let sd; if (f > 1) { const s2 = document.createElement("canvas"); s2.width = S; s2.height = H; const x2 = s2.getContext("2d", { willReadFrequently: true }); x2.drawImage(src, 0, 0, S, H); sd = x2.getImageData(0, 0, S, H).data; }
+  else sd = src.getContext("2d").getImageData(0, 0, S, H).data;
+  const Lum = new Float32Array(S * H); for (let i = 0, k = 0; i < S * H; i++, k += 4) Lum[i] = (sd[k] + sd[k + 1] + sd[k + 2]) / 765;
+  const c = document.createElement("canvas"); c.width = S; c.height = H; const x = c.getContext("2d"), img = x.createImageData(S, H), D = img.data;
+  for (let j = 0; j < H; j++) { const row = j * S, up = ((j - 1 + H) % H) * S, dn = ((j + 1) % H) * S;
+    for (let i = 0; i < S; i++) { const il = i ? i - 1 : S - 1, ir = i < S - 1 ? i + 1 : 0, nx = (Lum[row + il] - Lum[row + ir]) * str, ny = (Lum[dn + i] - Lum[up + i]) * str, inv = 1 / Math.sqrt(nx * nx + ny * ny + 1), k = (row + i) * 4;
+      D[k] = (nx * inv * .5 + .5) * 255; D[k + 1] = (ny * inv * .5 + .5) * 255; D[k + 2] = (inv * .5 + .5) * 255; D[k + 3] = 255; } }
   x.putImageData(img, 0, 0); const n = new THREE.CanvasTexture(c); n.wrapS = n.wrapT = THREE.RepeatWrapping; n.anisotropy = t.anisotropy; NMAP.set(src, n); return t;
 }
 function applyRelief() { // à la fin : chaque matériau texturé reçoit son relief, avec la même répétition
@@ -636,7 +637,8 @@ poolFloor.material.map.repeat.set(PW / 4, PD / 4); poolFloor.rotation.x = -Math.
 });
 for (let i = 1; i < 6; i++) { const lane = new THREE.Mesh(new THREE.PlaneGeometry(PW - 2, .25), mat(0x1b4f72, .4)); lane.rotation.x = -Math.PI / 2; lane.position.set(PCX, -1.79, POOL.z1 + i * PD / 6); scene.add(lane); }
 const causticTex = (() => { const S = 256, c = document.createElement("canvas"); c.width = c.height = S; const x = c.getContext("2d"), img = x.createImageData(S, S), pts = []; for (let i = 0; i < 24; i++) pts.push([rnd() * S, rnd() * S]);
-  for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) { let d1 = 1e9, d2 = 1e9; for (const [px, py] of pts) for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) { const d = Math.hypot(i - px - ox, j - py - oy); if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d; }
+  for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) { let d1 = 1e9, d2 = 1e9; for (const [px, py] of pts) for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) { const ex = i - px - ox, ey = j - py - oy, d = ex * ex + ey * ey; if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d; }
+    d1 = Math.sqrt(d1); d2 = Math.sqrt(d2);
     const v = Math.pow(Math.max(0, 1 - (d2 - d1) / 9), 2.4) * 255, k = (j * S + i) * 4; img.data[k] = v; img.data[k + 1] = v; img.data[k + 2] = v; img.data[k + 3] = 255; }
   x.putImageData(img, 0, 0); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; })();
 const caustics = [];
@@ -1359,7 +1361,7 @@ function aqCollide(p, prev) {
 const BALO = { x: 82, z: -2, hx: 11, hz: 13, h: 8, door: 1.4 };
 const bw = (lx, lz) => [BALO.x + lx, BALO.z + lz];
 const inBaloba = (x, z) => Math.abs(x - BALO.x) < BALO.hx - .2 && Math.abs(z - BALO.z) < BALO.hz - .2;
-path([74, 30], [GTW.x + 1.4, 30], 3.4);
+path([74, 30], [87.9, 30], 3.4); // jusqu'à l'entrée du Multi Parcs (GTW n'existe pas encore ici)
 const baloG = new THREE.Group(); baloG.position.set(BALO.x, 0, BALO.z); scene.add(baloG);
 const baloWallTex = tex(512, (x, s) => {
   x.fillStyle = "#ffffff"; x.fillRect(0, 0, s, s);
