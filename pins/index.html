@@ -132,7 +132,7 @@ body.chargement #intro .jouer,body.chargement #intro .amis,body.chargement #pers
 .card p{font-size:18px;line-height:1.35;margin:8px 0}
 .card .small{font-size:15px;opacity:.75}
 .prog{text-align:left;max-width:560px}.prog h1{text-align:center}.prog h3{margin:12px 0 4px;color:#1d5fa8}.prog ul{margin:0;padding-left:4px;list-style:none;display:grid;gap:6px;font-size:16px;line-height:1.35}.prog .row{justify-content:center}
-body.golf-on #moveBtns,body.golf-on #actions,body.crea-on #stick,body.crea-on #moveBtns,body.crea-on #actions,body.crea-on #hudR,body.crea-on #hudL,body.crea-on #where{display:none!important}
+body.combat-on #actions,body.golf-on #moveBtns,body.golf-on #actions,body.crea-on #stick,body.crea-on #moveBtns,body.crea-on #actions,body.crea-on #hudR,body.crea-on #hudL,body.crea-on #where{display:none!important}
 .crea{align-items:flex-end;background:transparent;pointer-events:none}.crea .card{pointer-events:auto;margin:auto 0 0;max-height:56vh;overflow:auto;max-width:560px;padding:14px;background:rgba(255,253,244,.96)}
 @media (orientation:landscape){.crea{justify-content:flex-end;align-items:center}.crea .card{margin:auto 0 auto auto;max-height:calc(100vh - 32px);max-width:min(460px,52vw)}}
 .crea h1{font-size:24px}.crea h3{margin:10px 0 4px;font-size:16px;text-align:left;color:var(--leaf)}.crea .opts{display:flex;flex-wrap:wrap;gap:6px}
@@ -229,6 +229,13 @@ html.app .site{display:none!important}
   <button id="jumpBtn" class="btn round" aria-label="Sauter">🦘<small>Sauter</small></button>
 </div>
 <div id="toast" hidden></div>
+<div id="lostView" class="overlay" hidden><div class="card"><h1>😴 La tablette est fatiguée</h1><p>Elle n'a plus assez de mémoire pour dessiner le domaine (c'est pour ça que l'écran devient tout bleu).</p><div class="row"><button class="btn" style="background:#27ae60" onclick="location.reload()">🔄 Relancer le jeu</button></div></div></div>
+<div id="bugView" hidden style="position:fixed;left:10px;bottom:10px;max-width:70vw;background:#fff3f0;border:2px solid #e74c3c;border-radius:12px;padding:8px 12px;font:600 13px sans-serif;color:#7a1f14;z-index:50">🐞 Oups, un petit bug : <span id="bugMsg"></span><br>Prends une photo et montre-la à Claude ! <button onclick="this.parentNode.hidden=true" style="margin-left:6px">OK</button></div>
+<div id="combatHud" hidden style="position:fixed;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:flex-end;gap:8px;z-index:6">
+  <div id="combatInfo" class="pill" style="font-weight:800"></div>
+  <button id="combatFire" class="btn" style="background:#ff3b3b;font-size:1.3rem;padding:16px 26px;touch-action:none">🔫 Tirer</button>
+</div>
+<div id="combatFlash" hidden style="position:fixed;inset:0;background:rgba(255,59,59,.35);pointer-events:none;z-index:5"></div>
 <div id="dialog" hidden><b id="dName"></b><p id="dText"></p><small>Appuie encore sur Parler pour continuer</small></div>
 
 <div id="intro" class="overlay">
@@ -502,10 +509,13 @@ const souffle = (p, txt) => { $("chargeBar").style.width = p + "%"; if (txt) $("
   return new Promise(r => { let fait = false; const ok = () => { if (!fait) { fait = true; r(); } }; requestAnimationFrame(() => setTimeout(ok, 0)); setTimeout(ok, 150); }); };
 
 /* ================= Moteur ================= */
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+const renderer = new THREE.WebGLRenderer({ antialias: !LOWQ, powerPreference: "high-performance" }); // tablettes : sans anticrénelage (beaucoup moins de mémoire)
+// si la tablette manque de mémoire, l'image 3D peut disparaître (écran tout bleu) : on le dit, et on propose de relancer
+renderer.domElement.addEventListener("webglcontextlost", e => { e.preventDefault(); const d = document.getElementById("lostView"); if (d) d.hidden = false; });
+addEventListener("error", e => { const d = document.getElementById("bugView"); if (!d || !d.hidden) return; document.getElementById("bugMsg").textContent = String(e.message || e.error || "?").slice(0, 160); d.hidden = false; });
 // téléphones et tablettes : un peu moins de pixels (l'écran est petit, la différence ne se voit pas, le jeu reste fluide)
 const PETIT = LOWQ && Math.min(screen.width, screen.height) < 500;
-renderer.setPixelRatio(Math.min(devicePixelRatio, PETIT ? 1.3 : LOWQ ? 1.5 : 1.75));
+renderer.setPixelRatio(Math.min(devicePixelRatio, PETIT ? 1.25 : LOWQ ? 1.3 : 1.75));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.85;
 renderer.shadowMap.enabled = true;
@@ -3577,6 +3587,114 @@ function updatePartyPool(dt, time, P) {
   for (const f of PP.floats) { f.m.position.set(f.x + Math.sin(time * .3 + f.ph) * .8, -.15 + Math.sin(time * 1.7 + f.ph) * .04, f.z + Math.cos(time * .25 + f.ph) * .6); f.m.rotation.z = time * .2 + f.ph; }
   if (!PPGATE.off && Math.hypot(P.x - PP.gx, P.z - (PP.z2 + .8)) < 2 && time - (PP.msgT || -9) > 5) { PP.msgT = time; toast("🎂 Cette piscine est réservée aux anniversaires ! Va d'abord souffler les bougies d'un gâteau dans une salle d'anniversaire du Multi Parcs 🎈", 4200); }
 }
+
+/* ---------- Laser game 🔫 et paintball 🎨 : un grand bâtiment au nord-est, avec l'accueil au milieu ---------- */
+const ARENA2 = { z1: 108, z2: 130, laser: { x1: 32, x2: 52 }, lobby: { x1: 52, x2: 60 }, paint: { x1: 60, x2: 79 }, doorZ: 119, h: 4 };
+const COMBAT = { on: false, mode: null, t: 0, foes: [], allies: [], shots: [], splats: [], score: [0, 0], stun: 0, cd: 0, made: false };
+ZONES.push({ x1: 30, x2: 81, z1: 106, z2: 136 });
+path([0, 134], [56, 134], 2.6); path([56, 134], [56, 130.6], 2.6);
+const inHall = (m, x, z) => { const r = ARENA2[m]; return x > r.x1 + .2 && x < r.x2 - .2 && z > ARENA2.z1 + .2 && z < ARENA2.z2 - .2; };
+const inArena2 = (x, z) => x > ARENA2.laser.x1 && x < ARENA2.paint.x2 && z > ARENA2.z1 && z < ARENA2.z2;
+// les obstacles (pas un labyrinthe : des murets, des piliers, des caisses, pour se cacher)
+const COMBAT_OBS = { laser: [], paint: [] };
+{
+  const A = ARENA2, g = new THREE.Group(); scene.add(g); COMBAT.g = g;
+  const wallM = mat(0x2b2f3a, .8), neonB = new THREE.MeshStandardMaterial({ color: 0x2fd3ff, emissive: 0x2fd3ff, emissiveIntensity: 1.2 }), neonP = new THREE.MeshStandardMaterial({ color: 0xff4fd8, emissive: 0xff4fd8, emissiveIntensity: 1.2 });
+  const woodM = mat(0xffffff, .85, { map: woodTex }); COMBAT.wallMats = [wallM, woodM];
+  const W = (x1, x2, z1, z2, m, h = A.h) => { const b = new THREE.Mesh(new THREE.BoxGeometry(x2 - x1, h, z2 - z1), m); b.position.set((x1 + x2) / 2, h / 2, (z1 + z2) / 2); g.add(b); boxes.push({ x1, x2, z1, z2 }); return b; };
+  // les murs extérieurs (les portes : au sud pour l'accueil, entre l'accueil et chaque salle)
+  W(A.laser.x1, A.paint.x2, A.z1 - .15, A.z1 + .15, wallM); W(A.laser.x1 - .15, A.laser.x1 + .15, A.z1, A.z2, wallM); W(A.paint.x2 - .15, A.paint.x2 + .15, A.z1, A.z2, woodM);
+  W(A.laser.x1, A.lobby.x1, A.z2 - .15, A.z2 + .15, wallM); W(A.lobby.x2, A.paint.x2, A.z2 - .15, A.z2 + .15, woodM); W(A.lobby.x1, 54.8, A.z2 - .15, A.z2 + .15, mat(0xf4efe6, .7)); W(57.2, A.lobby.x2, A.z2 - .15, A.z2 + .15, mat(0xf4efe6, .7));
+  for (const x of [A.lobby.x1, A.lobby.x2]) { W(x - .15, x + .15, A.z1, A.doorZ - 1.3, x === A.lobby.x1 ? wallM : woodM); W(x - .15, x + .15, A.doorZ + 1.3, A.z2, x === A.lobby.x1 ? wallM : woodM); }
+  // les sols : noir à étoiles pour le laser game, sable pour le paintball, carrelage pour l'accueil
+  const starTex = tex(256, (x, s) => { x.fillStyle = "#0d0b1e"; x.fillRect(0, 0, s, s); for (let i = 0; i < 70; i++) { x.fillStyle = ["#2fd3ff", "#ff4fd8", "#7cff6b"][i % 3]; x.fillRect(Math.random() * s, Math.random() * s, 2, 2); } }, 6, 6);
+  const floor = (r, m) => { const f = new THREE.Mesh(new THREE.PlaneGeometry(r.x2 - r.x1, A.z2 - A.z1), m); f.rotation.x = -Math.PI / 2; f.position.set((r.x1 + r.x2) / 2, .03, (A.z1 + A.z2) / 2); f.receiveShadow = true; g.add(f); };
+  floor(A.laser, mat(0xffffff, .9, { map: starTex, polygonOffset: true, polygonOffsetFactor: -2 })); floor(A.paint, mat(0xe0c690, .95, { map: sandTex, polygonOffset: true, polygonOffsetFactor: -2 })); floor(A.lobby, mat(0xffffff, .6, { map: tileFloor("#f4efe6", "#d8e6f2"), polygonOffset: true, polygonOffsetFactor: -2 }));
+  // les toits (cachés quand on est dedans)
+  const roof = new THREE.Group(); g.add(roof); COMBAT.roof = roof;
+  for (const [r, c] of [[A.laser, 0x1b1035], [A.lobby, 0x2e86de], [A.paint, 0x6b4a2f]]) { const s = rbox(r.x2 - r.x1 + .4, .4, A.z2 - A.z1 + .4, mat(c, .7), .1); s.position.set((r.x1 + r.x2) / 2, A.h + .2, (A.z1 + A.z2) / 2); roof.add(s); }
+  const l1 = label("LASER GAME 🔫", "#1b1035", "#2fd3ff", 2.2); l1.position.set(42, A.h + 3, A.z2); g.add(l1);
+  const l2 = label("PAINTBALL 🎨", "#6b4a2f", "#ffc93c", 2.2); l2.position.set(69.5, A.h + 3, A.z2); g.add(l2);
+  const l3 = label("Entrée 🎯", "#2e86de", "#ffffff", 1); l3.position.set(56, 3.4, A.z2 + .3); g.add(l3);
+  // LASER : des murets bordés de néons, des piliers ronds
+  const L = A.laser, lob = (x1, x2, z1, z2, neon) => { W(x1, x2, z1, z2, mat(0x24203a, .6), 1.6); const n = new THREE.Mesh(new THREE.BoxGeometry(x2 - x1 + .02, .08, z2 - z1 + .02), neon); n.position.set((x1 + x2) / 2, 1.62, (z1 + z2) / 2); g.add(n); COMBAT_OBS.laser.push({ x1, x2, z1, z2 }); };
+  [[35, 39, 112, 112.6], [44, 44.6, 110, 115], [48, 50, 113, 113.6], [36, 36.6, 117, 122], [41, 46, 119, 119.6], [48.5, 49.1, 118, 123], [35, 40, 125, 125.6], [43, 43.6, 123, 127.5], [47, 50.5, 126.5, 127.1]].forEach(([a, b, c, d], i) => lob(a, b, c, d, i % 2 ? neonP : neonB));
+  for (const [x, z] of [[40, 115.5], [46.5, 123.5], [39.5, 122]]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.5, .5, 2.4, 16), mat(0x24203a, .6)); p.position.set(x, 1.2, z); g.add(p); const r = new THREE.Mesh(new THREE.TorusGeometry(.52, .04, 6, 20), neonB); r.rotation.x = Math.PI / 2; r.position.set(x, 1.6, z); g.add(r); circles.push({ x, z, r: .5 }); COMBAT_OBS.laser.push({ x1: x - .45, x2: x + .45, z1: z - .45, z2: z + .45 }); }
+  // PAINTBALL : des cabanes en bois, des bidons, des pneus, des gonflables
+  const P2 = A.paint, bunker = (x1, x2, z1, z2, m, h = 1.5) => { W(x1, x2, z1, z2, m, h); COMBAT_OBS.paint.push({ x1, x2, z1, z2 }); };
+  [[63, 66, 112, 113], [70, 71, 110, 114], [74, 77, 113, 114], [63.5, 64.5, 118, 122], [68, 72, 120, 121], [75.5, 76.5, 117.5, 121.5], [63, 66.5, 126, 127], [70, 71, 124, 128]].forEach(([a, b, c, d], i) => bunker(a, b, c, d, i % 3 === 2 ? mat(0xff5a4e, .5) : woodM));
+  for (const [x, z, c] of [[67, 116, 0x2e86de], [73.5, 116.5, 0xffc93c], [66.5, 123.5, 0x27ae60], [74, 125, 0xff8a2b]]) { const d = new THREE.Mesh(new THREE.CylinderGeometry(.45, .45, 1.1, 16), mat(c, .5)); d.position.set(x, .55, z); g.add(d); circles.push({ x, z, r: .5 }); COMBAT_OBS.paint.push({ x1: x - .4, x2: x + .4, z1: z - .4, z2: z + .4 }); }
+  // des filets sur les murs du paintball, des projecteurs dans le laser game
+  shadowAll(g); for (const m of g.children) if (m.material === neonB || m.material === neonP) m.castShadow = false;
+}
+// les vacanciers qui jouent (créés la première fois qu'on lance une partie)
+function combatMakeTeams() {
+  if (COMBAT.made) return; COMBAT.made = true;
+  const mk = (team, kid) => { const g = vacationer(kid); g.visible = false; const vest = new THREE.Mesh(new THREE.CylinderGeometry(.24, .26, .5, 12), mat(team ? 0xff3b3b : 0x2e86de, .5, { emissive: team ? 0xff3b3b : 0x2e86de, emissiveIntensity: .4 })); g.add(vest); const hy = 1.25; vest.position.y = hy; vest.scale.set(1, 1, .8); return { g, team, vest, x: 0, z: 0, tx: 0, tz: 0, hit: 0, cd: 2 + Math.random() * 2, wt: 0 }; };
+  for (let i = 0; i < 4; i++) COMBAT.foes.push(mk(1, i % 2 === 0)); for (let i = 0; i < 2; i++) COMBAT.allies.push(mk(0, i === 1));
+}
+function combatRandPoint(mode) { const r = ARENA2[mode]; for (let k = 0; k < 30; k++) { const x = r.x1 + 1.2 + Math.random() * (r.x2 - r.x1 - 2.4), z = ARENA2.z1 + 1.2 + Math.random() * (ARENA2.z2 - ARENA2.z1 - 2.4); if (!COMBAT_OBS[mode].some(o => x > o.x1 - .8 && x < o.x2 + .8 && z > o.z1 - .8 && z < o.z2 + .8)) return [x, z]; } return [(r.x1 + r.x2) / 2, 119]; }
+function segBlocked(mode, ax, az, bx, bz) { for (const o of COMBAT_OBS[mode]) { let t0 = 0, t1 = 1; const dx = bx - ax, dz = bz - az; let ok = true;
+    for (const [p, d, lo, hi] of [[ax, dx, o.x1, o.x2], [az, dz, o.z1, o.z2]]) { if (Math.abs(d) < 1e-9) { if (p < lo || p > hi) { ok = false; break; } } else { let u = (lo - p) / d, v = (hi - p) / d; if (u > v) [u, v] = [v, u]; t0 = Math.max(t0, u); t1 = Math.min(t1, v); if (t0 > t1) { ok = false; break; } } }
+    if (ok) return true; } return false; }
+function combatStart(mode) {
+  combatMakeTeams(); const r = ARENA2[mode], P = player.position;
+  Object.assign(COMBAT, { on: true, mode, t: 90, score: [0, 0], stun: 0, cd: 0, my: 0 });
+  P.set(mode === "laser" ? r.x2 - 2 : r.x1 + 2, 0, ARENA2.doorZ); prev.x = P.x; prev.z = P.z; player.rotation.set(0, mode === "laser" ? -Math.PI / 2 : Math.PI / 2, 0);
+  for (const a of [...COMBAT.foes, ...COMBAT.allies]) { const [x, z] = combatRandPoint(mode); a.x = x; a.z = z; a.tx = x; a.tz = z; a.hit = 0; a.g.visible = true; a.g.position.set(x, 0, z); }
+  COMBAT.foes.forEach((f, i) => { f.x = mode === "laser" ? r.x1 + 2 : r.x2 - 2; f.z = ARENA2.z1 + 3 + i * 5; f.tx = f.x; f.tz = f.z; });
+  $("combatHud").hidden = false; document.body.classList.add("combat-on"); $("dialog").hidden = true; talking = null;
+  toast(mode === "laser" ? "🔫 C'est parti ! Vise les 🔴 rouges et appuie sur « Tirer ». Cache-toi derrière les murets !" : "🎨 C'est parti ! Lance des billes de peinture sur les 🔴 rouges. Cache-toi derrière les cabanes !", 3500);
+  [523, 659, 784].forEach((f, i) => tone(f, .15, "triangle", .1, 0, i * .12));
+}
+function combatEnd() {
+  const won = COMBAT.score[0] > COMBAT.score[1], tie = COMBAT.score[0] === COMBAT.score[1]; COMBAT.on = false; $("combatHud").hidden = true; document.body.classList.remove("combat-on");
+  for (const a of [...COMBAT.foes, ...COMBAT.allies]) a.g.visible = false; for (const s of COMBAT.splats) scene.remove(s.m); COMBAT.splats = []; for (const s of COMBAT.shots) scene.remove(s.m); COMBAT.shots = [];
+  const gain = COMBAT.my * 5 + (won ? 20 : 5); money += gain; saveShop(); updMoney(); sfx.win();
+  toast(`${won ? "🏆 Victoire de l'équipe bleue !" : tie ? "🤝 Match nul !" : "😅 L'équipe rouge a gagné… la revanche ?"} 🔵 ${COMBAT.score[0]} – ${COMBAT.score[1]} 🔴 · Tu as touché ${COMBAT.my} fois : +${gain} €`, 5500);
+  const r = ARENA2[COMBAT.mode]; player.position.set(r === ARENA2.laser ? ARENA2.lobby.x1 + 1.5 : ARENA2.lobby.x2 - 1.5, 0, ARENA2.doorZ);
+}
+function combatShoot(from, ang, team, isPlayer) {
+  const mode = COMBAT.mode, ox = from.x, oz = from.z, dx = Math.sin(ang), dz = Math.cos(ang), range = 16;
+  let best = null, bd = range;
+  for (const a of [...COMBAT.foes, ...COMBAT.allies, ...(team ? [{ x: player.position.x, z: player.position.z, team: 0, me: true }] : [])]) { if (a.team === team || a.hit > 0) continue;
+    const vx = a.x - ox, vz = a.z - oz, t = vx * dx + vz * dz; if (t < .3 || t > bd) continue; const perp = Math.abs(vx * dz - vz * dx); if (perp > .55) continue; if (segBlocked(mode, ox, oz, a.x, a.z)) continue; best = a; bd = t; }
+  let ex = ox + dx * bd, ez = oz + dz * bd; if (!best) { for (let t = .5; t < range; t += .25) if (segBlocked(mode, ox, oz, ox + dx * t, oz + dz * t)) { ex = ox + dx * (t - .2); ez = oz + dz * (t - .2); break; } }
+  const col = team ? 0xff3b3b : 0x2fd3ff;
+  if (mode === "laser") { const len = Math.hypot(ex - ox, ez - oz), b = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, len, 6), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: .9 })); b.rotation.x = Math.PI / 2; b.rotation.y = ang; b.position.set((ox + ex) / 2, 1.25, (oz + ez) / 2); b.rotation.order = "YXZ"; scene.add(b); COMBAT.shots.push({ m: b, t: .12 });
+    tone(isPlayer ? 1500 : 1100, .12, "sawtooth", isPlayer ? .06 : .03, -900); }
+  else { const pb = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), mat(team ? 0xff3b3b : 0xffe066, .4)); pb.position.set(ox, 1.25, oz); scene.add(pb); COMBAT.shots.push({ m: pb, t: bd / 22, vx: dx * 22, vz: dz * 22, ex, ez, col: team ? 0xff3b3b : 0xffe066 }); tone(220, .06, "square", isPlayer ? .07 : .03, -80); }
+  if (best) setTimeout(() => combatHit(best, team, isPlayer), mode === "laser" ? 0 : bd / 22 * 1000);
+}
+function combatHit(a, team, isPlayer) { if (!COMBAT.on) return; COMBAT.score[team]++; if (isPlayer) COMBAT.my++;
+  if (a.me) { COMBAT.stun = 2; $("combatFlash").hidden = false; setTimeout(() => $("combatFlash").hidden = true, 250); tone(200, .3, "square", .06, -100); }
+  else { a.hit = 2.5; if (isPlayer) [988, 1318].forEach((f, i) => tone(f, .1, "triangle", .1, 0, i * .08)); }
+  if (COMBAT.mode === "paint") { const tg = a.me ? player : a.g, s = new THREE.Mesh(new THREE.SphereGeometry(.12, 8, 6), mat(team ? 0xff3b3b : 0xffe066, .5)); s.scale.set(1, .6, .4); s.position.set((Math.random() - .5) * .3, 1.1 + Math.random() * .4, .25); tg.add(s); COMBAT.splats.push({ m: s, t: 8, parent: tg }); } }
+function updateCombat(dt, time, P) {
+  const inside = inArena2(P.x, P.z); COMBAT.roof.visible = !inside;
+  if (!COMBAT.on) return inside;
+  if (!inHall(COMBAT.mode, P.x, P.z)) { combatEnd(); return inside; } // sortir de la salle = fin de la partie
+  COMBAT.t -= dt; COMBAT.stun = Math.max(0, COMBAT.stun - dt); COMBAT.cd -= dt;
+  $("combatInfo").textContent = `🔵 ${COMBAT.score[0]} – ${COMBAT.score[1]} 🔴 · ⏱ ${Math.ceil(COMBAT.t)}${COMBAT.stun > 0 ? " · 💥 Touché !" : ""}`;
+  if (COMBAT.t <= 0) { combatEnd(); return inside; }
+  for (const a of [...COMBAT.foes, ...COMBAT.allies]) {
+    if (a.hit > 0) { a.hit -= dt; a.g.visible = Math.floor(a.hit * 8) % 2 === 0; if (a.hit <= 0) a.g.visible = true; animPerson(a.g, "idle", 0); continue; }
+    const dx = a.tx - a.x, dz = a.tz - a.z, d = Math.hypot(dx, dz);
+    if (d < .3 || segBlocked(COMBAT.mode, a.x, a.z, a.tx, a.tz)) { [a.tx, a.tz] = combatRandPoint(COMBAT.mode); if (segBlocked(COMBAT.mode, a.x, a.z, a.tx, a.tz)) { a.tx = a.x; a.tz = a.z; } }
+    else { const sp = 2.4 * dt; a.x += dx / d * Math.min(sp, d); a.z += dz / d * Math.min(sp, d); a.g.rotation.y = Math.atan2(dx, dz); a.wt += dt * 8; animPerson(a.g, "walk", a.wt, 2); }
+    a.g.position.set(a.x, 0, a.z);
+    // viser et tirer sur un adversaire visible
+    a.cd -= dt; if (a.cd <= 0) { a.cd = 1.8 + Math.random() * 2.2; const targets = a.team ? [...COMBAT.allies.filter(o => o.hit <= 0), ...(COMBAT.stun > 0 ? [] : [{ x: P.x, z: P.z }])] : COMBAT.foes.filter(o => o.hit <= 0);
+      const tgt = targets.filter(o => Math.hypot(o.x - a.x, o.z - a.z) < 14 && !segBlocked(COMBAT.mode, a.x, a.z, o.x, o.z))[0];
+      if (tgt) { const ang = Math.atan2(tgt.x - a.x, tgt.z - a.z) + (Math.random() - .5) * (Math.random() < .45 ? .05 : .5); a.g.rotation.y = ang; combatShoot(a, ang, a.team, false); } } }
+  for (const s of COMBAT.shots) { s.t -= dt; if (s.vx !== undefined) { s.m.position.x += s.vx * dt; s.m.position.z += s.vz * dt; if (s.t <= 0) { const sp = new THREE.Mesh(new THREE.CircleGeometry(.22, 10), new THREE.MeshBasicMaterial({ color: s.col, transparent: true, opacity: .85, depthWrite: false })); sp.rotation.x = -Math.PI / 2; sp.position.set(s.ex, .05, s.ez); scene.add(sp); COMBAT.splats.push({ m: sp, t: 6, parent: scene }); } } if (s.t <= 0) scene.remove(s.m); }
+  COMBAT.shots = COMBAT.shots.filter(s => s.t > 0);
+  for (const s of COMBAT.splats) { s.t -= dt; if (s.t <= 0) s.parent.remove(s.m); } COMBAT.splats = COMBAT.splats.filter(s => s.t > 0);
+  return inside;
+}
+$("combatFire").addEventListener("pointerdown", e => { e.preventDefault(); combatFire(); });
+addEventListener("keydown", e => { if (COMBAT.on && (e.key === " " || e.key.toLowerCase() === "f")) { e.preventDefault(); e.stopImmediatePropagation(); combatFire(); } }, true);
+function combatFire() { if (!COMBAT.on || COMBAT.stun > 0 || COMBAT.cd > 0) return; COMBAT.cd = COMBAT.mode === "laser" ? .35 : .5; combatShoot({ x: player.position.x, z: player.position.z }, player.rotation.y, 0, true); }
 
 /* ---------- Végétation ---------- */
 function nearPath(x, z, pad) { return paths.some(([a, b, w]) => { const dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz; let t = ((x - a[0]) * dx + (z - a[1]) * dz) / L2; t = Math.max(0, Math.min(1, t)); return Math.hypot(x - (a[0] + t * dx), z - (a[1] + t * dz)) < w / 2 + pad; }); }
@@ -6687,6 +6805,8 @@ const pLbl = label("Théo", "#2e86de", "#ffffff", .8); pLbl.position.y = 2.75; p
 const SPAWN = { x: -16, z: 33 };
 
 const npcs = [
+  { name: "Max, moniteur de laser game", pos: [54, 119], o: { shirt: 0x1b1035, pants: 0x2d3436, hair: 0x222222, cap: 0x2fd3ff }, lines: ["Salut ! Moi c'est Max. Bienvenue au laser game ! 🔫", "Tu es dans l'équipe bleue 🔵 avec deux copains. En face, il y a quatre joueurs rouges 🔴.", "Tu vises en tournant ton personnage, et tu appuies sur « Tirer ». Quand ton rayon touche un rouge, ton équipe marque un point !", "Si un rouge te touche, tu clignotes et tu ne peux plus tirer pendant 2 secondes. Cache-toi derrière les murets lumineux !", "Une partie dure 90 secondes. Si tu sors de la salle, la partie s'arrête. Appuie sur « Jouer au laser game » quand tu es prêt !"] },
+  { name: "Inès, monitrice de paintball", pos: [58, 119], o: { shirt: 0x6b4a2f, pants: 0x27ae60, hair: 0x8b4513, long: true, cap: 0xffc93c }, lines: ["Coucou ! Moi c'est Inès. Ici, c'est le paintball ! 🎨", "Les billes de peinture sont toutes douces : ça fait juste des taches de couleur, et ça ne fait pas mal.", "Toi et tes copains, vous lancez de la peinture jaune 🟡 ; les rouges 🔴, eux, lancent de la peinture rouge.", "Les billes mettent un peu de temps à voler : vise un peu devant ceux qui courent ! Cache-toi derrière les cabanes et les bidons.", "Une partie dure 90 secondes. Prêt ? Appuie sur « Jouer au paintball » !"] },
   { name: "Sophie, de l'accueil", pos: [-8, 34], o: { shirt: 0x16a085, hair: 0x222222, long: true }, lines: ["Bienvenue au Domaine des Pins, Théo !", "Ton cottage, c'est celui avec le drapeau rouge, juste là. Pour entrer, ouvre la porte !", "Il y a un escalier : ta chambre est à l'étage.", "L'Aquaparc, c'est la grande bulle de verre. Suis le chemin tout droit !", "Psst… 10 canards en plastique se sont échappés. Il y en a même un dans ton cottage !"] },
   { name: "Marco, le maître-nageur", pos: [22, -25], o: { shirt: 0xff5a4e, hair: 0xd4a017, skin: 0xd9a27a }, lines: ["Salut ! Moi c'est Marco, le maître-nageur.", "D'abord, va te changer aux vestiaires : on se baigne en maillot !", "Il y a six toboggans ! Grimpe l'échelle derrière une tour, puis appuie sur Glisser.", "Dans l'eau, appuie sur Nager pour nager vraiment vite.", "On ne court pas autour de la piscine, hein 😉"] },
   { name: "Léa", pos: [-14, -15], o: { shirt: 0xf78fb3, hair: 0x8b4513, long: true, pants: 0x6c5ce7, scale: .62 }, lines: ["Coucou ! Tu cherches les canards toi aussi ?", "Tu as vu l'arbre à eau ? Le gros seau se renverse… splash !", "La boutique vend des maillots. Le short en or, il est trop beau !"] },
@@ -7248,6 +7368,7 @@ function doAct(a) {
   if (a === "waves") { pressWaves(); return; }
   if (a === "golf") { golfStart(); return; }
   if (a === "golf3") { golf3Start(); return; }
+  if (a === "laser" || a === "paint") { combatStart(a); return; }
   if (typeof a === "string" && a.startsWith("m_")) { manorAct(a.slice(2)); return; }
   if (/^bday\d$/.test(a)) { blowCandles(BDAY[+a.slice(4)]); return; }
   if (a === "acro") { if (harnessOn) { setHarness(false); toast("Tu as rendu ton baudrier. À bientôt ! 👋", 2000); } else ouvrir("acroView"); return; }
@@ -8442,7 +8563,7 @@ function loop() {
   if (state === "river") riverTick(dt, P);
   if (state === "lie" || state === "eat") seatTick(dt);
   if (state === "golf") golf3Tick(dt, time, P);
-  updateRoad(dt, P); if (Math.abs(P.x + 126) < 60 && Math.abs(P.z - 120) < 60) updateAcroSwing(time); updatePartyPool(dt, time, P); updateManor(dt, time, P);
+  updateRoad(dt, P); updateCombat(dt, time, P); if (Math.abs(P.x + 126) < 60 && Math.abs(P.z - 120) < 60) updateAcroSwing(time); updatePartyPool(dt, time, P); updateManor(dt, time, P);
   updateRacks();
 
   if (state === "walk" || state === "top") {
@@ -8552,6 +8673,7 @@ function loop() {
       if (Math.abs(P.x - (cx + 2)) < 1.6 && Math.abs(P.z - cz) < 1.6) offer("m_candy", "🍬 Prendre des bonbons");
  }
     if (state === "walk" && P.y < 1 && Math.hypot(P.x - PP.cabin[0], P.z - PP.cabin[1]) < 1.3) offer("locker", "👕 Cabine : maillot ou habits");
+    if (state === "walk" && !COMBAT.on && inHall("lobby", P.x, P.z)) { if (Math.hypot(P.x - 54, P.z - 119) < 2.2) offer("laser", "🔫 Jouer au laser game"); if (Math.hypot(P.x - 58, P.z - 119) < 2.2) offer("paint", "🎨 Jouer au paintball"); }
     if (state === "walk" && P.y < 1 && Math.hypot(P.x - GOLF.kiosk[0], P.z - (GOLF.kiosk[1] - 1.3)) < 1.8) offer("golf3", "⛳ Jouer au minigolf"); if (state === "walk" && P.y < 1 && Math.hypot(P.x - GOLF.kiosk[0], P.z - (GOLF.kiosk[1] - 1.3)) < 1.8) offer("golf", "🎯 Minigolf de poche");
     if (state === "walk" && P.y < 1 && Math.hypot(P.x - WAVE_BTN.x, P.z - WAVE_BTN.z) < 1.7) offer("waves", WAVES.t < 0 ? "🌊 Lancer les vagues (5 min)" : "⏹️ Arrêter les vagues");
     if (state === "walk") BSLIDES.forEach((b, i) => { if (P.y > b.y0 && P.y < b.y1 && Math.hypot(P.x - b.x, P.z - b.z) < 1.3) offer("balo" + i, b.name); });
