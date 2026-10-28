@@ -2,7 +2,21 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+<script>
+// Pas de zoom (les petits enfants tapent vite et pincent sans le vouloir). Safari sur iPhone ignore « user-scalable=no » :
+// on bloque nous-mêmes le pincement, le double-tap et le double-clic. Les touches du jeu (joystick, caméra) marchent toujours.
+(() => {
+  const non = e => e.preventDefault(), opt = { passive: false };
+  for (const t of ["gesturestart", "gesturechange", "gestureend"]) document.addEventListener(t, non, opt);
+  document.addEventListener("touchmove", e => { if (e.touches.length > 1 || (e.scale && e.scale !== 1)) e.preventDefault(); }, opt);
+  document.addEventListener("dblclick", non, opt);
+  let dernier = 0; // deuxième tape rapide hors des boutons et des champs : c'est un double-tap, on l'annule
+  document.addEventListener("touchend", e => { const now = Date.now(), t = e.target;
+    if (now - dernier < 350 && e.changedTouches.length === 1 && !(t.closest && t.closest("button, a, input, textarea, select, label, [role=button]"))) e.preventDefault();
+    dernier = now; }, opt);
+})();
+</script>
 <!-- Application installable (PWA) : adresse pins/, icône, plein écran, jeu gardé sur l'appareil. -->
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#2f8f5b">
@@ -21,7 +35,9 @@
   --ui:"Baloo 2","Trebuchet MS",system-ui,sans-serif;
   color-scheme:light;
 }
-*{box-sizing:border-box}
+*{box-sizing:border-box;touch-action:manipulation}
+/* au moins 16 px dans les champs : sinon l'iPhone zoome quand on tape dedans */
+input,textarea,select{font-size:max(16px,1em)}
 [hidden]{display:none!important}
 html,body{height:100%;margin:0;overflow:hidden;background:#9fc7e0;color:var(--ink);font-family:var(--ui);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 #game{position:fixed;inset:0}
