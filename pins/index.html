@@ -36,8 +36,32 @@
   color-scheme:light;
 }
 *{box-sizing:border-box;touch-action:manipulation}
-.ic{width:1.25em;height:1.25em;vertical-align:-.28em;flex:none;display:inline-block;overflow:visible}
+.txtIco .ic,.ic{width:1.25em;height:1.25em;vertical-align:-.28em;flex:none;display:inline-block;overflow:visible}
 .menuJeu{max-width:520px}
+/* Le sac à dos : un vrai sac (rabat, boucle, coutures), des cases avec le dessin de chaque objet */
+.sac{position:relative;width:min(94vw,540px);max-height:calc(100vh - 40px);display:flex;flex-direction:column;filter:drop-shadow(0 14px 24px rgba(0,0,0,.35))}
+.sacAnse{width:120px;height:34px;margin:0 auto -6px;border:9px solid #a8501a;border-bottom:0;border-radius:60px 60px 0 0}
+.sacRabat{position:relative;background:linear-gradient(#ff9d45,#f07f22);border-radius:38px 38px 22px 22px;padding:12px 18px 18px;border:4px solid #a8501a;z-index:1}
+.sacRabat h1{margin:0;color:#fff;font-size:26px;text-shadow:0 2px 0 #a8501a}
+.sacRabat::after{content:"";position:absolute;inset:6px;border:2.5px dashed rgba(255,255,255,.55);border-radius:30px 30px 16px 16px;pointer-events:none}
+.sacBoucle{position:absolute;left:50%;bottom:-18px;transform:translateX(-50%);width:44px;height:30px;border-radius:8px;background:#ffd23f;border:4px solid #a8501a;z-index:2}
+.sacCorps{position:relative;margin-top:-10px;background:linear-gradient(#f58a2c,#e36d14);border:4px solid #a8501a;border-top:0;border-radius:0 0 46px 46px;padding:26px 14px 18px;overflow:auto;min-height:0}
+.sacCorps::before{content:"";position:absolute;inset:8px;border:2.5px dashed rgba(255,255,255,.5);border-radius:6px 6px 38px 38px;pointer-events:none}
+.sacPoche{display:flex;gap:10px;justify-content:center;margin-bottom:10px}
+.sacPoche span{display:flex;align-items:center;gap:6px;background:#fff3d6;border:3px solid #a8501a;border-radius:16px;padding:4px 12px;font-weight:800;font-size:18px;color:#1d3b2a}
+.sacPoche .ic{width:30px;height:30px}
+#invListe h3{margin:10px 4px 6px;color:#fff;font-size:17px;text-align:left;text-shadow:0 2px 0 #a8501a;display:flex;align-items:center;gap:6px}
+#invListe h3 .ic{width:26px;height:26px}
+#invListe .cases{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px}
+#invListe .case{position:relative;background:#fff3d6;border:3px solid #c9772e;border-radius:16px;padding:6px 4px 5px;display:flex;flex-direction:column;align-items:center;gap:2px;box-shadow:inset 0 -4px 0 rgba(0,0,0,.08)}
+#invListe .case .ic{width:46px;height:46px}
+#invListe .case span{font-size:12px;font-weight:800;line-height:1.05;text-align:center;color:#1d3b2a}
+#invListe .case b{position:absolute;top:-6px;right:-6px;background:#2f8f5b;color:#fff;border:3px solid #fff3d6;border-radius:999px;font-size:13px;min-width:26px;height:26px;display:grid;place-items:center}
+#invListe .case.porte{border-color:#2f8f5b;box-shadow:0 0 0 3px #7cdc6b}
+#invListe .vide{color:#fff;opacity:.9;text-align:left;margin:0 6px;font-weight:700}
+.sacAide{color:#fff;font-weight:700;font-size:13px;margin:12px 4px 0;text-align:center}
+.sacFermer{position:absolute;top:30px;right:10px;border:0;background:none;padding:0;cursor:pointer;z-index:3}.sacFermer .ic{width:44px;height:44px}
+
 .tpConf{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(20,30,40,.35);border-radius:18px}
 .tpConf[hidden]{display:none}
 .tpConf>div{background:#fffdf4;border-radius:20px;padding:14px 18px;box-shadow:0 6px 0 #c9b98f,0 12px 30px rgba(0,0,0,.3);max-width:86%}
@@ -227,20 +251,38 @@ html.app .site{display:none!important}
 .phrases .rdv{background:#e67e22}
 .phrases .nums{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
 .phrases .nums .btn{background:#8a5a30;font-size:26px;padding:8px 0}
-.phone{width:min(86vw,330px);height:min(78vh,620px);background:#111;border-radius:42px;padding:14px 12px 46px;position:relative;box-shadow:0 10px 40px rgba(0,0,0,.5),inset 0 0 0 3px #333}
-.ph-notch{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:90px;height:20px;background:#111;border-radius:0 0 14px 14px;z-index:2}
-.ph-screen{height:100%;border-radius:30px;background:linear-gradient(160deg,#7ed6ff,#a78bfa 60%,#f9a8d4);overflow:auto;padding:12px 12px 16px;color:#1d2340;font-family:inherit}
-.ph-top{display:flex;justify-content:space-between;font-weight:800;font-size:14px;padding:2px 10px 10px}
-.ph-title{font-weight:800;font-size:22px;text-align:center;margin:6px 0 14px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.25)}
-.ph-apps{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;padding:6px 10px}
-.ph-app{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:6px;font:700 14px inherit;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.3);cursor:pointer}
-.ph-app span{width:66px;height:66px;border-radius:18px;display:grid;place-items:center;font-size:34px;box-shadow:0 4px 10px rgba(0,0,0,.25)}
+.phone{width:min(86vw,340px);height:min(80vh,660px);background:linear-gradient(145deg,#3a3f47,#15181c);border-radius:48px;padding:10px;position:relative;box-shadow:0 18px 50px rgba(0,0,0,.55),inset 0 0 0 2px #5b616b,inset 0 0 0 5px #0b0c0e}
+.ph-notch{position:absolute;top:20px;left:50%;transform:translateX(-50%);width:96px;height:26px;background:#000;border-radius:16px;z-index:2}
+.ph-screen{height:100%;border-radius:39px;background:radial-gradient(120% 70% at 20% 0%,#ffe2a8 0%,rgba(255,226,168,0) 55%),linear-gradient(170deg,#59c3f0 0%,#3fae6e 62%,#2f8f5b 100%);overflow:auto;padding:14px 14px 70px;color:#1d2340;font-family:inherit;position:relative}
+.ph-top{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:14px;padding:2px 14px 10px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.3)}
+.ph-top svg{height:12px;width:auto;margin-left:4px}
+.ph-heure{text-align:center;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.25);margin:14px 0 10px}
+.ph-heure b{display:block;font-size:56px;line-height:1;font-weight:800}.ph-heure span{font-weight:700;font-size:15px;opacity:.95}
+.ph-title{font-weight:800;font-size:22px;text-align:center;margin:10px 0 12px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;gap:8px}
+.ph-title .ic{width:34px;height:34px}
+.ph-rubrique{color:#fff;font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase;opacity:.9;margin:14px 8px 6px;text-shadow:0 1px 3px rgba(0,0,0,.3)}
+.ph-apps{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 8px;padding:4px 2px}
+.ph-app{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:5px;font:700 11.5px var(--ui);color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.45);cursor:pointer;line-height:1.05}
+.ph-app span{width:60px;height:60px;border-radius:16px;display:grid;place-items:center;box-shadow:0 4px 10px rgba(0,0,0,.25),inset 0 2px 0 rgba(255,255,255,.35)}
+.ph-app span .ic{width:40px;height:40px}
+.ph-app em{position:absolute;margin:-6px 0 0 44px;background:#ff3b30;color:#fff;font-style:normal;border-radius:999px;min-width:22px;height:22px;display:grid;place-items:center;font-size:12px;border:2px solid #fff}
+.ph-dock{position:absolute;left:12px;right:12px;bottom:12px;display:grid;grid-template-columns:repeat(4,1fr);background:rgba(255,255,255,.28);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:26px;padding:8px 4px}
 .ph-list{display:flex;flex-direction:column;gap:8px}
-.ph-item{background:rgba(255,255,255,.88);border:0;border-radius:14px;padding:12px;font:700 16px inherit;display:flex;justify-content:space-between;gap:8px;text-align:left;cursor:pointer;color:#1d2340}
-.ph-msg{background:#fff;border-radius:16px;padding:12px;font-weight:700;margin:10px 0}
+.ph-item{background:rgba(255,255,255,.93);border:0;border-radius:16px;padding:8px 12px;font:700 16px var(--ui);display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer;color:#1d2340;box-shadow:0 2px 0 rgba(0,0,0,.08)}
+.ph-item .ic{width:40px;height:40px}
+.ph-item .nm{flex:1}
+.ph-item b{background:#2f8f5b;color:#fff;border-radius:999px;padding:3px 12px;font-size:15px;white-space:nowrap}
+.ph-item.cher b{background:#9aa0b4}
+.ph-msg{background:#fff;border-radius:18px 18px 18px 6px;padding:10px 14px;font-weight:700;margin:8px 30px 8px 0;box-shadow:0 2px 0 rgba(0,0,0,.08)}
+.ph-msg.moi{border-radius:18px 18px 6px 18px;margin:8px 0 8px 30px;background:#2fbf6a;color:#fff}
+.ph-msg small{display:block;font-size:11px;opacity:.6;font-weight:800;text-transform:uppercase}
 .ph-note{text-align:center;color:#fff;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.3)}
-.ph-home{margin:14px auto 0;display:block;background:#1d2340;color:#fff;border:0;border-radius:999px;padding:10px 18px;font:700 15px inherit}
-.ph-btn{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);width:44px;height:26px;border-radius:13px;border:3px solid #444;background:#1a1a1a;cursor:pointer}
+.ph-carte{border-radius:20px;padding:16px;color:#fff;margin:10px 0;box-shadow:0 6px 16px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:6px}
+.ph-carte .ic{width:44px;height:44px}.ph-carte b{font-size:34px;line-height:1}.ph-carte span{font-weight:700;opacity:.9}
+.ph-home{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;align-items:center;gap:6px;background:rgba(29,35,64,.85);color:#fff;border:0;border-radius:999px;padding:8px 18px;font:800 15px var(--ui);cursor:pointer}
+.ph-home .ic{width:22px;height:22px}
+.ph-btn{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);width:120px;height:5px;border-radius:3px;border:0;background:rgba(255,255,255,.85);cursor:pointer;z-index:3}
+.ph-btn::before{content:"";position:absolute;inset:-14px -10px}
 .book{max-width:min(92vw,460px)}.bk-page{min-height:260px;display:flex;align-items:center;justify-content:center;background:#fffaf0;border-radius:14px;padding:18px;box-shadow:inset 0 0 0 2px #f0e2c4}
 .bk-text{font-size:20px;line-height:1.55;color:#2b2420;margin:0}.bk-cover{width:200px;height:260px;border-radius:8px 14px 14px 8px;box-shadow:inset 8px 0 0 rgba(0,0,0,.18),0 6px 14px rgba(0,0,0,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;text-align:center;color:#fff}
 .bk-emoji{font-size:64px}.bk-title{font-weight:800;font-size:19px;text-shadow:0 2px 4px rgba(0,0,0,.3);margin-top:10px}
@@ -495,12 +537,15 @@ html.app .site{display:none!important}
   </div>
 </div>
 <div id="invView" class="overlay" hidden>
-  <div class="card">
-    <h1>Mon sac à dos 🎒</h1>
-    <p class="inv-sous"><b id="invArgent"></b> · <b id="invTickets"></b></p>
-    <div id="invListe"></div>
-    <p class="small">Pour te changer, va dans ton cottage ou aux vestiaires de l'Aquaparc 👕</p>
-    <div class="row"><button id="invClose" class="btn" style="background:#34495e">Fermer</button></div>
+  <div class="sac">
+    <div class="sacAnse"></div>
+    <div class="sacRabat"><span class="sacBoucle"></span><h1>Mon sac à dos</h1></div>
+    <div class="sacCorps">
+      <div class="sacPoche"><span id="invArgent"></span><span id="invTickets"></span></div>
+      <div id="invListe"></div>
+      <p class="sacAide">Pour te changer, va dans ton cottage ou aux vestiaires de l'Aquaparc.</p>
+    </div>
+    <button id="invClose" class="sacFermer" aria-label="Fermer le sac"><i data-ico="fermer"></i></button>
   </div>
 </div>
 <div id="lockerView" class="overlay" hidden>
@@ -624,7 +669,89 @@ html.app .site{display:none!important}
     ticket: `<path d="M5 14h38v7a3 3 0 000 6v7H5v-7a3 3 0 000-6z" fill="#ff4fd8" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M17 14v20" stroke="#fff" stroke-width="2.4" stroke-dasharray="3 3"/>`,
     pause: `<circle cx="24" cy="24" r="19" fill="#5fc0ea" stroke="${T}" stroke-width="3"/><rect x="17" y="15" width="5" height="18" rx="1.5" fill="#fff"/><rect x="26" y="15" width="5" height="18" rx="1.5" fill="#fff"/>`,
   };
+  // objets (sac à dos, boutiques, cadeaux)
+  Object.assign(ICO, {
+    painChoc: `<rect x="7" y="15" width="34" height="20" rx="7" fill="#e8a84a" stroke="${T}" stroke-width="3"/><path d="M14 17v16M34 17v16" stroke="#5a3214" stroke-width="4" stroke-linecap="round"/><path d="M10 21c9 3 19 3 28 0" fill="none" stroke="#c98a32" stroke-width="2"/>`,
+    baguette: `<path d="M8 38L36 8c3-3 7 1 4 4L12 42c-3 3-7-1-4-4z" fill="#e8b25a" stroke="${T}" stroke-width="3" stroke-linejoin="round"/>${g('<path d="M17 27l4 4M23 21l4 4M29 15l4 4" stroke="#b5762a"/>')}`,
+    bonbon: `<path d="M5 18l8 6-8 6zM43 18l-8 6 8 6z" fill="#ff8fc8" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><circle cx="24" cy="24" r="11" fill="#ff4fa0" stroke="${T}" stroke-width="3"/><path d="M18 19c4 8 8 10 13 9" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>`,
+    eclair: `<rect x="5" y="18" width="38" height="14" rx="7" fill="#f0c27a" stroke="${T}" stroke-width="3"/><path d="M8 22c0-3 2-4 5-4h22c3 0 5 1 5 4z" fill="#6b3a1e" stroke="${T}" stroke-width="2.6" stroke-linejoin="round"/>`,
+    tarte: `<path d="M5 26h38l-4 12H9z" fill="#e8b25a" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><ellipse cx="24" cy="26" rx="19" ry="6" fill="#ffd9a0" stroke="${T}" stroke-width="3"/><circle cx="16" cy="25" r="3.4" fill="#ff4f5e" stroke="${T}" stroke-width="2"/><circle cx="24" cy="23" r="3.4" fill="#ff4f5e" stroke="${T}" stroke-width="2"/><circle cx="32" cy="25" r="3.4" fill="#ff4f5e" stroke="${T}" stroke-width="2"/>`,
+    pomme: `<path d="M24 14c-6-4-17-2-17 11 0 10 7 18 13 18 2 0 3-1 4-1s2 1 4 1c6 0 13-8 13-18 0-13-11-15-17-11z" fill="#ff4f5e" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M24 14c0-5 2-8 5-9" fill="none" stroke="${T}" stroke-width="3" stroke-linecap="round"/><path d="M26 10c4-4 9-3 10 0-4 3-8 3-10 0z" fill="#7cdc6b" stroke="${T}" stroke-width="2.4" stroke-linejoin="round"/>`,
+    lait: `<path d="M14 14l4-8h12l4 8v28H14z" fill="#fff" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M14 22h20v12H14z" fill="#5fc0ea"/><path d="M14 14h20" stroke="${T}" stroke-width="3"/><rect x="14" y="14" width="20" height="28" fill="none" stroke="${T}" stroke-width="3"/>`,
+    cereales: `<path d="M6 22h36c0 11-8 18-18 18S6 33 6 22z" fill="#5fc0ea" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><circle cx="15" cy="19" r="3.5" fill="#f0b45a" stroke="${T}" stroke-width="2"/><circle cx="23" cy="17" r="3.5" fill="#f0b45a" stroke="${T}" stroke-width="2"/><circle cx="31" cy="19" r="3.5" fill="#f0b45a" stroke="${T}" stroke-width="2"/>`,
+    pizza: `<path d="M24 44L6 10c12-6 24-6 36 0z" fill="#ffd36e" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M6 10c12-6 24-6 36 0l-2 4c-11-5-21-5-32 0z" fill="#e8a84a" stroke="${T}" stroke-width="2.4" stroke-linejoin="round"/><circle cx="20" cy="20" r="3" fill="#ff4f5e"/><circle cx="29" cy="22" r="3" fill="#ff4f5e"/><circle cx="24" cy="31" r="3" fill="#ff4f5e"/>`,
+    jus: `<rect x="12" y="12" width="24" height="32" rx="4" fill="#ff9a3c" stroke="${T}" stroke-width="3"/><path d="M28 12V4l6 2" fill="none" stroke="${T}" stroke-width="3" stroke-linecap="round"/><circle cx="24" cy="28" r="6" fill="#ffd23f" stroke="${T}" stroke-width="2.4"/>`,
+    creme: `<rect x="13" y="14" width="22" height="30" rx="7" fill="#ffd23f" stroke="${T}" stroke-width="3"/><rect x="19" y="5" width="10" height="9" rx="2" fill="#ff5a4e" stroke="${T}" stroke-width="3"/><circle cx="24" cy="29" r="5" fill="#ff8a2b"/>`,
+    foot: `<circle cx="24" cy="24" r="18" fill="#fff" stroke="${T}" stroke-width="3"/><path d="M24 16l6 4-2 7h-8l-2-7z" fill="${T}"/>${g('<path d="M24 16V7M30 20l8-3M28 27l5 7M20 27l-5 7M18 20l-8-3"/>')}`,
+    glace: `<path d="M16 24l8 20 8-20z" fill="#e8b25a" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><circle cx="18" cy="18" r="7" fill="#ff8fc8" stroke="${T}" stroke-width="3"/><circle cx="30" cy="18" r="7" fill="#fff3d6" stroke="${T}" stroke-width="3"/><circle cx="24" cy="11" r="7" fill="#7a4a22" stroke="${T}" stroke-width="3"/>`,
+    sucette: `<path d="M24 26v18" stroke="${T}" stroke-width="3.4" stroke-linecap="round"/><circle cx="24" cy="17" r="13" fill="#ff4fd8" stroke="${T}" stroke-width="3"/><path d="M24 17m-7 0a7 7 0 1014 0a4 4 0 10-8 0" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>`,
+    baudruche: `<path d="M24 30c-9 0-14-8-14-15a14 14 0 0128 0c0 7-5 15-14 15z" fill="#ff5a4e" stroke="${T}" stroke-width="3"/><path d="M22 30h4l-2 3zM24 33c-2 4 2 6 0 11" fill="none" stroke="${T}" stroke-width="2.4" stroke-linejoin="round"/><path d="M17 11c1-3 3-4 5-4" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>`,
+    ourson: `<circle cx="13" cy="12" r="5.5" fill="#b07a45" stroke="${T}" stroke-width="3"/><circle cx="35" cy="12" r="5.5" fill="#b07a45" stroke="${T}" stroke-width="3"/><circle cx="24" cy="24" r="16" fill="#c98a5a" stroke="${T}" stroke-width="3"/><ellipse cx="24" cy="30" rx="7" ry="5.5" fill="#f0d0a8" stroke="${T}" stroke-width="2.4"/><circle cx="18" cy="21" r="2.2" fill="${T}"/><circle cx="30" cy="21" r="2.2" fill="${T}"/><circle cx="24" cy="28" r="2.2" fill="${T}"/>`,
+    robot: `<rect x="10" y="14" width="28" height="24" rx="6" fill="#c9cfd6" stroke="${T}" stroke-width="3"/><path d="M24 14V7" stroke="${T}" stroke-width="3"/><circle cx="24" cy="6" r="3" fill="#ff5a4e" stroke="${T}" stroke-width="2.4"/><circle cx="18" cy="24" r="3.5" fill="#5fc0ea" stroke="${T}" stroke-width="2.4"/><circle cx="30" cy="24" r="3.5" fill="#5fc0ea" stroke="${T}" stroke-width="2.4"/><path d="M18 32h12" stroke="${T}" stroke-width="3" stroke-linecap="round"/>`,
+    fusee: `<path d="M24 4c8 6 10 16 8 26H16c-2-10 0-20 8-26z" fill="#fff" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><circle cx="24" cy="17" r="4" fill="#5fc0ea" stroke="${T}" stroke-width="2.4"/><path d="M16 26l-6 8 6-1zM32 26l6 8-6-1z" fill="#ff5a4e" stroke="${T}" stroke-width="2.4" stroke-linejoin="round"/><path d="M19 31c0 6 3 10 5 13 2-3 5-7 5-13z" fill="#ffc93c" stroke="${T}" stroke-width="2.4" stroke-linejoin="round"/>`,
+    couronne: `<path d="M6 36l-1-22 10 9 9-14 9 14 10-9-1 22z" fill="#ffc93c" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><circle cx="24" cy="29" r="3" fill="#ff5a4e"/><circle cx="14" cy="30" r="2.2" fill="#5fc0ea"/><circle cx="34" cy="30" r="2.2" fill="#5fc0ea"/>`,
+    bulles: `<circle cx="18" cy="28" r="11" fill="#d8f1fb" stroke="${T}" stroke-width="3"/><circle cx="33" cy="15" r="7" fill="#d8f1fb" stroke="${T}" stroke-width="3"/><circle cx="36" cy="33" r="4" fill="#d8f1fb" stroke="${T}" stroke-width="2.4"/><path d="M13 24c1-3 3-4 5-4" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>`,
+    sifflet: `<path d="M6 22a10 10 0 0010 10h22V20H18l-2-4H8z" fill="#ffc93c" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><circle cx="16" cy="26" r="4" fill="${T}"/>`,
+    confettis: `<path d="M8 42l8-24 14 14z" fill="#ffc93c" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><circle cx="32" cy="10" r="3" fill="#ff5a4e"/><circle cx="40" cy="20" r="3" fill="#5fc0ea"/><rect x="24" y="6" width="5" height="5" rx="1" fill="#7cdc6b" transform="rotate(30 26 8)"/><rect x="38" y="30" width="5" height="5" rx="1" fill="#ff4fd8"/>`,
+    yoyo: `<circle cx="22" cy="28" r="14" fill="#ff5a4e" stroke="${T}" stroke-width="3"/><circle cx="22" cy="28" r="5" fill="#fff" stroke="${T}" stroke-width="2.4"/><path d="M22 28C30 18 34 10 40 4" fill="none" stroke="${T}" stroke-width="2.4" stroke-linecap="round"/>`,
+    nuggets: `<path d="M8 20c2-7 12-8 15-2 3 8-4 13-10 11-4-1-6-5-5-9z" fill="#e8a84a" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M24 30c2-7 12-8 15-2 3 8-4 13-10 11-4-1-6-5-5-9z" fill="#e8a84a" stroke="${T}" stroke-width="3" stroke-linejoin="round"/>`,
+    frites: `<path d="M12 22h24l-3 22H15z" fill="#ff5a4e" stroke="${T}" stroke-width="3" stroke-linejoin="round"/>${g('<path d="M16 22V9M21 22V6M26 22V8M31 22V10" stroke="#ffd23f" stroke-width="4"/>')}<path d="M12 22h24l-3 22H15z" fill="none" stroke="${T}" stroke-width="3" stroke-linejoin="round"/>`,
+    milkshake: `<path d="M13 16h22l-3 28H16z" fill="#ff8fc8" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M11 16c0-5 6-8 13-8s13 3 13 8z" fill="#fff" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M28 8l5-6" stroke="${T}" stroke-width="3" stroke-linecap="round"/>`,
+    salade: `<path d="M6 24h36c0 10-8 18-18 18S6 34 6 24z" fill="#fff3d6" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><circle cx="15" cy="21" r="6" fill="#7cdc6b" stroke="${T}" stroke-width="2.4"/><circle cx="25" cy="18" r="6" fill="#2fbf6a" stroke="${T}" stroke-width="2.4"/><circle cx="33" cy="22" r="4" fill="#ff4f5e" stroke="${T}" stroke-width="2.4"/>`,
+    livre: `<path d="M6 9c7-3 13-2 18 2 5-4 11-5 18-2v31c-7-3-13-2-18 2-5-4-11-5-18-2z" fill="#fff" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M24 11v31" stroke="${T}" stroke-width="3"/><path d="M6 9c7-3 13-2 18 2v31c-5-4-11-5-18-2z" fill="#8e44ad" opacity=".85"/>`,
+    cadeau: `<rect x="7" y="18" width="34" height="24" rx="3" fill="#ff5a4e" stroke="${T}" stroke-width="3"/><rect x="5" y="12" width="38" height="8" rx="2" fill="#ff7a6e" stroke="${T}" stroke-width="3"/><path d="M24 12v30" stroke="#ffc93c" stroke-width="5"/><path d="M24 12c-6-8-14-4-9 0zM24 12c6-8 14-4 9 0z" fill="#ffc93c" stroke="${T}" stroke-width="2.4" stroke-linejoin="round"/>`,
+    maillot: `<path d="M14 6l4 10c3 3 9 3 12 0l4-10 4 2-3 16 3 18c-6 4-24 4-30 0l3-18-3-16z" fill="var(--maillot,#2e86de)" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M14 34c6 3 14 3 20 0" fill="none" stroke="#fff" stroke-width="2.4" opacity=".7"/>`,
+    velo: `<circle cx="12" cy="32" r="8" fill="none" stroke="${T}" stroke-width="3"/><circle cx="36" cy="32" r="8" fill="none" stroke="${T}" stroke-width="3"/>${g('<path d="M12 32l8-14h12l4 14M20 18l6 14h-14M30 12h6"/>')}`,
+    voiture: `<path d="M5 30l4-11c1-3 3-4 6-4h18c3 0 5 1 6 4l4 11v7H5z" fill="#2e86de" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M13 18h22l2 7H11z" fill="#d8f1fb" stroke="${T}" stroke-width="2.4" stroke-linejoin="round"/><circle cx="14" cy="38" r="4.5" fill="${T}"/><circle cx="34" cy="38" r="4.5" fill="${T}"/>`,
+    poney: `<path d="M12 40V27c0-8 5-14 13-14 3-6 9-8 12-6l-2 4c4 2 6 6 5 10l-6 1-3-3c-1 6-1 10 1 14v7h-5v-8H17v8z" fill="#b07a45" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M25 13c-2 3-1 7 2 9" fill="none" stroke="#5a3214" stroke-width="3"/><circle cx="34" cy="13" r="1.8" fill="${T}"/>`,
+    nager: `<path d="M4 34c4 0 4-3 8-3s4 3 8 3 4-3 8-3 4 3 8 3 4-3 8-3" fill="none" stroke="#1fa5d6" stroke-width="3.4" stroke-linecap="round"/><circle cx="33" cy="16" r="5" fill="#ffd6b0" stroke="${T}" stroke-width="3"/><path d="M8 26l10-6 8 3 6-2" fill="none" stroke="${T}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>`,
+    marcher: `<circle cx="27" cy="8" r="5" fill="#ffd6b0" stroke="${T}" stroke-width="3"/>${g('<path d="M26 15l-3 13 7 6v9M23 28l-7 14M25 18l-8 5M26 18l7 6" stroke-width="3.6"/>')}`,
+    courir: `<circle cx="31" cy="8" r="5" fill="#ffd6b0" stroke="${T}" stroke-width="3"/>${g('<path d="M29 15l-6 12 8 5-2 11M23 27l-10 9-6-2M27 18l-10 2-4 7M28 19l7 7 6-2" stroke-width="3.6"/>')}`,
+    sauter: `<circle cx="24" cy="7" r="5" fill="#ffd6b0" stroke="${T}" stroke-width="3"/>${g('<path d="M24 14v14M24 18l-9-6M24 18l9-6M24 28l-8 8 2 6M24 28l8 8-2 6" stroke-width="3.6"/>')}<path d="M6 46h36" stroke="#c9b98f" stroke-width="3" stroke-linecap="round"/>`,
+    parler: `<path d="M6 12a6 6 0 016-6h24a6 6 0 016 6v14a6 6 0 01-6 6H22l-10 9v-9a6 6 0 01-6-6z" fill="#fff" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><circle cx="16" cy="19" r="2.6" fill="${T}"/><circle cx="24" cy="19" r="2.6" fill="${T}"/><circle cx="32" cy="19" r="2.6" fill="${T}"/>`,
+    porte: `<rect x="11" y="5" width="26" height="39" rx="3" fill="#b07a45" stroke="${T}" stroke-width="3"/><rect x="16" y="10" width="16" height="13" rx="2" fill="#8a5a2e"/><circle cx="31" cy="27" r="2.4" fill="#ffc93c" stroke="${T}" stroke-width="2"/>`,
+    lit: `<path d="M5 38V12M43 38V26M5 26h38" stroke="${T}" stroke-width="3.4" stroke-linecap="round"/><rect x="5" y="22" width="38" height="10" rx="3" fill="#5fc0ea" stroke="${T}" stroke-width="3"/><rect x="8" y="16" width="11" height="7" rx="3" fill="#fff" stroke="${T}" stroke-width="2.6"/>`,
+    applaudir: `<path d="M14 28l8-14c2-3 6-1 4 2l-3 6 9-12c2-3 6-1 4 2l-8 12 4-4c2-2 5 0 3 3l-8 9c-6 7-15 5-17-2z" fill="#ffd6b0" stroke="${T}" stroke-width="3" stroke-linejoin="round"/>${g('<path d="M36 6l2-4M42 12l4-1M40 9l3-3" stroke-width="2.6"/>')}`,
+    toboggan: `<path d="M6 42c10 0 12-26 26-30" fill="none" stroke="#ff5a4e" stroke-width="7" stroke-linecap="round"/><path d="M6 42c10 0 12-26 26-30" fill="none" stroke="${T}" stroke-width="2"/>${g('<path d="M34 10v32M42 10v32M34 18h8M34 26h8M34 34h8"/>')}`,
+    eau: `<path d="M24 5c8 11 13 18 13 25a13 13 0 01-26 0c0-7 5-14 13-25z" fill="#5fc0ea" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M18 30c0 4 3 7 6 7" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>`,
+    feu: `<path d="M24 4c3 9 13 13 13 25a13 13 0 01-26 0c0-6 3-10 7-13 0 4 2 6 4 7 0-7 0-13 2-19z" fill="#ff8a2b" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M24 26c4 4 6 6 6 9a6 6 0 01-12 0c0-3 2-5 6-9z" fill="#ffd23f"/>`,
+    coeur: `<path d="M24 42S6 30 6 17a9 9 0 0118-4 9 9 0 0118 4c0 13-18 25-18 25z" fill="#ff4f6d" stroke="${T}" stroke-width="3" stroke-linejoin="round"/>`,
+    chrono: `<circle cx="24" cy="27" r="16" fill="#fff" stroke="${T}" stroke-width="3"/><path d="M20 5h8M24 5v6M24 27l6-6" stroke="${T}" stroke-width="3" stroke-linecap="round"/>`,
+    medaille: `<path d="M14 4l6 14M34 4l-6 14" stroke="#2e86de" stroke-width="5"/><circle cx="24" cy="30" r="13" fill="#ffc93c" stroke="${T}" stroke-width="3"/><path d="M24 22l2.5 5 5.5.8-4 3.9 1 5.4-5-2.6-5 2.6 1-5.4-4-3.9 5.5-.8z" fill="#fff3a8"/>`,
+    ok: `<circle cx="24" cy="24" r="19" fill="#2fbf6a" stroke="${T}" stroke-width="3"/>${g('<path d="M15 25l6 6 12-13" stroke="#fff" stroke-width="4"/>')}`,
+    non: `<circle cx="24" cy="24" r="19" fill="#c9cfd6" stroke="${T}" stroke-width="3"/>${g('<path d="M17 17l14 14M31 17L17 31" stroke="#fff" stroke-width="4"/>')}`,
+    info: `<circle cx="24" cy="24" r="19" fill="#5fc0ea" stroke="${T}" stroke-width="3"/><circle cx="24" cy="15" r="2.8" fill="#fff"/><path d="M24 22v13" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>`,
+    animal: `<circle cx="13" cy="15" r="5" fill="#b07a45" stroke="${T}" stroke-width="2.6"/><circle cx="35" cy="15" r="5" fill="#b07a45" stroke="${T}" stroke-width="2.6"/><circle cx="20" cy="9" r="4.4" fill="#b07a45" stroke="${T}" stroke-width="2.6"/><circle cx="28" cy="9" r="4.4" fill="#b07a45" stroke="${T}" stroke-width="2.6"/><path d="M24 20c7 0 13 8 13 14 0 5-4 7-7 7-2 0-4-1-6-1s-4 1-6 1c-3 0-7-2-7-7 0-6 6-14 13-14z" fill="#b07a45" stroke="${T}" stroke-width="2.6" stroke-linejoin="round"/>`,
+    fleur: `<circle cx="24" cy="13" r="7" fill="#ff8fc8" stroke="${T}" stroke-width="2.6"/><circle cx="14" cy="21" r="7" fill="#ff8fc8" stroke="${T}" stroke-width="2.6"/><circle cx="34" cy="21" r="7" fill="#ff8fc8" stroke="${T}" stroke-width="2.6"/><circle cx="18" cy="31" r="7" fill="#ff8fc8" stroke="${T}" stroke-width="2.6"/><circle cx="30" cy="31" r="7" fill="#ff8fc8" stroke="${T}" stroke-width="2.6"/><circle cx="24" cy="23" r="5.5" fill="#ffc93c" stroke="${T}" stroke-width="2.6"/>`,
+    film: `<rect x="5" y="10" width="38" height="28" rx="4" fill="#2c3e50" stroke="${T}" stroke-width="3"/><path d="M20 18l10 6-10 6z" fill="#ffc93c"/>${g('<path d="M5 16h38M5 32h38" stroke="#5a6b7c" stroke-width="2"/>')}`,
+    quille: `<path d="M24 4c4 0 5 4 4 8-1 3-2 5 1 9 3 5 4 12 1 18-1 3-11 3-12 0-3-6-2-13 1-18 3-4 2-6 1-9-1-4 0-8 4-8z" fill="#fff" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M19.5 14h9" stroke="#ff5a4e" stroke-width="3"/>`,
+    golf: `<path d="M16 44V6" stroke="${T}" stroke-width="3" stroke-linecap="round"/><path d="M17 7l18 6-18 6z" fill="#ff5a4e" stroke="${T}" stroke-width="2.6" stroke-linejoin="round"/><ellipse cx="22" cy="43" rx="16" ry="3.5" fill="#2fbf6a" stroke="${T}" stroke-width="2.4"/><circle cx="31" cy="39" r="3" fill="#fff" stroke="${T}" stroke-width="2"/>`,
+  });
   window.ICO = ICO;
+
+  // Les émoticônes de l'interface deviennent de vraies icônes (ou disparaissent s'il n'y a pas d'icône) : boutons, messages, menus.
+  const EMO = { "🦆":"canard","👕":"maillot","🩱":"maillot","🌊":"eau","💦":"eau","🍔":"burger","🎟":"ticket","⛳":"golf","🎉":"confettis","🎈":"baudruche","🎳":"quille","🛝":"toboggan","🎂":"cadeau",
+    "🏠":"maison","🏡":"maison","🏚":"maison","🛖":"maison","🍬":"bonbon","🎮":"manette","🕹":"manette","🎃":"citrouille","🌲":"sapin","🌳":"sapin","🏆":"medaille","🏅":"medaille","🥇":"medaille","⭐":"etoile","🌟":"etoile","✨":"etoile","★":"etoile",
+    "🚲":"velo","🦁":"animal","🐑":"animal","🦒":"animal","🐱":"animal","🐠":"animal","🐟":"animal","🐧":"animal","🐄":"animal","🐔":"animal","🦓":"animal","🐘":"animal","🦛":"animal","🐒":"animal","🐶":"animal","🐴":"poney",
+    "👏":"applaudir","🏊":"nager","🛟":"nager","🛒":"caddie","🛍":"caddie","📚":"livre","📖":"livre","📕":"livre","📗":"livre","📘":"livre","📙":"livre","✅":"ok","✓":"ok","🎁":"cadeau","🥖":"baguette","🥐":"croissant","🔄":"nouvelle",
+    "💶":"piece","🪙":"piece","🗺":"carte","⚙":"reglages","👫":"amis","🌙":"lune","☀":"soleil","🚗":"voiture","🏎":"voiture","🎬":"film","🎭":"film","🍿":"film","🧍":"marcher","🏃":"courir","🦘":"sauter","📋":"info","❓":"info","ℹ":"info",
+    "🧃":"jus","🧸":"ourson","⏱":"chrono","🍟":"frites","🍦":"glace","📍":"pin","🎒":"sac","🎵":"musique","🎶":"musique","🏁":"depart","📊":"graphique","📥":"recevoir","📤":"envoyer","📲":"envoyer","📂":"dossier","✖":"fermer","❌":"fermer",
+    "🚪":"porte","🫧":"bulles","🔒":"cle","🔑":"cle","🥤":"milkshake","📞":"appel","📱":"telephone","🗨":"parler","💬":"parler","😴":"lit","💾":"sauver","🔊":"son","🔇":"sonCoupe","🍫":"painChoc","🧁":"eclair","🍓":"tarte","🍎":"pomme",
+    "🥛":"lait","🥣":"cereales","🍕":"pizza","🧴":"creme","⚽":"foot","🍭":"sucette","🤖":"robot","🚀":"fusee","👑":"couronne","🪀":"yoyo","🍗":"nuggets","🥗":"salade","👧":"personnage","👦":"personnage","🎨":"personnage","🔥":"feu","❤":"coeur","🗑":"poubelle","🎲":"de","🎯":"cible","🔔":"cloche" };
+  const RE_EMO = /(?:\p{Extended_Pictographic}|[\u2600-\u27BF\u2B50\u2B06\u2B07\u2194-\u21FF\u2139\u23F0-\u23FF\u2605\u2716\u2713])(?:\uFE0F|\u200D(?:\p{Extended_Pictographic}|[\u2600-\u27BF])\uFE0F?|[\u{1F3FB}-\u{1F3FF}])*|\uFE0F/gu;
+  const sansSelecteurs = e => e.replace(/[\uFE0F\u200D]|[\u{1F3FB}-\u{1F3FF}]/gu, "");
+  window.EMO = EMO;
+  // texte → morceaux (texte et icônes) ; aussi utilisable pour du HTML construit à la main : iconiser("🥐 Croissant")
+  window.iconiser = t => t.replace(RE_EMO, e => { const n = EMO[e] || EMO[sansSelecteurs(e)]; return n ? icone(n) : ""; }).replace(/^\s+/, "");
+  const EXCLUS = new Set(["SCRIPT", "STYLE", "TEXTAREA", "TITLE", "OPTION"]);
+  function traiterTexte(n) { const t = n.nodeValue; if (!t || !RE_EMO.test(t)) return; RE_EMO.lastIndex = 0;
+    const p = n.parentNode; if (!p || EXCLUS.has(p.nodeName) || p.closest?.("#perf, .garderEmoji")) return;
+    const span = document.createElement("span"); span.className = "txtIco"; span.innerHTML = iconiser(t.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c])); p.replaceChild(span, n);
+    if (span.childNodes.length === 1 && span.firstChild.nodeType === 3) p.replaceChild(span.firstChild, span); }
+  function parcourir(r) { if (r.nodeType === 3) return traiterTexte(r); if (r.nodeType !== 1 || EXCLUS.has(r.nodeName)) return; const w = document.createTreeWalker(r, NodeFilter.SHOW_TEXT), L = []; while (w.nextNode()) L.push(w.currentNode); L.forEach(traiterTexte); }
+  const demarrer = () => { parcourir(document.body); new MutationObserver(ms => { for (const m of ms) { if (m.type === "characterData") traiterTexte(m.target); else m.addedNodes.forEach(parcourir); } })
+    .observe(document.body, { childList: true, subtree: true, characterData: true }); };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", demarrer); else demarrer();
   window.icone = (n, cls = "ic") => ICO[n] ? `<svg class="${cls}" viewBox="0 0 48 48" aria-hidden="true">${ICO[n]}</svg>` : "";
   const remplir = r => r.querySelectorAll("i[data-ico]").forEach(i => { i.outerHTML = icone(i.dataset.ico, "ic " + (i.className || "")); });
   window.remplirIcones = remplir;
@@ -2976,30 +3103,49 @@ $("bookNext").onclick = () => { const b = BOOKS.find(x => x.id === reading.id); 
 $("bookClose").onclick = () => fermer("bookView");
 /* ---------- Le téléphone 📱 : commander à distance (livré au cottage) et appeler l'accueil ---------- */
 const PHONE_BF = { title: "Burger Fast 🍔", items: [["🍔", "Burger", 4], ["🍟", "Frites", 2], ["🍗", "Nuggets", 3], ["🥤", "Milkshake", 3], ["🍦", "Glace", 2], ["🥗", "Salade", 3]] };
-const PHONE_APPS = [["boul", "🥖", "Boulangerie", "#c47a3a"], ["market", "🛒", "Market Speed", "#27ae60"], ["bf", "🍔", "Burger Fast", "#e74c3c"], ["livres", "📚", "Librairie", "#8e44ad"], ["accueil", "📞", "Accueil", "#2e86de"]];
+const PHONE_APPS = [["boul", "croissant", "Boulangerie", "linear-gradient(#f6c27a,#c47a3a)"], ["market", "caddie", "Market Speed", "linear-gradient(#7cdc6b,#27ae60)"], ["bf", "burger", "Burger Fast", "linear-gradient(#ff8a7a,#e74c3c)"], ["livres", "livre", "Librairie", "linear-gradient(#c49ae8,#8e44ad)"]];
+const PHONE_SYS = [["accueil", "appel", "Téléphone", "linear-gradient(#fff,#e8f6ec)"], ["messages", "message", "Messages", "linear-gradient(#fff,#e8f6ec)"], ["plans", "carte", "Plans", "linear-gradient(#fff,#e8f2fb)"], ["wallet", "portefeuille", "Portefeuille", "linear-gradient(#2c3e50,#1d2340)"]];
+const PH_RESEAU = '<svg viewBox="0 0 34 12"><rect x="0" y="8" width="5" height="4" rx="1" fill="#fff"/><rect x="7" y="5" width="5" height="7" rx="1" fill="#fff"/><rect x="14" y="2" width="5" height="10" rx="1" fill="#fff"/><rect x="22" y="1" width="11" height="10" rx="2.5" fill="none" stroke="#fff" stroke-width="1.6"/><rect x="24" y="3" width="7" height="6" rx="1" fill="#fff"/></svg>';
 const deliveries = [];
 let phoneApp = null;
 function phoneShop(k) { return k === "bf" ? PHONE_BF : BUY[k]; }
 function phoneRender(msg) {
-  const S = $("phoneScreen"), hh = new Date(); const clock = `${String(hh.getHours()).padStart(2, "0")}:${String(hh.getMinutes()).padStart(2, "0")}`;
-  let h = `<div class="ph-top"><span>${clock}</span><span>📶 🔋</span></div>`;
+  const S = $("phoneScreen"), hh = new Date(), clock = `${String(hh.getHours()).padStart(2, "0")}:${String(hh.getMinutes()).padStart(2, "0")}`;
+  const ligne = (ico, nom, prix, attr, cher) => `<button class="ph-item${cher ? " cher" : ""}" ${attr}>${ico}<span class="nm">${nom}</span>${prix ? `<b>${prix}</b>` : ""}</button>`;
+  const icObjet = e => icone(EMO[e] || EMO[(e || "").replace(/[️‍]/g, "")] || "cadeau");
+  let h = `<div class="ph-top"><span>${clock}</span><span>${PH_RESEAU}</span></div>`;
   if (!phoneApp) {
-    h += `<div class="ph-title">Domaine des Pins</div><div class="ph-apps">` + PHONE_APPS.map(([k, e, n, c]) => `<button class="ph-app" data-app="${k}"><span style="background:${c}">${e}</span>${n}</button>`).join("") + `</div>`;
-    if (deliveries.length) h += `<p class="ph-note">🚲 ${deliveries.length} livraison${deliveries.length > 1 ? "s" : ""} en route vers ton cottage…</p>`;
+    const jours = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+    h += `<div class="ph-heure"><b>${clock}</b><span>${jours[hh.getDay()]} · Domaine des Pins</span></div>`;
+    h += `<div class="ph-rubrique">Boutiques du domaine</div><div class="ph-apps">` + PHONE_APPS.map(([k, ic, n, c]) => `<button class="ph-app" data-app="${k}"><span style="background:${c}">${icone(ic)}</span>${n}</button>`).join("") + `</div>`;
+    if (deliveries.length) h += `<p class="ph-note">${deliveries.length} livraison${deliveries.length > 1 ? "s" : ""} en route vers ton cottage…</p>`;
+    h += `<div class="ph-dock">` + PHONE_SYS.map(([k, ic, n, c]) => `<button class="ph-app" data-app="${k}"><span style="background:${c}">${icone(ic)}</span>${n}${k === "messages" && deliveries.length ? `<em>${deliveries.length}</em>` : ""}</button>`).join("") + `</div>`;
+  } else if (phoneApp === "messages") {
+    const o = objectifCourant();
+    h += `<div class="ph-title">${icone("message")} Messages</div>`;
+    h += `<div class="ph-msg"><small>Accueil du Domaine</small>Bienvenue au Domaine des Pins ! Bonnes vacances !</div>`;
+    h += `<div class="ph-msg"><small>Accueil du Domaine</small>Ton prochain objectif : ${o.titre()}.</div>`;
+    h += `<div class="ph-msg"><small>Accueil du Domaine</small>Il reste ${10 - found} canard${10 - found > 1 ? "s" : ""} à retrouver dans le domaine.</div>`;
+    for (const d of deliveries) h += `<div class="ph-msg moi"><small>Commande</small>${d.item.replace(/^\S+\s+/, "")} : le livreur arrive dans ${Math.max(1, Math.ceil(d.t))} s.</div>`;
+  } else if (phoneApp === "wallet") {
+    h += `<div class="ph-title">${icone("portefeuille")} Portefeuille</div>`;
+    h += `<div class="ph-carte" style="background:linear-gradient(135deg,#2f8f5b,#1d5a3a)">${icone("piece")}<span>Argent de vacances</span><b>${money} €</b></div>`;
+    h += `<div class="ph-carte" style="background:linear-gradient(135deg,#ff4fd8,#8e44ad)">${icone("ticket")}<span>Tickets de la salle d'arcade</span><b>${gtData.tickets}</b></div>`;
+    h += `<div class="ph-carte" style="background:linear-gradient(135deg,#ffc93c,#e8a020);color:#1d3b2a">${icone("canard")}<span>Canards trouvés</span><b>${found} / 10</b></div>`;
   } else if (phoneApp === "livres") {
-    h += `<div class="ph-title">📚 Librairie</div><p class="ph-note">Tu as <b>${money} €</b>. Un livre acheté ici se lit tout de suite sur le téléphone !</p><div class="ph-list">`
-      + BOOKS.map(b => ownBooks.includes(b.id) ? `<button class="ph-item" data-read="${b.id}">${b.e} ${b.t} <b>📖 Lire</b></button>` : `<button class="ph-item" data-book="${b.id}" ${money < b.p ? "style='opacity:.5'" : ""}>${b.e} ${b.t} <b>${b.p} €</b></button>`).join("") + `</div>`;
+    h += `<div class="ph-title">${icone("livre")} Librairie</div><p class="ph-note">Tu as <b>${money} €</b>. Un livre acheté ici se lit tout de suite sur le téléphone !</p><div class="ph-list">`
+      + BOOKS.map(b => ownBooks.includes(b.id) ? ligne(icone("livre"), b.t, "Lire", `data-read="${b.id}"`) : ligne(icone("livre"), b.t, b.p + " €", `data-book="${b.id}"`, money < b.p)).join("") + `</div>`;
     if (msg) h += `<p class="ph-msg">${msg}</p>`;
   } else if (phoneApp === "accueil") {
-    h += `<div class="ph-title">📞 Accueil du Domaine</div><p class="ph-msg">${msg || "Bonjour, ici l'accueil du Domaine des Pins ! 😊 Comment je peux t'aider ?"}</p><div class="ph-list">`
-      + [["perdu", "🗺️ Je suis perdu"], ["canard", "🦆 Où est un canard ?"], ["anniv", "🎂 Pour un anniversaire"], ["bloque", "🚐 Je suis bloqué, ramenez-moi"], ["merci", "📵 Raccrocher"]].map(([k, t]) => `<button class="ph-item" data-call="${k}">${t}</button>`).join("") + `</div>`;
+    h += `<div class="ph-title">${icone("appel")} Accueil du Domaine</div><p class="ph-msg">${msg || "Bonjour, ici l'accueil du Domaine des Pins ! Comment je peux t'aider ?"}</p><div class="ph-list">`
+      + [["perdu", "carte", "Je suis perdu"], ["canard", "canard", "Où est un canard ?"], ["anniv", "cadeau", "Pour un anniversaire"], ["bloque", "voiture", "Je suis bloqué, ramenez-moi"], ["merci", "fermer", "Raccrocher"]].map(([k, ic, t]) => ligne(icone(ic), t, "", `data-call="${k}"`)).join("") + `</div>`;
   } else {
-    const sh = phoneShop(phoneApp);
-    h += `<div class="ph-title">${sh.title}</div><p class="ph-note">Tu as <b>${money} €</b>. On livre à ton cottage ! 🚲</p><div class="ph-list">`
-      + sh.items.map(([e, n, p], i) => `<button class="ph-item" data-buy="${i}" ${money < p ? "style='opacity:.5'" : ""}>${e} ${n} <b>${p} €</b></button>`).join("") + `</div>`;
+    const sh = phoneShop(phoneApp), app = PHONE_APPS.find(a => a[0] === phoneApp);
+    h += `<div class="ph-title">${icone(app ? app[1] : "caddie")} ${app ? app[2] : ""}</div><p class="ph-note">Tu as <b>${money} €</b>. On livre à ton cottage !</p><div class="ph-list">`
+      + sh.items.map(([e, n, p], i) => ligne(icObjet(e), n, p + " €", `data-buy="${i}"`, money < p)).join("") + `</div>`;
     if (msg) h += `<p class="ph-msg">${msg}</p>`;
   }
-  if (phoneApp) h += `<button class="ph-home" data-home="1">⬅ Retour</button>`;
+  if (phoneApp) h += `<button class="ph-home" data-home="1">${icone("retour")} Accueil</button>`;
   S.innerHTML = h;
 }
 function phoneOpen() { phoneApp = null; phoneRender(); ouvrir("phoneView"); tone(1318, .06, "sine", .06); tone(1760, .08, "sine", .05, 0, .07); }
@@ -3008,6 +3154,7 @@ $("phoneClose").onclick = () => fermer("phoneView");
 $("phoneScreen").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return; tone(1046, .04, "sine", .05);
   if (b.dataset.home) { phoneApp = null; phoneRender(); return; }
+  if (b.dataset.app === "plans") { fermer("phoneView"); $("mapBtn").click(); return; }
   if (b.dataset.app) { phoneApp = b.dataset.app; if (phoneApp === "accueil") { phoneRender("📞 Ça sonne… dring… dring…"); [0, .5, 1.4, 1.9].forEach(d => tone(440, .35, "sine", .05, 0, d)); setTimeout(() => { if (phoneApp === "accueil" && !$("phoneView").hidden) phoneRender(); }, 2600); } else phoneRender(); return; }
   if (b.dataset.read) { fermer("phoneView"); openBook(b.dataset.read); return; }
   if (b.dataset.book) { const bk = BOOKS.find(x => x.id === b.dataset.book); if (money < bk.p) { phoneRender(`Il te manque ${bk.p - money} € pour ce livre.`); return; } money -= bk.p; saveShop(); updMoney(); ownBook(bk.id); [880, 1175].forEach((f, i) => tone(f, .08, "triangle", .07, 0, i * .08)); phoneRender(`✅ « ${bk.t} » est dans ton téléphone. Touche-le pour le lire ! 📖`); return; }
@@ -9011,15 +9158,18 @@ function temoinManette(g) { const n = g ? g.id.replace(/\s*\(.*?\)\s*/g, " ").tr
 temoinManette(null);
 // le sac à dos : tout ce qu'on a acheté ou gagné (déjà gardé sur l'appareil : argent, maillots, courses, cadeaux)
 function remplirSac() {
-  $("invArgent").textContent = "💶 " + money + " €"; $("invTickets").textContent = "🎟️ " + gtData.tickets + " ticket" + (gtData.tickets > 1 ? "s" : "");
+  $("invArgent").innerHTML = icone("piece") + money + " €"; $("invTickets").innerHTML = icone("ticket") + gtData.tickets + " ticket" + (gtData.tickets > 1 ? "s" : "");
   const L = $("invListe"); L.textContent = "";
-  const groupe = (titre, objets, vide) => { const h = document.createElement("h3"); h.textContent = titre; L.append(h);
+  // un objet = son dessin (l'émoticône de la boutique devient l'icône), son nom, et combien on en a
+  const dessin = t => { const m = t.match(/^(\S+)\s+(.*)$/), e = m && (EMO[m[1]] || EMO[m[1].replace(/[️‍]/g, "")]); return e ? [icone(e), m[2]] : [icone("cadeau"), m ? m[2] : t]; };
+  const groupe = (ico, titre, objets, vide) => { const h = document.createElement("h3"); h.innerHTML = icone(ico) + titre; L.append(h);
     if (!objets.length) { const p = document.createElement("p"); p.className = "vide"; p.textContent = vide; L.append(p); return; }
-    const d = document.createElement("div"); d.className = "objets"; const n = {}; objets.forEach(o => n[o] = (n[o] || 0) + 1);
-    for (const [o, k] of Object.entries(n)) { const e = document.createElement("span"); e.className = "objet"; e.textContent = k > 1 ? `${o} ×${k}` : o; d.append(e); } L.append(d); };
-  groupe("🩱 Mes maillots", owned.map(id => { const su = SUITS.find(x => x.id === id); return (wearing === id ? "✅ " : "") + (su ? nomMaillot(su) : id); }), "Pas encore de maillot.");
-  groupe("🛍️ Mes courses", bag, "Rien pour l'instant : va à la boulangerie ou au Market Speed !");
-  groupe("🎁 Mes cadeaux", gtData.owned, "Gagne des tickets dans la salle d'arcade du Multi Parcs pour avoir des cadeaux !");
+    const d = document.createElement("div"); d.className = "cases"; const n = new Map(); for (const o of objets) { const k = o.cle ?? o; const e = n.get(k); if (e) e.k++; else n.set(k, { o, k: 1 }); }
+    for (const { o, k } of n.values()) { const c = document.createElement("div"); c.className = "case" + (o.porte ? " porte" : ""); const [img, nom] = o.img ? [o.img, o.nom] : dessin(o);
+      c.innerHTML = img + `<span>${nom.replace(/[&<>]/g, "")}</span>` + (k > 1 ? `<b>×${k}</b>` : ""); d.append(c); } L.append(d); };
+  groupe("maillot", "Mes maillots", owned.map(id => { const su = SUITS.find(x => x.id === id); return { cle: id, porte: wearing === id, nom: su ? nomMaillot(su) : id, img: icone("maillot").replace("<svg ", `<svg style="--maillot:${su ? su.a : "#2e86de"}" `) }; }), "Pas encore de maillot.");
+  groupe("caddie", "Mes courses", bag, "Rien pour l'instant : va à la boulangerie ou au Market Speed !");
+  groupe("cadeau", "Mes cadeaux", gtData.owned, "Gagne des tickets dans la salle d'arcade du Multi Parcs pour avoir des cadeaux !");
 }
 $("invBtn").onclick = () => { if (!$("intro").hidden) return; sfx.click(); remplirSac(); ouvrir("invView"); };
 $("invClose").onclick = () => { sfx.click(); fermer("invView"); };
@@ -9027,7 +9177,7 @@ $("invClose").onclick = () => { sfx.click(); fermer("invView"); };
 $("lockerHabits").onclick = () => { sfx.click(); ouvrirCrea(); };
 // Mettre sa partie sur un autre appareil : un fichier JSON, ou un code de partage (la sauvegarde elle-même, compressée :
 // rien n'est gardé sur un serveur). On garde tout ce qui fait la partie, pas les réglages de l'appareil (volumes, permis…).
-const SV_CLES = ["pins-persos", "pins-perso", "pins-partie", "pins-argent", "pins-maillots", "pins-sac", "pins-coffre", "pins-gametown", "pins-golf", "pins-golf3", "pins-kart", "pins-halloween"];
+const SV_CLES = ["pins-persos", "pins-perso", "pins-partie", "pins-argent", "pins-maillots", "pins-sac", "pins-coffre", "pins-gametown", "pins-arcade", "pins-objectifs", "pins-golf", "pins-golf3", "pins-kart", "pins-halloween"];
 function svPaquet() { sauverPartie(false); const d = {}; for (const k of SV_CLES) { try { const v = localStorage.getItem(k); if (v !== null) d[k] = v; } catch (e) {} } return { jeu: "domaine-des-pins", version: 1, date: new Date().toISOString(), donnees: d }; }
 function svValide(o) { return o && o.jeu === "domaine-des-pins" && o.donnees && typeof o.donnees === "object" && Object.entries(o.donnees).every(([k, v]) => SV_CLES.includes(k) && typeof v === "string" && v.length < 60000); }
 let svAttente = null; // la partie reçue ou lue, en attente du « Charger »
@@ -9171,7 +9321,7 @@ const clock = new THREE.Clock(); let walkT = 0, time = 0, stepAcc = 0, birdT = 4
 const tv = new THREE.Vector3(), prev = { x: 0, z: 0 };
 player.position.set(SPAWN.x, 0, SPAWN.z);
 applyRelief();
-function setBtn(el, txt) { if (txt) { if (el.textContent !== txt) el.textContent = txt; el.hidden = false; } else el.hidden = true; }
+function setBtn(el, txt) { if (txt) { if (el.dataset.t !== txt) { el.dataset.t = txt; el.textContent = txt; } el.hidden = false; } else el.hidden = true; } // on compare au texte d'origine (l'émoticône devient une icône à l'écran)
 function inPoolRect(x, z, m = .35) { return x > POOL.x1 + m && x < POOL.x2 - m && z > POOL.z1 + m && z < POOL.z2 - m || x > PPOOL.x1 + m && x < PPOOL.x2 - m && z > PPOOL.z1 + m && z < PPOOL.z2 - m; }
 camera.position.set(-16, 6, 26); camera.lookAt(-16, 1.5, 35);
 
