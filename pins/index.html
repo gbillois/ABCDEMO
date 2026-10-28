@@ -135,7 +135,7 @@ html.app .site{display:none!important}
 <div id="intro" class="overlay">
   <div class="card">
     <h1>Le Domaine des Pins</h1>
-    <p>Des vacances dans la forêt : ton cottage et sa terrasse, l'Aquaparc et ses toboggans, l'aquarium, le Multi Parcs (Baloba et Game Town), Burger Fast, l'acrobranche, l'accueil, la boulangerie, le Market Speed, la rivière sauvage, la ferme, le poney club, les karts, les vélos, la maison dans les arbres, le lac et son pédalo… et un chat roux qui vient te voir !</p>
+    <p>Des vacances dans la forêt : ton cottage et sa terrasse, l'Aquaparc et ses toboggans, l'aquarium, le Multi Parcs, Burger Fast, l'acrobranche, l'accueil, la boulangerie, le Market Speed, la rivière sauvage, la ferme, le poney club, les karts, les vélos, la maison dans les arbres, le lac et son pédalo… et un chat roux qui vient te voir !</p>
     <p><b>Mission :</b> 10 canards en plastique se sont échappés. Retrouve-les tous ! 🦆</p>
     <p class="small">Joystick à gauche pour marcher. Glisse ton doigt sur l'écran pour tourner la caméra. Sur ordinateur : flèches ou ZQSD, E pour agir (ouvrir une porte, nager, se changer…), T pour parler, J pour sauter, Maj pour courir. Tu as 4000 € pour la boutique de maillots de bain.</p>
     <div class="row"><button id="persoBtn" class="btn" style="background:var(--violet)">🎨 Mon personnage : <b id="persoNom">Théo</b></button></div>
@@ -215,10 +215,10 @@ html.app .site{display:none!important}
     <h1 style="color:#2e86de">Bienvenue ! ℹ️</h1>
     <h3>Ce qui va se passer pendant tes vacances</h3>
     <ul>
-      <li>🌴 <b>Le jour</b>, tu peux aller à l'Aquaparc (n'oublie pas ton maillot !), à l'aquarium, au Multi Parcs (Baloba et Game Town), chez Burger Fast, à la boulangerie, au Market Speed, à la ferme, au poney club, aux karts, à la rivière sauvage et dans la maison dans les arbres.</li>
+      <li>🌴 <b>Le jour</b>, tu peux aller à l'Aquaparc (n'oublie pas ton maillot !), à l'aquarium, au Multi Parcs, chez Burger Fast, à la boulangerie, au Market Speed, à la ferme, au poney club, aux karts, à la rivière sauvage et dans la maison dans les arbres.</li>
       <li>🌙 <b>La nuit</b> tombe toutes les 8 minutes : la lune et les étoiles arrivent, les lampadaires s'allument. Dors dans ton cottage pour te réveiller le matin.</li>
       <li>🦆 <b>Ta mission</b> : retrouver les 10 canards en plastique cachés dans le domaine.</li>
-      <li>💶 Tu as de l'argent pour la boutique de maillots, la boulangerie et le Market Speed. À Game Town, tu gagnes des tickets 🎟️.</li>
+      <li>💶 Tu as de l'argent pour la boutique de maillots, la boulangerie et le Market Speed. Au Multi Parcs, tu gagnes des tickets 🎟️.</li>
     </ul>
     <h3>Si tu as un problème</h3>
     <ul>
@@ -1380,7 +1380,7 @@ const baloFloorTex = tex(256, (x, s) => { const cols = ["#ff7a6e", "#ffd25e", "#
   const slab = rbox(hx * 2 + .8, .5, hz * 2 + .8, mat(0x2e86de, .5), .25); slab.position.y = h + .25; roof.add(slab);
   [[-6, -6, 3.4, 0xff5a4e], [2, 2, 4.2, 0xffc93c], [7, -8, 2.6, 0x27ae60], [-7, 6, 2.4, 0xe84393], [7, 8, 2, 0x9b59b6]].forEach(([x, z, r, c]) => { const b = new THREE.Mesh(new THREE.SphereGeometry(r, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), mat(c, .35)); b.position.set(x, h + .5, z); roof.add(b); });
   shadowAll(roof); baloG.userData.roof = roof;
-  const sign = label("MULTI PARCS · LE BALOBA 🎈", "#e84393", "#ffffff", 3.4); sign.position.set(0, h + 6.2, 0); baloG.add(sign);
+  const sign = label("MULTI PARCS 🎈", "#e84393", "#ffffff", 3.4); sign.position.set(0, h + 6.2, 0); baloG.add(sign);
   const awn = rbox(door * 2 + 1.8, .2, 1.6, mat(0xff5a4e, .5), .08); awn.position.set(0, 3.7, hz + .8); awn.castShadow = true; baloG.add(awn);
   // portes automatiques (coulissent sur les côtés)
   baloG.userData.doors = [-1, 1].map(s => { const d = new THREE.Mesh(new THREE.BoxGeometry(door, 3.3, .08), glassMat.clone()); d.material.opacity = .45; d.material.color.set(0xffd25e); const fr = new THREE.Mesh(new THREE.BoxGeometry(.08, 3.3, .12), metalMat); fr.position.x = -s * door / 2; d.add(fr); d.position.set(s * door / 2, 1.65, hz); baloG.add(d); return { m: d, s }; });
@@ -1535,12 +1535,12 @@ const gtCarpetTex = tex(256, (x, s) => {
   const db = { x1: GTW.x - door, x2: GTW.x + door, z1: z2 - .1, z2: z2 + .1, off: false }; boxes.push(db); gtG.userData.doorBox = db;
   gtG.userData.doors = [-1, 1].map(s => { const d = new THREE.Mesh(new THREE.BoxGeometry(door, 3.1, .08), glassMat.clone()); d.material.opacity = .5; d.material.color.set(0xff9bea); d.position.set(s * door / 2, 1.55, hz); gtG.add(d); return { m: d, s }; });
   const big = label("MULTI PARCS 🎈🎮", "#ff4fd8", "#ffffff", 3.4); big.position.set(0, h + 7.4, hz - 1); gtG.add(big);
-  const arch = label("🎈 Le Baloba ↓", "#e84393", "#ffffff", .9); arch.position.set(BALO.x - GTW.x, 3.6, -hz + .4); gtG.add(arch);
+  const arch = label("🎈 Toboggans et trampolines ↓", "#e84393", "#ffffff", .9); arch.position.set(BALO.x - GTW.x, 3.6, -hz + .4); gtG.add(arch);
   const roof = new THREE.Group(); gtG.add(roof);
   const slab = rbox(hx * 2 + .8, .5, hz * 2 + .8, mat(0x2b1d5f, .5), .25); slab.position.y = h + .25; roof.add(slab);
   for (const [x, z, c] of [[-5, -2, 0xff4fd8], [0, 2, 0x2fd3ff], [5, -2, 0xffe066]]) { const st = new THREE.Mesh(new THREE.OctahedronGeometry(1.1, 0), new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: .6 })); st.position.set(x, h + 1.8, z); st.scale.y = 1.3; roof.add(st); }
   shadowAll(roof); gtG.userData.roof = roof;
-  const sign = label("GAME TOWN 🎮", "#1b1035", "#ff4fd8", 2.6); sign.position.set(0, h + 4.2, 0); gtG.add(sign);
+  const sign = label("MULTI PARCS 🎮", "#1b1035", "#ff4fd8", 2.6); sign.position.set(0, h + 4.2, 0); gtG.add(sign);
   const fl = new THREE.Mesh(new THREE.PlaneGeometry(hx * 2, hz * 2), mat(0xffffff, .95, { map: gtCarpetTex, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 })); fl.rotation.x = -Math.PI / 2; fl.position.y = .03; fl.receiveShadow = true; gtG.add(fl);
   // néons le long des murs, lumières roses et bleues
   for (const [x, c] of [[-hx + .2, 0xff4fd8], [hx - .2, 0x2fd3ff]]) { const n = new THREE.Mesh(new THREE.BoxGeometry(.1, .1, hz * 2 - .6), new THREE.MeshBasicMaterial({ color: c })); n.position.set(x, h - .4, 0); gtG.add(n); }
@@ -3111,8 +3111,8 @@ const npcs = [
   { name: "Lucas, de la rivière", pos: [RDOCK.x + RDOCK.tx * 3.4 + RDOCK.sx * 1.2, RDOCK.z + RDOCK.tz * 3.4 + RDOCK.sz * 1.2], o: { shirt: 0xff5a4e, pants: 0xffc93c, shorts: true, hair: 0x2d2018, skin: 0xc68e6a, cap: 0xff5a4e }, lines: ["Bienvenue à la rivière sauvage ! 🌊", "Monte dans une bouée sur le ponton, et le courant t'emporte.", "Il y a deux rapides : ça va très vite ! Penche-toi à gauche ou à droite pour te diriger.", "Le tour se termine ici, au ponton. Tu peux sortir avant si tu veux."] },
   { name: "Paul, le garde forestier", pos: [40, -10], o: { shirt: 0x6d8b3a, hair: 0x555555, cap: 0x4b6328, skin: 0xc68e6a }, lines: ["Bonjour, aventurier !", "Au ponton du lac, tu peux prendre le pédalo. Un canard flotte au milieu du lac !", "Ouvre la carte pour voir où ils se cachent. Les points jaunes, ce sont eux !", "Au bout du chemin, il y a l'aquarium ! Va voir Bubulle le requin 🦈"] },
   { name: "Nina, la soigneuse", pos: aqW(-4.4, 3.2), o: { shirt: 0x1f8fae, pants: 0x2d3436, hair: 0x2d2018, long: true, skin: 0xc68e6a }, lines: ["Bienvenue à l'aquarium ! Moi c'est Nina, je m'occupe des poissons.", "Le gros poisson gris, c'est Bubulle le requin. Il est très gentil !", "Tu as vu la tortue de mer ? Elle s'appelle Pistache 🐢", "Les méduses roses brillent dans le grand bassin du milieu.", "Approche-toi du grand bassin et appuie sur Nourrir les poissons 🐟"] },
-  { name: "Tom, l'animateur", pos: bw(-3, 9.5), o: { shirt: 0xff8a2b, pants: 0x2e86de, hair: 0x8b4513, cap: 0x27ae60 }, lines: ["Salut ! Bienvenue au Baloba, la salle de jeux ! 🎈", "Monte les marches de la grande structure, passe dans le tunnel et grimpe tout en haut.", "Il y a trois toboggans : le colimaçon tout en haut, le toboggan rapide au 2e étage et le toboggan à vagues au 1er !", "Les six trampolines sont au fond : saute dessus, tu vas rebondir très haut !", "Si tu as soif, va au bar à goûter ! 🧃", "Et la piscine à balles… plonge dedans ! On rentre par l'ouverture sur le côté."] },
-  { name: "Léon, de Game Town", pos: gw(2.6, 7.2), o: { shirt: 0x8e44ad, pants: 0x1b1035, hair: 0x111111, cap: 0xff4fd8, skin: 0xd9a27a }, lines: ["Bienvenue au Multi Parcs ! Ici, c'est Game Town 🎮", "Le Baloba est juste derrière, par la porte du fond 🎈", "Approche-toi d'une borne et appuie sur Jouer. Il y a Tape-Taupe, Panier Magique et Attrape-Étoiles !", "Chaque partie te fait gagner des tickets 🎟️.", "Avec 3 tickets, tu peux essayer la machine à pince… si tu as de la chance, tu gagnes une peluche !", "Au comptoir des cadeaux, au fond, tu échanges tes tickets contre des cadeaux 🎁"] },
+  { name: "Tom, l'animateur", pos: bw(-3, 9.5), o: { shirt: 0xff8a2b, pants: 0x2e86de, hair: 0x8b4513, cap: 0x27ae60 }, lines: ["Salut ! Bienvenue au Multi Parcs ! 🎈", "Monte les marches de la grande structure, passe dans le tunnel et grimpe tout en haut.", "Il y a trois toboggans : le colimaçon tout en haut, le toboggan rapide au 2e étage et le toboggan à vagues au 1er !", "Les six trampolines sont au fond : saute dessus, tu vas rebondir très haut !", "Si tu as soif, va au bar à goûter ! 🧃", "Et la piscine à balles… plonge dedans ! On rentre par l'ouverture sur le côté."] },
+  { name: "Léon, du Multi Parcs", pos: gw(2.6, 7.2), o: { shirt: 0x8e44ad, pants: 0x1b1035, hair: 0x111111, cap: 0xff4fd8, skin: 0xd9a27a }, lines: ["Bienvenue au Multi Parcs ! Ici, ce sont les jeux d'arcade 🎮", "Les toboggans et les trampolines sont juste derrière, par la porte du fond 🎈", "Approche-toi d'une borne et appuie sur Jouer. Il y a Tape-Taupe, Panier Magique et Attrape-Étoiles !", "Chaque partie te fait gagner des tickets 🎟️.", "Avec 3 tickets, tu peux essayer la machine à pince… si tu as de la chance, tu gagnes une peluche !", "Au comptoir des cadeaux, au fond, tu échanges tes tickets contre des cadeaux 🎁"] },
   { name: "Zoé, de Burger Fast", pos: fw(-1.2, -4.4), o: { shirt: 0xff7a2f, pants: 0x1f9e8f, hair: 0x5a3a22, long: true, cap: 0xff7a2f }, lines: ["Bienvenue chez Burger Fast ! 🍔", "Approche-toi de la caisse et appuie sur Commander pour choisir ton menu.", "Quand ta commande est prête, viens chercher ton plateau au bout du comptoir.", "Ensuite, va t'asseoir à une table pour manger. Bon appétit ! 😋"] },
   { name: "Margot, de l'accueil", pos: ACCUEIL.w(0, 2.3), o: { shirt: 0x2e86de, pants: 0x2d3436, hair: 0xd4a017, long: true }, lines: ["Bonjour et bienvenue au Domaine des Pins ! 😊", "Ici, je t'explique ce qui va se passer pendant tes vacances, et quoi faire si tu as un problème.", "Approche-toi du comptoir et appuie sur Le programme pour tout lire.", "Le grand plan du domaine est accroché au mur, derrière moi !"] },
   { name: "Hugo, moniteur d'acrobranche", pos: [-140.3, 103.4], o: { shirt: 0x27ae60, pants: 0x3b5998, hair: 0x5a3a22, cap: 0xff5a4e, skin: 0xe0ac85 }, lines: ["Salut ! Bienvenue à l'acrobranche 🧗", "D'abord, il faut ton baudrier et ton casque : approche-toi du comptoir.", "Ensuite tu montes l'échelle, tu passes les ponts dans les arbres…", "…et tu redescends par la tyrolienne ! 🪂"] },
@@ -3368,8 +3368,8 @@ function openChest() {
 const BARN = { x1: -90, x2: -78, z1: -27, z2: -13 };
 function zoneName(P) {
   if (inAqua(P.x, P.z)) return "🐠 Aquarium";
-  if (inBaloba(P.x, P.z)) return "🎈 Multi Parcs · Baloba";
-  if (inGameTown(P.x, P.z)) return "🎮 Multi Parcs · Game Town";
+  if (inBaloba(P.x, P.z)) return "🎈 Multi Parcs";
+  if (inGameTown(P.x, P.z)) return "🎈 Multi Parcs";
   if (inBurger(P.x, P.z)) return "🍔 Burger Fast";
   if (inRect(ACRO, P.x, P.z)) return "🧗 Acrobranche";
   if (inLockerRoom(P.x, P.z)) return "👕 Vestiaires";
@@ -3385,7 +3385,7 @@ function zoneName(P) {
   if (riverNear(P.x, P.z).d < 7) return "🌊 Rivière sauvage";
   return "";
 }
-const ZTOAST = { "🧗 Acrobranche": "L'acrobranche ! Va à l'accueil pour mettre ton baudrier 🦺", "👕 Vestiaires": "Les vestiaires ! Entre dans une cabine pour te changer 👕", "🏨 Accueil": "L'accueil ! Margot t'explique tout : approche-toi du comptoir 📋", "🥖 Boulangerie": "Ça sent bon le pain chaud ! 🥖", "🛒 Market Speed": "Le Market Speed ! Va à la caisse pour faire tes courses 🛒⚡", "🅿️ Parking": "Le parking ! Approche-toi d'une voiture pour klaxonner 📯. Les vélos sous l'abri, tu peux les prendre 🚲", "🍔 Burger Fast": "Burger Fast ! Va à la caisse pour commander ton menu 🍔🍟", "🎮 Multi Parcs · Game Town": "Bienvenue au Multi Parcs ! Ici, Game Town : Joue aux bornes d'arcade pour gagner des tickets 🎟️", "🎈 Multi Parcs · Baloba": "Le Baloba ! Grimpe dans la structure, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
+const ZTOAST = { "🧗 Acrobranche": "L'acrobranche ! Va à l'accueil pour mettre ton baudrier 🦺", "👕 Vestiaires": "Les vestiaires ! Entre dans une cabine pour te changer 👕", "🏨 Accueil": "L'accueil ! Margot t'explique tout : approche-toi du comptoir 📋", "🥖 Boulangerie": "Ça sent bon le pain chaud ! 🥖", "🛒 Market Speed": "Le Market Speed ! Va à la caisse pour faire tes courses 🛒⚡", "🅿️ Parking": "Le parking ! Approche-toi d'une voiture pour klaxonner 📯. Les vélos sous l'abri, tu peux les prendre 🚲", "🍔 Burger Fast": "Burger Fast ! Va à la caisse pour commander ton menu 🍔🍟", "🎈 Multi Parcs": "Bienvenue au Multi Parcs ! Joue aux bornes d'arcade pour gagner des tickets 🎟️. Au fond : grimpe, glisse, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
   "🌊 Rivière sauvage": "La rivière sauvage ! Va au ponton pour prendre une bouée 🛟", "🌳 Maison dans les arbres": "Tu es dans les arbres ! Traverse le pont de singe… et descends par le toboggan 🛝", "🛖 Une cabane": "Une petite cabane en rondins 🛖" };
 const seenZ = new Set();
 
