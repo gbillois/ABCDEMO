@@ -13,7 +13,7 @@ const MODELE_DEFAUT = "@cf/nvidia/nemotron-3-120b-a12b";
 const COULEURS = ["marron", "beige", "rouge", "orange", "jaune", "vert", "vert_clair", "bleu", "bleu_ciel", "turquoise", "violet", "rose", "blanc", "gris", "noir", "dore", "argent", "arc_en_ciel"];
 const RECETTE = {
   forme: ["quadrupede", "bipede", "oiseau", "serpent", "poisson", "insecte", "amphibien", "arachnide", "crustace", "poulpe", "meduse", "centaure"],
-  taille: ["petit", "minuscule", "moyen", "grand", "geant"],
+  taille: ["petit", "minuscule", "tout_petit", "moyen", "grand", "tres_grand", "geant", "colossal"],
   corps: ["rond", "allonge", "fin"],
   couleur: COULEURS,
   couleur2: COULEURS,
@@ -24,13 +24,22 @@ const RECETTE = {
   ailes: ["aucune", "plumes", "chauve_souris", "papillon", "libellule", "feuilles"],
   queue: ["courte", "aucune", "longue", "touffue", "poisson", "dragon", "cheval", "paon", "scorpion"],
   deplacement: ["marche", "saute", "vole", "nage", "rampe"],
-  pattes: ["auto", "aucune", "deux", "quatre", "six", "huit"],
-  tetes: ["une", "deux", "trois", "cinq", "sept"],
-  queues: ["une", "deux", "trois", "neuf"],
+  pattes: ["auto", "aucune", "une", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix", "onze", "douze"],
+  tetes: ["une", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf"],
+  queues: ["une", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix", "onze", "douze"],
+  nombre_ailes: ['deux','une','trois','quatre','cinq','six'],
+  matiere: ['normale','doree','argentee','brillante','cristal','lumineuse','translucide'],
+  aura: ['aucune','doree','bleue','rose','arc_en_ciel'],
   texture: ["lisse", "fourrure", "ecailles", "plumes"],
   cri: ["doux", "aigu", "grave", "rugit", "siffle", "ronronne", "coasse"],
 };
 const EXTRAS = ["criniere", "piquants", "carapace", "crete", "moustaches", "defenses", "cou_long", "brillant", "palmures", "yeux_globuleux", "branchies", "nageoires", "pinces", "coquille", "sabots", "cristaux", "fleurs", "etoiles"];
+// Échelle linéaire par rapport au modèle de base (1), conservée dans la recette.
+const TAILLES = { minuscule:.12, tout_petit:.30, petit:.60, moyen:1, grand:1.6, tres_grand:2.4, geant:3.2, colossal:4 };
+const SOUFFLES = ['feu','eau','cailloux','fumee','bulles','etincelles','neige','feuilles','arc_en_ciel','confettis'];
+const NOMBRE_PIECES = {aucune:0,une:1,deux:2,trois:3,quatre:4,cinq:5,six:6,sept:7,huit:8,neuf:9,dix:10,onze:11,douze:12};
+const PROPORTIONS = { tete:[.6,1.6], ailes:[.5,2], queue:[.5,2], longueur:[.7,1.8], largeur:[.7,1.6], pattes:[.5,2] };
+const bornerNombre = (v, min, max, defaut) => typeof v === 'number' && Number.isFinite(v) ? Math.max(min, Math.min(max, v)) : defaut;
 // Ne garde que des valeurs connues ; le premier choix de chaque liste sert par défaut.
 function nettoyerRecette(r) {
   r = r && typeof r === "object" && !Array.isArray(r) ? r : {};
@@ -39,6 +48,9 @@ function nettoyerRecette(r) {
   for (const k in RECETTE) { const v = mot(r[k]); o[k] = RECETTE[k].includes(v) ? v : RECETTE[k][0]; }
   if (!RECETTE.couleur2.includes(mot(r.couleur2)) || o.couleur2 === o.couleur) o.couleur2 = o.couleur === "beige" ? "blanc" : "beige";
   o.extras = Array.isArray(r.extras) ? [...new Set(r.extras.map(mot).filter(v => EXTRAS.includes(v)))].slice(0, 6) : [];
+  o.echelle = bornerNombre(r.echelle,.12,4,TAILLES[o.taille]);
+  o.proportions = Object.fromEntries(Object.entries(PROPORTIONS).map(([k,[min,max]])=>[k,bornerNombre(r.proportions?.[k],min,max,1)]));
+  o.souffles = Array.isArray(r.souffles) ? [...new Set(r.souffles.map(mot).filter(v=>SOUFFLES.includes(v)))].slice(0,4) : [];
   return o;
 }
 // Valider les mots séparément : « une grenouille » ne doit jamais devenir une injure.
@@ -87,7 +99,7 @@ const ANIMAUX_CONNUS = {
   cochon: { couleur: "rose", oreilles: "pointues" },
   singe: { forme: "bipede", tete: "ronde", queue: "longue", couleur2: "beige", motif: "ventre", deplacement: "saute", cri: "aigu" },
   ecureuil: { couleur: "orange", couleur2: "beige", motif: "ventre", oreilles: "pointues", queue: "touffue", deplacement: "saute", cri: "aigu" },
-  dragon: { taille: "grand", couleur: "vert", couleur2: "jaune", motif: "ventre", oreilles: "aucune", cornes: "deux", ailes: "chauve_souris", queue: "dragon", deplacement: "vole", cri: "rugit", extras: ["crete"] },
+  dragon: { taille: "grand", corps:"allonge", tete:"plate", texture:"ecailles", couleur: "vert", couleur2: "jaune", motif: "ventre", oreilles: "aucune", cornes: "deux", ailes: "chauve_souris", queue: "dragon", deplacement: "vole", cri: "rugit", extras: ["crete"] },
   dinosaure: { forme: "bipede", taille: "grand", couleur: "vert", couleur2: "jaune", motif: "ventre", oreilles: "aucune", queue: "dragon", cri: "rugit", extras: ["crete"] },
   crocodile: { corps: "allonge", couleur: "vert", oreilles: "aucune", queue: "dragon", extras: ["crete"] },
   chauvesouris: { taille: "minuscule", tete: "ronde", couleur: "noir", couleur2: "violet", oreilles: "pointues", ailes: "chauve_souris", queue: "aucune", deplacement: "vole", cri: "aigu" },
@@ -208,7 +220,54 @@ for(const d of Object.values(ANIMAUX_CONNUS)) { d.forme ||= 'quadrupede'; d.patt
 Object.assign(SYNONYMES, { crapauds:'crapaud', pieuvre:'poulpe', octopus:'poulpe', frog:'grenouille', toad:'crapaud', wyverne:'vouivre', wyvern:'vouivre', griffin:'griffon', griffon:'griffon', griffons:'griffon', pegasus:'pegase', unicorn:'licorne', phoenix:'phenix', cerberus:'cerbere', hydra:'hydre', hippogriff:'hippogriffe', seaunicorn:'narval', dragonoriental:'dragonchinois', amphisbene:'hydre', drake:'dragon',  lung:'dragonchinois', kirin:'kirin', ratonlaveur:'raton', suricate:'souris', dromadaire:'chameau', alpaga:'lama', chevreau:'chevre', bouc:'chevre', gazelle:'biche', antilope:'biche', okapi:'girafe', panthere:'chat', leopard:'tigre', jaguar:'tigre', lynx:'chat', fennec:'renard', pandaroux:'raton', toucan:'perroquet', corbeau:'oiseau', mouette:'oiseau', pelican:'canard', pingouins:'pingouin', triceratops:'dinosaure', diplodocus:'dinosaure', brontosaure:'dinosaure', pterodactyle:'dragon' });
 Object.assign(MOTS, { rond:['corps','rond'], ronde:['corps','rond'], allonge:['corps','allonge'], allongee:['corps','allonge'], fin:['corps','fin'], fine:['corps','fin'], ecaille:['texture','ecailles'], ecailles:['texture','ecailles'], fourrure:['texture','fourrure'], poilu:['texture','fourrure'], poilue:['texture','fourrure'], plumes:['texture','plumes'], lisse:['texture','lisse'], tentacules:['forme','poulpe'], palmures:['x','palmures'], palmees:['x','palmures'], branchies:['x','branchies'], nageoires:['x','nageoires'], pinces:['x','pinces'], coquille:['x','coquille'], sabots:['x','sabots'], cristaux:['x','cristaux'], fleurs:['x','fleurs'], etoiles:['x','etoiles'] });
 function trouveAnimal(w) { if (!w) return null; for (const v of [w, w.replace(/[sx]$/, '')]) { if (ANIMAUX_CONNUS[v]) return v; if (SYNONYMES[v]) return SYNONYMES[v]; } return null; }
-const NOMBRES = { '0':'aucune', zero:'aucune', sans:'aucune', '1':'une', un:'une', une:'une', '2':'deux', deux:'deux', '3':'trois', trois:'trois', '4':'quatre', quatre:'quatre', '5':'cinq', cinq:'cinq', '6':'six', six:'six', '7':'sept', sept:'sept', '8':'huit', huit:'huit', '9':'neuf', neuf:'neuf' };
+const NOMBRES = { '0':'aucune', zero:'aucune', sans:'aucune', '1':'une', un:'une', une:'une', '2':'deux', deux:'deux', '3':'trois', trois:'trois', '4':'quatre', quatre:'quatre', '5':'cinq', cinq:'cinq', '6':'six', six:'six', '7':'sept', sept:'sept', '8':'huit', huit:'huit', '9':'neuf', neuf:'neuf', '10':'dix', dix:'dix', '11':'onze', onze:'onze', '12':'douze', douze:'douze' };
+function lireGrandeur(texte) {
+  const w=sansAccents(texte).split(' '), mods={}, proportions={};
+  const parties={tete:'tete',tetes:'tete',aile:'ailes',ailes:'ailes',queue:'queue',queues:'queue',corps:'largeur',ventre:'largeur',patte:'pattes',pattes:'pattes'};
+  const petites=/^(petit|petite|petits|petites|mini|minuscule|minuscules|microscopique|microscopiques)$/;
+  const grandes=/^(grand|grande|grands|grandes|gros|grosse|grosses|geant|geante|geants|geantes|enorme|enormes|immense|immenses|gigantesque|gigantesques|colossal|colossale)$/;
+  for(let i=0;i<w.length;i++) {
+    const a=w[i], avant=w[i-1]||'', apres=w[i+1]||'';
+    const part=parties[apres]||parties[avant];
+    if(part&&(petites.test(a)||grandes.test(a))) {proportions[part]=petites.test(a)?.65:(avant==='tres'?1.6:1.4);continue;}
+    if((a==='long'||a==='longue'||a==='longues'||a==='longs')&&(parties[avant]||parties[apres])) {const p=parties[avant]||parties[apres];proportions[p==='largeur'?'longueur':p]=1.8;continue;}
+    if((a==='court'||a==='courte'||a==='courtes')&&part) {proportions[part==='largeur'?'longueur':part]=.7;continue;}
+    if((a==='fin'||a==='fine'||a==='large')&&(avant==='corps'||apres==='corps')) {proportions.largeur=a==='large'?1.6:.7;continue;}
+    if(petites.test(a)||grandes.test(a)||a==='moyen'||a==='moyenne') {
+      // Un adjectif au pluriel décrit généralement une partie, pas l'animal entier.
+      if(/s$/.test(a)&&a!=='gros')continue;
+      const tres=avant==='tres'?(w[i-2]==='tres'?2:1):0;
+      const t=petites.test(a)?(/^(minuscule|microscopique)$/.test(a)||tres>=2?'minuscule':tres||a==='mini'?'tout_petit':'petit'):
+        /^(gigantesque|colossal|colossale)$/.test(a)||tres>=2?'colossal':/^(geant|geante|enorme|immense)$/.test(a)?'geant':tres?'tres_grand':a==='moyen'||a==='moyenne'?'moyen':'grand';
+      mods.taille=t;mods.echelle=TAILLES[t];
+    }
+  }
+  // Comparaisons explicites (« quatre fois plus grand », « taille x4 », « deux fois plus petit »).
+  const nombres={un:1,une:1,deux:2,trois:3,quatre:4,cinq:5,dix:10};
+  const phrase=sansAccents(texte), fois=phrase.match(/\b(\d+|un|une|deux|trois|quatre|cinq|dix) fois (?:plus )?(grand|grande|gros|grosse|petit|petite)\b/), mult=phrase.match(/\b(?:taille|echelle|facteur) (?:x )?(\d+)\b|\bx(\d+)\b/);
+  if(fois||mult) {const n=fois?(nombres[fois[1]]||Number(fois[1])):Number(mult[1]||mult[2]);mods.echelle=Math.max(.12,Math.min(4,fois&&/^petit/.test(fois[2])?1/n:n));mods.taille=mods.echelle>=4?'colossal':mods.echelle>=3?'geant':mods.echelle>=2?'tres_grand':mods.echelle>=1.4?'grand':mods.echelle>=.8?'moyen':mods.echelle>=.45?'petit':mods.echelle>=.2?'tout_petit':'minuscule';}
+  if(Object.keys(proportions).length)mods.proportions=proportions;
+  return mods;
+}
+function lireSouffles(texte) {
+  const phrase=sansAccents(texte);
+  if(/\bsans (?:aucun )?(souffle|souffles|magie|effet|effets|pouvoir|pouvoirs)\b/.test(phrase))return [];
+  const action=phrase.match(/\b(?:crache|crachent|cracher|souffle|soufflent|souffler|projette|lance|expire|vaporise|jet|jets)\b(.*)/);
+  const zone=action?action[1]:(/\b(?:de feu|de glace|de fumee|fumant|fumante)\b/.test(phrase)?phrase:'');
+  const familles={feu:/\b(feu|feux|flamme|flammes)\b/,eau:/\b(eau|goutte|gouttes)\b/,cailloux:/\b(caillou|cailloux|pierre|pierres|rocher|rochers)\b/,fumee:/\b(fumee|vapeur|fumant|fumante)\b/,bulles:/\b(bulle|bulles)\b/,etincelles:/\b(etincelle|etincelles|paillettes)\b/,neige:/\b(neige|glace|flocon|flocons)\b/,feuilles:/\b(feuille|feuilles|petale|petales|fleur|fleurs)\b/,arc_en_ciel:/\barc en ciel\b/,confettis:/\bconfettis?\b/};
+  return Object.entries(familles).filter(([k,re])=>re.test(zone)&&!new RegExp('\\bsans (?:du |de la |des |de |d )?'+re.source.replaceAll('\\b','')).test(phrase)).map(([k])=>k).slice(0,4);
+}
+function limiteMagie(texte) {
+  const s=sansAccents(texte), grands={...NOMBRE_PIECES,un:1,zero:0,vingt:20,cent:100,mille:1000};
+  for(const m of s.matchAll(/\b(\d+|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|vingt|cent|mille) (?:paires? d[e ]* )?(tetes?|queues?|pattes?|ailes?)\b/g)) {
+    let n=grands[m[1]]??Number(m[1]);if(m[0].includes('paire'))n*=2;
+    const max=m[2].startsWith('tete')?9:m[2].startsWith('aile')?6:12;
+    if(n>max||(m[2].startsWith('tete')&&n===0))return true;
+  }
+  const fois=s.match(/\b(\d+|deux|trois|quatre|cinq|dix|cent|mille) fois (?:plus )?(grand|grande|gros|grosse|petit|petite)\b/), mult=s.match(/\b(?:taille|echelle|facteur) (?:x )?(\d+)\b|\bx(\d+)\b/);
+  if(fois||mult){const n=fois?(grands[fois[1]]??Number(fois[1])):Number(mult[1]||mult[2]);if(n===0||(/^petit/.test(fois?.[2]||'')?1/n<.12:n>4))return true;}
+  return /\b(?:invisible|invisibilite|teleport[a-z]*|parle|parlant|ecrit|ecrire|construit|construire|fabrique|se transforme|change de forme|remonte le temps|arrete le temps|exauce|ouvre des portails|infini|infinie|aussi grand qu une planete|aussi grand qu une montagne)\b/.test(s);
+}
 function lireDescription(texte) {
   const phrase=sansAccents(texte), w=phrase.split(' '), r={}, mods={}, extras=new Set(), cols=[], animaux=[];
   const prive=new Set();
@@ -216,7 +275,12 @@ function lireDescription(texte) {
     const a=w[i], b=w[i+1]||'', c=w[i+2]||'';
     if(a==='sans') { if(/^cornes?$/.test(b)) mods.cornes='aucune'; if(/^ailes?$/.test(b)) {mods.ailes='aucune'; mods.deplacement='marche';} if(/^queue/.test(b)) mods.queue='aucune'; if(/^pattes?$/.test(b)) mods.pattes='aucune'; if(/^oreilles?$/.test(b)) mods.oreilles='aucune'; if(EXTRAS.includes(b)) prive.add(b); i++; continue; }
     const nombre=NOMBRES[a];
-    if(nombre && /^(tetes?|pattes?|queues?)$/.test(b)) { const k=b.startsWith('tete')?'tetes':b.startsWith('patte')?'pattes':'queues'; if(RECETTE[k].includes(nombre)) mods[k]=nombre; i++; continue; }
+    if(nombre && /^(tetes?|pattes?|queues?|ailes?)$/.test(b)) {
+      if(b.startsWith('aile')) {if(nombre==='aucune'){mods.ailes='aucune';mods.deplacement='marche';}else {mods.nombre_ailes=nombre;mods.ailes='plumes';mods.deplacement='vole';}}
+      else {const k=b.startsWith('tete')?'tetes':b.startsWith('patte')?'pattes':'queues';if(RECETTE[k].includes(nombre))mods[k]=nombre;if(k==='queues'&&nombre==='aucune')mods.queue='aucune';}
+      i++;continue;
+    }
+    if(nombre && /^paires?$/.test(b) && w[i+2]==='d' && /^ailes?$/.test(w[i+3]||'')) {mods.nombre_ailes=Object.keys(NOMBRE_PIECES).find(k=>NOMBRE_PIECES[k]===NOMBRE_PIECES[nombre]*2)||'six';mods.ailes='plumes';mods.deplacement='vole';i+=3;continue;}
     if(['ailes','queue','tete','oreilles','cornes','corps'].includes(a) && (b==='de'||b==='d')) {
       const an=trouveAnimal(c);
       if(an) { const profil=ANIMAUX_CONNUS[an], k=a==='corps'?'forme':a;
@@ -244,6 +308,15 @@ function lireDescription(texte) {
   if(cols[0])mods.couleur=cols[0]; if(cols[1]){mods.couleur2=cols[1];mods.motif='ventre';}
   if(animaux.includes('licorne')||animaux.includes('alicorne'))r.cornes='licorne';
   if(animaux.includes('dragon')&&animaux.length>1&&!(mods.ailes==='aucune')){r.ailes='chauve_souris';r.queue='dragon';}
+  if(/\b(?:en or|d or|dore|doree|dores|dorees)\b/.test(phrase)){mods.matiere='doree';mods.couleur='dore';}
+  if(/\b(?:en argent|d argent|argente|argentee|argentes)\b/.test(phrase)){mods.matiere='argentee';mods.couleur='argent';}
+  if(/\b(?:brillant|brillante|brillants|brillantes|scintillant|scintillante)\b/.test(phrase)){mods.matiere=mods.matiere||'brillante';extras.add('brillant');}
+  if(/\b(?:en cristal|de cristal)\b/.test(phrase)){mods.matiere='cristal';extras.add('brillant');}
+  if(/\b(?:transparent|transparente|translucide|en verre|de verre)\b/.test(phrase))mods.matiere='translucide';
+  if(/\b(?:lumineux|lumineuse|phosphorescent|phosphorescente|brille)\b/.test(phrase)){mods.matiere='lumineuse';extras.add('brillant');}
+  const halo=phrase.match(/\b(?:aura|halo|lumiere) (?:de |d )?(doree?|or|bleue?|rose|arc en ciel)\b/);
+  if(halo)mods.aura=/^(dore|or)/.test(halo[1])?'doree':halo[1].startsWith('bleu')?'bleue':halo[1]==='rose'?'rose':'arc_en_ciel';
+  Object.assign(mods,lireGrandeur(texte)); mods.souffles=lireSouffles(texte);
   return { r, mods, extras:[...extras].filter(e=>!prive.has(e)), prive, animaux };
 }
 function recetteLocale(texte) {
@@ -258,7 +331,7 @@ function respecterDemande(recette, texte) {
   const d=lireDescription(filtrerTexte(texte)||''), r=nettoyerRecette(recette);
   // Le modèle invente les détails ; l'anatomie connue et les demandes précises restent prioritaires.
   for(const k of ['forme','corps','tete','oreilles','cornes','ailes','queue','pattes','tetes','queues','texture','deplacement','cri'])if(d.r[k]!==undefined)r[k]=d.r[k];
-  Object.assign(r,d.mods);r.extras=[...new Set([...d.extras,...r.extras])].filter(e=>!d.prive.has(e)).slice(0,6);
+  const proportions={...r.proportions,...d.mods.proportions}; Object.assign(r,d.mods);r.proportions=proportions;r.extras=[...new Set([...d.extras,...r.extras])].filter(e=>!d.prive.has(e)).slice(0,6);
   if(r.ailes!=='aucune'&&d.mods.ailes!=='aucune'&&(/\b(vol[eant]*|aile[eas]*)\b/.test(sansAccents(texte))))r.deplacement='vole';
   return nettoyerRecette(r);
 }
@@ -268,15 +341,28 @@ const SCHEMA = {
   type: "object",
   properties: {
     ...Object.fromEntries(Object.entries(RECETTE).map(([k, v]) => [k, { type: "string", enum: v }])),
+    possible: {type:'boolean'},
+    echelle: { type:'number', minimum:.12, maximum:4 },
+    proportions: { type:'object', properties:Object.fromEntries(Object.entries(PROPORTIONS).map(([k,[minimum,maximum]])=>[k,{type:'number',minimum,maximum}])), required:Object.keys(PROPORTIONS), additionalProperties:false },
+    souffles: { type:'array', items:{type:'string',enum:SOUFFLES}, maxItems:4, uniqueItems:true },
     extras: { type: "array", items: { type: "string", enum: EXTRAS }, maxItems: 6 },
   },
-  required: [...Object.keys(RECETTE), "extras"],
+  required: [...Object.keys(RECETTE), "extras", "echelle", "proportions", "souffles", "possible"],
 };
 
 const CONSIGNE = `Tu aides un jeu pour enfants de 5 à 10 ans. Un enfant décrit un animal qu'il veut créer.
 Tu réponds UNIQUEMENT par un objet JSON (sans texte autour) qui décrit cet animal, en choisissant
 chaque valeur dans ces listes et nulle part ailleurs :
 ${Object.entries(RECETTE).map(([k, v]) => `- ${k} : ${v.join(", ")}`).join("\n")}
+- possible : true pour toute créature représentable avec ces pièces, même étrange ou inventée.
+  false seulement pour une capacité non représentable (parole humaine, téléportation,
+  transformation animée, invisibilité totale, échelle hors limites, interaction qui modifie le monde).
+  Un animal volant, hybride, lumineux ou qui souffle des effets reste possible. Ne refuse jamais
+  simplement un animal inconnu ou un mélange surprenant. N'invente pas un autre pouvoir à la place.
+- echelle : multiplicateur de taille, entre 0.12 et 4 ; 1 est la taille de base.
+- proportions : objet {tete, ailes, queue, longueur, largeur, pattes}, tous à 1 sauf précision.
+  tete entre 0.6 et 1.6, ailes, queue et pattes entre 0.5 et 2, longueur entre 0.7 et 1.8, largeur entre 0.7 et 1.6.
+- souffles : liste de 0 à 4 valeurs parmi ${SOUFFLES.join(', ')} ; [] sans demande de souffle.
 - extras : liste de 0 à 6 valeurs parmi ${EXTRAS.join(", ")}
 
 Repères :
@@ -293,6 +379,13 @@ Repères :
   hippocampe fantastique, basilic, vouivre, sphinx, léviathan… Combine les pièces au plus près.
 - Prends toutes les caractéristiques demandées, y compris pour les mélanges : lapin-dragon
   = oreilles longues + ailes chauve_souris + queue dragon. « Sans ailes » reste sans ailes.
+- Taille : petit=0.6, très petit=0.3, minuscule=0.12, moyen=1, grand=1.6,
+  très grand=2.4, géant=3.2, très très grand ou gigantesque=4. Respecte les comparaisons explicites.
+- nombre_ailes : 1 à 6 ailes ; jusqu’à 12 pattes, 9 têtes et 12 queues.
+- matiere et aura permettent l’or, l’argent, le cristal, la transparence douce et la lumière.
+- Respecte aussi les proportions des parties : grande tête, petites ailes, longue queue, corps long ou large.
+- Les souffles sont des jeux de magie sans dégâts, toujours doux : feu de spectacle, pluie,
+  petits cailloux, fumée, bulles, étincelles, flocons ou pétales. Ils n'attaquent personne.
 - pattes=auto choisit l'anatomie de la forme ; utilise un nombre explicite s'il est demandé.
   tetes et queues donnent les nombres, les tentacules du poulpe sont toujours présents.
 - extras : accessoires doux et visibles ; couleur principale et couleur2 pour les motifs.
@@ -339,6 +432,7 @@ export default {
     let corps; try { corps = JSON.parse(brut); } catch (e) { corps = null; }
     const validation = verifierTexte(corps && corps.texte), texte = validation.texte;
     if (!texte) return repondre({ ok: false, raison: validation.raison }, 400);
+    if (limiteMagie(texte)) return repondre({ ok:false, raison:'magie' },422);
 
     // Limiteurs : par adresse et par minute (Rate Limiting), puis quota du jour (par adresse et total).
     const ip = request.headers.get("CF-Connecting-IP") || "inconnue";
@@ -351,7 +445,7 @@ export default {
     const entree = {
       messages: [{ role: "system", content: CONSIGNE }, { role: "user", content: `Animal demandé par l'enfant : « ${texte} »` }],
       response_format: { type: "json_schema", json_schema: SCHEMA },
-      max_tokens: 300, temperature: 0.5,
+      max_tokens: 400, temperature: 0.5,
     };
     // Le raisonnement interne consommerait le budget de sortie avant le petit JSON attendu.
     if ((env.MODELE || MODELE_DEFAUT).includes('nemotron')) entree.chat_template_kwargs = { enable_thinking: false };
@@ -363,6 +457,7 @@ export default {
     }
     const recette = extraireJSON(rep && (rep.response || rep.choices?.[0]?.message?.content));
     if (!recette) return repondre({ ok: false, raison: "dort" }, 502);
+    if (recette.possible === false) return repondre({ ok:false, raison:'magie' },422);
     return repondre({ ok: true, recette: respecterDemande(recette, texte) });
   },
 };

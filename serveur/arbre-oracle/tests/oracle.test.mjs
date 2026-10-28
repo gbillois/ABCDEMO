@@ -7,12 +7,12 @@ const source = readFileSync(new URL('../src/index.js', import.meta.url), 'utf8')
 const jeu = readFileSync(new URL('../../../jeux/le-grand-arbre.html', import.meta.url), 'utf8');
 const { default: worker, Quota } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
 const commun = texte => texte.slice(texte.indexOf("// --- Recette d'animal"), texte.indexOf('// --- fin de la partie commune ---'));
-const ctx = vm.runInNewContext(commun(source) + ';({ nettoyerRecette, filtrerTexte, respecterDemande, verifierTexte, recetteLocale, lireDescription, ANIMAUX_CONNUS, RECETTE, EXTRAS })');
+const ctx = vm.runInNewContext(commun(source) + ';({ nettoyerRecette, filtrerTexte, respecterDemande, verifierTexte, recetteLocale, lireDescription, ANIMAUX_CONNUS, RECETTE, EXTRAS, limiteMagie })');
 const { filtrerTexte, RECETTE, EXTRAS } = ctx, nettoyerRecette = r => JSON.parse(JSON.stringify(ctx.nettoyerRecette(r)));
 
 const ORIGINE = 'https://gbillois.github.io';
 const BONNE = { forme: 'quadrupede', taille: 'petit', corps: 'rond', couleur: 'violet', couleur2: 'rose', motif: 'ventre', tete: 'museau', oreilles: 'longues', cornes: 'deux',
-  ailes: 'chauve_souris', queue: 'dragon', pattes: 'auto', tetes: 'une', queues: 'une', texture: 'lisse', deplacement: 'saute', cri: 'rugit', extras: ['crete'] };
+  ailes: 'chauve_souris', queue: 'dragon', pattes: 'auto', tetes: 'une', queues: 'une', texture: 'lisse', deplacement: 'saute', cri: 'rugit', nombre_ailes:'deux', matiere:'normale', aura:'aucune', echelle:.6, proportions:{tete:1,ailes:1,queue:1,longueur:1,largeur:1,pattes:1}, souffles:[], extras: ['crete'] };
 
 class Stockage { m = new Map(); async get(k) { return structuredClone(this.m.get(k)); } async put(k, v) { this.m.set(k, structuredClone(v)); } }
 function environnement({ reponse = { response: BONNE }, limite = true, quotaJour = '150', quotaAdresse = '30', erreurIA = false } = {}) {
@@ -44,7 +44,7 @@ test('recette nettoyée : seulement des valeurs des listes, valeurs par défaut 
   assert.deepEqual(r.extras, ['crete', 'cou_long', 'brillant', 'piquants', 'carapace']);
   assert.equal(r.phrase, undefined);
   for (const v of [null, 'x', [], 5]) { const d = nettoyerRecette(v); for (const k in RECETTE) assert.ok(RECETTE[k].includes(d[k])); assert.deepEqual(d.extras, []); }
-  assert.equal(Object.keys(nettoyerRecette({})).length, Object.keys(RECETTE).length + 1);
+  assert.equal(Object.keys(nettoyerRecette({})).length, Object.keys(RECETTE).length + 4);
   assert.ok(EXTRAS.includes('branchies') && EXTRAS.includes('pinces'));
 });
 
@@ -59,7 +59,7 @@ test('création : la recette du modèle est nettoyée, rien d\'autre ne sort', a
   const { entree } = env.appels[0];
   assert.match(entree.messages[1].content, /un lapin-dragon violet/);
   assert.equal(entree.response_format.type, 'json_schema');
-  assert.ok(entree.max_tokens <= 300);
+  assert.ok(entree.max_tokens <= 400);
 });
 
 test('Nemotron : format chat.completion, corne et arc-en-ciel conservés malgré une omission', async () => {
@@ -182,4 +182,33 @@ test('Worker : une grenouille atteint réellement le modèle, une injure est arr
   let r=await worker.fetch(demande({texte:'Une grenouille rouge'}),env);
   assert.equal(r.status,200);const j=await r.json();assert.equal(j.recette.forme,'amphibien');assert.equal(j.recette.couleur,'rouge');assert.equal(env.appels.length,1);
   r=await worker.fetch(demande({texte:'un dragon qui tue'}),env);assert.equal(r.status,400);assert.equal(env.appels.length,1);
+});
+
+
+test('tailles explicites et proportions des parties restent distinctes', () => {
+  for(const [texte,echelle] of [['un chat colossal',4],['un chat très très grand',4],['un chat géant',3.2],['un chat grand',1.6],['un chat très grand',2.4],['un chat minuscule',.12],['un chat très très petit',.12],['un chat très petit',.3],['un chat quatre fois plus grand',4],['un chat deux fois plus petit',.5],['un chat taille x4',4]])assert.equal(ctx.recetteLocale(texte).echelle,echelle,texte);
+  const r=ctx.respecterDemande({echelle:1},'un chat à grosse tête avec de petites ailes et une longue queue');
+  assert.equal(r.echelle,1);assert.equal(r.proportions.tete,1.4);assert.equal(r.proportions.ailes,.65);assert.equal(r.proportions.queue,1.8);
+  const d=nettoyerRecette({echelle:100,proportions:{tete:99,ailes:0,longueur:Infinity,pattes:2},souffles:['feu','feu','laser','eau','fumee','cailloux','bulles']});
+  assert.equal(d.echelle,4);assert.equal(d.proportions.tete,1.6);assert.equal(d.proportions.ailes,.5);assert.equal(d.proportions.longueur,1);assert.equal(d.proportions.pattes,2);assert.deepEqual(d.souffles,['feu','eau','fumee','cailloux']);
+});
+
+test('souffles, ailes multiples, matières et auras sont compris même sans IA', () => {
+  let r=ctx.recetteLocale("un dragon doré très brillant qui crache du feu, de l’eau, des cailloux et de la fumée");
+  assert.equal(r.matiere,'doree');assert.deepEqual(Array.from(r.souffles),['feu','eau','cailloux','fumee']);
+  for(const [texte,total] of [['un chat à trois ailes','trois'],['un griffon à six ailes','six'],["un lapin à deux paires d’ailes",'quatre']])assert.equal(ctx.recetteLocale(texte).nombre_ailes,total,texte);
+  r=ctx.recetteLocale('une licorne en cristal avec un halo rose qui souffle des bulles');assert.equal(r.matiere,'cristal');assert.equal(r.aura,'rose');assert.deepEqual(Array.from(r.souffles),['bulles']);
+  assert.deepEqual(Array.from(ctx.recetteLocale('un dragon sans souffle').souffles),[]);
+  assert.deepEqual(Array.from(ctx.recetteLocale('un dragon qui crache de l’eau sans feu').souffles),['eau']);
+  assert.equal(ctx.recetteLocale('un chat à douze pattes et douze queues').pattes,'douze');
+  assert.equal(ctx.recetteLocale('une hydre à neuf têtes').tetes,'neuf');
+});
+
+test('limite de magie : message adapté aux capacités impossibles, imagination acceptée', async () => {
+  for(const texte of ['un dragon à cent têtes','un chat qui remonte le temps','un chat qui se téléporte','un chat dix fois plus grand','un chat à huit ailes']) {
+    const env=environnement(),r=await worker.fetch(demande({texte}),env);assert.equal(r.status,422,texte);assert.deepEqual(await r.json(),{ok:false,raison:'magie'});assert.equal(env.appels.length,0);
+  }
+  for(const texte of ['un nuagodon qui souffle des arcs-en-ciel','une grenouille rouge à six ailes dorées','une licorne de cristal minuscule','un dragon qui crache du feu et de la fumée'])assert.equal(ctx.limiteMagie(texte),false,texte);
+  const r=await worker.fetch(demande({texte:'un nuagodon rigolo'}),environnement({reponse:{response:{...BONNE,possible:false}}}));
+  assert.equal(r.status,422);assert.equal((await r.json()).raison,'magie');
 });

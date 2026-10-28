@@ -86,15 +86,30 @@ Tests sans réseau : `node --test serveur/arbre-oracle/tests/oracle.test.mjs`.
   empreinte (SHA-256 de l'adresse et du jour, coupée) gardée en mémoire seulement.
 - **Interrupteur** : `ACTIF = "non"` endort l'oracle sans toucher au jeu.
 - **Sortie du modèle** : schéma JSON imposé, puis `nettoyerRecette` ne garde que les valeurs
-  des listes fermées. Aucun texte libre du modèle n'est renvoyé. `max_tokens` = 300.
+  des listes fermées. Aucun texte libre du modèle n'est renvoyé. `max_tokens` = 400.
 - **Modèle** : `@cf/nvidia/nemotron-3-120b-a12b` (NVIDIA Nemotron 3 Super), accessible avec
   Workers Free. Le raisonnement interne est désactivé pour réserver la sortie au JSON et
   réduire l'attente. Les formats `response` et `choices[0].message.content` sont acceptés.
 - **Bestiaire et détails explicites** : catalogue partagé de plus de 100 profils (animaux réels
-  et mythologiques), 12 silhouettes, 18 accessoires, jusqu'à 7 têtes, 9 queues et 8 pattes.
+  et mythologiques), 12 silhouettes, 18 accessoires, jusqu'à 9 têtes, 12 queues, 12 pattes et 6 ailes.
   Les noms inventés sont acceptés ; le modèle compose avec les pièces autorisées. Le mode
   local sait aussi composer des animaux nouveaux. Les caractéristiques d'une espèce connue
   et les précisions de la description priment sur une omission du modèle.
+- **Tailles et proportions** : échelle de 0,12 (minuscule) à 4 (colossal), avec des étapes
+  pour « très petit », « grand », « très grand », « géant » et des comparaisons explicites.
+  Tête, ailes, queue, corps et pattes ont aussi leurs proportions bornées. Les anciennes
+  sauvegardes reçoivent les valeurs par défaut et relisent la description.
+- **Matières et magie** : or, argent, brillant, cristal, translucide, lumière et auras.
+  Dix souffles décoratifs (feu, eau, cailloux, fumée, bulles, étincelles, neige, pétales,
+  arc-en-ciel, confettis), jusqu'à quatre mélangés ; déclenchement automatique, par une
+  caresse ou par le bouton « Magie ». Aucun dégât ni interaction avec les personnages.
+  Géométries partagées, 160 particules au maximum et nettoyage à la disparition.
+  Les compagnons s'effacent partiellement s'ils masquent le héros devant la caméra.
+- **Magie non représentable** : les capacités hors du rendu (parole, téléportation,
+  voyage dans le temps, dimensions hors limites…) donnent `raison: magie` (HTTP 422),
+  et le jeu dit « Le sorcier n'est pas encore assez fort pour cette magie ! ».
+  Les animaux inconnus et les mélanges restent acceptés. Le modèle répond uniquement
+  par une recette et un indicateur `possible`, supprimé de la réponse publique.
 - **Filtre** : les mots voisins ne sont jamais collés pour chercher une injure. Le test
   « une grenouille rouge » doit rester accepté, comme les autres noms d'animaux. Les injures,
   termes violents et adultes restent refusés, y compris plusieurs écritures détournées.

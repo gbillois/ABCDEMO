@@ -111,8 +111,8 @@
   .chip { font: 700 14px var(--body); padding: 7px 12px; border-radius: 999px; border: 1px solid rgba(242,207,107,.6); background: rgba(0,0,0,.2); color: var(--ink); cursor: pointer; }
   #oMsg { min-height: 1.5em; text-align: center; color: var(--gold); font-weight: 800; }
   #oList { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-  #oList li { display: flex; align-items: center; gap: 10px; padding: 6px 8px 6px 14px; background: rgba(0,0,0,.18); border-radius: 12px; }
-  #oList li span { flex: 1; font-weight: 800; overflow-wrap: anywhere; }
+  #oList li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 6px 8px 6px 14px; background: rgba(0,0,0,.18); border-radius: 12px; }
+  #oList li span { flex: 1 1 130px; font-weight: 800; overflow-wrap: anywhere; }
   #oList li .btn { font-size: 13px; padding: 7px 12px; }
   #oVide { text-align: center; color: var(--muted); font-size: 15px; }
   @media (max-width: 440px) { #where { display: none; } #hint { font-size: 14px; } .keys b { min-width: 7.5em; } }
@@ -1437,7 +1437,7 @@ function nearestInteract() {
   if (!LIFT.moving && Math.hypot(P.x - LIFT.x, P.z - LIFT.z) < 3.2 && ((atTop && LIFT.y < TOP - 1) || (atBot && LIFT.y > 1))) return { type: 'call' };
   if (ZIP.start && Math.hypot(P.x - ZIP.start.x, P.z - ZIP.start.z) < 1.8 && Math.abs(P.y - decks[ZIP.lvl].h) < .5 && player.mode === null) return { type: 'zip' };
   const od = Math.hypot(P.x - oracle.x, P.z - oracle.z); if (od < 2.5 && od < bd + .5 && Math.abs(P.y - oracle.y) < 1.5) return { type: 'oracle' };
-  if (!best && Math.hypot(player.vx, player.vz) < .3) for (const p of pets) { const d = Math.hypot(p.x - P.x, p.z - P.z); if (d < bd && Math.abs(p.y - P.y) < 2) { bd = d; best = { type: 'pet', p }; } }
+  if (!best && Math.hypot(player.vx, player.vz) < .3) for (const p of pets) { const d = Math.max(0,Math.hypot(p.x - P.x, p.z - P.z)-.22*p.S); if (d < bd && Math.abs(p.y - P.y) < 2+.25*p.S) { bd = d; best = { type: 'pet', p }; } }
   return best;
 }
 function interact() {
@@ -1464,6 +1464,11 @@ function updateCamera(dt) {
   cam.cur = want < cam.cur ? want : lerp(cam.cur, want, 1 - Math.exp(-dt * 3));
   const P = T.clone().addScaledVector(dir, cam.cur); const gh = terrainH(P.x, P.z) + .3; if (P.y < gh) P.y = gh;
   camera.position.copy(P); camera.lookAt(T);
+  // Les compagnons géants deviennent translucides si la caméra entre dans leur silhouette.
+  for(const p of pets){const c=p.c;c.root.updateMatrixWorld(true);const origine=c.root.worldToLocal(P.clone()),cible=c.root.worldToLocal(T.clone()),vers=cible.sub(origine),distance=vers.length(),intersection=new THREE.Ray(origine,vers.normalize()).intersectBox(c.bounds,new V3());const dedans=c.bounds.containsPoint(origine)||(intersection&&intersection.distanceTo(origine)<distance);
+    c.fade=lerp(c.fade,dedans?.12:1,Math.min(1,dt*12));c.material.opacity=c.opacity*c.fade;
+    c.material.transparent=c.opacity<1||c.fade<.99;c.material.depthWrite=!c.material.transparent;
+  }
 }
 addEventListener('keydown', e => {
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
@@ -1528,7 +1533,7 @@ const MAX_ANIMAUX = 6;
 const COULEURS = ["marron", "beige", "rouge", "orange", "jaune", "vert", "vert_clair", "bleu", "bleu_ciel", "turquoise", "violet", "rose", "blanc", "gris", "noir", "dore", "argent", "arc_en_ciel"];
 const RECETTE = {
   forme: ["quadrupede", "bipede", "oiseau", "serpent", "poisson", "insecte", "amphibien", "arachnide", "crustace", "poulpe", "meduse", "centaure"],
-  taille: ["petit", "minuscule", "moyen", "grand", "geant"],
+  taille: ["petit", "minuscule", "tout_petit", "moyen", "grand", "tres_grand", "geant", "colossal"],
   corps: ["rond", "allonge", "fin"],
   couleur: COULEURS,
   couleur2: COULEURS,
@@ -1539,13 +1544,22 @@ const RECETTE = {
   ailes: ["aucune", "plumes", "chauve_souris", "papillon", "libellule", "feuilles"],
   queue: ["courte", "aucune", "longue", "touffue", "poisson", "dragon", "cheval", "paon", "scorpion"],
   deplacement: ["marche", "saute", "vole", "nage", "rampe"],
-  pattes: ["auto", "aucune", "deux", "quatre", "six", "huit"],
-  tetes: ["une", "deux", "trois", "cinq", "sept"],
-  queues: ["une", "deux", "trois", "neuf"],
+  pattes: ["auto", "aucune", "une", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix", "onze", "douze"],
+  tetes: ["une", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf"],
+  queues: ["une", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix", "onze", "douze"],
+  nombre_ailes: ['deux','une','trois','quatre','cinq','six'],
+  matiere: ['normale','doree','argentee','brillante','cristal','lumineuse','translucide'],
+  aura: ['aucune','doree','bleue','rose','arc_en_ciel'],
   texture: ["lisse", "fourrure", "ecailles", "plumes"],
   cri: ["doux", "aigu", "grave", "rugit", "siffle", "ronronne", "coasse"],
 };
 const EXTRAS = ["criniere", "piquants", "carapace", "crete", "moustaches", "defenses", "cou_long", "brillant", "palmures", "yeux_globuleux", "branchies", "nageoires", "pinces", "coquille", "sabots", "cristaux", "fleurs", "etoiles"];
+// Échelle linéaire par rapport au modèle de base (1), conservée dans la recette.
+const TAILLES = { minuscule:.12, tout_petit:.30, petit:.60, moyen:1, grand:1.6, tres_grand:2.4, geant:3.2, colossal:4 };
+const SOUFFLES = ['feu','eau','cailloux','fumee','bulles','etincelles','neige','feuilles','arc_en_ciel','confettis'];
+const NOMBRE_PIECES = {aucune:0,une:1,deux:2,trois:3,quatre:4,cinq:5,six:6,sept:7,huit:8,neuf:9,dix:10,onze:11,douze:12};
+const PROPORTIONS = { tete:[.6,1.6], ailes:[.5,2], queue:[.5,2], longueur:[.7,1.8], largeur:[.7,1.6], pattes:[.5,2] };
+const bornerNombre = (v, min, max, defaut) => typeof v === 'number' && Number.isFinite(v) ? Math.max(min, Math.min(max, v)) : defaut;
 // Ne garde que des valeurs connues ; le premier choix de chaque liste sert par défaut.
 function nettoyerRecette(r) {
   r = r && typeof r === "object" && !Array.isArray(r) ? r : {};
@@ -1554,6 +1568,9 @@ function nettoyerRecette(r) {
   for (const k in RECETTE) { const v = mot(r[k]); o[k] = RECETTE[k].includes(v) ? v : RECETTE[k][0]; }
   if (!RECETTE.couleur2.includes(mot(r.couleur2)) || o.couleur2 === o.couleur) o.couleur2 = o.couleur === "beige" ? "blanc" : "beige";
   o.extras = Array.isArray(r.extras) ? [...new Set(r.extras.map(mot).filter(v => EXTRAS.includes(v)))].slice(0, 6) : [];
+  o.echelle = bornerNombre(r.echelle,.12,4,TAILLES[o.taille]);
+  o.proportions = Object.fromEntries(Object.entries(PROPORTIONS).map(([k,[min,max]])=>[k,bornerNombre(r.proportions?.[k],min,max,1)]));
+  o.souffles = Array.isArray(r.souffles) ? [...new Set(r.souffles.map(mot).filter(v=>SOUFFLES.includes(v)))].slice(0,4) : [];
   return o;
 }
 // Valider les mots séparément : « une grenouille » ne doit jamais devenir une injure.
@@ -1602,7 +1619,7 @@ const ANIMAUX_CONNUS = {
   cochon: { couleur: "rose", oreilles: "pointues" },
   singe: { forme: "bipede", tete: "ronde", queue: "longue", couleur2: "beige", motif: "ventre", deplacement: "saute", cri: "aigu" },
   ecureuil: { couleur: "orange", couleur2: "beige", motif: "ventre", oreilles: "pointues", queue: "touffue", deplacement: "saute", cri: "aigu" },
-  dragon: { taille: "grand", couleur: "vert", couleur2: "jaune", motif: "ventre", oreilles: "aucune", cornes: "deux", ailes: "chauve_souris", queue: "dragon", deplacement: "vole", cri: "rugit", extras: ["crete"] },
+  dragon: { taille: "grand", corps:"allonge", tete:"plate", texture:"ecailles", couleur: "vert", couleur2: "jaune", motif: "ventre", oreilles: "aucune", cornes: "deux", ailes: "chauve_souris", queue: "dragon", deplacement: "vole", cri: "rugit", extras: ["crete"] },
   dinosaure: { forme: "bipede", taille: "grand", couleur: "vert", couleur2: "jaune", motif: "ventre", oreilles: "aucune", queue: "dragon", cri: "rugit", extras: ["crete"] },
   crocodile: { corps: "allonge", couleur: "vert", oreilles: "aucune", queue: "dragon", extras: ["crete"] },
   chauvesouris: { taille: "minuscule", tete: "ronde", couleur: "noir", couleur2: "violet", oreilles: "pointues", ailes: "chauve_souris", queue: "aucune", deplacement: "vole", cri: "aigu" },
@@ -1723,7 +1740,54 @@ for(const d of Object.values(ANIMAUX_CONNUS)) { d.forme ||= 'quadrupede'; d.patt
 Object.assign(SYNONYMES, { crapauds:'crapaud', pieuvre:'poulpe', octopus:'poulpe', frog:'grenouille', toad:'crapaud', wyverne:'vouivre', wyvern:'vouivre', griffin:'griffon', griffon:'griffon', griffons:'griffon', pegasus:'pegase', unicorn:'licorne', phoenix:'phenix', cerberus:'cerbere', hydra:'hydre', hippogriff:'hippogriffe', seaunicorn:'narval', dragonoriental:'dragonchinois', amphisbene:'hydre', drake:'dragon',  lung:'dragonchinois', kirin:'kirin', ratonlaveur:'raton', suricate:'souris', dromadaire:'chameau', alpaga:'lama', chevreau:'chevre', bouc:'chevre', gazelle:'biche', antilope:'biche', okapi:'girafe', panthere:'chat', leopard:'tigre', jaguar:'tigre', lynx:'chat', fennec:'renard', pandaroux:'raton', toucan:'perroquet', corbeau:'oiseau', mouette:'oiseau', pelican:'canard', pingouins:'pingouin', triceratops:'dinosaure', diplodocus:'dinosaure', brontosaure:'dinosaure', pterodactyle:'dragon' });
 Object.assign(MOTS, { rond:['corps','rond'], ronde:['corps','rond'], allonge:['corps','allonge'], allongee:['corps','allonge'], fin:['corps','fin'], fine:['corps','fin'], ecaille:['texture','ecailles'], ecailles:['texture','ecailles'], fourrure:['texture','fourrure'], poilu:['texture','fourrure'], poilue:['texture','fourrure'], plumes:['texture','plumes'], lisse:['texture','lisse'], tentacules:['forme','poulpe'], palmures:['x','palmures'], palmees:['x','palmures'], branchies:['x','branchies'], nageoires:['x','nageoires'], pinces:['x','pinces'], coquille:['x','coquille'], sabots:['x','sabots'], cristaux:['x','cristaux'], fleurs:['x','fleurs'], etoiles:['x','etoiles'] });
 function trouveAnimal(w) { if (!w) return null; for (const v of [w, w.replace(/[sx]$/, '')]) { if (ANIMAUX_CONNUS[v]) return v; if (SYNONYMES[v]) return SYNONYMES[v]; } return null; }
-const NOMBRES = { '0':'aucune', zero:'aucune', sans:'aucune', '1':'une', un:'une', une:'une', '2':'deux', deux:'deux', '3':'trois', trois:'trois', '4':'quatre', quatre:'quatre', '5':'cinq', cinq:'cinq', '6':'six', six:'six', '7':'sept', sept:'sept', '8':'huit', huit:'huit', '9':'neuf', neuf:'neuf' };
+const NOMBRES = { '0':'aucune', zero:'aucune', sans:'aucune', '1':'une', un:'une', une:'une', '2':'deux', deux:'deux', '3':'trois', trois:'trois', '4':'quatre', quatre:'quatre', '5':'cinq', cinq:'cinq', '6':'six', six:'six', '7':'sept', sept:'sept', '8':'huit', huit:'huit', '9':'neuf', neuf:'neuf', '10':'dix', dix:'dix', '11':'onze', onze:'onze', '12':'douze', douze:'douze' };
+function lireGrandeur(texte) {
+  const w=sansAccents(texte).split(' '), mods={}, proportions={};
+  const parties={tete:'tete',tetes:'tete',aile:'ailes',ailes:'ailes',queue:'queue',queues:'queue',corps:'largeur',ventre:'largeur',patte:'pattes',pattes:'pattes'};
+  const petites=/^(petit|petite|petits|petites|mini|minuscule|minuscules|microscopique|microscopiques)$/;
+  const grandes=/^(grand|grande|grands|grandes|gros|grosse|grosses|geant|geante|geants|geantes|enorme|enormes|immense|immenses|gigantesque|gigantesques|colossal|colossale)$/;
+  for(let i=0;i<w.length;i++) {
+    const a=w[i], avant=w[i-1]||'', apres=w[i+1]||'';
+    const part=parties[apres]||parties[avant];
+    if(part&&(petites.test(a)||grandes.test(a))) {proportions[part]=petites.test(a)?.65:(avant==='tres'?1.6:1.4);continue;}
+    if((a==='long'||a==='longue'||a==='longues'||a==='longs')&&(parties[avant]||parties[apres])) {const p=parties[avant]||parties[apres];proportions[p==='largeur'?'longueur':p]=1.8;continue;}
+    if((a==='court'||a==='courte'||a==='courtes')&&part) {proportions[part==='largeur'?'longueur':part]=.7;continue;}
+    if((a==='fin'||a==='fine'||a==='large')&&(avant==='corps'||apres==='corps')) {proportions.largeur=a==='large'?1.6:.7;continue;}
+    if(petites.test(a)||grandes.test(a)||a==='moyen'||a==='moyenne') {
+      // Un adjectif au pluriel décrit généralement une partie, pas l'animal entier.
+      if(/s$/.test(a)&&a!=='gros')continue;
+      const tres=avant==='tres'?(w[i-2]==='tres'?2:1):0;
+      const t=petites.test(a)?(/^(minuscule|microscopique)$/.test(a)||tres>=2?'minuscule':tres||a==='mini'?'tout_petit':'petit'):
+        /^(gigantesque|colossal|colossale)$/.test(a)||tres>=2?'colossal':/^(geant|geante|enorme|immense)$/.test(a)?'geant':tres?'tres_grand':a==='moyen'||a==='moyenne'?'moyen':'grand';
+      mods.taille=t;mods.echelle=TAILLES[t];
+    }
+  }
+  // Comparaisons explicites (« quatre fois plus grand », « taille x4 », « deux fois plus petit »).
+  const nombres={un:1,une:1,deux:2,trois:3,quatre:4,cinq:5,dix:10};
+  const phrase=sansAccents(texte), fois=phrase.match(/\b(\d+|un|une|deux|trois|quatre|cinq|dix) fois (?:plus )?(grand|grande|gros|grosse|petit|petite)\b/), mult=phrase.match(/\b(?:taille|echelle|facteur) (?:x )?(\d+)\b|\bx(\d+)\b/);
+  if(fois||mult) {const n=fois?(nombres[fois[1]]||Number(fois[1])):Number(mult[1]||mult[2]);mods.echelle=Math.max(.12,Math.min(4,fois&&/^petit/.test(fois[2])?1/n:n));mods.taille=mods.echelle>=4?'colossal':mods.echelle>=3?'geant':mods.echelle>=2?'tres_grand':mods.echelle>=1.4?'grand':mods.echelle>=.8?'moyen':mods.echelle>=.45?'petit':mods.echelle>=.2?'tout_petit':'minuscule';}
+  if(Object.keys(proportions).length)mods.proportions=proportions;
+  return mods;
+}
+function lireSouffles(texte) {
+  const phrase=sansAccents(texte);
+  if(/\bsans (?:aucun )?(souffle|souffles|magie|effet|effets|pouvoir|pouvoirs)\b/.test(phrase))return [];
+  const action=phrase.match(/\b(?:crache|crachent|cracher|souffle|soufflent|souffler|projette|lance|expire|vaporise|jet|jets)\b(.*)/);
+  const zone=action?action[1]:(/\b(?:de feu|de glace|de fumee|fumant|fumante)\b/.test(phrase)?phrase:'');
+  const familles={feu:/\b(feu|feux|flamme|flammes)\b/,eau:/\b(eau|goutte|gouttes)\b/,cailloux:/\b(caillou|cailloux|pierre|pierres|rocher|rochers)\b/,fumee:/\b(fumee|vapeur|fumant|fumante)\b/,bulles:/\b(bulle|bulles)\b/,etincelles:/\b(etincelle|etincelles|paillettes)\b/,neige:/\b(neige|glace|flocon|flocons)\b/,feuilles:/\b(feuille|feuilles|petale|petales|fleur|fleurs)\b/,arc_en_ciel:/\barc en ciel\b/,confettis:/\bconfettis?\b/};
+  return Object.entries(familles).filter(([k,re])=>re.test(zone)&&!new RegExp('\\bsans (?:du |de la |des |de |d )?'+re.source.replaceAll('\\b','')).test(phrase)).map(([k])=>k).slice(0,4);
+}
+function limiteMagie(texte) {
+  const s=sansAccents(texte), grands={...NOMBRE_PIECES,un:1,zero:0,vingt:20,cent:100,mille:1000};
+  for(const m of s.matchAll(/\b(\d+|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|vingt|cent|mille) (?:paires? d[e ]* )?(tetes?|queues?|pattes?|ailes?)\b/g)) {
+    let n=grands[m[1]]??Number(m[1]);if(m[0].includes('paire'))n*=2;
+    const max=m[2].startsWith('tete')?9:m[2].startsWith('aile')?6:12;
+    if(n>max||(m[2].startsWith('tete')&&n===0))return true;
+  }
+  const fois=s.match(/\b(\d+|deux|trois|quatre|cinq|dix|cent|mille) fois (?:plus )?(grand|grande|gros|grosse|petit|petite)\b/), mult=s.match(/\b(?:taille|echelle|facteur) (?:x )?(\d+)\b|\bx(\d+)\b/);
+  if(fois||mult){const n=fois?(grands[fois[1]]??Number(fois[1])):Number(mult[1]||mult[2]);if(n===0||(/^petit/.test(fois?.[2]||'')?1/n<.12:n>4))return true;}
+  return /\b(?:invisible|invisibilite|teleport[a-z]*|parle|parlant|ecrit|ecrire|construit|construire|fabrique|se transforme|change de forme|remonte le temps|arrete le temps|exauce|ouvre des portails|infini|infinie|aussi grand qu une planete|aussi grand qu une montagne)\b/.test(s);
+}
 function lireDescription(texte) {
   const phrase=sansAccents(texte), w=phrase.split(' '), r={}, mods={}, extras=new Set(), cols=[], animaux=[];
   const prive=new Set();
@@ -1731,7 +1795,12 @@ function lireDescription(texte) {
     const a=w[i], b=w[i+1]||'', c=w[i+2]||'';
     if(a==='sans') { if(/^cornes?$/.test(b)) mods.cornes='aucune'; if(/^ailes?$/.test(b)) {mods.ailes='aucune'; mods.deplacement='marche';} if(/^queue/.test(b)) mods.queue='aucune'; if(/^pattes?$/.test(b)) mods.pattes='aucune'; if(/^oreilles?$/.test(b)) mods.oreilles='aucune'; if(EXTRAS.includes(b)) prive.add(b); i++; continue; }
     const nombre=NOMBRES[a];
-    if(nombre && /^(tetes?|pattes?|queues?)$/.test(b)) { const k=b.startsWith('tete')?'tetes':b.startsWith('patte')?'pattes':'queues'; if(RECETTE[k].includes(nombre)) mods[k]=nombre; i++; continue; }
+    if(nombre && /^(tetes?|pattes?|queues?|ailes?)$/.test(b)) {
+      if(b.startsWith('aile')) {if(nombre==='aucune'){mods.ailes='aucune';mods.deplacement='marche';}else {mods.nombre_ailes=nombre;mods.ailes='plumes';mods.deplacement='vole';}}
+      else {const k=b.startsWith('tete')?'tetes':b.startsWith('patte')?'pattes':'queues';if(RECETTE[k].includes(nombre))mods[k]=nombre;if(k==='queues'&&nombre==='aucune')mods.queue='aucune';}
+      i++;continue;
+    }
+    if(nombre && /^paires?$/.test(b) && w[i+2]==='d' && /^ailes?$/.test(w[i+3]||'')) {mods.nombre_ailes=Object.keys(NOMBRE_PIECES).find(k=>NOMBRE_PIECES[k]===NOMBRE_PIECES[nombre]*2)||'six';mods.ailes='plumes';mods.deplacement='vole';i+=3;continue;}
     if(['ailes','queue','tete','oreilles','cornes','corps'].includes(a) && (b==='de'||b==='d')) {
       const an=trouveAnimal(c);
       if(an) { const profil=ANIMAUX_CONNUS[an], k=a==='corps'?'forme':a;
@@ -1759,6 +1828,15 @@ function lireDescription(texte) {
   if(cols[0])mods.couleur=cols[0]; if(cols[1]){mods.couleur2=cols[1];mods.motif='ventre';}
   if(animaux.includes('licorne')||animaux.includes('alicorne'))r.cornes='licorne';
   if(animaux.includes('dragon')&&animaux.length>1&&!(mods.ailes==='aucune')){r.ailes='chauve_souris';r.queue='dragon';}
+  if(/\b(?:en or|d or|dore|doree|dores|dorees)\b/.test(phrase)){mods.matiere='doree';mods.couleur='dore';}
+  if(/\b(?:en argent|d argent|argente|argentee|argentes)\b/.test(phrase)){mods.matiere='argentee';mods.couleur='argent';}
+  if(/\b(?:brillant|brillante|brillants|brillantes|scintillant|scintillante)\b/.test(phrase)){mods.matiere=mods.matiere||'brillante';extras.add('brillant');}
+  if(/\b(?:en cristal|de cristal)\b/.test(phrase)){mods.matiere='cristal';extras.add('brillant');}
+  if(/\b(?:transparent|transparente|translucide|en verre|de verre)\b/.test(phrase))mods.matiere='translucide';
+  if(/\b(?:lumineux|lumineuse|phosphorescent|phosphorescente|brille)\b/.test(phrase)){mods.matiere='lumineuse';extras.add('brillant');}
+  const halo=phrase.match(/\b(?:aura|halo|lumiere) (?:de |d )?(doree?|or|bleue?|rose|arc en ciel)\b/);
+  if(halo)mods.aura=/^(dore|or)/.test(halo[1])?'doree':halo[1].startsWith('bleu')?'bleue':halo[1]==='rose'?'rose':'arc_en_ciel';
+  Object.assign(mods,lireGrandeur(texte)); mods.souffles=lireSouffles(texte);
   return { r, mods, extras:[...extras].filter(e=>!prive.has(e)), prive, animaux };
 }
 function recetteLocale(texte) {
@@ -1773,7 +1851,7 @@ function respecterDemande(recette, texte) {
   const d=lireDescription(filtrerTexte(texte)||''), r=nettoyerRecette(recette);
   // Le modèle invente les détails ; l'anatomie connue et les demandes précises restent prioritaires.
   for(const k of ['forme','corps','tete','oreilles','cornes','ailes','queue','pattes','tetes','queues','texture','deplacement','cri'])if(d.r[k]!==undefined)r[k]=d.r[k];
-  Object.assign(r,d.mods);r.extras=[...new Set([...d.extras,...r.extras])].filter(e=>!d.prive.has(e)).slice(0,6);
+  const proportions={...r.proportions,...d.mods.proportions}; Object.assign(r,d.mods);r.proportions=proportions;r.extras=[...new Set([...d.extras,...r.extras])].filter(e=>!d.prive.has(e)).slice(0,6);
   if(r.ailes!=='aucune'&&d.mods.ailes!=='aucune'&&(/\b(vol[eant]*|aile[eas]*)\b/.test(sansAccents(texte))))r.deplacement='vole';
   return nettoyerRecette(r);
 }
@@ -1787,8 +1865,9 @@ function nomAnimal(texte) {
 // --- Fabrication en code
 const TEINTES = { marron: 0x8a5a32, beige: 0xe8d4b0, rouge: 0xd8423a, orange: 0xf08a2a, jaune: 0xf4cf3a, vert: 0x4f9a3a, vert_clair: 0x9cd060, bleu: 0x3f6ad8, bleu_ciel: 0x8ccaf2,
   turquoise: 0x3cc0b0, violet: 0x8a52c8, rose: 0xf29ac0, blanc: 0xf2f0ea, gris: 0x9a9aa4, noir: 0x34343c, dore: 0xe8b830, argent: 0xc8ccd6 };
-const TAILLES = { minuscule: .5, petit: .75, moyen: 1.05, grand: 1.5, geant: 2.2 };
+
 function makeCreature(rec, seed) {
+  rec = nettoyerRecette(rec);
   const rr = mulberry32(seed | 0), rand = (a, b) => a + (b - a) * rr(); let hue = rr();
   const teinte = n => n === 'arc_en_ciel' ? new THREE.Color().setHSL(hue = (hue + .17) % 1, .72, .56) : new THREE.Color(TEINTES[n]);
   const C1 = () => teinte(rec.couleur), C2 = () => teinte(rec.couleur2), dark = c => c.multiplyScalar(.55), light = c => c.lerp(new THREE.Color(1, 1, 1), .45);
@@ -1796,6 +1875,7 @@ function makeCreature(rec, seed) {
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
   const c = { root, body, legs: [], arms: [], wings: [], segs: [], tail: null, head: null, glow: null, heads: [], tails: [], tentacles: [], claws: [], phase: rr() * 10, legKind: ['quadrupede','centaure'].includes(F) ? 'quad' : ['insecte','arachnide','crustace'].includes(F) ? 'insect' : F === 'amphibien' ? 'frog' : 'two' };
   const B = [], H = [], k3 = { rond: [1.12, 1.05, .9], allonge: [.9, .9, 1.3], fin: [.75, .8, 1.05] }[rec.corps];
+  k3[0] *= rec.proportions.largeur; k3[2] *= rec.proportions.longueur;
   // gabarit : ellipsoïde du corps (E), tête, épaules des ailes, base de la queue
   let E, y0 = 0, hr = .13, head, wingAt, tailAt, legL = 0;
   if (F === 'quadrupede' || F === 'centaure') {
@@ -1875,11 +1955,11 @@ function makeCreature(rec, seed) {
   }
   if(F==='centaure')for(const side of [-1,1]){const a=new THREE.Group();a.position.set(side*.12,y0+ry+.20,rz*.65);body.add(a);c.arms.push(a);a.add(partMesh([prep(new THREE.CapsuleGeometry(.028,.12,4,10),C2(),[side*.025,-.07,0],[0,0,side*.25])]));}
   // Pattes : nombre explicite possible, au lieu de déduire huit pattes de l'absence d'ailes.
-  const nombres={aucune:0,deux:2,quatre:4,six:6,huit:8};
+  const nombres=NOMBRE_PIECES;
   const nbPattes=rec.pattes==='auto' ? ({quadrupede:4,centaure:4,bipede:2,oiseau:2,insecte:6,amphibien:4,arachnide:8,crustace:8}[F]||0) : nombres[rec.pattes];
   const legCol=F==='oiseau'?new THREE.Color(0xe8a040):['insecte','arachnide','crustace'].includes(F)?dark(C1()):C1();
   for(let i=0;i<nbPattes;i++) {
-    const side=i%2?1:-1, row=Math.floor(i/2), rows=nbPattes/2, z=rows===1?0:rz*(.65-row/(rows-1)*1.3);
+    const side=i%2?1:-1, row=Math.floor(i/2), rows=Math.ceil(nbPattes/2), z=rows===1?0:rz*(.65-row/(rows-1)*1.3);
     const g=new THREE.Group(), L=[];g.name='patte-'+(i+1);g.position.set(side*rx*.65,Math.max(.06,y0-ry*.25),z);body.add(g);c.legs.push(g);
     const py=g.position.y, lr=F==='oiseau'?.014:.04*k3[0];
     if(['insecte','arachnide','crustace'].includes(F)) {
@@ -1957,7 +2037,7 @@ function makeCreature(rec, seed) {
       const sp = new THREE.Shape(); sp.moveTo(0, 0); sp.lineTo(.05, .06); sp.lineTo(.13, 0); sp.lineTo(.05, -.06); sp.lineTo(0, 0);
       T.push(prep(new THREE.ShapeGeometry(sp), C2(), [0, .02, -.49], [0, Math.PI / 2, 0])); }
     g.add(partMesh(T));
-    const count={une:1,deux:2,trois:3,neuf:9}[rec.queues]||1;
+    const count=NOMBRE_PIECES[rec.queues]||1;
     for(let i=0;i<count;i++){const tail=i?g.clone():g;if(i)body.add(tail);tail.userData.fan=count===1?0:(i/(count-1)-.5)*2.2;tail.rotation.y=tail.userData.fan;if(count>1){tail.rotation.z=-tail.userData.fan*.75;tail.scale.setScalar(1.35);tail.position.x+=Math.sin(tail.userData.fan)*.07;}c.tails.push(tail);}
   }
   // tête
@@ -2010,7 +2090,7 @@ function makeCreature(rec, seed) {
   if (X.has('criniere')) for (let i = 0; i < 9; i++) { const a = -1.4 + i * .35; H.push(prep(new THREE.SphereGeometry(hr * .36, 12, 10), dark(C2()), [Math.sin(a) * hr * .95, hr * .25 + Math.cos(a) * hr * .55, -hr * .4], null, [1, 1, .8])); }
   if (X.has('crete') && F !== 'serpent') for (let i = 0; i < 3; i++) H.push(prep(new THREE.ConeGeometry(hr * .16, hr * .45, 10), F === 'oiseau' ? 0xd83030 : C2(), [0, hr * 1.02, hr * (.3 - i * .3)], [(.3 - i * .3) * .8, 0, 0], [.5, 1, 1]));
   hg.add(partMesh(H));
-  const nbTetes={une:1,deux:2,trois:3,cinq:5,sept:7}[rec.tetes]||1;
+  const nbTetes=NOMBRE_PIECES[rec.tetes]||1;
   const origineTete=new V3(...head);
   for(let i=0;i<nbTetes;i++) {
     const h=i?hg.clone():hg;if(i)body.add(h);h.name='tete-'+(i+1);h.position.copy(origineTete);
@@ -2020,6 +2100,30 @@ function makeCreature(rec, seed) {
   if (B.length) body.add(partMesh(B));
   if (X.has('brillant')) { c.glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: TX.glow, color: teinte(rec.couleur), transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending }));
     c.glow.position.set(ex, ey + .05, ez); c.glow.scale.setScalar(.9); body.add(c.glow); }
+  const baseAiles=c.wings.slice();
+  if(baseAiles.length){
+    const total=NOMBRE_PIECES[rec.nombre_ailes];
+    for(let i=2;i<total;i++){const aile=baseAiles[i%2].clone(),rang=Math.floor(i/2);aile.position.z-=rang*.16;aile.position.y+=rang*.08;body.add(aile);c.wings.push(aile);}
+    while(c.wings.length>total)body.remove(c.wings.pop());
+  }
+  if(c.legs.length){const rise=Math.max(.06,y0-ry*.25)*(rec.proportions.pattes-1),legs=new Set(c.legs);for(const piece of body.children){if(legs.has(piece)){piece.position.y*=rec.proportions.pattes;piece.scale.y*=rec.proportions.pattes;}else piece.position.y+=rise;}}
+  {
+    const mat=MAT.char.clone();c.material=mat; mat.metalness=['doree','argentee'].includes(rec.matiere)?.7:rec.matiere==='normale'?MAT.char.metalness:.18;mat.roughness=rec.matiere==='normale'?MAT.char.roughness:.22;
+    if(rec.matiere==='cristal'||rec.matiere==='translucide'){mat.transparent=true;mat.opacity=rec.matiere==='cristal'?.8:.45;mat.depthWrite=false;}
+    if(rec.matiere==='lumineuse'){mat.emissive=teinte(rec.couleur);mat.emissiveIntensity=.35;}
+    root.traverse(o=>{if(o.material===MAT.char)o.material=mat;});
+  }
+  if(rec.aura!=='aucune'||rec.matiere==='lumineuse') {
+    if(!c.glow){c.glow=new THREE.Sprite(new THREE.SpriteMaterial({map:TX.glow,transparent:true,opacity:.35,depthWrite:false,blending:THREE.AdditiveBlending}));c.glow.position.set(ex,ey,ez);c.glow.scale.setScalar(1.3);body.add(c.glow);}
+    c.glow.material.color.set(rec.aura==='doree'?0xffd46a:rec.aura==='bleue'?0x78d9ff:rec.aura==='rose'?0xffa1d6:rec.aura==='arc_en_ciel'?0xbb95ff:teinte(rec.couleur));
+  }
+  c.sparkles=[];
+  if(rec.aura!=='aucune'||['doree','argentee','brillante','cristal','lumineuse'].includes(rec.matiere))for(let i=0;i<6;i++){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:TX.glow,color:rec.matiere==='argentee'?0xe0f3ff:0xffe2a2,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));sp.scale.setScalar(.045);body.add(sp);c.sparkles.push(sp);}
+  c.heads.forEach(h=>h.scale.multiplyScalar(rec.proportions.tete));
+  c.wings.forEach(a=>a.scale.multiplyScalar(rec.proportions.ailes));
+  c.tails.forEach(q=>q.scale.multiplyScalar(rec.proportions.queue));
+  c.mouth = new V3(0, -hr * (rec.tete === 'trompe' ? 1.7 : .22), hr * (rec.tete === 'trompe' ? 1.65 : 1.3));
+  c.bounds=new THREE.Box3().setFromObject(root).expandByScalar(.1);c.opacity=c.material.opacity;c.fade=1;
   return c;
 }
 function animCreature(p, dt, speed, time) {
@@ -2039,13 +2143,14 @@ function animCreature(p, dt, speed, time) {
   if (rec.deplacement === 'saute') by = Math.abs(Math.sin(c.phase * .5)) * .22 * amt;
   if (p.hop > 0) { p.hop -= dt; by += Math.sin(clamp(1 - p.hop / .6, 0, 1) * Math.PI) * .35; }
   c.body.position.y = by; c.body.rotation.z = rec.forme === 'poisson' || rec.deplacement === 'nage' ? Math.sin(time * 2.2 + c.phase) * .08 : 0;
-  if (c.glow) c.glow.material.opacity = .55 + Math.sin(time * 3 + c.phase) * .25;
+  if (c.glow) {c.glow.material.opacity = .4 + Math.sin(time * 2 + c.phase) * .16;if(rec.aura==='arc_en_ciel')c.glow.material.color.setHSL((time*.06)%1,.7,.65);}
+  c.sparkles.forEach((sp,i)=>{const a=time*.6+i*TAU/6;sp.position.set(Math.cos(a)*.35,.25+Math.sin(time*1.2+i)*.24,Math.sin(a)*.35);sp.material.opacity=.4+.4*Math.sin(time*1.7+i)**2;});
 }
 
 // --- Sons de l'oracle et cris des animaux (synthétisés)
 function sonMagie() { if (!AC) return; const t = AC.currentTime; [523, 659, 784, 1047, 1319, 1568, 2093].forEach((f, i) => tone(f, .9, 'sine', .05, t + i * .07, revSend)); noise(1.2, .03, 3000, 'highpass', .7, t); }
 function sonNon() { if (!AC) return; const t = AC.currentTime; tone(330, .2, 'triangle', .08, t); tone(262, .3, 'triangle', .08, t + .16); }
-function cri(type, S) { if (!AC) return; const t = AC.currentTime, k = 1 / Math.sqrt(S || 1);
+function cri(type, S) { if (!AC) return; const t = AC.currentTime, k = 1 / Math.sqrt(clamp(S || 1,.4,4));
   if (type === 'doux') { tone(660 * k, .18, 'sine', .08, t, null, 880 * k); tone(880 * k, .22, 'sine', .07, t + .16, null, 700 * k); }
   else if (type === 'aigu') { for (let i = 0; i < 3; i++) tone(1900 * k, .07, 'square', .025, t + i * .09, null, 2500 * k); }
   else if (type === 'grave') { tone(150 * k, .45, 'triangle', .22, t, null, 105 * k); tone(300 * k, .3, 'sine', .05, t, null, 210 * k); }
@@ -2132,15 +2237,18 @@ function trailPoint(dist) {
 }
 function ajouterAnimal(def, depuis) { // depuis : point d'apparition (V3), sinon déjà là
   const apparition = !!depuis;
-  const rec = respecterDemande(def.r, def.t || def.n), c = makeCreature(rec, def.g), S = TAILLES[rec.taille];
+  const rec = respecterDemande(def.r, def.t || def.n), c = makeCreature(rec, def.g), S = rec.echelle;
   def = { ...def, r: rec }; // Répare aussi les licornes déjà sauvegardées sur l'appareil.
-  const p = { def, rec, c, S, nom: def.n, x: player.x, y: player.y, z: player.z, face: player.face, hop: 0, appear: apparition ? 0 : 1, space: .35 + .45 * S, chirp: 4 + Math.random() * 8 };
+  const p = { def, rec, c, S, nom: def.n, x: player.x, y: player.y, z: player.z, face: player.face, hop: 0, appear: apparition ? 0 : 1, space: .35 + .45 * S, breath: null, breathWait: 2, breathCooldown: 0, chirp: 4 + Math.random() * 8 };
   if (apparition) { p.x = depuis.x; p.y = depuis.y - .3; p.z = depuis.z; }
   c.root.scale.setScalar(apparition ? .01 : S); c.root.position.set(p.x, p.y, p.z); scene.add(c.root); pets.push(p); return p;
 }
 function retirerAnimal(p) {
   paillettes(new V3(p.x, p.y + .4 * p.S, p.z), 0xfff0c0, 18); scene.remove(p.c.root);
-  p.c.root.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material && o.material !== MAT.char) o.material.dispose(); });
+  const geometries=new Set(),materiaux=new Set();
+  p.c.root.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material&&o.material!==MAT.char)materiaux.add(o.material);});
+  geometries.forEach(g=>g.dispose());materiaux.forEach(m=>m.dispose());
+  for(let i=souffleParticules.length-1;i>=0;i--)if(souffleParticules[i].owner===p)effacerSouffle(i);
   pets = pets.filter(q => q !== p);
 }
 function sauverAnimaux() { store.set('arbre-animaux', pets.map(p => p.def)); }
@@ -2167,10 +2275,59 @@ function updatePets(dt, time) {
     animCreature(p, dt, speed, time);
     p.chirp -= dt; if (p.chirp <= 0) { p.chirp = 9 + Math.random() * 14; if (Math.hypot(p.x - player.x, p.z - player.z) < 6) cri(p.rec.cri, p.S); }
   }
+  updateSouffles(dt);
   for (let i = sparks.length - 1; i >= 0; i--) { const s = sparks[i]; s.t += dt; s.v.y -= 1.6 * dt; s.sp.position.addScaledVector(s.v, dt); s.sp.material.opacity = Math.max(0, 1 - s.t / s.life);
     if (s.t >= s.life) { scene.remove(s.sp); s.sp.material.dispose(); sparks.splice(i, 1); } }
 }
-function caresser(p) { p.hop = .6; cri(p.rec.cri, p.S); paillettes(new V3(p.x, p.y + .5 * p.S, p.z), 0xff90c0, 10, .5); toast(`${p.nom} est tout content !`, 1.8); }
+function caresser(p) { souffler(p); p.hop = .6; cri(p.rec.cri, p.S); paillettes(new V3(p.x, p.y + .5 * p.S, p.z), 0xff90c0, 10, .5); toast(`${p.nom} est tout content !`, 1.8); }
+
+
+// --- Souffles décoratifs : aucun dégât ni collision avec les personnages.
+const souffleParticules=[], MAX_SOUFFLE_PARTICULES=160;
+const souffleGeo={rond:new THREE.IcosahedronGeometry(1,1),feuille:new THREE.PlaneGeometry(1,1.6),confetti:new THREE.PlaneGeometry(1,.6)};
+const bulleCanvas=document.createElement('canvas');bulleCanvas.width=bulleCanvas.height=64;
+const bulleCtx=bulleCanvas.getContext('2d');bulleCtx.strokeStyle='#c6f5ff';bulleCtx.lineWidth=3;bulleCtx.beginPath();bulleCtx.arc(32,32,27,0,TAU);bulleCtx.stroke();bulleCtx.fillStyle='#ffffff';bulleCtx.beginPath();bulleCtx.arc(23,20,5,0,TAU);bulleCtx.fill();
+const bulleTexture=new THREE.CanvasTexture(bulleCanvas);
+function souffler(p) {
+  if(!p.rec.souffles.length||p.breathCooldown>0)return;
+  p.breath={reste:1.1,attente:0,index:0};p.breathCooldown=1.5;p.breathWait=9+Math.random()*7;
+  if(AC)noise(.5,.025,1100,'lowpass',.7,AC.currentTime);
+}
+function effacerSouffle(i){const q=souffleParticules[i];scene.remove(q.obj);q.obj.material.dispose();souffleParticules.splice(i,1);}
+function emettreSouffle(p,type,index) {
+  if(souffleParticules.length>=MAX_SOUFFLE_PARTICULES)return;
+  const tete=p.c.heads[index%p.c.heads.length];p.c.root.updateMatrixWorld(true);
+  const position=tete.localToWorld(p.c.mouth.clone()),direction=new V3(0,.55,1).applyQuaternion(tete.getWorldQuaternion(new THREE.Quaternion())).normalize();
+  const e=clamp(Math.sqrt(p.S),.4,1.8),aleatoire=()=>Math.random()-.5;
+  const palette={feu:[0xff6622,0xffbe35,0xffe291],eau:[0x57cfff,0xb2eeff],cailloux:[0xa08b70,0xc5ae8a],fumee:[0x9da4b3,0xc4c5cc],bulles:[0xc8efff],etincelles:[0xffdf8a,0xfff6d0],neige:[0xffffff,0xd4eeff],feuilles:[0x70b348,0xf39ac3],arc_en_ciel:[0xff6b91,0xffdb68,0x7be9ac,0x79baff,0xc6a2ff],confettis:[0xffda5b,0xf77db9,0x6fe0e0]};
+  const couleurs=palette[type],color=couleurs[index%couleurs.length];
+  const sprite=['feu','fumee','bulles','etincelles','arc_en_ciel'].includes(type);
+  const mat=sprite?new THREE.SpriteMaterial({map:type==='bulles'?bulleTexture:TX.glow,color,transparent:true,opacity:.85,depthWrite:false,blending:['feu','etincelles','arc_en_ciel'].includes(type)?THREE.AdditiveBlending:THREE.NormalBlending}):new THREE.MeshBasicMaterial({color,transparent:true,opacity:1,side:THREE.DoubleSide});
+  const geo=type==='feuilles'?souffleGeo.feuille:type==='confettis'?souffleGeo.confetti:souffleGeo.rond;
+  const obj=sprite?new THREE.Sprite(mat):new THREE.Mesh(geo,mat);
+  const taille=(type==='fumee'?.3:type==='feu'?.22:type==='bulles'?.16:type==='cailloux'?.07:.08)*e*(.7+Math.random()*.6);
+  obj.position.copy(position);obj.scale.setScalar(taille);if(!sprite)obj.rotation.set(Math.random()*TAU,Math.random()*TAU,Math.random()*TAU);scene.add(obj);
+  const v=direction.multiplyScalar((type==='fumee'?.65:2.2)*e).add(new V3(aleatoire()*.5,Math.random()*.6,aleatoire()*.5));
+  souffleParticules.push({obj,owner:p,type,v,taille,t:0,life:type==='cailloux'?1:1.2+Math.random()*.5,sol:p.y+.03});
+}
+function updateSouffles(dt) {
+  for(const p of pets){p.breathCooldown=Math.max(0,p.breathCooldown-dt);p.breathWait-=dt;
+    if(p.appear>=1&&p.rec.souffles.length&&p.breathWait<=0&&Math.hypot(p.x-player.x,p.z-player.z)<18)souffler(p);
+    if(p.breath){const b=p.breath;b.reste-=dt;b.attente-=dt;
+      if(b.attente<=0&&b.reste>0){b.attente=.07;for(const type of p.rec.souffles)emettreSouffle(p,type,b.index++);}
+      if(b.reste<=0)p.breath=null;
+    }
+  }
+  for(let i=souffleParticules.length-1;i>=0;i--){const q=souffleParticules[i];q.t+=dt;
+    if(q.t>=q.life){effacerSouffle(i);continue;}
+    const gravite=['cailloux','eau','neige','confettis','feuilles'].includes(q.type);
+    q.v.y+=dt*(gravite?-2.2:q.type==='fumee'?.65:.2);q.obj.position.addScaledVector(q.v,dt);
+    if(gravite&&q.obj.position.y<q.sol){q.obj.position.y=q.sol;q.v.y=Math.abs(q.v.y)*.25;q.v.x*=.8;q.v.z*=.8;}
+    const f=q.t/q.life;q.obj.material.opacity=(q.type==='fumee'?.5:.9)*(1-f);
+    q.obj.scale.setScalar(q.taille*(q.type==='fumee'?1+f*3:q.type==='feu'?1+f:1));
+    if(q.obj.isMesh){q.obj.rotation.x+=dt*2;q.obj.rotation.z+=dt*3;}
+  }
+}
 
 // --- Sylvanor, le gardien des animaux, au sommet de l'arbre
 let gardien = null;
@@ -2193,8 +2350,8 @@ function commentaire(rec, nom, seul) {
   else if (rec.deplacement === 'saute') dit.push("Hop, hop ! Il adore sauter.");
   else if (rec.forme === 'serpent') dit.push("Il ondule tout doucement. Il est très gentil.");
   else if (rec.forme === 'insecte') dit.push("Tout plein de petites pattes ! Il trotte derrière toi.");
-  if (rec.taille === 'geant' || rec.taille === 'grand') dit.push("Quel géant ! Fais-lui de la place dans l'escalier.");
-  else if (rec.taille === 'minuscule') dit.push("Il est tout petit : ne le perds pas de vue !");
+  if (rec.echelle >= 1.6) dit.push("Quel géant ! Fais-lui de la place dans l'escalier.");
+  else if (rec.echelle <= .3) dit.push("Il est tout petit : ne le perds pas de vue !");
   if (rec.cornes === 'licorne') dit.push("Une corne magique, comme dans les légendes.");
   if (rec.extras.includes('brillant')) dit.push("Il brille comme une étoile.");
   if (rec.couleur === 'arc_en_ciel') dit.push("Toutes les couleurs de l'arc-en-ciel !");
@@ -2207,13 +2364,15 @@ function commentaire(rec, nom, seul) {
 // --- Écran de l'oracle
 const IDEES = ["une grenouille rouge", "un griffon doré", "un kitsune à neuf queues", "une hydre arc-en-ciel", "un axolotl bleu", "un lapin-dragon violet", "une méduse lumineuse", "un nuagodon à trois têtes", "un escargot avec des ailes de papillon", "une licorne avec des fleurs"];
 function oMsg(t) { $('oMsg').textContent = t; }
-function refusOracle(raison) { oMsg(raison === 'mot' ? 'Imaginons un compagnon gentil, sans injure ni violence. Essaie une autre description !' : 'Décris ton animal avec des mots, en 160 caractères maximum.'); sonNon(); }
+function refusOracle(raison) { oMsg(raison === 'magie' ? "Le sorcier n'est pas encore assez fort pour cette magie ! Essaie avec d'autres détails." : raison === 'mot' ? 'Imaginons un compagnon gentil, sans injure ni violence. Essaie une autre description !' : 'Décris ton animal avec des mots, en 160 caractères maximum.'); sonNon(); }
 function listeAnimaux() {
   const ul = $('oList'); ul.textContent = ''; $('oNb').textContent = pets.length; $('oVide').hidden = pets.length > 0;
   for (const p of pets) { const li = document.createElement('li'), sp = document.createElement('span'), b = document.createElement('button');
     sp.textContent = p.nom; b.className = 'btn'; b.type = 'button'; b.textContent = 'Libérer';
     b.addEventListener('click', () => { retirerAnimal(p); sauverAnimaux(); listeAnimaux(); oMsg(`${p.nom} est reparti dans la forêt. Au revoir !`); });
-    li.append(sp, b); ul.append(li); }
+    li.append(sp);
+    if(p.rec.souffles.length){const magie=document.createElement('button');magie.className='btn';magie.type='button';magie.textContent='Magie';magie.setAttribute('aria-label','Voir la magie de '+p.nom);magie.addEventListener('click',()=>{fermerOracle();souffler(p);});li.append(magie);}
+    li.append(b); ul.append(li); }
 }
 const ACCUEILS = ["Bonjour Théo ! Je suis Sylvanor, le gardien des animaux. Quel animal veux-tu que je crée ?",
   "Te revoilà ! Écris-moi un animal, même un animal qui n'existe pas !", "Un lapin qui vole ? Un chat géant ? Dis-moi, et je le fais apparaître avec mon bâton.",
@@ -2247,11 +2406,12 @@ async function creerAnimal() {
   if (oracle.busy) return;
   const validation = verifierTexte($('oTxt').value), texte = validation.texte;
   if (!texte) { refusOracle(validation.raison); return; }
+  if(limiteMagie(texte)){refusOracle('magie');return;}
   oracleEnCreation(true); oMsg(oracle.src === 'gardien' ? 'Sylvanor tisse la magie…' : "La magie prend forme…"); sonMagie();
   let rep;
   try { [rep] = await Promise.all([demanderOracle(texte), new Promise(r => setTimeout(r, 1400))]); }
   finally { oracleEnCreation(false); }
-  if (rep.raison === 'mot' || rep.raison === 'texte') { refusOracle(rep.raison); return; }
+  if (rep.raison === 'mot' || rep.raison === 'texte' || rep.raison === 'magie') { refusOracle(rep.raison); return; }
   const def = { n: nomAnimal(texte), r: respecterDemande(rep.recette || recetteLocale(texte), texte), t: texte, g: (Math.random() * 2 ** 31) | 0 };
   if (pets.length >= MAX_ANIMAUX) retirerAnimal(pets[0]);
   const depuis = oracle.src === 'gardien' && gardien ? gardien.cristal.getWorldPosition(new V3()) : new V3(oracle.x, oracle.y + 1.85, oracle.z);
