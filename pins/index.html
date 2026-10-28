@@ -1640,6 +1640,32 @@ const TRAMPS = [[5.5, -11.3, 0x2e86de], [7.6, -11.3, 0xff5a4e], [9.7, -11.3, 0xf
 });
 let baloDoorOpen = 0, baloFade = 1, bounceT = 0, bounceLow = true, pitT = 0, ballsMoving = false;
 const ballM = new THREE.Matrix4();
+// le château gonflable, dans le coin libre à gauche de l'entrée : on y rebondit tout seul
+const CASTLE = { x: -14, z: 7.4, h: 2.5, t: 0, low: false, wob: 0 }; // h : demi-largeur (local)
+{
+  const g = new THREE.Group(); g.position.set(BALO.x + CASTLE.x, 0, BALO.z + CASTLE.z); scene.add(g); CASTLE.g = g;
+  const red = mat(0xff4757, .35), yel = mat(0xffd32a, .35), blu = mat(0x1e90ff, .35), grn = mat(0x2ed573, .35), wht = mat(0xffffff, .35);
+  const H = CASTLE.h, W = .5, WH = 1.6;
+  const floor = rbox(H * 2, .45, H * 2, blu, .2); floor.position.y = .22; g.add(floor); CASTLE.floor = floor;
+  const bed = rbox(H * 2 - 1, .1, H * 2 - 1, yel, .05); bed.position.y = .47; g.add(bed); CASTLE.bed = bed;
+  const wall = (w, d, x, z, m) => { const b = rbox(w, WH, d, m, .24); b.position.set(x, .45 + WH / 2, z); g.add(b);
+    for (let i = 0; i < Math.max(w, d) / .9 - 1; i++) { const c = rbox(.45, .4, .45, i % 2 ? yel : wht, .15); c.position.set(w > d ? x - w / 2 + .6 + i * .9 : x, .45 + WH + .2, w > d ? z : z - d / 2 + .6 + i * .9); g.add(c); } };
+  wall(H * 2, W, 0, -H + W / 2, red); wall(W, H * 2, -H + W / 2, 0, red); wall(W, H * 2, H - W / 2, 0, red);
+  wall(1.5, W, -H + .75, H - W / 2, red); wall(1.5, W, H - .75, H - W / 2, red); // devant : une ouverture de 2 m
+  const arch = new THREE.Mesh(new THREE.TorusGeometry(1.05, .28, 12, 24, Math.PI), yel); arch.position.set(0, .5 + .2, H - W / 2); g.add(arch);
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    const t = new THREE.Mesh(new THREE.CylinderGeometry(.55, .62, 3, 18), sz < 0 ? blu : grn); t.position.set(sx * (H - .1), 1.5, sz * (H - .1)); g.add(t);
+    const top = new THREE.Mesh(new THREE.ConeGeometry(.7, 1, 18), sx * sz > 0 ? yel : red); top.position.set(sx * (H - .1), 3.5, sz * (H - .1)); g.add(top);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, .7, 6), wht); pole.position.set(sx * (H - .1), 4.3, sz * (H - .1)); g.add(pole);
+    const fl = new THREE.Mesh(new THREE.PlaneGeometry(.4, .25), mat([0xff4757, 0x1e90ff, 0x2ed573, 0xffd32a][(sx + 1) + (sz + 1) / 2], .5, { side: THREE.DoubleSide })); fl.position.set(sx * (H - .1) + .2, 4.5, sz * (H - .1)); g.add(fl);
+    circles.push({ x: g.position.x + sx * (H - .1), z: g.position.z + sz * (H - .1), r: .62 }); }
+  const sign = label("🏰 Château gonflable", "#ff4757", "#ffffff", .9); sign.position.set(0, 4.4, H); g.add(sign);
+  shadowAll(g);
+  // les murs gonflables arrêtent toujours (même en rebondissant), sauf l'ouverture de devant
+  const wx = g.position.x, wz = g.position.z, w3 = (x1, x2, z1, z2) => WALLS3.push({ x1: wx + x1, x2: wx + x2, z1: wz + z1, z2: wz + z2, y0: -1, y1: 6 });
+  w3(-H, H, -H, -H + W); w3(-H, -H + W, -H, H); w3(H - W, H, -H, H); w3(-H, -H + 1.5, H - W, H); w3(H - 1.5, H, H - W, H);
+}
+const inCastle = (x, z) => { const lx = x - BALO.x - CASTLE.x, lz = z - BALO.z - CASTLE.z, i = CASTLE.h - .45; return Math.abs(lx) < i && lz > -i && lz < CASTLE.h - .1; };
 function updateBaloba(dt, time, P) {
   const near = Math.abs(P.x - BALO.x) < 50 && Math.abs(P.z - BALO.z) < 50; ballIM.visible = near; if (!near) return false;
   const inside = inBaloba(P.x, P.z);
@@ -1654,6 +1680,11 @@ function updateBaloba(dt, time, P) {
   if (onT) { bounceT += dt; const s = Math.abs(Math.sin(bounceT * 2.6)); P.y = .5 + s * 2.3; onT.bed.position.y = .45 - Math.max(0, .25 - s) * .9;
     if (s < .12 && !bounceLow) { bounceLow = true; tone(180, .28, "sine", .16, 260); } else if (s > .3) bounceLow = false; }
   else bounceT = 0;
+  // le château gonflable : on rebondit, et tout le château se dandine
+  if (!onT && state === "walk" && P.y < 3 && inCastle(P.x, P.z)) { CASTLE.t += dt; const s = Math.abs(Math.sin(CASTLE.t * 3.1)); P.y = .5 + s * 1.7; CASTLE.wob = 1;
+    if (s < .12 && !CASTLE.low) { CASTLE.low = true; tone(140, .25, "sine", .14, 200); tone(90, .2, "sine", .08, 60); } else if (s > .3) CASTLE.low = false; }
+  else CASTLE.t = 0;
+  CASTLE.wob = Math.max(0, CASTLE.wob - dt * .8); { const k = Math.max(CASTLE.wob, .35); CASTLE.g.scale.set(1 + Math.sin(time * 6.2) * .012 * k, 1 + Math.sin(time * 6.2 + 1) * .03 * k, 1 + Math.cos(time * 5.3) * .012 * k); CASTLE.bed.position.y = .47 - Math.max(0, Math.sin(time * 6.2)) * .06 * k; }
   // la piscine à balles : les balles s'écartent autour de toi
   const inPit = inside && P.x > BALO.x + BPIT.x1 && P.x < BALO.x + BPIT.x2 && P.z > BALO.z + BPIT.z1 && P.z < BALO.z + BPIT.z2;
   if (inPit) { pitT -= dt; if (pitT < 0 && Math.hypot(P.x - prev.x, P.z - prev.z) > .01) { pitT = .35; whoosh(.18, .04, 1800, 2600); } }
@@ -5718,7 +5749,7 @@ const npcs = [
   { name: "Lucas, de la rivière", pos: [RDOCK.x + RDOCK.tx * 3.4 + RDOCK.sx * 1.2, RDOCK.z + RDOCK.tz * 3.4 + RDOCK.sz * 1.2], o: { shirt: 0xff5a4e, pants: 0xffc93c, shorts: true, hair: 0x2d2018, skin: 0xc68e6a, cap: 0xff5a4e }, lines: ["Bienvenue à la rivière sauvage ! 🌊", "Monte dans une bouée sur le ponton, et le courant t'emporte.", "Il y a deux rapides : ça va très vite ! Penche-toi à gauche ou à droite pour te diriger.", "Le tour se termine ici, au ponton. Tu peux sortir avant si tu veux."] },
   { name: "Paul, le garde forestier", pos: [40, -10], o: { shirt: 0x6d8b3a, hair: 0x555555, cap: 0x4b6328, skin: 0xc68e6a }, lines: ["Bonjour, aventurier !", "Au ponton du lac, tu peux prendre le pédalo. Un canard flotte au milieu du lac !", "Ouvre la carte pour voir où ils se cachent. Les points jaunes, ce sont eux !", "Au bout du chemin, il y a l'aquarium ! Va voir Bubulle le requin 🦈"] },
   { name: "Nina, la soigneuse", pos: aqW(-4.4, 3.2), o: { shirt: 0x1f8fae, pants: 0x2d3436, hair: 0x2d2018, long: true, skin: 0xc68e6a }, lines: ["Bienvenue à l'aquarium ! Moi c'est Nina, je m'occupe des poissons.", "Le gros poisson gris, c'est Bubulle le requin. Il est très gentil !", "Tu as vu la tortue de mer ? Elle s'appelle Pistache 🐢", "Les méduses roses brillent dans le grand bassin du milieu.", "Approche-toi du grand bassin et appuie sur Nourrir les poissons 🐟"] },
-  { name: "Tom, l'animateur", pos: bw(-3, 9.5), o: { shirt: 0xff8a2b, pants: 0x2e86de, hair: 0x8b4513, cap: 0x27ae60 }, lines: ["Salut ! Bienvenue au Multi Parcs ! 🎈", "Monte les marches de la grande structure, passe dans le tunnel et grimpe tout en haut.", "Il y a trois toboggans : le colimaçon tout en haut, le toboggan rapide au 2e étage et le toboggan à vagues au 1er !", "Les six trampolines sont au fond : saute dessus, tu vas rebondir très haut !", "Si tu as soif, va au bar à goûter ! 🧃", "Au fond à gauche, il y a deux salles d'anniversaire : souffle les bougies du gâteau ! 🎂", "Et la piscine à balles… plonge dedans ! On rentre par l'ouverture sur le côté."] },
+  { name: "Tom, l'animateur", pos: bw(-3, 9.5), o: { shirt: 0xff8a2b, pants: 0x2e86de, hair: 0x8b4513, cap: 0x27ae60 }, lines: ["Salut ! Bienvenue au Multi Parcs ! 🎈", "Monte les marches de la grande structure, passe dans le tunnel et grimpe tout en haut.", "Il y a trois toboggans : le colimaçon tout en haut, le toboggan rapide au 2e étage et le toboggan à vagues au 1er !", "Les six trampolines sont au fond : saute dessus, tu vas rebondir très haut !", "Si tu as soif, va au bar à goûter ! 🧃", "Tu as vu le château gonflable, à gauche de l'entrée ? Entre par la porte et rebondis ! 🏰", "Au fond à gauche, il y a deux salles d'anniversaire : souffle les bougies du gâteau ! 🎂", "Et la piscine à balles… plonge dedans ! On rentre par l'ouverture sur le côté."] },
   { name: "Léon, du Multi Parcs", pos: gw(2.6, 7.2), o: { shirt: 0x8e44ad, pants: 0x1b1035, hair: 0x111111, cap: 0xff4fd8, skin: 0xd9a27a }, lines: ["Bienvenue au Multi Parcs ! Ici, ce sont les jeux d'arcade 🎮", "Les toboggans et les trampolines sont juste derrière, par la porte du fond 🎈", "Approche-toi d'une borne et appuie sur Jouer. Il y a Tape-Taupe, Panier Magique et Attrape-Étoiles !", "Chaque partie te fait gagner des tickets 🎟️.", "Avec 3 tickets, tu peux essayer la machine à pince… si tu as de la chance, tu gagnes une peluche !", "Au comptoir des cadeaux, au fond, tu échanges tes tickets contre des cadeaux 🎁", "Près de l'entrée, le distributeur de petites choses : bonbons, bulles, confettis… pour quelques tickets 🍬"] },
   { name: "Zoé, de Burger Fast", pos: fw(-1.2, -4.4), o: { shirt: 0xff7a2f, pants: 0x1f9e8f, hair: 0x5a3a22, long: true, cap: 0xff7a2f }, lines: ["Bienvenue chez Burger Fast ! 🍔", "Approche-toi de la caisse et appuie sur Commander pour choisir ton menu.", "Quand ta commande est prête, viens chercher ton plateau au bout du comptoir.", "Ensuite, va t'asseoir à une table pour manger. Bon appétit ! 😋"] },
   { name: "Margot, de l'accueil", pos: ACCUEIL.w(0, 2.3), o: { shirt: 0x2e86de, pants: 0x2d3436, hair: 0xd4a017, long: true }, lines: ["Bonjour et bienvenue au Domaine des Pins ! 😊", "Ici, je t'explique ce qui va se passer pendant tes vacances, et quoi faire si tu as un problème.", "Approche-toi du comptoir et appuie sur Le programme pour tout lire.", "Le grand plan du domaine est accroché au mur, derrière moi !"] },
@@ -6754,6 +6785,7 @@ const players = [];
 {
   const add = (kind, kid, extra) => { const g = vacationer(kid); const o = Object.assign({ g, kind, t: rnd() * 6, wt: rnd() * 6 }, extra); players.push(o); return o; };
   [TRAMPS[1], TRAMPS[4]].forEach((t, i) => add("tramp", true, { x: t.x, z: t.z, ph: i * 1.3 }));
+  [[-15, 6.3], [-13, 8]].forEach(([x, z], i) => add("tramp", true, { x: BALO.x + x, z: BALO.z + z, ph: 2 + i * 1.7 }));
   for (let i = 0; i < 3; i++) add("pit", true, { x: BALO.x + BPIT.x1 + 1 + rnd() * 4, z: BALO.z + BPIT.z1 + 1 + rnd() * 10, tx: 0, tz: 0, pause: 0 });
   add("slide", true, { u: -1, wait: 1 });
   [GT_CABS[1], GT_CABS[4]].forEach(c => { const [cx, cz] = [c.x, c.z]; add("arcade", true, { x: cx, z: cz, face: c.face }); });
