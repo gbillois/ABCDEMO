@@ -862,6 +862,8 @@ function numTex(num, sub) {
   else { x.font = '800 120px "Baloo 2", "Trebuchet MS", sans-serif'; x.fillText(num, 128, 96); }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
 }
+// certains cottages n'ont qu'un rez-de-chaussée (le tien garde son étage)
+const SINGLE = new Set([1, 3, 5, 7, 8, 10, 12]);
 function cottage(cx, cz, rot, mine, num) {
   const g = new THREE.Group(); g.position.set(cx, 0, cz); g.rotation.y = rot; scene.add(g);
   const wallMat = mat(0xffffff, .85, { map: woodTex, transparent: false });
@@ -930,7 +932,12 @@ function cottage(cx, cz, rot, mine, num) {
   // tout ce qui ne bouge pas est fusionné (murs, étage, escalier, toit, terrasse) : bien moins d'objets à dessiner
   [walls, upper, stairs, roof].forEach((part, i) => fondre(part, [], "cottage-" + i));
   const s = rot ? -1 : 1;
-  const c = { g, x: cx, z: cz, s, mine, num, wallMat, roof, door, upper, open: 0, want: 0, fade: 1 };
+  const single = !mine && SINGLE.has(num);
+  if (single) { // un seul étage : pas d'étage, pas d'escalier, le toit posé sur le rez-de-chaussée
+    g.remove(upper); g.remove(stairs); upper.visible = false;
+    for (const o of [...g.children]) if (o.isMesh && o.position.y > 3) g.remove(o);
+    roof.position.y -= UP + 2.97 - 3.32; }
+  const c = { g, x: cx, z: cz, s, mine, num, wallMat, roof, door, upper, single, open: 0, want: 0, fade: 1 };
   c.toLocal = (px, pz) => [(px - cx) * s, (pz - cz) * s];
   c.toWorld = (lx, lz) => [cx + lx * s, cz + lz * s];
   // panneau en bois au début de l'allée, lisible depuis le grand chemin
@@ -4061,7 +4068,7 @@ function resolve(p, prev, who) {
     if (Math.abs(p.x - c.x) > 7 || Math.abs(p.z - c.z) > 11) continue;
     const [lx, lz] = c.toLocal(p.x, p.z); tmpL.x = lx; tmpL.z = lz;
     const upst = p.y > 1.8;
-    for (const w of (upst ? L_WALLS_UP : L_WALLS)) pushBox(tmpL, ...w, .35);
+    for (const w of (upst ? L_WALLS_UP : c.single ? L_WALLS.slice(0, 7) : L_WALLS)) pushBox(tmpL, ...w, .35);
     if (!upst) { if (c.open < .5) pushBox(tmpL, ...L_DOOR, .35); else pushBox(tmpL, ...L_DOOR_OPEN, .3); for (const b of L_TERR) pushBox(tmpL, ...b, .3); if (c.mine) pushBox(tmpL, 5.6, 5.8, 9.3, 9.5, .3); }
     if (c === interiorHost) for (const f of (upst ? L_FURN_UP : L_FURN)) pushBox(tmpL, ...f, .3);
     const [wx, wz] = c.toWorld(tmpL.x, tmpL.z); p.x = wx; p.z = wz;
@@ -4090,7 +4097,7 @@ function resolve(p, prev, who) {
 function floorY(p) {
   if (onDock(p.x, p.z)) return .38;
   for (const c of cottages) { const [lx, lz] = c.toLocal(p.x, p.z);
-    if (lx > -5.2 && lx < 5.2 && lz > -4.2 && lz < 4.2) { if (inStair(lx, lz)) return Math.max(.2, stairH(lz)); return p.y > 1.8 ? UP : .2; }
+    if (lx > -5.2 && lx < 5.2 && lz > -4.2 && lz < 4.2) { if (c.single) return .2; if (inStair(lx, lz)) return Math.max(.2, stairH(lz)); return p.y > 1.8 ? UP : .2; }
     if (lx > -5.2 && lx < 5.2 && lz >= 4.2 && lz < 9.1) return .2; }
   let b = 0; for (const f of SURF) { const h = f(p.x, p.z); if (h !== null && h <= (p.y || 0) + .9 && h > b) b = h; } return b;
 }
@@ -4377,11 +4384,11 @@ function loop() {
 
   // intérieur posé dans le cottage le plus proche
   let near = null, nd = 1e9; for (const c of cottages) { const d = Math.hypot(P.x - c.x, P.z - c.z); if (d < nd) { nd = d; near = c; } }
-  if (nd < 26 && near !== interiorHost) { if (interiorHost) interiorHost.upper.visible = true; near.g.add(interior); interiorHost = near; }
+  if (nd < 26 && near !== interiorHost) { if (interiorHost) interiorHost.upper.visible = !interiorHost.single; near.g.add(interior); interiorHost = near; }
   // portes automatiques
   for (const c of cottages) {
     c.open += (c.want - c.open) * Math.min(1, dt * 3.2); c.door.rotation.y = c.open * 1.65;
-    const upVis = !(c === inCottage && P.y < 1.8); if (c.upper.visible !== upVis) c.upper.visible = upVis; if (c === interiorHost) interior.userData.up.visible = upVis;
+    const upVis = !c.single && !(c === inCottage && P.y < 1.8); if (c.upper.visible !== upVis) c.upper.visible = upVis; if (c === interiorHost) interior.userData.up.visible = upVis;
     const fadeTarget = c === inCottage ? .18 : 1; c.fade += (fadeTarget - c.fade) * Math.min(1, dt * 6);
     const transp = c.fade < .98; if (c.wallMat.transparent !== transp) { c.wallMat.transparent = transp; c.wallMat.depthWrite = !transp; c.wallMat.needsUpdate = true; } c.wallMat.opacity = c.fade;
     c.roof.visible = c !== inCottage;
