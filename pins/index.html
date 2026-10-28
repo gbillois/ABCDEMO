@@ -94,7 +94,7 @@ body.chargement #intro .jouer,body.chargement #intro .amis,body.chargement #pers
 .card p{font-size:18px;line-height:1.35;margin:8px 0}
 .card .small{font-size:15px;opacity:.75}
 .prog{text-align:left;max-width:560px}.prog h1{text-align:center}.prog h3{margin:12px 0 4px;color:#1d5fa8}.prog ul{margin:0;padding-left:4px;list-style:none;display:grid;gap:6px;font-size:16px;line-height:1.35}.prog .row{justify-content:center}
-body.crea-on #stick,body.crea-on #moveBtns,body.crea-on #actions,body.crea-on #hudR,body.crea-on #hudL,body.crea-on #where{display:none!important}
+body.golf-on #moveBtns,body.golf-on #actions,body.crea-on #stick,body.crea-on #moveBtns,body.crea-on #actions,body.crea-on #hudR,body.crea-on #hudL,body.crea-on #where{display:none!important}
 .crea{align-items:flex-end;background:transparent;pointer-events:none}.crea .card{pointer-events:auto;margin:auto 0 0;max-height:56vh;overflow:auto;max-width:560px;padding:14px;background:rgba(255,253,244,.96)}
 @media (orientation:landscape){.crea{justify-content:flex-end;align-items:center}.crea .card{margin:auto 0 auto auto;max-height:calc(100vh - 32px);max-width:min(460px,52vw)}}
 .crea h1{font-size:24px}.crea h3{margin:10px 0 4px;font-size:16px;text-align:left;color:var(--leaf)}.crea .opts{display:flex;flex-wrap:wrap;gap:6px}
@@ -300,6 +300,11 @@ html.app .site{display:none!important}
     </ul>
     <div class="row"><button id="acroGo" class="btn" style="background:#27ae60">🦺 Je mets mon baudrier et mon casque !</button><button id="acroClose" class="btn" style="background:#34495e">Plus tard</button></div>
   </div>
+</div>
+<div id="golfHud" hidden style="position:fixed;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:flex-end;gap:8px;z-index:6;width:min(56vw,380px)">
+  <div id="g3Info" class="pill" style="font-weight:800;font-size:15px;text-align:right"></div>
+  <div style="width:100%;height:14px;border-radius:8px;background:rgba(0,0,0,.35);overflow:hidden;border:2px solid #fff"><div id="g3Bar" style="height:100%;width:0%;background:#7cff6b"></div></div>
+  <div style="display:flex;gap:10px"><button id="g3Hit" class="btn" style="background:#27ae60;font-size:1.25rem;padding:14px 26px;touch-action:none;user-select:none;-webkit-user-select:none">⛳ Taper</button><button id="g3Quit" class="btn" style="background:#34495e">✖ Arrêter</button></div>
 </div>
 <div id="golfView" class="overlay" hidden>
   <div class="card">
@@ -2491,6 +2496,7 @@ path([115, 30], [115, GOLF.z1 - .3], 2.6);
   const base = new THREE.Mesh(new THREE.PlaneGeometry(GOLF.x2 - GOLF.x1, GOLF.z2 - GOLF.z1), mat(0xe8dcc0, .95, { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 })); base.rotation.x = -Math.PI / 2; base.position.set((GOLF.x1 + GOLF.x2) / 2, .02, (GOLF.z1 + GOLF.z2) / 2); g.add(base);
   // six pistes vertes avec bordures, un drapeau au bout de chacune
   const lanes = [[106, 41, 9, 2.2, 0], [106, 47, 9, 2.2, 0], [106, 53, 9, 2.2, 0], [122, 41, 10, 2.4, 0], [122, 47, 10, 2.4, 0], [122, 53, 10, 2.4, 0]];
+  GOLF.lanes = lanes;
   lanes.forEach(([x, z, L, W], i) => {
     const f = rbox(L, .12, W, felt, .05); f.position.set(x, .06, z); g.add(f);
     for (const s of [-1, 1]) { const b = rbox(L + .3, .25, .15, border, .05); b.position.set(x, .12, z + s * (W / 2 + .07)); g.add(b); }
@@ -2499,7 +2505,6 @@ path([115, 30], [115, GOLF.z1 - .3], 2.6);
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, 1.2, 6), mat(0xffffff, .4)); pole.position.set(x + L / 2 - .8, .7, z); g.add(pole);
     const flag = new THREE.Mesh(new THREE.PlaneGeometry(.4, .26), mat([0xff5a4e, 0xffc93c, 0x2e86de, 0xe84393, 0x9b59b6, 0xff8a2b][i], .6, { side: THREE.DoubleSide })); flag.position.set(x + L / 2 - .6, 1.15, z); g.add(flag);
     const num = label(String(i + 1), "#ffffff", "#1d3b2a", .4); num.position.set(x - L / 2 + .3, .7, z); g.add(num);
-    const ball = new THREE.Mesh(new THREE.SphereGeometry(.06, 10, 8), mat(0xffffff, .3)); ball.position.set(x - L / 2 + .7, .18, z + .3); g.add(ball);
     boxes.push({ x1: x - L / 2 - .15, x2: x + L / 2 + .15, z1: z - W / 2 - .15, z2: z + W / 2 + .15 });
   });
   // le moulin sur la piste 4
@@ -2510,7 +2515,13 @@ path([115, 30], [115, GOLF.z1 - .3], 2.6);
   for (let k = 0; k < 4; k++) { const b = rbox(.18, 1.3, .04, mat(0xffffff, .6), .02); b.position.y = .65; const p = new THREE.Group(); p.rotation.z = k * Math.PI / 2; p.add(b); blades.add(p); }
   GOLF.blades = blades;
   // le petit pont sur la piste 5 et des rochers sur la 6
-  const bridge = new THREE.Mesh(new THREE.CylinderGeometry(.9, .9, 2.2, 16, 1, true, 0, Math.PI), wood); bridge.rotation.z = Math.PI / 2; bridge.rotation.y = Math.PI / 2; bridge.position.set(122, .1, 47); bridge.scale.set(1, 1, .5); g.add(bridge);
+  // trou 5 : une bosse en travers de la piste
+  { const hg = new THREE.CylinderGeometry(.9, .9, 2.4, 24, 1, false, -Math.PI / 2, Math.PI); hg.rotateX(-Math.PI / 2); const hm = new THREE.Mesh(hg, felt); hm.scale.y = .4; hm.position.set(122, .12, 47); g.add(hm); }
+  // trou 2 : un petit mur au milieu ; trou 3 : deux champignons qui font rebondir ; trou 4 : une barrière qui tourne
+  { const w = rbox(.36, .3, 1, border, .05); w.position.set(106, .27, 47); g.add(w); }
+  for (const [x, z] of [[104.5, 52.55], [107.5, 53.45]]) { const st = new THREE.Mesh(new THREE.CylinderGeometry(.08, .1, .25, 10), mat(0xffffff, .5)); st.position.set(x, .24, z); g.add(st); const cap = new THREE.Mesh(new THREE.SphereGeometry(.24, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xff5a4e, .4)); cap.position.set(x, .3, z); g.add(cap); }
+  { const sw = new THREE.Group(); sw.position.set(122, 0, 41); const post = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, .5, 10), mat(0xffc93c, .4)); post.position.y = .3; sw.add(post);
+    const bar = rbox(.08, .12, 2.1, mat(0xff5a4e, .4), .03); bar.position.y = .22; sw.add(bar); for (const e of [-1, 1]) { const st = rbox(.09, .13, .3, mat(0xffffff, .4), .03); st.position.set(0, .22, e * .6); sw.add(st); } g.add(sw); GOLF.sweep = sw; }
   for (let k = 0; k < 3; k++) { const r = new THREE.Mesh(blobGeo(.3, 2, .3, k), mat(0x8d8f96, .9)); r.position.set(119 + k * 2.2, .25, 53 + (k % 2 ? .5 : -.5)); g.add(r); }
   // le kiosque où l'on prend sa balle et son club
   const k = new THREE.Group(); k.position.set(GOLF.kiosk[0], 0, GOLF.kiosk[1]); g.add(k);
@@ -3081,6 +3092,27 @@ for (const c of PARK_CARS) { const v = { kind: "car", g: c.g, x: c.x, z: c.z, h:
 caramel.r = .9; vehicles.push(caramel);
 // vélos garés sous l'abri du parking (on peut les prendre)
 BIKE_COLS.forEach((c, i) => { if (i > 4) return; const v = { kind: "bike", g: makeBike(c), x: PARK.x1 + 1, z: (PARK.z1 + PARK.z2) / 2 - 2.6 + i * 1.3, h: Math.PI / 2, v: 0, r: .55, lean: 0, ca: 0 }; v.g.position.set(v.x, 0, v.z); v.g.rotation.y = v.h; scene.add(v.g); vehicles.push(v); });
+// devant chaque cottage, un range-vélo : on peut y accrocher son vélo (avec un antivol)
+const RACKS = [];
+{
+  const rm = mat(0x7f8c8d, .35, { metalness: .6 }), lockM = mat(0xffc93c, .35, { metalness: .4 });
+  const hoop = new THREE.TorusGeometry(.38, .03, 8, 20, Math.PI);
+  for (const c of cottages) {
+    const s = c.s, h = s > 0 ? Math.PI : 0; // les vélos regardent la maison
+    const slots = [-3.1, -4.3].map(lx => { const [x, z] = c.toWorld(lx, 10.6); return { x, z, h, s, v: null }; });
+    for (const lx of [-2.5, -3.7, -4.9]) { const [x, z] = c.toWorld(lx, 10.6); const m = new THREE.Mesh(hoop, rm); m.position.set(x, 0, z); m.rotation.y = Math.PI / 2; m.castShadow = true; scene.add(m); circles.push({ x, z, r: .08 }); }
+    for (const sl of slots) { const l = new THREE.Mesh(new THREE.TorusGeometry(.07, .018, 6, 12, Math.PI * 1.3), lockM); l.position.set(sl.x + .3 * s, .55, sl.z); l.visible = false; scene.add(l); sl.lock = l; }
+    RACKS.push({ c, slots });
+  }
+}
+function nearRack(P) { let best = null, bd = 3; for (const r of RACKS) for (const sl of r.slots) { if (sl.v) continue; const d = Math.hypot(P.x - sl.x, P.z - sl.z); if (d < bd) { bd = d; best = sl; } } return best; }
+function lockBike() {
+  const v = veh, sl = nearRack(player.position); if (!v || v.kind !== "bike" || !sl) return;
+  dismount(); v.x = sl.x; v.z = sl.z; v.h = sl.h; v.lean = 0; v.g.position.set(v.x, 0, v.z); v.g.rotation.set(0, v.h, 0); sl.v = v; sl.lock.visible = true;
+  [1200, 900].forEach((f, i) => tone(f, .06, "square", .06, 0, i * .08));
+  toast("🔒 Ton vélo est accroché devant la maison !", 2400);
+}
+function updateRacks() { for (const r of RACKS) for (const sl of r.slots) if (sl.v && (veh === sl.v || Math.hypot(sl.v.x - sl.x, sl.v.z - sl.z) > .4)) { sl.v = null; sl.lock.visible = false; } }
 // ---------- la rivière sauvage : une boucle de courant, deux rapides, deux ponts ----------
 function riverRibbon(w0, w1, y, vScale, i0 = 0, i1 = RIV_N) {
   const pos = [], uv = [], nor = [], idx = []; let dist = 0;
@@ -6255,6 +6287,7 @@ function doAct(a) {
   if (a === "feed") { feedFish(); return; }
   if (a === "waves") { pressWaves(); return; }
   if (a === "golf") { golfStart(); return; }
+  if (a === "golf3") { golf3Start(); return; }
   if (/^bday\d$/.test(a)) { blowCandles(BDAY[+a.slice(4)]); return; }
   if (a === "acro") { if (harnessOn) { setHarness(false); toast("Tu as rendu ton baudrier. À bientôt ! 👋", 2000); } else ouvrir("acroView"); return; }
   if (a === "zip") { state = "ride"; riding = { curve: acroZip.curve, u: 0, dry: true, msg: "Youpi ! Quelle tyrolienne ! 🪂" }; $("dialog").hidden = true; talking = null; sfx.slide(); toast("Wiiiiii ! 🪂", 1600); return; }
@@ -6268,6 +6301,7 @@ function doAct(a) {
   if (/^balo\d$/.test(a)) { state = "ride"; riding = { curve: BSLIDES[+a.slice(4)].curve, u: 0, dry: true, msg: "Youpi ! 🎈" }; $("dialog").hidden = true; talking = null; sfx.slide(); toast("Wiiiiii ! 🛝", 1600); return; }
   if (a === "mount" && mountT) { mountVeh(mountT); return; }
   if (a === "dismount") { dismount(); return; }
+  if (a === "lockbike") { lockBike(); return; }
   if (a === "pet" && petT) { petAnimal(petT); return; }
   if ((a === "eat" || a === "lie") && seatOffer) { sitDown(seatOffer.c, a, seatOffer.k); return; }
   if (a === "getup") { standUp(); return; }
@@ -7001,6 +7035,120 @@ function updateDayNight(dt) {
 }
 
 await souffle(95,"Dernières vérifications…");
+/* ---------- Le minigolf en 3D : on tape la balle avec un club, sur les vraies pistes ---------- */
+const G3 = { on: false, hole: 0, strokes: 0, total: 0, scores: [], a: Math.PI / 2, power: 0, pdir: 1, charging: false, phase: "aim", t: 0, swing: 0, walkT: 0, from: null,
+  ball: { x: 0, z: 0, y: .18, vx: 0, vz: 0 }, best: null, PARS: [2, 2, 2, 3, 3, 3] };
+try { const b = parseInt(localStorage.getItem("pins-golf3")); if (b > 0) G3.best = b; } catch (e) {}
+{
+  const ballM = new THREE.Mesh(new THREE.SphereGeometry(.07, 16, 12), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .3, emissive: 0xffffff, emissiveIntensity: .15 })); ballM.castShadow = true; ballM.visible = false; scene.add(ballM); G3.ballM = ballM;
+  // la flèche pour viser (sa couleur montre la force)
+  const sh = new THREE.Shape(); sh.moveTo(-.05, 0); sh.lineTo(.05, 0); sh.lineTo(.05, 1.1); sh.lineTo(.16, 1.1); sh.lineTo(0, 1.4); sh.lineTo(-.16, 1.1); sh.lineTo(-.05, 1.1); sh.lineTo(-.05, 0);
+  const ag = new THREE.ShapeGeometry(sh); ag.rotateX(Math.PI / 2); // la flèche pointe vers +z
+  const arrow = new THREE.Mesh(ag, new THREE.MeshBasicMaterial({ color: 0x7cff6b, transparent: true, opacity: .85, depthWrite: false, side: THREE.DoubleSide })); arrow.visible = false; scene.add(arrow); G3.arrow = arrow;
+  // le club : un manche et une tête, accrochés au-dessus de la balle
+  const club = new THREE.Group(), arm = new THREE.Group(); club.add(arm);
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(.015, .015, .78, 8), metalMat); shaft.position.y = -.39; arm.add(shaft);
+  const head = rbox(.07, .07, .2, mat(0x34495e, .3, { metalness: .6 }), .02); head.position.set(0, -.8, .03); arm.add(head);
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(.022, .022, .18, 8), mat(0xe74c3c, .6)); grip.position.y = -.09; arm.add(grip);
+  club.visible = false; scene.add(club); G3.club = club; G3.arm = arm;
+}
+const g3Lane = () => GOLF.lanes[G3.hole];
+function g3Place(h) { // la balle au départ du trou h
+  G3.hole = h; G3.strokes = 0; const [x, z, L] = g3Lane(); Object.assign(G3.ball, { x: x - L / 2 + .7, z, y: .18, vx: 0, vz: 0 }); G3.a = Math.PI / 2; G3.phase = "aim"; G3.power = 0; G3.charging = false; G3.from = null; g3Hud();
+}
+function g3Hud() { $("g3Info").textContent = G3.phase === "end" ? "" : `⛳ Trou ${G3.hole + 1} sur 6 · par ${G3.PARS[G3.hole]} · coups : ${G3.strokes}`; }
+function golf3Start() {
+  if (veh) dismount(); state = "golf"; G3.on = true; G3.total = 0; G3.scores = []; g3Place(0);
+  G3.ballM.visible = G3.club.visible = true; $("golfHud").hidden = false; document.body.classList.add("golf-on");
+  toast("⛳ Vise avec le joystick (ou les flèches), garde « Taper » appuyé, et lâche !", 4200); sfx.click();
+}
+function golf3Stop() {
+  G3.on = false; G3.ballM.visible = G3.club.visible = G3.arrow.visible = false; $("golfHud").hidden = true; document.body.classList.remove("golf-on");
+  state = "walk"; player.position.set(GOLF.kiosk[0], 0, GOLF.kiosk[1] - 1.5); player.rotation.set(0, Math.PI, 0);
+}
+function g3Charge(on) {
+  if (!G3.on || G3.phase !== "aim") return;
+  if (on) { G3.charging = true; G3.power = 0; G3.pdir = 1; return; }
+  if (!G3.charging) return; G3.charging = false; if (G3.power < .04) return;
+  const sp = .7 + G3.power * 7.2; G3.ball.vx = Math.sin(G3.a) * sp; G3.ball.vz = Math.cos(G3.a) * sp; G3.strokes++; G3.phase = "roll"; G3.swing = 1; g3Hud();
+  tone(900 + G3.power * 400, .05, "triangle", .14); tone(300, .08, "sine", .08);
+}
+$("g3Hit").addEventListener("pointerdown", e => { e.preventDefault(); g3Charge(true); });
+for (const ev of ["pointerup", "pointerleave", "pointercancel"]) $("g3Hit").addEventListener(ev, () => g3Charge(false));
+$("g3Quit").onclick = () => { sfx.click(); golf3Stop(); toast("À bientôt au minigolf ! ⛳", 1800); };
+addEventListener("keydown", e => { if (G3.on && e.key === " " && !e.repeat) { e.preventDefault(); g3Charge(true); } }, true);
+addEventListener("keyup", e => { if (G3.on && e.key === " ") g3Charge(false); });
+// les obstacles de chaque piste (coordonnées du monde)
+function g3Obst(h) { const [x, z] = GOLF.lanes[h];
+  if (h === 1) return { rects: [[x - .18, x + .18, z - .5, z + .5]] };
+  if (h === 2) return { circles: [[x - 1.5, z - .45, .22, 1.5], [x + 1.5, z + .45, .22, 1.5]] };
+  if (h === 3) return { sweep: [x, z, 1.05] };
+  if (h === 4) return { hump: x };
+  if (h === 5) return { circles: [[119, 52.5, .32, .7], [121.2, 53.5, .32, .7], [123.4, 52.5, .32, .7]] };
+  return {};
+}
+function golf3Tick(dt, time, P) {
+  const B = G3.ball, [lx, lz, L, W] = g3Lane(), hx = lx + L / 2 - .8, hz = lz, O = g3Obst(G3.hole), r = .07;
+  let ix = jx; if (keys["arrowleft"] || keys["q"] || keys["a"]) ix = -1; if (keys["arrowright"] || keys["d"]) ix = 1;
+  // la barrière tournante du trou 4 tourne toujours
+  const swA = time * 1.5;
+  if (GOLF.sweep) GOLF.sweep.rotation.y = swA;
+  if (G3.phase === "aim") {
+    if (!G3.from) { G3.a -= ix * dt * 1.5; if (G3.charging) { G3.power += G3.pdir * dt * .85; if (G3.power > 1) { G3.power = 1; G3.pdir = -1; } if (G3.power < 0) { G3.power = 0; G3.pdir = 1; } } }
+    let dy = (G3.a + Math.PI) - yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yaw += dy * Math.min(1, dt * 3);
+  } else if (G3.phase === "roll") {
+    for (let s = 0; s < 4; s++) { const h = dt / 4;
+      B.x += B.vx * h; B.z += B.vz * h;
+      let sp = Math.hypot(B.vx, B.vz); const k = Math.max(0, sp - (.45 + sp * .9) * h) / (sp || 1); B.vx *= k; B.vz *= k;
+      // la bosse du trou 5 : on ralentit en montant, on accélère en descendant
+      B.y = .18; if (O.hump !== undefined) { const dx = B.x - O.hump; if (Math.abs(dx) < .88) { const q = Math.sqrt(.81 - dx * dx); B.y += .4 * q; B.vx += 9.8 * .4 * dx / q * h * .55; } }
+      // les bords de la piste
+      const x1 = lx - L / 2 + r, x2 = lx + L / 2 - r, z1 = lz - W / 2 + r, z2 = lz + W / 2 - r; let hit = 0;
+      if (B.x < x1) { B.x = x1; B.vx = Math.abs(B.vx) * .75; hit = 1; } if (B.x > x2) { B.x = x2; B.vx = -Math.abs(B.vx) * .75; hit = 1; }
+      if (B.z < z1) { B.z = z1; B.vz = Math.abs(B.vz) * .75; hit = 1; } if (B.z > z2) { B.z = z2; B.vz = -Math.abs(B.vz) * .75; hit = 1; }
+      for (const [a1, a2, b1, b2] of O.rects || []) { const cx = Math.max(a1, Math.min(a2, B.x)), cz = Math.max(b1, Math.min(b2, B.z)), dx = B.x - cx, dz = B.z - cz, d = Math.hypot(dx, dz);
+        if (d < r) { const nx = d ? dx / d : (B.x < (a1 + a2) / 2 ? -1 : 1), nz = d ? dz / d : 0; B.x = cx + nx * r; B.z = cz + nz * r; const vn = B.vx * nx + B.vz * nz; if (vn < 0) { B.vx -= 1.75 * vn * nx; B.vz -= 1.75 * vn * nz; hit = 1; } } }
+      for (const [cx, cz, cr, boost] of O.circles || []) { const dx = B.x - cx, dz = B.z - cz, d = Math.hypot(dx, dz); if (d < cr + r) { const nx = dx / d, nz = dz / d; B.x = cx + nx * (cr + r); B.z = cz + nz * (cr + r); const vn = B.vx * nx + B.vz * nz; if (vn < 0) { B.vx -= (1 + boost * .55) * vn * nx; B.vz -= (1 + boost * .55) * vn * nz; if (boost > 1) { B.vx += nx * .8; B.vz += nz * .8; tone(660, .07, "sine", .1); } else hit = 1; } } }
+      if (O.sweep) { const [cx, cz, len] = O.sweep; for (const off of [0, Math.PI]) { const ex = cx + Math.sin(swA + off) * len, ez = cz + Math.cos(swA + off) * len, sx = ex - cx, sz = ez - cz, t = Math.max(0, Math.min(1, ((B.x - cx) * sx + (B.z - cz) * sz) / (len * len))), px = cx + sx * t, pz = cz + sz * t, dx = B.x - px, dz = B.z - pz, d = Math.hypot(dx, dz);
+        if (d < r + .05) { const nx = d ? dx / d : 1, nz = d ? dz / d : 0; B.x = px + nx * (r + .05); B.z = pz + nz * (r + .05); const vn = B.vx * nx + B.vz * nz; if (vn < 0) { B.vx -= 1.6 * vn * nx; B.vz -= 1.6 * vn * nz; } B.vx += nx * 1.2; B.vz += nz * 1.2; hit = 2; } } }
+      if (hit === 1 && Math.hypot(B.vx, B.vz) > .6) tone(220, .04, "square", .04); if (hit === 2) tone(150, .05, "square", .05);
+      // le trou : la balle tombe si elle n'est pas trop rapide ; tout près, il l'attire un peu
+      const dh = Math.hypot(B.x - hx, B.z - hz); sp = Math.hypot(B.vx, B.vz);
+      if (dh < .26 && dh > .001) { B.vx += (hx - B.x) / dh * 1.4 * h; B.vz += (hz - B.z) / dh * 1.4 * h; }
+      if (dh < .11 && sp < 2.6) { G3.phase = "sunk"; G3.t = 0; B.vx = B.vz = 0; B.x = hx; B.z = hz;
+        G3.scores.push(G3.strokes); G3.total += G3.strokes; const par = G3.PARS[G3.hole];
+        [784, 988, 1175, 1568].forEach((f, i) => tone(f, .16, "triangle", .12, 0, i * .09)); if (G3.strokes <= par) petitEffet("confetti");
+        toast(G3.strokes === 1 ? "🏆 TROU EN UN ! Incroyable !" : G3.strokes < par ? `🎉 Super ! ${G3.strokes} coups, mieux que le par !` : G3.strokes === par ? `👏 Bravo ! ${G3.strokes} coups, comme le par !` : `⛳ Dans le trou ! ${G3.strokes} coups.`, 2600); break; }
+      if (sp < .07) { B.vx = B.vz = 0; G3.phase = "aim"; G3.from = { x: P.x, z: P.z, t: 0 };
+        if (G3.strokes >= 8) { G3.phase = "sunk"; G3.t = 0; G3.scores.push(9); G3.total += 9; toast("Pas grave ! On passe au trou suivant 🙂", 2400); }
+        // on vise directement vers le trou
+        else G3.a = Math.atan2(hx - B.x, hz - B.z);
+        break; }
+    }
+  } else if (G3.phase === "sunk") {
+    G3.t += dt; B.y = .18 - Math.min(.2, G3.t * .5);
+    if (G3.t > 2) { if (G3.hole < 5) { g3Place(G3.hole + 1); G3.from = { x: P.x, z: P.z, t: 0 }; }
+      else { G3.phase = "end"; g3Hud(); const par = 15, rec = !G3.best || G3.total < G3.best; if (rec) { G3.best = G3.total; try { localStorage.setItem("pins-golf3", String(G3.total)); } catch (e) {} }
+        sfx.win(); toast(`⛳ Fini ! ${G3.total} coups pour les 6 trous (par ${par}).${rec ? " Nouveau record ! 🏆" : ` Record : ${G3.best}.`}`, 5000); setTimeout(() => { if (G3.on) golf3Stop(); }, 2500); } }
+  }
+  // la balle, la flèche, le joueur et le club
+  G3.ballM.position.set(B.x, B.y, B.z); G3.ballM.visible = G3.phase !== "end" && !(G3.phase === "sunk" && G3.t > .6);
+  const aiming = G3.phase === "aim" && !G3.from; G3.arrow.visible = aiming;
+  if (aiming) { G3.arrow.position.set(B.x, .135, B.z); G3.arrow.rotation.y = G3.a; const s = .7 + G3.power * 1.3; G3.arrow.scale.set(1, 1, s); G3.arrow.material.color.setHSL(.33 - G3.power * .33, 1, .55); }
+  $("g3Bar").style.width = `${Math.round(G3.power * 100)}%`; $("g3Bar").style.background = `hsl(${120 - G3.power * 120},90%,50%)`;
+  const fx = Math.sin(G3.a), fz = Math.cos(G3.a), rx = Math.cos(G3.a), rz = -Math.sin(G3.a); // devant, et à droite de la visée
+  const tx = B.x - rx * .55 - fx * .05, tz = B.z - rz * .55 - fz * .05; // le joueur se tient à côté de la balle, de profil
+  if (G3.phase === "aim" || G3.phase === "end") {
+    if (G3.from) { G3.from.t += dt * 1.8; const k = Math.min(1, G3.from.t); P.set(G3.from.x + (tx - G3.from.x) * k, .12, G3.from.z + (tz - G3.from.z) * k); player.rotation.set(0, Math.atan2(tx - G3.from.x, tz - G3.from.z) || player.rotation.y, 0); G3.walkT += dt * 9; animPerson(player, "walk", G3.walkT, 3); if (k >= 1) G3.from = null; }
+    else { P.set(tx, .12, tz); player.rotation.set(0, G3.a + Math.PI / 2, 0); animPerson(player, "idle", 0); }
+  } else animPerson(player, "idle", 0);
+  // le club : se lève quand on charge, part d'un coup quand on tape
+  G3.swing = Math.max(0, G3.swing - dt * 3);
+  const back = G3.charging ? -G3.power * 1.3 : G3.swing > 0 ? (1 - G3.swing) * .9 - .2 : 0;
+  G3.club.visible = G3.phase !== "sunk" || G3.t < 1.9; G3.club.position.set(B.x - rx * .14 - fx * .06, .95, B.z - rz * .14 - fz * .06); G3.club.rotation.set(0, G3.a, 0); G3.arm.rotation.x = -back;
+  if (G3.from) G3.club.position.set(P.x + rx * .3, .95, P.z + rz * .3);
+}
+
 /* ================= Boucle ================= */
 const clock = new THREE.Clock(); let walkT = 0, time = 0, stepAcc = 0, birdT = 4, lastWhere = "";
 const tv = new THREE.Vector3(), prev = { x: 0, z: 0 };
@@ -7111,6 +7259,8 @@ function loop() {
   if (state === "drive") driveTick(dt, P);
   if (state === "river") riverTick(dt, P);
   if (state === "lie" || state === "eat") seatTick(dt);
+  if (state === "golf") golf3Tick(dt, time, P);
+  updateRacks();
 
   if (state === "walk" || state === "top") {
     let ix = jx, iy = jy;
@@ -7162,7 +7312,7 @@ function loop() {
 
   // caméra
   if (state !== "ride") {
-    if (inCottage || inAq || inBalo || inGT || inBF || inShop) { camDist = 7.5; minPitch = 1.0; } if (inLock) { camDist = 6.5; minPitch = 1.05; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
+    if (inCottage || inAq || inBalo || inGT || inBF || inShop) { camDist = 7.5; minPitch = 1.0; } if (inLock) { camDist = 6.5; minPitch = 1.05; } if (state === "golf") { camDist = 5; minPitch = .45; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
     const pt = Math.max(pitch, minPitch); const baseY = state === "top" ? 9.95 : state === "boat" ? .6 : Math.max(P.y, 0);
     const cx = P.x + Math.sin(yaw) * Math.cos(pt) * camDist, cz = P.z + Math.cos(yaw) * Math.cos(pt) * camDist, cy = baseY + 1.5 + Math.sin(pt) * camDist;
     camera.position.lerp(tv.set(cx, Math.max(cy, .6), cz), Math.min(1, dt * 7)); camera.lookAt(P.x, baseY + 1.4, P.z);
@@ -7206,7 +7356,7 @@ function loop() {
     }
     if (state === "walk" && P.y > 4) { if (Math.hypot(P.x - CHEST.x, P.z - CHEST.z) < 1.8) offer("chest", "🎁 Ouvrir le coffre"); if (Math.hypot(P.x - 63.3, P.z - 69) < 1.5) offer("treeslide", "🛝 Glisser !"); }
     if (state === "walk" && P.y < 1) BDAY.forEach((r, i) => { if (Math.hypot(P.x - r.table[0], P.z - r.table[1]) < 1.9) offer("bday" + i, r.out > 0 ? "🎉 Joyeux anniversaire !" : "🎂 Souffler les bougies"); });
-    if (state === "walk" && P.y < 1 && Math.hypot(P.x - GOLF.kiosk[0], P.z - (GOLF.kiosk[1] - 1.3)) < 1.8) offer("golf", "⛳ Jouer au minigolf");
+    if (state === "walk" && P.y < 1 && Math.hypot(P.x - GOLF.kiosk[0], P.z - (GOLF.kiosk[1] - 1.3)) < 1.8) offer("golf3", "⛳ Jouer au minigolf"); if (state === "walk" && P.y < 1 && Math.hypot(P.x - GOLF.kiosk[0], P.z - (GOLF.kiosk[1] - 1.3)) < 1.8) offer("golf", "🎯 Minigolf de poche");
     if (state === "walk" && P.y < 1 && Math.hypot(P.x - WAVE_BTN.x, P.z - WAVE_BTN.z) < 1.7) offer("waves", WAVES.t < 0 ? "🌊 Lancer les vagues (5 min)" : "⏹️ Arrêter les vagues");
     if (state === "walk") BSLIDES.forEach((b, i) => { if (P.y > b.y0 && P.y < b.y1 && Math.hypot(P.x - b.x, P.z - b.z) < 1.3) offer("balo" + i, b.name); });
     if (state === "walk" && P.y < 1 && inGameTown(P.x, P.z)) { GT_CABS.forEach((c, i) => { if (Math.hypot(P.x - c.x, P.z - c.z) < 1.1) offer("gt" + i, "🕹️ Jouer à " + GT_GAMES[c.k].name); });
@@ -7222,6 +7372,7 @@ function loop() {
     if (state === "walk" && P.y < 1 && inBurger(P.x, P.z)) { if (Math.hypot(P.x - BF_ORDER[0], P.z - BF_ORDER[1]) < 1.4) offer("bforder", "🍔 Commander");
       if (bf.state === "ready" && Math.hypot(P.x - BF_PICK[0], P.z - BF_PICK[1]) < 1.5) offer("bfpick", "🍽️ Prendre mon plateau");
       if (bf.state === "carry") { const t = BF_TABLES.find(t => Math.hypot(P.x - t.x, P.z - t.z) < 2); if (t) { bf.table = t; offer("bfeat", "😋 Manger ici"); } } }
+    if (state === "drive" && veh && veh.kind === "bike" && nearRack(P)) offer("lockbike", "🔒 Accrocher le vélo");
     if (state === "drive") offer("dismount", "🧍 Descendre");
     if (state === "river" && (riv.stop || riv.dist > 10 && Math.hypot(P.x - RDOCK.x, P.z - RDOCK.z) < 6)) offer("riverout", "🧍 Sortir sur le ponton");
     if (state === "river" && riv.stop) offer("riveragain", "🔁 Refaire un tour");
@@ -7281,7 +7432,7 @@ function loop() {
   voituresTick(dt); trier(dt); if (dejaVu) adapterResolution(dt);
   renderer.render(scene, camera); dejaVu = true;
 }
-window.__pins = { animPerson, walkers, HALLO, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
+window.__pins = { animPerson, walkers, HALLO, G3, RACKS, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
 await souffle(97, "Les couleurs se mélangent…");
 try { await Promise.race([renderer.compileAsync(scene, camera), new Promise(r => setTimeout(r, 6000))]); } catch (e) {}
