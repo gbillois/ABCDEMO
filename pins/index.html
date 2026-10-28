@@ -310,8 +310,9 @@ html.app .site{display:none!important}
 <div id="mapView" class="overlay" hidden>
   <div class="card">
     <h1>Carte du domaine</h1>
-    <canvas id="mapc" width="640" height="640"></canvas>
-    <p class="small">🔺 Toi · 🟡 canards à trouver · 🟣 personnages · ronds de couleur : tes amis<br><b>✨ Touche un endroit de la carte pour y aller tout de suite !</b></p>
+    <div style="position:relative"><canvas id="mapc" width="640" height="640" style="touch-action:none"></canvas>
+      <div style="position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px"><button id="mapPlus" class="btn" style="padding:6px 14px;font-size:22px">➕</button><button id="mapMinus" class="btn" style="padding:6px 14px;font-size:22px">➖</button></div></div>
+    <p class="small">🔺 Toi · 🟡 canards à trouver · 🟣 personnages · ronds de couleur : tes amis<br><b>✨ Touche un endroit de la carte pour y aller tout de suite !</b> ➕ pour zoomer, puis glisse le doigt pour bouger la carte.</p>
     <div class="row"><button id="mapClose" class="btn">Fermer</button></div>
   </div>
 </div>
@@ -408,6 +409,11 @@ html.app .site{display:none!important}
   <div id="g3Info" class="pill" style="font-weight:800;font-size:15px;text-align:right"></div>
   <div style="width:100%;height:14px;border-radius:8px;background:rgba(0,0,0,.35);overflow:hidden;border:2px solid #fff"><div id="g3Bar" style="height:100%;width:0%;background:#7cff6b"></div></div>
   <div style="display:flex;gap:10px"><button id="g3Hit" class="btn" style="background:#27ae60;font-size:1.25rem;padding:14px 26px;touch-action:none;user-select:none;-webkit-user-select:none">⛳ Taper</button><button id="g3Quit" class="btn" style="background:#34495e">✖ Arrêter</button></div>
+</div>
+<div id="bowlHud" hidden style="position:fixed;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:flex-end;gap:8px;z-index:6;width:min(56vw,380px)">
+  <div id="bwInfo" class="pill" style="font-weight:800;font-size:15px;text-align:right"></div>
+  <div style="width:100%;height:14px;border-radius:8px;background:rgba(0,0,0,.35);overflow:hidden;border:2px solid #fff"><div id="bwBar" style="height:100%;width:0%;background:#7cff6b"></div></div>
+  <div style="display:flex;gap:10px"><button id="bwHit" class="btn" style="background:#2e86de;font-size:1.25rem;padding:14px 26px;touch-action:none;user-select:none;-webkit-user-select:none">🎳 Lancer</button><button id="bwQuit" class="btn" style="background:#34495e">✖ Arrêter</button></div>
 </div>
 <div id="golfView" class="overlay" hidden>
   <div class="card">
@@ -726,6 +732,7 @@ const TREEH = { x1: 38, x2: 76, z1: 56.5, z2: 78 }, HUTS = [[28, 63], [58, 60.5]
 const ENTREE = { x1: -13, x2: 13, z1: 3, z2: 26 }; // dégagé devant l'entrée de l'Aquaparc
 const ZONES = [FARM, PONYZ, RACK, TREEH, ENTREE, ...HUTS.map(([x, z]) => ({ x1: x - 3.5, x2: x + 3.5, z1: z - 3.5, z2: z + 3.5 }))];
 ZONES.push({ x1: -78, x2: -50, z1: -98, z2: -78 }, { x1: -78, x2: -50, z1: -128, z2: -102 }); // la salle des fêtes et le champ du berger
+ZONES.push({ x1: 4, x2: 30, z1: 106, z2: 136 }); // le bowling
 ZONES.push({ x1: -36, x2: 38, z1: -110, z2: -66 }); // le zoo (pas d'arbres dedans)
 const inRect = (r, x, z, m = 0) => x > r.x1 - m && x < r.x2 + m && z > r.z1 - m && z < r.z2 + m;
 const RIVER_HW = 1.8, RAPIDS = [[.27, .36], [.76, .85]];
@@ -3626,13 +3633,13 @@ function updatePartyPool(dt, time, P) {
   if (!PPGATE.off && Math.hypot(P.x - PP.gx, P.z - (PP.z2 + .8)) < 2 && time - (PP.msgT || -9) > 5) { PP.msgT = time; toast("🎂 Cette piscine est réservée aux anniversaires ! Va d'abord souffler les bougies d'un gâteau dans une salle d'anniversaire du Multi Parcs 🎈", 4200); }
 }
 
-/* ---------- Laser game 🔫 et paintball 🎨 : un grand bâtiment au nord-est, avec l'accueil au milieu ---------- */
+/* ---------- Paintball 🎨 (au nord-est, avec son accueil ; le laser game est devenu le cinéma U KD) ---------- */
 const ARENA2 = { z1: 108, z2: 130, laser: { x1: 32, x2: 52 }, lobby: { x1: 52, x2: 60 }, paint: { x1: 60, x2: 79 }, doorZ: 119, h: 4 };
 const COMBAT = { on: false, mode: null, t: 0, foes: [], allies: [], shots: [], splats: [], score: [0, 0], stun: 0, cd: 0, made: false };
 ZONES.push({ x1: 30, x2: 81, z1: 106, z2: 136 });
 path([0, 134], [56, 134], 2.6); path([56, 134], [56, 130.6], 2.6);
 const inHall = (m, x, z) => { const r = ARENA2[m]; return x > r.x1 + .2 && x < r.x2 - .2 && z > ARENA2.z1 + .2 && z < ARENA2.z2 - .2; };
-const inArena2 = (x, z) => x > ARENA2.laser.x1 && x < ARENA2.paint.x2 && z > ARENA2.z1 && z < ARENA2.z2;
+const inArena2 = (x, z) => x > ARENA2.lobby.x1 && x < ARENA2.paint.x2 && z > ARENA2.z1 && z < ARENA2.z2;
 // les obstacles (pas un labyrinthe : des murets, des piliers, des caisses, pour se cacher)
 const COMBAT_OBS = { laser: [], paint: [] };
 {
@@ -3641,23 +3648,22 @@ const COMBAT_OBS = { laser: [], paint: [] };
   const woodM = mat(0xffffff, .85, { map: woodTex }); COMBAT.wallMats = [wallM, woodM];
   const W = (x1, x2, z1, z2, m, h = A.h) => { const b = new THREE.Mesh(new THREE.BoxGeometry(x2 - x1, h, z2 - z1), m); b.position.set((x1 + x2) / 2, h / 2, (z1 + z2) / 2); g.add(b); boxes.push({ x1, x2, z1, z2 }); return b; };
   // les murs extérieurs (les portes : au sud pour l'accueil, entre l'accueil et chaque salle)
-  W(A.laser.x1, A.paint.x2, A.z1 - .15, A.z1 + .15, wallM); W(A.laser.x1 - .15, A.laser.x1 + .15, A.z1, A.z2, wallM); W(A.paint.x2 - .15, A.paint.x2 + .15, A.z1, A.z2, woodM);
-  W(A.laser.x1, A.lobby.x1, A.z2 - .15, A.z2 + .15, wallM); W(A.lobby.x2, A.paint.x2, A.z2 - .15, A.z2 + .15, woodM); W(A.lobby.x1, 54.8, A.z2 - .15, A.z2 + .15, mat(0xf4efe6, .7)); W(57.2, A.lobby.x2, A.z2 - .15, A.z2 + .15, mat(0xf4efe6, .7));
-  for (const x of [A.lobby.x1, A.lobby.x2]) { W(x - .15, x + .15, A.z1, A.doorZ - 1.3, x === A.lobby.x1 ? wallM : woodM); W(x - .15, x + .15, A.doorZ + 1.3, A.z2, x === A.lobby.x1 ? wallM : woodM); }
+  W(A.lobby.x1, A.paint.x2, A.z1 - .15, A.z1 + .15, wallM); W(A.paint.x2 - .15, A.paint.x2 + .15, A.z1, A.z2, woodM);
+  W(A.lobby.x2, A.paint.x2, A.z2 - .15, A.z2 + .15, woodM); W(A.lobby.x1, 54.8, A.z2 - .15, A.z2 + .15, mat(0xf4efe6, .7)); W(57.2, A.lobby.x2, A.z2 - .15, A.z2 + .15, mat(0xf4efe6, .7));
+  W(A.lobby.x1 - .15, A.lobby.x1 + .15, A.z1, A.z2, wallM); for (const x of [A.lobby.x2]) { W(x - .15, x + .15, A.z1, A.doorZ - 1.3, x === A.lobby.x1 ? wallM : woodM); W(x - .15, x + .15, A.doorZ + 1.3, A.z2, x === A.lobby.x1 ? wallM : woodM); }
   // les sols : noir à étoiles pour le laser game, sable pour le paintball, carrelage pour l'accueil
   const starTex = tex(256, (x, s) => { x.fillStyle = "#0d0b1e"; x.fillRect(0, 0, s, s); for (let i = 0; i < 70; i++) { x.fillStyle = ["#2fd3ff", "#ff4fd8", "#7cff6b"][i % 3]; x.fillRect(Math.random() * s, Math.random() * s, 2, 2); } }, 6, 6);
   const floor = (r, m) => { const f = new THREE.Mesh(new THREE.PlaneGeometry(r.x2 - r.x1, A.z2 - A.z1), m); f.rotation.x = -Math.PI / 2; f.position.set((r.x1 + r.x2) / 2, .03, (A.z1 + A.z2) / 2); f.receiveShadow = true; g.add(f); };
-  floor(A.laser, mat(0xffffff, .9, { map: starTex, polygonOffset: true, polygonOffsetFactor: -2 })); floor(A.paint, mat(0xe0c690, .95, { map: sandTex, polygonOffset: true, polygonOffsetFactor: -2 })); floor(A.lobby, mat(0xffffff, .6, { map: tileFloor("#f4efe6", "#d8e6f2"), polygonOffset: true, polygonOffsetFactor: -2 }));
+  floor(A.paint, mat(0xe0c690, .95, { map: sandTex, polygonOffset: true, polygonOffsetFactor: -2 })); floor(A.lobby, mat(0xffffff, .6, { map: tileFloor("#f4efe6", "#d8e6f2"), polygonOffset: true, polygonOffsetFactor: -2 }));
   // les toits (cachés quand on est dedans)
   const roof = new THREE.Group(); g.add(roof); COMBAT.roof = roof;
-  for (const [r, c] of [[A.laser, 0x1b1035], [A.lobby, 0x2e86de], [A.paint, 0x6b4a2f]]) { const s = rbox(r.x2 - r.x1 + .4, .4, A.z2 - A.z1 + .4, mat(c, .7), .1); s.position.set((r.x1 + r.x2) / 2, A.h + .2, (A.z1 + A.z2) / 2); roof.add(s); }
-  const l1 = label("LASER GAME 🔫", "#1b1035", "#2fd3ff", 2.2); l1.position.set(42, A.h + 3, A.z2); g.add(l1);
+  for (const [r, c] of [[A.lobby, 0x2e86de], [A.paint, 0x6b4a2f]]) { const s = rbox(r.x2 - r.x1 + .4, .4, A.z2 - A.z1 + .4, mat(c, .7), .1); s.position.set((r.x1 + r.x2) / 2, A.h + .2, (A.z1 + A.z2) / 2); roof.add(s); }
   const l2 = label("PAINTBALL 🎨", "#6b4a2f", "#ffc93c", 2.2); l2.position.set(69.5, A.h + 3, A.z2); g.add(l2);
   const l3 = label("Entrée 🎯", "#2e86de", "#ffffff", 1); l3.position.set(56, 3.4, A.z2 + .3); g.add(l3);
   // LASER : des murets bordés de néons, des piliers ronds
   const L = A.laser, lob = (x1, x2, z1, z2, neon) => { W(x1, x2, z1, z2, mat(0x24203a, .6), 1.6); const n = new THREE.Mesh(new THREE.BoxGeometry(x2 - x1 + .02, .08, z2 - z1 + .02), neon); n.position.set((x1 + x2) / 2, 1.62, (z1 + z2) / 2); g.add(n); COMBAT_OBS.laser.push({ x1, x2, z1, z2 }); };
-  [[35, 39, 112, 112.6], [44, 44.6, 110, 115], [48, 50, 113, 113.6], [36, 36.6, 117, 122], [41, 46, 119, 119.6], [48.5, 49.1, 118, 123], [35, 40, 125, 125.6], [43, 43.6, 123, 127.5], [47, 50.5, 126.5, 127.1]].forEach(([a, b, c, d], i) => lob(a, b, c, d, i % 2 ? neonP : neonB));
-  for (const [x, z] of [[40, 115.5], [46.5, 123.5], [39.5, 122]]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.5, .5, 2.4, 16), mat(0x24203a, .6)); p.position.set(x, 1.2, z); g.add(p); const r = new THREE.Mesh(new THREE.TorusGeometry(.52, .04, 6, 20), neonB); r.rotation.x = Math.PI / 2; r.position.set(x, 1.6, z); g.add(r); circles.push({ x, z, r: .5 }); COMBAT_OBS.laser.push({ x1: x - .45, x2: x + .45, z1: z - .45, z2: z + .45 }); }
+  if (false) [[35, 39, 112, 112.6], [44, 44.6, 110, 115], [48, 50, 113, 113.6], [36, 36.6, 117, 122], [41, 46, 119, 119.6], [48.5, 49.1, 118, 123], [35, 40, 125, 125.6], [43, 43.6, 123, 127.5], [47, 50.5, 126.5, 127.1]].forEach(([a, b, c, d], i) => lob(a, b, c, d, i % 2 ? neonP : neonB));
+  if (false) for (const [x, z] of [[40, 115.5], [46.5, 123.5], [39.5, 122]]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.5, .5, 2.4, 16), mat(0x24203a, .6)); p.position.set(x, 1.2, z); g.add(p); const r = new THREE.Mesh(new THREE.TorusGeometry(.52, .04, 6, 20), neonB); r.rotation.x = Math.PI / 2; r.position.set(x, 1.6, z); g.add(r); circles.push({ x, z, r: .5 }); COMBAT_OBS.laser.push({ x1: x - .45, x2: x + .45, z1: z - .45, z2: z + .45 }); }
   // PAINTBALL : des cabanes en bois, des bidons, des pneus, des gonflables
   const P2 = A.paint, bunker = (x1, x2, z1, z2, m, h = 1.5) => { W(x1, x2, z1, z2, m, h); COMBAT_OBS.paint.push({ x1, x2, z1, z2 }); };
   [[63, 66, 112, 113], [70, 71, 110, 114], [74, 77, 113, 114], [63.5, 64.5, 118, 122], [68, 72, 120, 121], [75.5, 76.5, 117.5, 121.5], [63, 66.5, 126, 127], [70, 71, 124, 128]].forEach(([a, b, c, d], i) => bunker(a, b, c, d, i % 3 === 2 ? mat(0xff5a4e, .5) : woodM));
@@ -4326,6 +4332,217 @@ function updateBerger(dt, time, P) {
     if (BERG.phase === "penned" && s.x > F.x1 - 1) { s.x = Math.max(F.x1 + .5, Math.min(F.x2 - .5, s.x)); s.z = Math.max(F.z1 + .5, Math.min(F.z2 - .5, s.z)); }
     const v = Math.hypot(s.vx, s.vz); s.v = v; if (v > .15) s.h = Math.atan2(s.vx, s.vz); s.graze = v < .3 ? .7 : 0; s.g.position.set(s.x, 0, s.z); s.g.rotation.y = s.h; animQuad(s, dt); }
   animPerson(BERG.shep, "idle", 0); BERG.shep.rotation.y = Math.atan2(D.x - BERG.shep.position.x, D.z - BERG.shep.position.z);
+}
+/* ---------- Le cinéma U KD 🎬 : un dessin animé de 5 minutes, « Pompon le petit mouton », dessiné en direct ---------- */
+const CINE = { x1: 32, x2: 51.7, z1: 108, z2: 130, h: 6, inside: false, t: 0, last: -1, made: false, crowd: [] };
+path([41.85, 134], [41.85, CINE.z2 + .5], 2.4);
+const inCine = (x, z) => x > CINE.x1 + .2 && x < CINE.x2 - .2 && z > CINE.z1 + .2 && z < CINE.z2 - .2;
+const SHOW_SEATS = []; // les sièges où l'on peut s'asseoir pour regarder (salle des fêtes et cinéma)
+FETE.seats.forEach(([x, z], i) => SHOW_SEATS.push({ x, z, ry: -Math.PI / 2, ox: 1.1, oz: 0, taken: [2, 7, 12, 17, 22, 27, 4, 9, 14].includes(i) }));
+const cineCv = document.createElement("canvas"); cineCv.width = 512; cineCv.height = 288; const cx2 = cineCv.getContext("2d"); const cineTex = new THREE.CanvasTexture(cineCv); cineTex.colorSpace = THREE.SRGBColorSpace;
+{
+  const { x1, x2, z1, z2, h } = CINE, mx0 = (x1 + x2) / 2, g = new THREE.Group(); scene.add(g); CINE.g = g;
+  const wallM = mat(0xffffff, .8, { map: shopWall("#2c2350", "#ffc93c") }); CINE.wallM = wallM;
+  const W = (a, b, c, d, y0 = 0, y1 = h) => { const m = new THREE.Mesh(new THREE.BoxGeometry(b - a, y1 - y0, d - c), wallM); m.position.set((a + b) / 2, (y0 + y1) / 2, (c + d) / 2); g.add(m); if (y0 < 1) boxes.push({ x1: a, x2: b, z1: c, z2: d }); };
+  W(x1, x2, z1 - .15, z1 + .15); W(x1 - .15, x1 + .15, z1, z2); W(x2 - .15, x2 + .15, z1, z2); W(x1, mx0 - 1.3, z2 - .15, z2 + .15); W(mx0 + 1.3, x2, z2 - .15, z2 + .15); W(mx0 - 1.3, mx0 + 1.3, z2 - .15, z2 + .15, 3, h);
+  const fl = new THREE.Mesh(new THREE.PlaneGeometry(x2 - x1, z2 - z1), mat(0x7a1f2b, .9, { polygonOffset: true, polygonOffsetFactor: -2 })); fl.rotation.x = -Math.PI / 2; fl.position.set(mx0, .03, (z1 + z2) / 2); g.add(fl);
+  const roof = new THREE.Group(); g.add(roof); CINE.roof = roof; const sl = rbox(x2 - x1 + .6, .4, z2 - z1 + .6, mat(0x1b1035, .6), .1); sl.position.set(mx0, h + .2, (z1 + z2) / 2); roof.add(sl);
+  const big = label("🎬 CINÉMA U KD", "#1b1035", "#ffc93c", 1.9); big.position.set(mx0, h + 2.5, (z1 + z2) / 2); g.add(big);
+  const aff = label("🐑 Pompon le petit mouton — 5 min", "#ffc93c", "#1b1035", .85); aff.position.set(mx0, 3.7, z2 + .4); g.add(aff);
+  // l'écran (le dessin animé est dessiné dans une image qui change)
+  const fr = rbox(15, 8.6, .2, mat(0x111111, .5), .05); fr.position.set(mx0, 3.4, z1 + .3); g.add(fr);
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(14.4, 8.1), new THREE.MeshBasicMaterial({ map: cineTex, toneMapped: false })); scr.position.set(mx0, 3.4, z1 + .45); g.add(scr);
+  const curt = mat(0xb3122a, .8); for (const s of [-1, 1]) { const c = rbox(1.2, h - .4, .3, curt, .05); c.position.set(mx0 + s * 7.9, (h - .4) / 2, z1 + .5); g.add(c); }
+  // les fauteuils (4 rangées, tournées vers l'écran)
+  const red = mat(0xc0392b, .7); for (let r = 0; r < 4; r++) { const z = z1 + 6 + r * 2.2; for (let k = 0; k < 9; k++) { const x = mx0 - 6.4 + k * 1.6, ch = new THREE.Group(); ch.position.set(x, 0, z); ch.rotation.y = Math.PI; g.add(ch);
+      const seat = rbox(.62, .14, .55, red, .04); seat.position.y = .48; ch.add(seat); const bk = rbox(.62, .75, .12, red, .04); bk.position.set(0, .85, -.26); ch.add(bk); for (const s of [-1, 1]) { const ar = rbox(.08, .3, .5, mat(0x222222, .6), .02); ar.position.set(s * .34, .62, 0); ch.add(ar); }
+      SHOW_SEATS.push({ x, z, ry: Math.PI, ox: 0, oz: 1.1, cine: true, taken: (r * 9 + k) % 5 === 1 }); }
+    boxes.push({ x1: mx0 - 6.8, x2: mx0 + 6.8, z1: z - .35, z2: z + .35 }); }
+  // le stand de pop-corn
+  const pc = rbox(1.6, 1, .8, mat(0xffffff, .5, { map: shopWall("#ffffff", "#e74c3c") }), .05); pc.position.set(x2 - 2, .5, z2 - 1.2); g.add(pc); boxes.push({ x1: x2 - 2.9, x2: x2 - 1.1, z1: z2 - 1.7, z2: z2 - .7 });
+  for (let i = 0; i < 14; i++) { const b = new THREE.Mesh(new THREE.SphereGeometry(.07, 6, 5), mat(0xfff3c4, .8)); b.position.set(x2 - 2.5 + (i % 7) * .16, 1.05 + Math.floor(i / 7) * .06, z2 - 1.2 + (i % 3 - 1) * .1); g.add(b); }
+  shadowAll(g);
+}
+function cineMake() { if (CINE.made) return; CINE.made = true; SHOW_SEATS.filter(s => s.cine && s.taken).forEach((s, i) => { const p = vacationer(i % 2 === 0); p.position.set(s.x, .2, s.z); p.rotation.y = s.ry; animPerson(p, "sit", 0); p.visible = false; CINE.crowd.push(p); }); }
+// --- dessin du film ---
+const CC = cx2;
+function ccSheep(x, y, s, o = {}) { const c = CC, f = o.flip ? -1 : 1, lp = o.leg || 0; c.save(); c.translate(x, y); c.scale(s * f, s);
+  c.fillStyle = "#2a2420"; for (const [lx, a] of [[-14, 0], [-6, Math.PI], [6, 0], [14, Math.PI]]) c.fillRect(lx - 2, 8 + Math.sin(lp + a) * 1.5, 4, 14);
+  c.fillStyle = o.wool || "#ffffff"; for (const [bx, by, r] of [[-14, 0, 11], [-4, -6, 12], [8, -5, 12], [16, 2, 10], [2, 6, 12], [-12, 8, 9], [12, 9, 9]]) { c.beginPath(); c.arc(bx, by, r, 0, 7); c.fill(); }
+  c.fillStyle = "#2a2420"; c.beginPath(); c.ellipse(24, -4, 8, 10, .3, 0, 7); c.fill(); c.beginPath(); c.ellipse(20, -12, 5, 2.5, -.5, 0, 7); c.fill();
+  c.fillStyle = "#fff"; const bl = o.blink ? .3 : 1; c.beginPath(); c.ellipse(26, -7, 3, 3 * bl, 0, 0, 7); c.fill(); c.fillStyle = "#111"; c.beginPath(); c.arc(27, -7, 1.6 * bl, 0, 7); c.fill();
+  if (o.bow) { c.fillStyle = "#ff3b6b"; c.beginPath(); c.moveTo(16, -14); c.lineTo(10, -20); c.lineTo(10, -8); c.fill(); c.beginPath(); c.moveTo(16, -14); c.lineTo(22, -20); c.lineTo(22, -8); c.fill(); }
+  if (o.scared) { c.strokeStyle = "#5bc0ff"; c.lineWidth = 1.5; c.beginPath(); c.arc(31, -14, 2, 0, 7); c.stroke(); }
+  c.restore(); }
+function ccDog(x, y, s, flip, lp = 0) { const c = CC; c.save(); c.translate(x, y); c.scale(s * (flip ? -1 : 1), s);
+  c.fillStyle = "#1c1c1e"; c.beginPath(); c.ellipse(0, 0, 18, 9, 0, 0, 7); c.fill(); c.fillStyle = "#f4f1ea"; c.beginPath(); c.ellipse(10, 2, 7, 6, 0, 0, 7); c.fill();
+  c.fillStyle = "#1c1c1e"; for (const [lx, a] of [[-12, 0], [-6, Math.PI], [8, 0], [13, Math.PI]]) c.fillRect(lx - 2, 5 + Math.sin(lp + a) * 2, 4, 13);
+  c.save(); c.translate(-17, -3); c.rotate(-.8 + Math.sin(lp * 2) * .4); c.fillRect(0, -2, 12, 4); c.restore();
+  c.beginPath(); c.ellipse(20, -10, 9, 8, 0, 0, 7); c.fill(); c.fillStyle = "#f4f1ea"; c.beginPath(); c.ellipse(27, -7, 6, 4, 0, 0, 7); c.fill(); c.fillStyle = "#111"; c.beginPath(); c.arc(32, -8, 2.2, 0, 7); c.fill();
+  c.fillStyle = "#1c1c1e"; c.beginPath(); c.moveTo(14, -15); c.lineTo(17, -26); c.lineTo(21, -16); c.fill(); c.fillStyle = "#fff"; c.beginPath(); c.arc(23, -12, 2.2, 0, 7); c.fill(); c.fillStyle = "#111"; c.beginPath(); c.arc(23.6, -12, 1.2, 0, 7); c.fill(); c.restore(); }
+function ccShepherd(x, y, lp, lantern) { const c = CC; c.save(); c.translate(x, y);
+  c.fillStyle = "#5a4a3a"; c.fillRect(-7, -4, 5, 26 + Math.sin(lp) * 1); c.fillRect(2, -4, 5, 26 - Math.sin(lp) * 1);
+  c.fillStyle = "#6b8e23"; c.fillRect(-10, -36, 20, 34); c.fillStyle = "#e0ac85"; c.beginPath(); c.arc(0, -44, 9, 0, 7); c.fill();
+  c.fillStyle = "#5a3a22"; c.fillRect(-13, -51, 26, 4); c.fillRect(-8, -60, 16, 10); c.fillStyle = "#111"; c.beginPath(); c.arc(4, -45, 1.4, 0, 7); c.fill();
+  c.strokeStyle = "#6b4a2f"; c.lineWidth = 3; c.beginPath(); c.moveTo(14, 22); c.lineTo(14, -56); c.arc(19, -56, 5, Math.PI, 0); c.stroke();
+  if (lantern) { const gr = c.createRadialGradient(-14, -20, 2, -14, -20, 60); gr.addColorStop(0, "rgba(255,220,120,.7)"); gr.addColorStop(1, "rgba(255,220,120,0)"); c.fillStyle = gr; c.beginPath(); c.arc(-14, -20, 60, 0, 7); c.fill(); c.fillStyle = "#ffd36b"; c.fillRect(-18, -26, 8, 10); }
+  c.restore(); }
+function ccSky(night) { const c = CC, g = c.createLinearGradient(0, 0, 0, 288); if (night > .5) { g.addColorStop(0, "#0b1033"); g.addColorStop(1, "#2a2f6e"); } else { g.addColorStop(0, "#7ec8ff"); g.addColorStop(1, "#d9f2ff"); } c.fillStyle = g; c.fillRect(0, 0, 512, 288);
+  if (night > 0 && night < 1) { c.fillStyle = `rgba(11,16,51,${night})`; c.fillRect(0, 0, 512, 288); } }
+function ccStars(t, a = 1) { const c = CC; for (let i = 0; i < 40; i++) { c.globalAlpha = a * (.5 + .5 * Math.sin(t * 2 + i)); c.fillStyle = "#fff"; c.fillRect((i * 97) % 512, (i * 53) % 150, 2, 2); } c.globalAlpha = 1; }
+function ccHills(col1, col2, off = 0) { const c = CC; c.fillStyle = col1; c.beginPath(); c.moveTo(0, 288); for (let x = 0; x <= 512; x += 16) c.lineTo(x, 190 + Math.sin((x + off * .5) * .012) * 18); c.lineTo(512, 288); c.fill();
+  c.fillStyle = col2; c.fillRect(0, 225, 512, 63); }
+function ccPine(x, y, s, col) { const c = CC; c.fillStyle = "#5a3a22"; c.fillRect(x - 3 * s, y - 10 * s, 6 * s, 12 * s); c.fillStyle = col; for (let k = 0; k < 3; k++) { c.beginPath(); c.moveTo(x - (22 - k * 5) * s, y - (8 + k * 16) * s); c.lineTo(x, y - (36 + k * 16) * s); c.lineTo(x + (22 - k * 5) * s, y - (8 + k * 16) * s); c.fill(); } }
+function ccSub(txt) { if (!txt) return; const c = CC; c.font = '700 17px "Baloo 2",sans-serif'; c.textAlign = "center"; const w = c.measureText(txt).width + 24; c.fillStyle = "rgba(0,0,0,.6)"; c.fillRect(256 - w / 2, 252, w, 28); c.fillStyle = "#fff"; c.fillText(txt, 256, 272); }
+const CINE_SUBS = [[12, "Au Domaine des Pins, le soleil se lève…"], [22, "Voici Pompon, le plus petit mouton du troupeau !"], [34, "Pompon adore sauter dans l'herbe. Boing ! Boing !"], [46, "Ses amis mangent l'herbe toute fraîche. Miam !"],
+  [60, "Oh ! Un papillon tout bleu !"], [72, "« Attends-moi, papillon ! » crie Pompon."], [86, "Pompon court, court, court…"], [100, "… loin, très loin du troupeau."],
+  [115, "Oh non… Pompon est perdu dans la forêt."], [130, "Il fait tout noir. Hou hou ! fait la chouette."], [145, "Pompon a un peu peur…"], [158, "« Bêêê ! Où sont mes amis ? »"],
+  [170, "Au troupeau, maman mouton s'inquiète : où est Pompon ?"], [184, "Flocon le chien renifle la piste… snif, snif !"], [198, "Le berger prend sa lanterne. On y va !"], [212, "Ils marchent dans la nuit étoilée."],
+  [225, "« Ouaf ! Ouaf ! » Flocon a trouvé Pompon !"], [240, "Pompon est si content ! Câlin ! 💕"], [252, "Tout le monde rentre à la maison."],
+  [265, "Tout le troupeau fait la fête sous les étoiles !"], [280, "« La prochaine fois, je reste avec mes amis ! »"], [294, ""]];
+const CINE_SFX = [[22, "baa"], [34, "boing"], [60, "ding"], [130, "owl"], [158, "baa"], [184, "sniff"], [225, "woof"], [240, "baa"], [265, "fete"]];
+function cineSound(k) { if (k === "baa") { tone(330, .5, "sawtooth", .05, -40); tone(345, .5, "sine", .04, -40); } else if (k === "boing") { tone(220, .25, "sine", .1, 400); tone(220, .25, "sine", .1, 400, .35); }
+  else if (k === "ding") [1318, 1568, 2093].forEach((f, i) => tone(f, .3, "sine", .05, 0, i * .12)); else if (k === "owl") { tone(392, .35, "sine", .07, -30); tone(370, .6, "sine", .07, -40, .45); }
+  else if (k === "sniff") for (let i = 0; i < 4; i++) whoosh(.08, .05, 2500, 1500, i * .15); else if (k === "woof") { tone(260, .12, "square", .06, -120); tone(240, .14, "square", .06, -120, .2); }
+  else if (k === "fete") [523, 659, 784, 1046, 784, 1046].forEach((f, i) => tone(f, .2, "triangle", .06, 0, i * .14)); }
+function drawCartoon(t) { const c = CC; c.textAlign = "center";
+  if (t < 12) { ccSky(1); ccStars(t); c.fillStyle = "#ffc93c"; c.font = '800 34px "Baloo 2",sans-serif'; c.fillText("Pompon", 256, 100); c.font = '700 22px "Baloo 2",sans-serif'; c.fillText("le petit mouton", 256, 130);
+    ccSheep(256, 200 - Math.abs(Math.sin(t * 3)) * 20, 1.6, { bow: true, leg: t * 8 }); c.fillStyle = "#fff"; c.font = '600 13px "Baloo 2",sans-serif'; c.fillText("Un dessin animé du cinéma U KD", 256, 270); return; }
+  if (t < 60) { const k = Math.min(1, (t - 12) / 10); ccSky(0); c.fillStyle = "#ffd23f"; c.beginPath(); c.arc(420, 130 - k * 70, 28, 0, 7); c.fill(); ccHills("#7fcf6a", "#5fb04f");
+    ccPine(60, 225, 1.2, "#2f7d3a"); ccPine(470, 228, 1, "#2f7d3a"); for (let i = 0; i < 3; i++) ccSheep(120 + i * 70, 232 + (i % 2) * 6, .9, { leg: 0, blink: Math.sin(t * 1.3 + i) > .97, flip: i === 1 });
+    ccSheep(370, 228 - Math.abs(Math.sin(t * 3.2)) * (t > 34 ? 30 : 6), 1, { bow: true, leg: t * 8 }); }
+  else if (t < 115) { const sc = (t - 60) * 6; ccSky(0); c.fillStyle = "#ffd23f"; c.beginPath(); c.arc(430, 60, 28, 0, 7); c.fill(); ccHills("#7fcf6a", "#5fb04f", sc); for (let i = 0; i < 6; i++) ccPine(((i * 140 - sc) % 700 + 700) % 700 - 60, 228, 1, "#2f7d3a");
+    const bx = 330 + Math.sin(t * 2) * 30, by = 150 + Math.sin(t * 5) * 18; c.fillStyle = "#3b8cff"; c.beginPath(); c.ellipse(bx - 6, by, 8, 12 * Math.abs(Math.sin(t * 12)) + 2, -.3, 0, 7); c.fill(); c.beginPath(); c.ellipse(bx + 6, by, 8, 12 * Math.abs(Math.sin(t * 12)) + 2, .3, 0, 7); c.fill();
+    ccSheep(190, 230 - Math.abs(Math.sin(t * 6)) * 12, 1, { bow: true, leg: t * 14 }); }
+  else if (t < 170) { const n = Math.min(1, (t - 115) / 12); ccSky(n); ccStars(t, n); c.fillStyle = "#e8eefc"; c.beginPath(); c.arc(90, 60, 20, 0, 7); c.fill(); ccHills("#244a2e", "#1d3a24");
+    for (let i = 0; i < 8; i++) ccPine(i * 70 + 10, 232 + (i % 2) * 8, 1.4, "#173b22"); if (t > 128) { const op = Math.sin(t * .8) > -.6; c.fillStyle = "#ffd23f"; if (op) { c.beginPath(); c.arc(395, 120, 4, 0, 7); c.arc(409, 120, 4, 0, 7); c.fill(); } }
+    ccSheep(256 + Math.sin(t * 20) * (t > 145 ? 1.5 : 0), 236, 1.1, { bow: true, scared: t > 145, flip: Math.floor(t / 4) % 2 === 0 }); }
+  else if (t < 225) { ccSky(1); ccStars(t); c.fillStyle = "#e8eefc"; c.beginPath(); c.arc(420, 50, 20, 0, 7); c.fill(); ccHills("#2d5a37", "#24482c");
+    if (t < 184) { for (let i = 0; i < 3; i++) ccSheep(110 + i * 80, 236, .9, { flip: i === 2 }); ccSheep(380, 230, 1.1, { wool: "#f3ead8" }); }
+    else { const w = (t - 184) * 9; ccDog(-40 + w % 640, 240, 1, false, t * 14); ccShepherd(-120 + w % 640, 212, t * 6, t > 198); } }
+  else if (t < 265) { ccSky(1); ccStars(t); ccHills("#244a2e", "#1d3a24"); for (let i = 0; i < 8; i++) ccPine(i * 70 + 10, 232 + (i % 2) * 8, 1.4, "#173b22");
+    const a = Math.min(1, (t - 225) / 6); ccShepherd(120 + a * 40, 212, t * 6 * (1 - a), true); ccDog(200 + a * 60, 240, 1, false, t * 14 * (1 - a) + (a === 1 ? t * 6 : 0)); ccSheep(320, 232 - (t > 240 ? Math.abs(Math.sin(t * 4)) * 22 : 0), 1.1, { bow: true, flip: true, leg: t * 8 });
+    if (t > 240) { c.fillStyle = "#ff5a8a"; c.font = '20px sans-serif'; for (let i = 0; i < 3; i++) c.fillText("❤", 300 + i * 20, 190 - ((t * 30 + i * 20) % 60)); } }
+  else { ccSky(1); ccStars(t); ccHills("#2d5a37", "#24482c"); for (let i = 0; i < 12; i++) { c.fillStyle = `rgba(255,240,120,${.5 + .5 * Math.sin(t * 3 + i)})`; c.beginPath(); c.arc((i * 47 + t * 10) % 512, 120 + Math.sin(t + i) * 40, 2.5, 0, 7); c.fill(); }
+    for (let i = 0; i < 5; i++) ccSheep(70 + i * 90, 232 - Math.abs(Math.sin(t * 4 + i)) * 18, .9, { bow: i === 2, leg: t * 8, flip: i % 2 === 1 }); ccDog(470, 244, .8, true, t * 10);
+    if (t > 292) { c.fillStyle = "rgba(0,0,0,.55)"; c.fillRect(0, 0, 512, 288); c.fillStyle = "#ffc93c"; c.font = '800 46px "Baloo 2",sans-serif'; c.fillText("FIN", 256, 140); c.font = '700 16px "Baloo 2",sans-serif'; c.fillStyle = "#fff"; c.fillText("Merci d'être venu au cinéma U KD ! 🍿", 256, 175); } }
+  let sub = ""; for (const [ts, s] of CINE_SUBS) if (t >= ts) sub = s; if (t < 292) ccSub(sub);
+  c.fillStyle = "rgba(255,255,255,.35)"; c.fillRect(0, 286, 512 * t / 300, 2);
+}
+function updateCine(dt, time, P) {
+  const inside = inCine(P.x, P.z); if (inside !== CINE.inside) { CINE.inside = inside; CINE.roof.visible = !inside; CINE.wallM.transparent = inside; CINE.wallM.opacity = inside ? .2 : 1; CINE.wallM.depthWrite = !inside; CINE.wallM.needsUpdate = true;
+    if (inside) { cineMake(); CINE.t = 0; CINE.last = -1; toast("🎬 Bienvenue au cinéma U KD ! Le film « Pompon le petit mouton » commence. Assieds-toi dans un fauteuil 🍿", 3600); } for (const p of CINE.crowd) p.visible = inside; }
+  if (!inside) return; const t0 = CINE.t; CINE.t = (CINE.t + dt) % 300;
+  for (const [ts, k] of CINE_SFX) if (t0 < ts && CINE.t >= ts) cineSound(k);
+  for (const p of CINE.crowd) animPerson(p, "sit", 0);
+  if (Math.floor(CINE.t * 15) !== CINE.last) { CINE.last = Math.floor(CINE.t * 15); drawCartoon(CINE.t); cineTex.needsUpdate = true; }
+  if (actx && !muted && !paused && CINE.t > 12) { const now = actx.currentTime; if (!CINE.beat || CINE.beat < now) CINE.beat = now + .05; while (CINE.beat < now + .2) { const d = CINE.beat - now, st = CINE.step = (CINE.step || 0) + 1, night = CINE.t > 115 && CINE.t < 265;
+      const m = (night ? [57, 60, 64, 60, 55, 59, 62, 59] : [60, 64, 67, 72, 65, 69, 72, 69])[st % 8]; tone(440 * Math.pow(2, (m - 69) / 12), .5, "sine", .025, 0, d); CINE.beat += night ? .55 : .38; } }
+}
+drawCartoon(0); cineTex.needsUpdate = true;
+// s'asseoir pour regarder (salle des fêtes et cinéma)
+function sitShow(s) { seatT = { show: s, t: 0 }; s.me = true; $("dialog").hidden = true; talking = null; player.position.set(s.x, .2, s.z); player.rotation.set(0, s.ry, 0); state = "eat"; toast(s.cine ? "🍿 Bien installé ! Bon film !" : "🪑 Bien installé ! Profite du spectacle !", 2000); }
+function nearShowSeat(P) { if (!(FETE.inside || CINE.inside)) return null; let best = null, bd = 1.3; for (const s of SHOW_SEATS) { if (s.taken) continue; const d = Math.hypot(P.x - s.x - s.ox * .7, P.z - s.z - s.oz * .7); if (d < bd) { bd = d; best = s; } } return best; }
+/* ---------- Le bowling 🎳 (à côté du cinéma) : 3 pistes, 5 manches, 2 lancers par manche ---------- */
+const BOWL = { x1: 6, x2: 28, z1: 108, z2: 130, h: 5, lanes: [11, 17, 23], pinZ: 111.6, foul: 124, hw: .8, inside: false, on: false, cam: new THREE.Vector3() };
+path([17, 134], [17, BOWL.z2 + .5], 2.4);
+const inBowl = (x, z) => x > BOWL.x1 + .2 && x < BOWL.x2 - .2 && z > BOWL.z1 + .2 && z < BOWL.z2 - .2;
+const PIN_SPOTS = []; for (let r = 0; r < 4; r++) for (let k = 0; k <= r; k++) PIN_SPOTS.push([(k - r / 2) * .34, -r * .3]);
+const pinGeo = (() => { const pts = [[0, 0], [.07, 0], [.085, .06], [.1, .16], [.09, .26], [.05, .34], [.045, .38], [.06, .44], [.05, .5], [0, .52]].map(([x, y]) => new THREE.Vector2(x, y)); return new THREE.LatheGeometry(pts, 16); })();
+{
+  const { x1, x2, z1, z2, h } = BOWL, mx0 = (x1 + x2) / 2, g = new THREE.Group(); scene.add(g); BOWL.g = g;
+  const wallM = mat(0xffffff, .8, { map: shopWall("#1f3a93", "#ff5a4e") }); BOWL.wallM = wallM;
+  const W = (a, b, c, d, y0 = 0, y1 = h) => { const m = new THREE.Mesh(new THREE.BoxGeometry(b - a, y1 - y0, d - c), wallM); m.position.set((a + b) / 2, (y0 + y1) / 2, (c + d) / 2); g.add(m); if (y0 < 1) boxes.push({ x1: a, x2: b, z1: c, z2: d }); };
+  W(x1, x2, z1 - .15, z1 + .15); W(x1 - .15, x1 + .15, z1, z2); W(x2 - .15, x2 + .15, z1, z2); W(x1, mx0 - 1.3, z2 - .15, z2 + .15); W(mx0 + 1.3, x2, z2 - .15, z2 + .15); W(mx0 - 1.3, mx0 + 1.3, z2 - .15, z2 + .15, 3, h);
+  const fl = new THREE.Mesh(new THREE.PlaneGeometry(x2 - x1, z2 - z1), mat(0xffffff, .7, { map: tileFloor("#2c3e50", "#34495e"), polygonOffset: true, polygonOffsetFactor: -2 })); fl.rotation.x = -Math.PI / 2; fl.position.set(mx0, .03, (z1 + z2) / 2); g.add(fl);
+  const roof = new THREE.Group(); g.add(roof); BOWL.roof = roof; const sl = rbox(x2 - x1 + .6, .4, z2 - z1 + .6, mat(0x1f3a93, .6), .1); sl.position.set(mx0, h + .2, (z1 + z2) / 2); roof.add(sl);
+  const big = label("🎳 BOWLING", "#1f3a93", "#ffffff", 1.9); big.position.set(mx0, h + 2.4, (z1 + z2) / 2); g.add(big);
+  const dl = label("Viens faire un strike ! 🎳", "#ff5a4e", "#ffffff", .9); dl.position.set(mx0, 3.6, z2 + .4); g.add(dl);
+  const laneTex = tex(128, (x, s) => { x.fillStyle = "#e7c08a"; x.fillRect(0, 0, s, s); for (let i = 0; i < 12; i++) { x.fillStyle = i % 2 ? "#dcb27a" : "#efcb98"; x.fillRect(i * s / 12, 0, s / 12, s); } }, 1, 6);
+  const laneM = mat(0xffffff, .25, { map: laneTex, polygonOffset: true, polygonOffsetFactor: -4 }), gutM = mat(0x5d6d7e, .4, { metalness: .5 }), arrM = mat(0xc0392b, .5, { polygonOffset: true, polygonOffsetFactor: -6 });
+  const L0 = BOWL.pinZ - 1.6, L1 = BOWL.foul + .2;
+  for (const lx of BOWL.lanes) {
+    const ln = new THREE.Mesh(new THREE.PlaneGeometry(BOWL.hw * 2, L1 - L0), laneM); ln.rotation.x = -Math.PI / 2; ln.position.set(lx, .05, (L0 + L1) / 2); g.add(ln);
+    for (const s of [-1, 1]) { const gt = new THREE.Mesh(new THREE.BoxGeometry(.24, .04, L1 - L0), gutM); gt.position.set(lx + s * (BOWL.hw + .12), .03, (L0 + L1) / 2); g.add(gt);
+      const sep = rbox(.12, .25, L1 - L0, mat(0x2c3e50, .6), .02); sep.position.set(lx + s * (BOWL.hw + .3), .12, (L0 + L1) / 2); g.add(sep); }
+    for (let k = -2; k <= 2; k++) { const ar = new THREE.Mesh(new THREE.ConeGeometry(.05, .18, 3), arrM); ar.rotation.x = -Math.PI / 2; ar.position.set(lx + k * .22, .06, BOWL.pinZ + 7.5 + Math.abs(k) * .3); g.add(ar); }
+    const foul = new THREE.Mesh(new THREE.PlaneGeometry(BOWL.hw * 2 + .6, .06), mat(0x111111, .5, { polygonOffset: true, polygonOffsetFactor: -6 })); foul.rotation.x = -Math.PI / 2; foul.position.set(lx, .06, BOWL.foul); g.add(foul);
+    const hood = rbox(BOWL.hw * 2 + .8, .9, .7, mat(0x1b1035, .6), .05); hood.position.set(lx, 1.6, L0 + .6); g.add(hood); const sc = label(`Piste ${BOWL.lanes.indexOf(lx) + 1}`, "#1b1035", "#ffc93c", .6); sc.position.set(lx, 1.6, L0 + 1); g.add(sc);
+    const pit = new THREE.Mesh(new THREE.PlaneGeometry(BOWL.hw * 2 + .6, 1.6), mat(0x0b0b10, .9)); pit.position.set(lx, .8, L0 - .2); g.add(pit);
+    const ret = rbox(.35, .5, .7, mat(0x2c3e50, .5), .08); ret.position.set(lx + BOWL.hw + .65, .25, BOWL.foul + 2.2); g.add(ret);
+  }
+  // les pistes et le retour des boules : on ne marche pas dessus
+  boxes.push({ x1: BOWL.lanes[0] - BOWL.hw - .4, x2: BOWL.lanes[2] + BOWL.hw + .4, z1: L0 - .5, z2: BOWL.foul - .1 });
+  for (const lx of BOWL.lanes) boxes.push({ x1: lx + BOWL.hw + .45, x2: lx + BOWL.hw + .85, z1: BOWL.foul + 1.8, z2: BOWL.foul + 2.6 });
+  // les quilles des autres pistes (décor) et des banquettes
+  const pinM = mat(0xffffff, .35), redM = mat(0xe74c3c, .4);
+  BOWL.pinMat = pinM; BOWL.redMat = redM;
+  for (const lx of [BOWL.lanes[0], BOWL.lanes[2]]) for (const [dx, dz] of PIN_SPOTS) { const p = new THREE.Mesh(pinGeo, pinM); p.position.set(lx + dx, .05, BOWL.pinZ + dz); g.add(p); }
+  for (const lx of BOWL.lanes) { const b = rbox(1.8, .45, .6, mat(0xff5a4e, .6), .1); b.position.set(lx, .23, z2 - 1.4); g.add(b); boxes.push({ x1: lx - .9, x2: lx + .9, z1: z2 - 1.7, z2: z2 - 1.1 }); }
+  shadowAll(g);
+}
+// la boule, les quilles de ma piste, la flèche
+{
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(.16, 20, 14), new THREE.MeshStandardMaterial({ color: 0x2e86de, roughness: .15, metalness: .2 })); ball.castShadow = true; ball.visible = false; scene.add(ball); BOWL.ballM = ball;
+  for (const [x, y, z] of [[.05, .1, .1], [-.04, .12, .1], [0, .05, .14]]) { const hl = new THREE.Mesh(new THREE.SphereGeometry(.025, 8, 6), mat(0x111111, .5)); hl.position.set(x, y, z); ball.add(hl); }
+  BOWL.pins = PIN_SPOTS.map(([dx, dz]) => { const m = new THREE.Group(); const body = new THREE.Mesh(pinGeo, BOWL.pinMat); m.add(body); for (const y of [.35, .4]) { const r = new THREE.Mesh(new THREE.TorusGeometry(.05, .01, 6, 16), BOWL.redMat); r.rotation.x = Math.PI / 2; r.position.y = y; m.add(r); }
+    m.castShadow = true; m.visible = false; scene.add(m); return { m, dx, dz, x: 0, z: 0, vx: 0, vz: 0, down: false, gone: false, fall: 0, fa: 0 }; });
+  const ar = new THREE.Mesh(new THREE.PlaneGeometry(.08, 1), new THREE.MeshBasicMaterial({ color: 0x7cff6b, transparent: true, opacity: .8, depthWrite: false })); ar.geometry.translate(0, .5, 0); ar.rotation.x = -Math.PI / 2; ar.visible = false; scene.add(ar); BOWL.arrow = ar;
+}
+function bowlRack(all) { const lx = BOWL.lane; for (const p of BOWL.pins) { if (all) { p.down = p.gone = false; } if (p.down) { p.gone = true; p.m.visible = false; continue; } p.x = lx + p.dx; p.z = BOWL.pinZ + p.dz; p.vx = p.vz = 0; p.fall = 0; p.m.visible = true; p.m.rotation.set(0, 0, 0); p.m.position.set(p.x, .05, p.z); } }
+function bowlReady() { const B = BOWL; B.phase = "aim"; B.bx = 0; B.power = 0; B.charging = false; B.ball = { x: B.lane, z: B.foul + 1.2, vx: 0, vz: 0, gut: false }; B.t = 0; bowlHud(); }
+function bowlHud() { const B = BOWL; $("bwInfo").textContent = B.phase === "end" ? "" : `🎳 Manche ${B.frame + 1} sur 5 · lancer ${B.roll + 1} · points : ${B.total}`; }
+function bowlStart() {
+  if (veh) dismount(); const P = player.position; let best = BOWL.lanes[1]; for (const lx of BOWL.lanes) if (Math.abs(P.x - lx) < Math.abs(P.x - best)) best = lx;
+  BOWL.lane = best; BOWL.on = true; state = "bowl"; BOWL.frame = 0; BOWL.roll = 0; BOWL.total = 0; BOWL.cam.set(P.x, 0, P.z);
+  bowlRack(true); bowlReady(); BOWL.ballM.visible = true; $("bowlHud").hidden = false; document.body.classList.add("golf-on"); $("dialog").hidden = true; talking = null;
+  toast("🎳 Choisis ta place avec le joystick (ou les flèches), garde « Lancer » appuyé, et lâche !", 4200); sfx.click();
+}
+function bowlStop() { BOWL.on = false; BOWL.ballM.visible = BOWL.arrow.visible = false; for (const p of BOWL.pins) p.m.visible = false; $("bowlHud").hidden = true; document.body.classList.remove("golf-on");
+  state = "walk"; player.position.set(BOWL.lane + 1.2, 0, BOWL.foul + 3.2); player.rotation.set(0, Math.PI, 0); }
+function bowlCharge(on) { const B = BOWL; if (!B.on || B.phase !== "aim") return;
+  if (on) { B.charging = true; B.power = 0; B.pdir = 1; return; } if (!B.charging) return; B.charging = false; if (B.power < .05) return;
+  const sp = 3 + B.power * 6.5; B.ball.vz = -sp; B.ball.vx = (Math.random() - .5) * .25; B.phase = "roll"; B.t = 0; whoosh(.6, .06, 300, 180); }
+$("bwHit").addEventListener("pointerdown", e => { e.preventDefault(); bowlCharge(true); });
+for (const ev of ["pointerup", "pointerleave", "pointercancel"]) $("bwHit").addEventListener(ev, () => bowlCharge(false));
+$("bwQuit").onclick = () => { sfx.click(); bowlStop(); toast("À bientôt au bowling ! 🎳", 1800); };
+addEventListener("keydown", e => { if (BOWL.on && e.key === " " && !e.repeat) { e.preventDefault(); bowlCharge(true); } }, true);
+addEventListener("keyup", e => { if (BOWL.on && e.key === " ") bowlCharge(false); });
+function bowlTick(dt, time, P) {
+  const B = BOWL, b = B.ball, lx = B.lane; let ix = jx; if (keys["arrowleft"] || keys["q"] || keys["a"]) ix = -1; if (keys["arrowright"] || keys["d"]) ix = 1;
+  if (B.phase === "aim") { B.bx = Math.max(-B.hw + .2, Math.min(B.hw - .2, B.bx + ix * dt * 1.2)); b.x = lx + B.bx; b.z = B.foul + .4;
+    if (B.charging) { B.power += B.pdir * dt * .8; if (B.power > 1) { B.power = 1; B.pdir = -1; } if (B.power < 0) { B.power = 0; B.pdir = 1; } } }
+  else if (B.phase === "roll" || B.phase === "settle") { B.t += dt;
+    if (B.phase === "roll") { B.rumT = (B.rumT || 0) - dt; if (B.rumT < 0) { B.rumT = .14; tone(70 + Math.random() * 20, .16, "sine", .035); }
+      for (let s = 0; s < 6; s++) { const h = dt / 6; b.x += b.vx * h; b.z += b.vz * h;
+        if (!b.gut && Math.abs(b.x - lx) > B.hw) { b.gut = true; b.vx = 0; b.x = lx + Math.sign(b.x - lx) * (B.hw + .12); tone(110, .3, "sine", .08, -40); }
+        if (!b.gut) for (const p of B.pins) { if (p.gone) continue; const dx = p.x - b.x, dz = p.z - b.z, d = Math.hypot(dx, dz), R = .16 + .09; if (d < R && d > 1e-4) { const nx = dx / d, nz = dz / d, rv = (b.vx - p.vx) * nx + (b.vz - p.vz) * nz; if (rv > 0) { const j = 2 * rv / (1 / 6 + 1 / 1.5); b.vx -= j / 6 * nx; b.vz -= j / 6 * nz; p.vx += j / 1.5 * nx; p.vz += j / 1.5 * nz; if (!p.down) { tone(500 + Math.random() * 300, .08, "square", .05); whoosh(.1, .05, 2400, 900); } } p.x = b.x + nx * R; p.z = b.z + nz * R; } } }
+      if (b.z < B.pinZ - 1.6) { B.phase = "settle"; B.t = 0; } }
+    // les quilles se poussent entre elles, tombent, glissent
+    for (let s = 0; s < 4; s++) { const h = dt / 4;
+      for (const p of B.pins) { if (p.gone) continue; p.x += p.vx * h; p.z += p.vz * h; const k = Math.max(0, 1 - 2.2 * h); p.vx *= k; p.vz *= k; if (!p.down && Math.hypot(p.vx, p.vz) > .25) { p.down = true; p.fa = Math.atan2(p.vx, p.vz); } }
+      for (let i = 0; i < B.pins.length; i++) for (let j = i + 1; j < B.pins.length; j++) { const p = B.pins[i], q = B.pins[j]; if (p.gone || q.gone) continue; const dx = q.x - p.x, dz = q.z - p.z, d = Math.hypot(dx, dz), R = p.down || q.down ? .2 : .18;
+        if (d < R && d > 1e-4) { const nx = dx / d, nz = dz / d, rv = (p.vx - q.vx) * nx + (p.vz - q.vz) * nz; if (rv > 0) { p.vx -= rv * nx * .9; p.vz -= rv * nz * .9; q.vx += rv * nx * .9; q.vz += rv * nz * .9; if (rv > .4) tone(700 + Math.random() * 400, .05, "square", .04); } const o = (R - d) / 2; p.x -= nx * o; p.z -= nz * o; q.x += nx * o; q.z += nz * o; } } }
+    for (const p of B.pins) if (!p.gone && (p.z < B.pinZ - 1.5 || Math.abs(p.x - lx) > B.hw + .1)) { p.down = true; p.gone = true; p.m.visible = false; }
+    if (B.phase === "settle" && B.t > 1.6) { const down = B.pins.filter(p => p.down && !p.counted); down.forEach(p => p.counted = true); const n = down.length, left = B.pins.filter(p => !p.down).length;
+      B.total += n; const strike = B.roll === 0 && left === 0, spare = B.roll === 1 && left === 0;
+      if (strike) { toast("🎳 STRIKE !!! Toutes les quilles d'un coup ! 🎉", 2600); petitEffet("confetti"); [784, 988, 1175, 1568, 2093].forEach((f, i) => tone(f, .16, "triangle", .12, 0, i * .08)); B.total += 5; }
+      else if (spare) { toast("✨ SPARE ! Toutes les quilles en deux lancers !", 2400); petitEffet("confetti"); [659, 880, 1175].forEach((f, i) => tone(f, .16, "triangle", .1, 0, i * .1)); B.total += 2; }
+      else toast(n === 0 ? (b.gut ? "Oh ! Dans la rigole… 😅 Essaie plus au milieu !" : "Raté ! Pas de quille cette fois 🙂") : `👏 ${n} quille${n > 1 ? "s" : ""} !`, 2000);
+      if (B.roll === 0 && left > 0) { B.roll = 1; for (const p of B.pins) if (p.down) { p.gone = true; p.m.visible = false; } bowlReady(); }
+      else { B.frame++; B.roll = 0; for (const p of B.pins) p.counted = false;
+        if (B.frame >= 5) { B.phase = "end"; bowlHud(); let best = 0; try { best = +localStorage.getItem("pins-bowling") || 0; } catch (e) {} const rec = B.total > best; if (rec) try { localStorage.setItem("pins-bowling", String(B.total)); } catch (e) {}
+          money += B.total; saveShop(); updMoney(); sfx.win(); setTimeout(() => toast(`🎳 Fini ! ${B.total} points ${rec ? "· Nouveau record ! 🏆" : `· Record : ${best}`} · +${B.total} €`, 5000), 2100); setTimeout(() => { if (B.on) bowlStop(); }, 3500); }
+        else { bowlRack(true); bowlReady(); } } bowlHud(); } }
+  // affichage : la boule, les quilles, la flèche, le joueur, la caméra
+  b.vx *= 1; const roll = B.phase === "roll"; B.ballM.visible = B.phase !== "end" && (B.phase !== "settle"); B.ballM.position.set(b.x, b.gut ? .1 : .21, b.z); if (roll) B.ballM.rotation.x += b.vz * dt / .16;
+  for (const p of B.pins) { if (p.gone) continue; if (p.down) p.fall = Math.min(Math.PI / 2, p.fall + dt * 7); p.m.position.set(p.x, .05 + (p.fall > 0 ? .09 * Math.sin(p.fall) : 0), p.z); p.m.rotation.set(0, p.fa, 0); p.m.rotateX(p.fall); }
+  B.arrow.visible = B.phase === "aim"; if (B.arrow.visible) { B.arrow.position.set(b.x, .08, b.z - .2); B.arrow.rotation.z = Math.PI; B.arrow.scale.set(1, .8 + B.power * 2.2, 1); B.arrow.material.color.setHSL(.33 - B.power * .33, 1, .55); }
+  $("bwBar").style.width = `${Math.round(B.power * 100)}%`; $("bwBar").style.background = `hsl(${120 - B.power * 120},90%,50%)`;
+  if (B.phase === "aim" || B.phase === "end") { P.set(b.x + .32, 0, b.z + .35); player.rotation.set(0, Math.PI, 0); animPerson(player, "idle", 0); }
+  else animPerson(player, "idle", 0);
+  const ft = roll ? tv.set(b.x, 0, Math.max(B.pinZ + 2.5, b.z + .5)) : tv.set(P.x, 0, B.phase === "settle" ? B.pinZ + 2.5 : P.z); B.cam.lerp(ft, Math.min(1, dt * (roll ? 6 : 2.5)));
+  let dy = 0 - yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yaw += dy * Math.min(1, dt * 3);
 }
 caramel.x = -50; caramel.z = -60.7; caramel.h = Math.PI; caramel.g.position.set(caramel.x, 0, caramel.z); caramel.g.rotation.y = Math.PI;
 { const cl = label("Caramel", "#e84393", "#ffffff", .5); cl.position.set(0, 2.55, 0); caramel.g.add(cl); }
@@ -7068,7 +7285,6 @@ const pLbl = label("Théo", "#2e86de", "#ffffff", .8); pLbl.position.y = 2.75; p
 const SPAWN = { x: -16, z: 33 };
 
 const npcs = [
-  { name: "Max, moniteur de laser game", pos: [54, 119], o: { shirt: 0x1b1035, pants: 0x2d3436, hair: 0x222222, cap: 0x2fd3ff }, lines: ["Salut ! Moi c'est Max. Bienvenue au laser game ! 🔫", "Tu es dans l'équipe bleue 🔵 avec deux copains. En face, il y a quatre joueurs rouges 🔴.", "Tu vises en tournant ton personnage, et tu appuies sur « Tirer ». Quand ton rayon touche un rouge, ton équipe marque un point !", "Si un rouge te touche, tu clignotes et tu ne peux plus tirer pendant 2 secondes. Cache-toi derrière les murets lumineux !", "Une partie dure 90 secondes. Si tu sors de la salle, la partie s'arrête. Appuie sur « Jouer au laser game » quand tu es prêt !"] },
   { name: "Inès, monitrice de paintball", pos: [58, 119], o: { shirt: 0x6b4a2f, pants: 0x27ae60, hair: 0x8b4513, long: true, cap: 0xffc93c }, lines: ["Coucou ! Moi c'est Inès. Ici, c'est le paintball ! 🎨", "Les billes de peinture sont toutes douces : ça fait juste des taches de couleur, et ça ne fait pas mal.", "Toi et tes copains, vous lancez de la peinture jaune 🟡 ; les rouges 🔴, eux, lancent de la peinture rouge.", "Les billes mettent un peu de temps à voler : vise un peu devant ceux qui courent ! Cache-toi derrière les cabanes et les bidons.", "Une partie dure 90 secondes. Prêt ? Appuie sur « Jouer au paintball » !"] },
   { name: "Sophie, de l'accueil", pos: [-8, 34], o: { shirt: 0x16a085, hair: 0x222222, long: true }, lines: ["Bienvenue au Domaine des Pins, Théo !", "Ton cottage, c'est celui avec le drapeau rouge, juste là. Pour entrer, ouvre la porte !", "Il y a un escalier : ta chambre est à l'étage.", "L'Aquaparc, c'est la grande bulle de verre. Suis le chemin tout droit !", "Psst… 10 canards en plastique se sont échappés. Il y en a même un dans ton cottage !"] },
   { name: "Marco, le maître-nageur", pos: [22, -25], o: { shirt: 0xff5a4e, hair: 0xd4a017, skin: 0xd9a27a }, lines: ["Salut ! Moi c'est Marco, le maître-nageur.", "D'abord, va te changer aux vestiaires : on se baigne en maillot !", "Il y a six toboggans ! Grimpe l'échelle derrière une tour, puis appuie sur Glisser.", "Dans l'eau, appuie sur Nager pour nager vraiment vite.", "On ne court pas autour de la piscine, hein 😉"] },
@@ -7161,7 +7377,7 @@ const floaters = [.12, .4, .58, .9].map((u, i) => { const b = makeBuoy(), g = ba
 const myBuoy = makeBuoy(); myBuoy.visible = false; scene.add(myBuoy);
 // réglages de conduite : vitesse, accélération, virage, place du pilote
 const VK = { cart: { max: 7.5, acc: 2.4, turn: 2.4, y: .25, z: -.05, x: .3, mode: "kart" }, car: { max: 13, acc: 2.2, turn: 1.9, y: .17, z: .15, x: .42, mode: "kart" }, bike: { max: 7.5, acc: 1.5, turn: 2.6, y: .33 + BIKE_LIFT, z: -.27, mode: "bike" }, kart: { max: 10, acc: 2, turn: 2.4, y: -.2, z: -.3, mode: "kart" }, pony: { max: 6.5, acc: 1.3, turn: 2.1, y: 1.03, z: .05, mode: "saddle" } };
-let domeLieT = null, seatOffer = null, veh = null, engine = null, mountT = null, petT = null, seatT = null, riv = null, food = null, chestGot = false, musWant = "foret";
+let showSeatT = null, domeLieT = null, seatOffer = null, veh = null, engine = null, mountT = null, petT = null, seatT = null, riv = null, food = null, chestGot = false, musWant = "foret";
 function inp() { let ix = jx, iy = jy; if (!paused) { if (keys["arrowup"] || keys["z"] || keys["w"]) iy = -1; if (keys["arrowdown"] || keys["s"]) iy = 1; if (keys["arrowleft"] || keys["q"] || keys["a"]) ix = -1; if (keys["arrowright"] || keys["d"]) ix = 1; } else ix = iy = 0; return [ix, iy]; }
 function engineOn() { if (!actx || engine) return; try { const o = actx.createOscillator(), o2 = actx.createOscillator(), lp = actx.createBiquadFilter(), g = actx.createGain(); o.type = "sawtooth"; o2.type = "square"; lp.type = "lowpass"; lp.frequency.value = 520; g.gain.value = 0;
   o.connect(lp); o2.connect(lp); lp.connect(g).connect(fxBus); o.frequency.value = 45; o2.frequency.value = 23; o.start(); o2.start(); engine = { o, o2, g }; } catch (e) {} }
@@ -7382,11 +7598,13 @@ function sitDown(c, kind, k) {
     food.position.set(px, 1.05, pz); scene.add(shadowAll(food)); toast("Bon appétit ! 🥞", 1800); }
   else { const [wx, wz] = c.toWorld(TERR.loungers[k], TERR.ly + .78); player.position.set(wx, .8, wz); player.rotation.set(0, c.g.rotation.y, 0); state = "lie"; toast("Ahhh… on est bien au soleil 😎", 2200); }
 }
-function standUp() { if (!seatT) { state = "walk"; return; }
+function standUp() { if (!seatT) { state = "walk"; player.rotation.x = 0; return; }
+  if (seatT.show) { pLbl.visible = true; const s = seatT.show; player.position.set(s.x + s.ox, 0, s.z + s.oz); player.rotation.set(0, s.ry, 0); seatT = null; state = "walk"; return; }
   if (seatT.dome) { const [wx, wz] = lzW(seatT.dome, 1.1, .3); player.position.set(wx, 0, wz); player.rotation.x = 0; seatT = null; state = "walk"; return; } const { c, kind } = seatT, [wx, wz] = kind === "eat" ? c.toWorld(-1.1, 7) : c.toWorld(.4, 7.4); player.position.set(wx, .2, wz); player.rotation.x = 0; if (food) { scene.remove(food); food = null; } seatT = null; state = "walk"; }
 function seatTick(dt) {
   const [ix, iy] = inp(); if (Math.hypot(ix, iy) > .3) { standUp(); return; }
   seatT.t += dt;
+  if (seatT.show) { animPerson(player, "sit", 0); pLbl.visible = false; return; }
   if (state === "lie") { animPerson(player, "lie", 0); player.rotation.x = -1.5; return; }
   const k = Math.max(0, Math.sin(seatT.t * 2.2)); animPerson(player, "sit", 0); player.userData.arms[1].rotation.x = -.45 - k * .65; player.userData.elbows[1].rotation.x = -1 - k * 1.15;
   if (food && !seatT.done) { if (Math.floor(seatT.t * 2.2 / Math.PI) !== Math.floor((seatT.t - dt) * 2.2 / Math.PI)) whoosh(.12, .06, 2200, 700); food.scale.setScalar(Math.max(.05, 1 - seatT.t / 6)); if (seatT.t > 6) { seatT.done = true; scene.remove(food); food = null; toast("Miam ! C'était délicieux 😋", 2400); sfx.win(); } }
@@ -7401,6 +7619,8 @@ function openChest() {
 const BARN = { x1: -90, x2: -78, z1: -27, z2: -13 };
 function zoneName(P) {
   if (inFete(P.x, P.z)) return "🎭 Salle des fêtes";
+  if (inCine(P.x, P.z)) return "🎬 Cinéma U KD";
+  if (inBowl(P.x, P.z)) return "🎳 Bowling";
   if (P.x > BERG.x1 && P.x < BERG.x2 && P.z > BERG.z1 && P.z < BERG.z2) return "🐑 Le berger";
   if (inZoo(P.x, P.z)) return "🦁 Le zoo";
   if (inRect(PP, P.x, P.z, 1)) return "🎂 Piscine des anniversaires";
@@ -7641,6 +7861,8 @@ function doAct(a) {
   if (a === "golf") { golfStart(); return; }
   if (a === "golf3") { golf3Start(); return; }
   if (a === "clap") { feteClap(); return; }
+  if (a === "showsit" && showSeatT) { sitShow(showSeatT); return; }
+  if (a === "bowl") { bowlStart(); return; }
   if (a === "laser" || a === "paint") { combatStart(a); return; }
   if (typeof a === "string" && a.startsWith("m_")) { manorAct(a.slice(2)); return; }
   if (/^bday\d$/.test(a)) { blowCandles(BDAY[+a.slice(4)]); return; }
@@ -7686,10 +7908,21 @@ const mc = $("mapc"), mx = mc.getContext("2d"); let mapOpen = false;
 $("mapBtn").onclick = () => { sfx.click(); mapOpen = true; $("mapView").hidden = false; };
 $("mapClose").onclick = () => { mapOpen = false; $("mapView").hidden = true; };
 // toucher la carte : on y va tout de suite (téléportation), si c'est un endroit où l'on peut marcher
-mc.addEventListener("pointerdown", e => {
+// zoom et déplacement de la carte : boutons ➕ ➖, et on glisse le doigt pour bouger la carte
+const MAPV = { z: 1, cx: 0, cz: 0, drag: null };
+const mapK = () => 640 / (WORLD * 2 + 10) * MAPV.z;
+function mapClamp() { const h = (WORLD + 5) * (1 - 1 / MAPV.z); MAPV.cx = Math.max(-h, Math.min(h, MAPV.cx)); MAPV.cz = Math.max(-h, Math.min(h, MAPV.cz)); }
+function mapZoom(f) { MAPV.z = Math.max(1, Math.min(4, MAPV.z * f)); if (MAPV.z === 1) MAPV.cx = MAPV.cz = 0; else if (f > 1 && MAPV.z <= 2.01) { MAPV.cx = player.position.x; MAPV.cz = player.position.z; } mapClamp(); sfx.click(); }
+$("mapPlus").onclick = () => mapZoom(2); $("mapMinus").onclick = () => mapZoom(.5);
+mc.addEventListener("wheel", e => { e.preventDefault(); mapZoom(e.deltaY < 0 ? 2 : .5); }, { passive: false });
+mc.addEventListener("pointerdown", e => { MAPV.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, cx: MAPV.cx, cz: MAPV.cz, moved: false }; mc.setPointerCapture(e.pointerId); });
+mc.addEventListener("pointermove", e => { const d = MAPV.drag; if (!d || d.id !== e.pointerId) return; const r = mc.getBoundingClientRect(), f = 640 / r.width / mapK(), dx = e.clientX - d.x, dy = e.clientY - d.y;
+  if (Math.hypot(dx, dy) > 8) d.moved = true; if (d.moved && MAPV.z > 1) { MAPV.cx = d.cx - dx * f; MAPV.cz = d.cz - dy * f; mapClamp(); } });
+mc.addEventListener("pointercancel", () => { MAPV.drag = null; });
+mc.addEventListener("pointerup", e => { const d = MAPV.drag; MAPV.drag = null; if (!d || d.moved) return;
   if (state !== "walk" && state !== "drive") { toast("Termine d'abord ce que tu fais, puis réessaie 😉", 2000); return; }
-  const r = mc.getBoundingClientRect(), S = 640, k = S / (WORLD * 2 + 10), px = (e.clientX - r.left) * S / r.width, pz = (e.clientY - r.top) * S / r.height;
-  let x = px / k - WORLD - 5, z = pz / k - WORLD - 5; x = Math.max(-WORLD + 2, Math.min(WORLD - 2, x)); z = Math.max(-WORLD + 2, Math.min(WORLD - 2, z));
+  const r = mc.getBoundingClientRect(), S = 640, k = mapK(), px = (e.clientX - r.left) * S / r.width, pz = (e.clientY - r.top) * S / r.height;
+  let x = (px - S / 2) / k + MAPV.cx, z = (pz - S / 2) / k + MAPV.cz; x = Math.max(-WORLD + 2, Math.min(WORLD - 2, x)); z = Math.max(-WORLD + 2, Math.min(WORLD - 2, z));
   if (inWater(x, z) || inPoolRect(x, z, -1) || Math.hypot(x - 120, z - 95) < 9.5) { toast("🌊 Là, c'est de l'eau ! Touche un autre endroit sur la carte.", 2200); return; }
   if (state === "drive") dismount(); if (state === "golf") golf3Stop();
   const P = player.position; P.set(x, 0, z); resolve(P, { x, z }); P.y = floorY({ x: P.x, y: 0, z: P.z }); prev.x = P.x; prev.z = P.z;
@@ -7697,7 +7930,7 @@ mc.addEventListener("pointerdown", e => {
   mapOpen = false; $("mapView").hidden = true; toast("✨ Hop ! Te voilà arrivé !", 1800);
 });
 function drawMap() {
-  const S = 640, k = S / (WORLD * 2 + 10), X = x => (x + WORLD + 5) * k, Z = z => (z + WORLD + 5) * k;
+  const S = 640, k = mapK(), X = x => (x - MAPV.cx) * k + S / 2, Z = z => (z - MAPV.cz) * k + S / 2;
   mx.fillStyle = "#6bb553"; mx.fillRect(0, 0, S, S);
   mx.fillStyle = "#3f8f52"; pines.concat(leafy).forEach(t => { mx.beginPath(); mx.arc(X(t.x), Z(t.z), 2.2, 0, 7); mx.fill(); });
   mx.strokeStyle = "#e3d2a6"; mx.lineCap = "round"; paths.forEach(([a, b, w]) => { mx.lineWidth = w * k; mx.beginPath(); mx.moveTo(X(a[0]), Z(a[1])); mx.lineTo(X(b[0]), Z(b[1])); mx.stroke(); });
@@ -7726,7 +7959,8 @@ function drawMap() {
   mx.fillStyle = "#f3c6dd"; mx.fillRect(X(PP.x1), Z(PP.z1), (PP.x2 - PP.x1) * k, (PP.z2 - PP.z1) * k); mx.fillStyle = "#5fd8ff"; mx.fillRect(X(PPOOL.x1), Z(PPOOL.z1), (PPOOL.x2 - PPOOL.x1) * k, (PPOOL.z2 - PPOOL.z1) * k);
   mx.strokeStyle = "#5c6066"; mx.lineWidth = RING.w * k; mx.strokeRect(X(-RING.r), Z(-RING.r), 2 * RING.r * k, 2 * RING.r * k);
   mx.fillStyle = "#c9b27a"; mx.fillRect(X(ZOO.x1), Z(ZOO.z1), (ZOO.x2 - ZOO.x1) * k, (ZOO.z2 - ZOO.z1) * k);
-  mx.fillStyle = "#c0392b"; mx.fillRect(X(FETE.x1), Z(FETE.z1), (FETE.x2 - FETE.x1) * k, (FETE.z2 - FETE.z1) * k); mx.fillStyle = "#9cc46a"; mx.fillRect(X(BERG.x1), Z(BERG.z1), (BERG.x2 - BERG.x1) * k, (BERG.z2 - BERG.z1) * k);
+  mx.fillStyle = "#c0392b"; mx.fillRect(X(FETE.x1), Z(FETE.z1), (FETE.x2 - FETE.x1) * k, (FETE.z2 - FETE.z1) * k); mx.fillStyle = "#2c2350"; mx.fillRect(X(CINE.x1), Z(CINE.z1), (CINE.x2 - CINE.x1) * k, (CINE.z2 - CINE.z1) * k); mx.fillStyle = "#1f3a93"; mx.fillRect(X(BOWL.x1), Z(BOWL.z1), (BOWL.x2 - BOWL.x1) * k, (BOWL.z2 - BOWL.z1) * k); mx.fillStyle = "#6b4a2f"; mx.fillRect(X(ARENA2.lobby.x1), Z(ARENA2.z1), (ARENA2.paint.x2 - ARENA2.lobby.x1) * k, (ARENA2.z2 - ARENA2.z1) * k);
+  mx.fillStyle = "#9cc46a"; mx.fillRect(X(BERG.x1), Z(BERG.z1), (BERG.x2 - BERG.x1) * k, (BERG.z2 - BERG.z1) * k);
   mx.fillStyle = "#5c6066"; mx.fillRect(X(ROAD.x - ROAD.w / 2), Z(ROAD.z1), ROAD.w * k, (ROAD.z2 - ROAD.z1) * k);
   mx.fillStyle = "#2fa85a"; mx.fillRect(X(GOLF.x1), Z(GOLF.z1), (GOLF.x2 - GOLF.x1) * k, (GOLF.z2 - GOLF.z1) * k);
   mx.fillStyle = "#2d6a4f"; mx.fillRect(X(ACRO.x1), Z(ACRO.z1), (ACRO.x2 - ACRO.x1) * k, (ACRO.z2 - ACRO.z1) * k);
@@ -7734,10 +7968,10 @@ function drawMap() {
   mx.fillStyle = "#1f8fae"; mx.beginPath(); mx.arc(X(AQU.x), Z(AQU.z), AQU.r * k, 0, 7); mx.fill(); mx.strokeStyle = "#ffffff"; mx.lineWidth = 2; mx.stroke();
   mx.fillStyle = "#e84393"; mx.fillRect(X(11.3), Z(21), 5.4 * k, 2 * k);
   mx.font = '700 13px "Baloo 2",sans-serif'; mx.textAlign = "center"; mx.fillStyle = "#0d3b52";
-  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2)); mx.fillText("Multi Parcs", X(BALO.x + 2), Z(BALO.z + BALO.hz + .5)); mx.fillText("Burger Fast", X(BFW.x), Z(BFW.z - BFW.hz - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Acrobranche", X((ACRO.x1 + ACRO.x2) / 2), Z((ACRO.z1 + ACRO.z2) / 2)); mx.fillText("Minigolf", X((GOLF.x1 + GOLF.x2) / 2), Z((GOLF.z1 + GOLF.z2) / 2)); mx.fillText("Zoo 🦁", X((ZOO.x1 + ZOO.x2) / 2), Z((ZOO.z1 + ZOO.z2) / 2)); mx.fillText("Salle des fêtes", X((FETE.x1 + FETE.x2) / 2), Z((FETE.z1 + FETE.z2) / 2)); mx.fillText("Berger 🐑", X((BERG.x1 + BERG.x2) / 2), Z((BERG.z1 + BERG.z2) / 2)); mx.fillText(HALLO.on ? "🏚️ Manoir hanté" : "Le grand cottage", X((MANOR.x1 + MANOR.x2) / 2), Z(MANOR.z1 - 2)); mx.fillStyle = "#1d3b2a"; mx.fillText("Accueil", X(ACCUEIL.x), Z(ACCUEIL.z - 5.5)); mx.fillText("Boulangerie", X(BOULANGERIE.x + 1), Z(BOULANGERIE.z - 5)); mx.fillText("Market Speed", X(MARKET.x), Z(MARKET.z + 6.5)); mx.fillStyle = "#ffffff"; mx.fillText("P Parking", X((PARK.x1 + PARK.x2) / 2), Z((PARK.z1 + PARK.z2) / 2)); mx.fillStyle = "#1d3b2a";
+  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2)); mx.fillText("Multi Parcs", X(BALO.x + 2), Z(BALO.z + BALO.hz + .5)); mx.fillText("Burger Fast", X(BFW.x), Z(BFW.z - BFW.hz - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Acrobranche", X((ACRO.x1 + ACRO.x2) / 2), Z((ACRO.z1 + ACRO.z2) / 2)); mx.fillText("Minigolf", X((GOLF.x1 + GOLF.x2) / 2), Z((GOLF.z1 + GOLF.z2) / 2)); mx.fillText("Zoo 🦁", X((ZOO.x1 + ZOO.x2) / 2), Z((ZOO.z1 + ZOO.z2) / 2)); mx.fillText("Salle des fêtes", X((FETE.x1 + FETE.x2) / 2), Z((FETE.z1 + FETE.z2) / 2)); mx.fillText("Berger 🐑", X((BERG.x1 + BERG.x2) / 2), Z((BERG.z1 + BERG.z2) / 2)); mx.fillText("Cinéma 🎬", X((CINE.x1 + CINE.x2) / 2), Z((CINE.z1 + CINE.z2) / 2)); mx.fillText("Bowling 🎳", X((BOWL.x1 + BOWL.x2) / 2), Z((BOWL.z1 + BOWL.z2) / 2)); mx.fillText("Paintball", X((ARENA2.lobby.x1 + ARENA2.paint.x2) / 2), Z((ARENA2.z1 + ARENA2.z2) / 2)); mx.fillText(HALLO.on ? "🏚️ Manoir hanté" : "Le grand cottage", X((MANOR.x1 + MANOR.x2) / 2), Z(MANOR.z1 - 2)); mx.fillStyle = "#1d3b2a"; mx.fillText("Accueil", X(ACCUEIL.x), Z(ACCUEIL.z - 5.5)); mx.fillText("Boulangerie", X(BOULANGERIE.x + 1), Z(BOULANGERIE.z - 5)); mx.fillText("Market Speed", X(MARKET.x), Z(MARKET.z + 6.5)); mx.fillStyle = "#ffffff"; mx.fillText("P Parking", X((PARK.x1 + PARK.x2) / 2), Z((PARK.z1 + PARK.z2) / 2)); mx.fillStyle = "#1d3b2a";
   mx.fillText("Ferme", X(-70), Z(-36)); mx.fillText("Poney club", X(ARENA.x), Z(ARENA.z - ARENA.rz - 2)); mx.fillText("Rivière sauvage", X(-50), Z(75)); mx.fillText("Maison dans les arbres", X(50), Z(84)); mx.fillText("Vélos", X(6), Z(41));
   mx.font = '700 11px "Baloo 2",sans-serif';
-  npcs.forEach(n => { const nx = X(n.g.position.x), nz = Z(n.g.position.z); mx.fillStyle = "#8e44ad"; mx.beginPath(); mx.arc(nx, nz, 4, 0, 7); mx.fill(); mx.fillText(n.name.split(",")[0], nx, nz - 7); });
+  npcs.forEach(n => { const nx = X(n.g.position.x), nz = Z(n.g.position.z); mx.fillStyle = "#8e44ad"; mx.beginPath(); mx.arc(nx, nz, 4, 0, 7); mx.fill(); if (MAPV.z > 1) mx.fillText(n.name.split(",")[0], nx, nz - 7); });
   ducks.forEach(d => { if (d.got) return; mx.fillStyle = "#ffd23f"; mx.strokeStyle = "#7a5a00"; mx.lineWidth = 1.5; mx.beginPath(); mx.arc(X(d.x), Z(d.z), 5.5, 0, 7); mx.fill(); mx.stroke(); });
   if (net && net.rdv) { const rx = X(net.rdv.x), rz = Z(net.rdv.z), pul = 10 + Math.sin(time * 5) * 3; mx.strokeStyle = "#ff3b30"; mx.lineWidth = 3; mx.beginPath(); mx.arc(rx, rz, pul, 0, 7); mx.stroke(); mx.font = '22px sans-serif'; mx.fillText("📍", rx, rz - 6); }
   if (net) for (const [s, o] of net.autres) if (o.seen) { // les amis : rond à leur couleur, leur animal et son nom
@@ -8996,10 +9230,12 @@ function loop() {
   if (state === "river") riverTick(dt, P);
   if (state === "lie" || state === "eat") seatTick(dt);
   if (state === "golf") golf3Tick(dt, time, P);
-  updateRoad(dt, P); const inFeteNow = updateFete(dt, time, P); updateBerger(dt, time, P); updateCombat(dt, time, P); if (Math.abs(P.x + 126) < 60 && Math.abs(P.z - 120) < 60) updateAcroSwing(time); updatePartyPool(dt, time, P); updateManor(dt, time, P);
+  if (state === "bowl") bowlTick(dt, time, P);
+  updateRoad(dt, P); const inFeteNow = updateFete(dt, time, P); updateBerger(dt, time, P); updateCine(dt, time, P); BOWL.inside = inBowl(P.x, P.z); if (BOWL.inside !== BOWL.wasIn) { BOWL.wasIn = BOWL.inside; BOWL.roof.visible = !BOWL.inside; } updateCombat(dt, time, P); if (Math.abs(P.x + 126) < 60 && Math.abs(P.z - 120) < 60) updateAcroSwing(time); updatePartyPool(dt, time, P); updateManor(dt, time, P);
   updateRacks();
 
   if (state === "walk" || state === "top") {
+    if (player.rotation.x || player.rotation.z) { player.rotation.x = player.rotation.z = 0; seatT = null; } if (!pLbl.visible) pLbl.visible = true; // jamais couché en marchant
     let ix = jx, iy = jy;
     if (!paused) { if (keys["arrowup"] || keys["z"] || keys["w"]) iy = -1; if (keys["arrowdown"] || keys["s"]) iy = 1; if (keys["arrowleft"] || keys["q"] || keys["a"]) ix = -1; if (keys["arrowright"] || keys["d"]) ix = 1; } else ix = iy = 0;
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
@@ -9054,10 +9290,10 @@ function loop() {
 
   // caméra
   if (state !== "ride") {
-    if (inCottage || inAq || inBalo || inGT || inBF || inShop || MANOR.inside || FETE.inside) { camDist = 7.5; minPitch = 1.0; } if (inLock) { camDist = 6.5; minPitch = 1.05; } if (state === "golf") { camDist = 5; minPitch = .45; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
-    const pt = Math.max(pitch, minPitch); const baseY = state === "top" ? 9.95 : state === "boat" ? .6 : Math.max(P.y, 0);
-    const cx = P.x + Math.sin(yaw) * Math.cos(pt) * camDist, cz = P.z + Math.cos(yaw) * Math.cos(pt) * camDist, cy = baseY + 1.5 + Math.sin(pt) * camDist;
-    camera.position.lerp(tv.set(cx, Math.max(cy, .6), cz), Math.min(1, dt * 7)); camera.lookAt(P.x, baseY + 1.4, P.z);
+    if (inCottage || inAq || inBalo || inGT || inBF || inShop || MANOR.inside || FETE.inside || CINE.inside || BOWL.inside) { camDist = 7.5; minPitch = 1.0; } if (seatT && seatT.show) { camDist = 4.2; minPitch = .22; let dy = seatT.show.ry + Math.PI - yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yaw += dy * Math.min(1, dt * 2); pitch += (.12 - pitch) * Math.min(1, dt * 2); minPitch = .05; } if (state === "bowl") { camDist = 4.6; minPitch = .32; } if (inLock) { camDist = 6.5; minPitch = 1.05; } if (state === "golf") { camDist = 5; minPitch = .45; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
+    const pt = Math.max(pitch, minPitch); const baseY = state === "top" ? 9.95 : state === "boat" ? .6 : Math.max(P.y, 0), FP = state === "bowl" ? BOWL.cam : P;
+    const cx = FP.x + Math.sin(yaw) * Math.cos(pt) * camDist, cz = FP.z + Math.cos(yaw) * Math.cos(pt) * camDist, cy = baseY + 1.5 + Math.sin(pt) * camDist;
+    camera.position.lerp(tv.set(cx, Math.max(cy, .6), cz), Math.min(1, dt * 7)); camera.lookAt(FP.x, baseY + 1.4, FP.z);
   }
 
   // personnages
@@ -9106,8 +9342,11 @@ function loop() {
       if (Math.abs(P.x - (cx + 2)) < 1.6 && Math.abs(P.z - cz) < 1.6) offer("m_candy", "🍬 Prendre des bonbons");
  }
     if (state === "walk" && P.y < 1 && Math.hypot(P.x - PP.cabin[0], P.z - PP.cabin[1]) < 1.3) offer("locker", "👕 Cabine : maillot ou habits");
-    if (state === "walk" && !COMBAT.on && inHall("lobby", P.x, P.z)) { if (Math.hypot(P.x - 54, P.z - 119) < 2.2) offer("laser", "🔫 Jouer au laser game"); if (Math.hypot(P.x - 58, P.z - 119) < 2.2) offer("paint", "🎨 Jouer au paintball"); }
+    if (state === "walk" && !COMBAT.on && inHall("lobby", P.x, P.z)) { if (Math.hypot(P.x - 58, P.z - 119) < 2.2) offer("paint", "🎨 Jouer au paintball"); }
     if (state === "walk" && FETE.inside) offer("clap", "👏 Applaudir");
+    if (state === "eat" && seatT && seatT.show && FETE.inside) offer("clap", "👏 Applaudir");
+    showSeatT = state === "walk" ? nearShowSeat(P) : null; if (showSeatT) offer("showsit", showSeatT.cine ? "🍿 S'asseoir dans le fauteuil" : "🪑 S'asseoir pour regarder");
+    if (state === "walk" && BOWL.inside && P.z > BOWL.foul + .2 && P.z < BOWL.foul + 3.5) offer("bowl", "🎳 Jouer au bowling");
     if (state === "walk" && P.y < 1 && Math.hypot(P.x - GOLF.kiosk[0], P.z - (GOLF.kiosk[1] - 1.3)) < 1.8) offer("golf3", "⛳ Jouer au minigolf"); if (state === "walk" && P.y < 1 && Math.hypot(P.x - GOLF.kiosk[0], P.z - (GOLF.kiosk[1] - 1.3)) < 1.8) offer("golf", "🎯 Minigolf de poche");
     if (state === "walk" && P.y < 1 && Math.hypot(P.x - WAVE_BTN.x, P.z - WAVE_BTN.z) < 1.7) offer("waves", WAVES.t < 0 ? "🌊 Lancer les vagues (5 min)" : "⏹️ Arrêter les vagues");
     if (state === "walk") BSLIDES.forEach((b, i) => { if (P.y > b.y0 && P.y < b.y1 && Math.hypot(P.x - b.x, P.z - b.z) < 1.3) offer("balo" + i, b.name); });
@@ -9186,7 +9425,7 @@ function loop() {
   voituresTick(dt); trier(dt); suivreFeux(dt); majInterieurs(); if (dejaVu) adapterResolution();
   renderer.render(scene, camera); dejaVu = true; majPerf();
 }
-window.__pins = { renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
+window.__pins = { bowlTick, BOWL, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; } };
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
 await souffle(97, "Les couleurs se mélangent…");
 const compiler = () => Promise.race([renderer.compileAsync(scene, camera), new Promise(r => setTimeout(r, 6000))]).catch(() => {});
