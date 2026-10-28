@@ -13,7 +13,7 @@
   document.addEventListener("dblclick", non, opt);
   let dernier = 0; // deuxième tape rapide hors des boutons et des champs : c'est un double-tap, on l'annule
   document.addEventListener("touchend", e => { const now = Date.now(), t = e.target;
-    if (now - dernier < 350 && e.changedTouches.length === 1 && !(t.closest && t.closest("button, a, input, textarea, select, label, [role=button]"))) e.preventDefault();
+    if (now - dernier < 350 && e.changedTouches.length === 1 && !(t.closest && t.closest("button, a, input, textarea, select, label, [role=button]")) && !(t.nodeType === 1 && getComputedStyle(t).cursor === "pointer")) e.preventDefault();
     dernier = now; }, opt);
 })();
 </script>

@@ -2,7 +2,26 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+<script>
+// Pas de zoom (les petits enfants tapent vite et pincent sans le vouloir). Safari sur iPhone ignore « user-scalable=no » :
+// on bloque nous-mêmes le pincement, le double-tap et le double-clic.
+(() => {
+  const non = e => e.preventDefault(), opt = { passive: false };
+  for (const t of ["gesturestart", "gesturechange", "gestureend"]) document.addEventListener(t, non, opt);
+  document.addEventListener("touchmove", e => { if (e.touches.length > 1 || (e.scale && e.scale !== 1)) e.preventDefault(); }, opt);
+  document.addEventListener("dblclick", non, opt);
+  let dernier = 0; // deuxième tape rapide hors des boutons et des champs : c'est un double-tap, on l'annule
+  document.addEventListener("touchend", e => { const now = Date.now(), t = e.target;
+    if (now - dernier < 350 && e.changedTouches.length === 1 && !(t.closest && t.closest("button, a, input, textarea, select, label, [role=button]")) && !(t.nodeType === 1 && getComputedStyle(t).cursor === "pointer")) e.preventDefault();
+    dernier = now; }, opt);
+})();
+</script>
+<style>
+/* pas de zoom au double-tap ; au moins 16 px dans les champs (sinon l'iPhone zoome quand on tape dedans) */
+*{touch-action:manipulation}
+input,textarea,select{font-size:max(16px,1em)}
+</style>
 <title>Vintage Parc</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
@@ -415,5 +434,62 @@ yaw=Math.PI;camera.position.set(-15,6,24);camera.lookAt(-15,1.5,33);
 loop();
 </script>
 
+<script>
+// Manette de jeu (Bluetooth) : en jeu, le stick ou la croix et les boutons deviennent les touches du clavier du jeu ;
+// dans les menus, la croix choisit un bouton, A appuie, B revient. Réglages du jeu : window.MANETTE (ci-dessous).
+window.MANETTE = { menus: ".overlay", A: ["#actBtn", "#talkBtn"], B: ["#talkBtn", "#actBtn"], X: ["#talkBtn"], select: ["#mapBtn"] };
+(() => {
+  const C = window.MANETTE, st = { prec: [], dir: "", rep: 0, focus: null, tenues: new Set(), roule: false };
+  const css = document.createElement("style"); css.textContent = ".gp-focus{outline:4px solid #ffc93c!important;outline-offset:3px;box-shadow:0 0 0 7px rgba(255,255,255,.85)!important}"; document.head.append(css);
+  const NOMS = { Space: " ", Enter: "Enter", Escape: "Escape", ShiftLeft: "Shift", Tab: "Tab" };
+  const touche = (code, bas) => { if (bas === st.tenues.has(code)) return; bas ? st.tenues.add(code) : st.tenues.delete(code);
+    const key = NOMS[code] ?? (code.startsWith("Key") ? code.slice(3).toLowerCase() : code);
+    document.dispatchEvent(new KeyboardEvent(bas ? "keydown" : "keyup", { key, code, bubbles: true, cancelable: true })); };
+  const lacher = () => { for (const c of [...st.tenues]) touche(c, false); };
+  const visible = el => { if (!el.getClientRects().length) return false; const s = getComputedStyle(el); return s.visibility !== "hidden" && +s.opacity > .1 && s.pointerEvents !== "none"; };
+  const menuOuvert = () => { if (C.toujoursMenu) return document.body; const v = [...document.querySelectorAll(C.menus || ".overlay, .screen")].filter(o => !o.hidden && visible(o)); return v[v.length - 1] || null; };
+  const boutons = o => [...o.querySelectorAll("button, a[href], input, select, [role=button]")].filter(b => !b.disabled && visible(b));
+  const poser = b => { st.focus?.classList.remove("gp-focus"); st.focus = b; if (b) { b.classList.add("gp-focus"); b.scrollIntoView?.({ block: "nearest", inline: "nearest" }); } };
+  const bouger = (o, dx, dy) => { const L = boutons(o); if (!L.length) return; const cur = L.includes(st.focus) ? st.focus : null;
+    if (!cur) { poser(L.find(b => /\b(jouer|c'est parti|commencer|reprendre|continuer)/i.test(b.textContent)) || L[0]); return; }
+    const r = cur.getBoundingClientRect(), cx = r.x + r.width / 2, cy = r.y + r.height / 2; let best = null, bs = 1e9;
+    for (const b of L) { if (b === cur) continue; const q = b.getBoundingClientRect(), x = q.x + q.width / 2 - cx, y = q.y + q.height / 2 - cy, av = x * dx + y * dy;
+      if (av <= 4) continue; const sc = av + Math.abs(x * dy - y * dx) * 2.5; if (sc < bs) { bs = sc; best = b; } }
+    if (best) poser(best); };
+  const cliquer = sel => { for (const s of sel) { const b = document.querySelector(s); if (b && !b.hidden && visible(b)) { b.click(); return true; } } return false; };
+  // un bouton de la manette en jeu : une touche tenue (texte) ou un bouton de l'écran à toucher (liste)
+  const agir = (m, bas, appui) => { if (!m) return; if (typeof m === "string") touche(m, bas); else if (appui) cliquer(m); };
+  const message = t => { const d = document.createElement("div"); d.textContent = t; d.style.cssText = "position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:99999;background:#1d3b2a;color:#fff;font:700 16px system-ui,sans-serif;padding:8px 16px;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,.3);pointer-events:none";
+    document.body.append(d); setTimeout(() => d.remove(), 3500); };
+  function tour() {
+    const g = [...(navigator.getGamepads ? navigator.getGamepads() : [])].find(p => p && p.connected);
+    if (!g) { if (st.roule) { lacher(); poser(null); st.roule = false; } return; }
+    requestAnimationFrame(tour);
+    const now = performance.now(), B = i => !!g.buttons[i]?.pressed, appui = i => B(i) && !st.prec[i], ax = i => { const v = g.axes[i] ?? 0; return Math.abs(v) < .25 ? 0 : v; };
+    const mx = Math.max(-1, Math.min(1, ax(0) + (B(15) ? 1 : 0) - (B(14) ? 1 : 0))), my = Math.max(-1, Math.min(1, ax(1) + (B(13) ? 1 : 0) - (B(12) ? 1 : 0)));
+    const o = menuOuvert();
+    if (o) {
+      lacher(); if (st.focus && !o.contains(st.focus)) poser(null);
+      const dir = Math.max(Math.abs(mx), Math.abs(my)) > .5 ? (Math.abs(mx) > Math.abs(my) ? (mx > 0 ? "d" : "g") : (my > 0 ? "b" : "h")) : "";
+      if (dir && (dir !== st.dir || now > st.rep)) { bouger(o, dir === "d" ? 1 : dir === "g" ? -1 : 0, dir === "b" ? 1 : dir === "h" ? -1 : 0); st.rep = now + (dir !== st.dir ? 400 : 170); }
+      st.dir = dir;
+      if (appui(0)) { if (!st.focus) bouger(o, 0, 0); else if (st.focus.matches("input, select")) st.focus.focus(); else st.focus.click(); }
+      if (appui(9) && !(C.start && cliquer(C.start))) { const b = boutons(o).find(b => /\b(jouer|c'est parti|commencer|reprendre|continuer)/i.test(b.textContent)); b?.click(); }
+      if (appui(1)) { const b = boutons(o).find(b => b.matches("button") && /fermer|retour|reprendre|continuer|annuler|^ok$|✖|❌/i.test(b.textContent.trim())); if (b) b.click(); else { touche("Escape", true); touche("Escape", false); } }
+    } else {
+      if (st.focus) poser(null); st.dir = "";
+      touche("ArrowLeft", mx < -.45); touche("ArrowRight", mx > .45); touche("ArrowUp", my < -.45); touche("ArrowDown", my > .45);
+      const map = [[0, C.A], [1, C.B], [2, C.X], [3, C.Y], [9, C.start], [8, C.select]];
+      for (const [i, m] of map) agir(m, B(i), appui(i));
+      if (C.courir) touche(C.courir, B(4) || B(5) || B(6) || B(7));
+    }
+    st.prec = g.buttons.map(b => b.pressed);
+  }
+  const lancer = () => { if (!st.roule) { st.roule = true; requestAnimationFrame(tour); } };
+  addEventListener("gamepadconnected", () => { message("🎮 Manette connectée !"); lancer(); });
+  addEventListener("gamepaddisconnected", () => { lacher(); poser(null); });
+  if ([...(navigator.getGamepads ? navigator.getGamepads() : [])].some(p => p && p.connected)) lancer();
+})();
+</script>
 </body>
 </html>
