@@ -196,6 +196,7 @@ html.app .site{display:none!important}
 .book{max-width:min(92vw,460px)}.bk-page{min-height:260px;display:flex;align-items:center;justify-content:center;background:#fffaf0;border-radius:14px;padding:18px;box-shadow:inset 0 0 0 2px #f0e2c4}
 .bk-text{font-size:20px;line-height:1.55;color:#2b2420;margin:0}.bk-cover{width:200px;height:260px;border-radius:8px 14px 14px 8px;box-shadow:inset 8px 0 0 rgba(0,0,0,.18),0 6px 14px rgba(0,0,0,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;text-align:center;color:#fff}
 .bk-emoji{font-size:64px}.bk-title{font-weight:800;font-size:19px;text-shadow:0 2px 4px rgba(0,0,0,.3);margin-top:10px}
+.pipe{padding:4px 10px;border-radius:999px;background:#eef2f7;font-weight:700;font-size:14px}.pipe.now{background:#ffe066}.pipe.done{background:#c8f7c5}
 </style>
 </head>
 <body class="chargement accueil-on">
@@ -307,7 +308,7 @@ html.app .site{display:none!important}
   <div class="card">
     <h1>Carte du domaine</h1>
     <canvas id="mapc" width="640" height="640"></canvas>
-    <p class="small">🔺 Toi · 🟡 canards à trouver · 🟣 personnages · ronds de couleur : tes amis</p>
+    <p class="small">🔺 Toi · 🟡 canards à trouver · 🟣 personnages · ronds de couleur : tes amis<br><b>✨ Touche un endroit de la carte pour y aller tout de suite !</b></p>
     <div class="row"><button id="mapClose" class="btn">Fermer</button></div>
   </div>
 </div>
@@ -350,6 +351,12 @@ html.app .site{display:none!important}
 <div id="bookView" class="overlay" hidden>
   <div class="card book"><div id="bookPage" class="bk-page"></div><p id="bookNum" class="small" style="text-align:center"></p>
     <div class="row"><button id="bookPrev" class="btn" style="background:#8e44ad">◀</button><button id="bookNext" class="btn" style="background:#27ae60">Page suivante ▶</button><button id="bookClose" class="btn" style="background:#34495e">Fermer</button></div></div>
+</div>
+<div id="multView" class="overlay" hidden>
+  <div class="card"><h1 style="color:#2e86de">🔧 Aide le plombier !</h1><p class="small">Pour réparer la machine à vagues, il faut serrer 3 tuyaux. Pour chaque tuyau : 5 bonnes multiplications.</p>
+    <div id="multPipes" class="row" style="gap:6px"></div><div style="height:12px;border-radius:6px;background:#dfe6f0;overflow:hidden;margin:8px 0"><div id="multBar" style="height:100%;width:0;background:#27ae60;transition:width .3s"></div></div>
+    <div id="multQ" style="font:800 2.4rem var(--ui);text-align:center;margin:10px 0"></div><div id="multOpts" class="row" style="gap:10px;justify-content:center"></div>
+    <p id="multMsg" class="small" style="text-align:center;font-weight:700"></p><div class="row"><button id="multClose" class="btn" style="background:#34495e">Plus tard</button></div></div>
 </div>
 <div id="phoneView" class="overlay" hidden>
   <div class="phone"><div class="ph-notch"></div><div id="phoneScreen" class="ph-screen"></div><button id="phoneClose" class="ph-btn" aria-label="Ranger le téléphone"></button></div>
@@ -891,7 +898,44 @@ function updateBoum(dt, time, P, nightK) {
     const m = MEL[st % 16]; if (m && Math.floor(st / 16) % 2 === 1) tone(440 * Math.pow(2, (m - 69) / 12), .18, "square", .05, 0, d);
     BOUM.step++; BOUM.beat += E; }
 }
+/* ---------- Les quêtes 📜 : la machine à vagues est en panne ! Il faut appeler le plombier et l'aider (multiplications du CE2) ---------- */
+const QUEST = { vagues: 0 }; // 0 : en panne (pas encore vu) · 1 : il faut appeler le plombier · 2 : le plombier est là · 3 : réparée
+try { Object.assign(QUEST, JSON.parse(localStorage.getItem("pins-quetes") || "{}")); } catch (e) {}
+if (QUEST.vagues === 2) QUEST.vagues = 1; // après un rechargement, on rappelle le plombier
+function questSave() { try { localStorage.setItem("pins-quetes", JSON.stringify(QUEST)); } catch (e) {} }
+let plumber = null;
+function plumberArrive() {
+  if (!plumber) { plumber = person({ shirt: 0x2e86de, pants: 0x1f3a93, hair: 0x5a3a22, cap: 0xff5a4e, skin: 0xe0ac85 }); scene.add(plumber);
+    const box = rbox(.6, .35, .3, mat(0xff5a4e, .5), .04); box.position.set(.45, .18, .2); plumber.add(box); const wr = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, .5, 6), metalMat); wr.rotation.z = 1.2; wr.position.set(-.35, .9, .15); plumber.add(wr); }
+  plumber.visible = true; plumber.position.set(WAVE_BTN.x - .2, 0, WAVE_BTN.z + 2.2); plumber.rotation.y = Math.PI; animPerson(plumber, "idle", 0);
+}
+if (QUEST.vagues === 3) { /* déjà réparée */ }
+// le petit jeu : serrer 3 tuyaux, 5 bonnes réponses pour chaque tuyau
+const MULT = { pipe: 0, ok: 0, q: null };
+function multNew() {
+  const sets = [[2, 3, 4, 5, 10], [2, 3, 4, 5, 6], [3, 4, 5, 6, 7, 8, 9]], A = sets[MULT.pipe], a = A[(Math.random() * A.length) | 0], b = 1 + ((Math.random() * (MULT.pipe ? 9 : 10)) | 0) + (MULT.pipe ? 1 : 0);
+  const ans = a * b, opts = new Set([ans]); while (opts.size < 4) { const d = [a, -a, b, -b, 1, -1, 10, -2][(Math.random() * 8) | 0], v = ans + d; if (v > 0) opts.add(v); }
+  MULT.q = { a, b, ans, opts: [...opts].sort(() => Math.random() - .5) };
+}
+function multRender(msg) {
+  const q = MULT.q; $("multPipes").innerHTML = [0, 1, 2].map(i => `<span class="pipe ${i < MULT.pipe ? "done" : i === MULT.pipe ? "now" : ""}">${i < MULT.pipe ? "✅" : "🔧"} Tuyau ${i + 1}</span>`).join("");
+  $("multBar").style.width = `${MULT.ok / 5 * 100}%`;
+  $("multQ").textContent = `${q.a} × ${q.b} = ?`; $("multOpts").innerHTML = q.opts.map(v => `<button class="btn" data-v="${v}" style="background:#2e86de;font-size:1.4rem;min-width:84px">${v}</button>`).join("");
+  $("multMsg").textContent = msg || "Choisis la bonne réponse pour serrer le tuyau !";
+}
+$("multOpts").addEventListener("click", e => { const b = e.target.closest("button[data-v]"); if (!b) return; const v = +b.dataset.v, q = MULT.q;
+  if (v === q.ans) { MULT.ok++; tone(784, .1, "triangle", .1); tone(1046, .12, "triangle", .1, 0, .08);
+    if (MULT.ok >= 5) { MULT.pipe++; MULT.ok = 0; tone(300, .15, "square", .06); whoosh(.3, .05, 400, 900);
+      if (MULT.pipe >= 3) { fermer("multView"); questDone(); return; } multNew(); multRender(`Bravo ! Le tuyau ${MULT.pipe} est serré ✅ Au suivant !`); return; }
+    multNew(); multRender(["Super ! ⭐", "Bravo ! 👏", "Exact ! 💪", "Génial ! 🎉"][(Math.random() * 4) | 0]); }
+  else { tone(220, .15, "triangle", .07); const old = q; multNew(); multRender(`Presque ! ${old.a} × ${old.b} = ${old.ans}. Essaie celle-ci 😉`); } });
+$("multClose").onclick = () => fermer("multView");
+function questHelp() { MULT.pipe = 0; MULT.ok = 0; multNew(); multRender(); ouvrir("multView"); }
+function questDone() { QUEST.vagues = 3; questSave(); money += 50; saveShop(); updMoney(); petitEffet("confetti"); sfx.win(); if (plumber) plumber.visible = false;
+  toast("🔧 Bravo ! Grâce à tes multiplications, la machine à vagues est réparée ! +50 € 💶 Appuie sur le bouton rouge pour lancer les vagues 🌊", 5200); }
 function pressWaves() {
+  if (QUEST.vagues < 3) { tone(150, .3, "square", .05); if (QUEST.vagues === 0) { QUEST.vagues = 1; questSave(); }
+    toast(QUEST.vagues === 2 ? "🔧 Le plombier est là, juste à côté : aide-le à réparer la machine !" : "⚠️ Oh non ! La machine à vagues est en PANNE. Appelle le plombier avec ton téléphone 📱 (appli « Plombier ») !", 4200); return; }
   WAVE_BTN.btn.position.y = 1.07; setTimeout(() => WAVE_BTN.btn.position.y = 1.12, 250); tone(520, .08, "square", .06);
   if (WAVES.t < 0) { WAVES.t = 0; tone(220, .5, "sawtooth", .07, 0, .1); tone(330, .5, "sawtooth", .07, 0, .6); toast("🌊 C'est parti pour 5 minutes de vagues ! Saute dans la grande piscine !", 3000); }
   else { WAVES.t = Math.max(WAVES.t, WAVES.dur - 4); toast("Les vagues s'arrêtent… 🌊", 2000); } }
@@ -2818,7 +2862,7 @@ $("bookNext").onclick = () => { const b = BOOKS.find(x => x.id === reading.id); 
 $("bookClose").onclick = () => fermer("bookView");
 /* ---------- Le téléphone 📱 : commander à distance (livré au cottage) et appeler l'accueil ---------- */
 const PHONE_BF = { title: "Burger Fast 🍔", items: [["🍔", "Burger", 4], ["🍟", "Frites", 2], ["🍗", "Nuggets", 3], ["🥤", "Milkshake", 3], ["🍦", "Glace", 2], ["🥗", "Salade", 3]] };
-const PHONE_APPS = [["boul", "🥖", "Boulangerie", "#c47a3a"], ["market", "🛒", "Market Speed", "#27ae60"], ["bf", "🍔", "Burger Fast", "#e74c3c"], ["livres", "📚", "Librairie", "#8e44ad"], ["accueil", "📞", "Accueil", "#2e86de"]];
+const PHONE_APPS = [["boul", "🥖", "Boulangerie", "#c47a3a"], ["market", "🛒", "Market Speed", "#27ae60"], ["bf", "🍔", "Burger Fast", "#e74c3c"], ["livres", "📚", "Librairie", "#8e44ad"], ["plombier", "🔧", "Plombier", "#e67e22"], ["quetes", "📜", "Quêtes", "#16a085"], ["accueil", "📞", "Accueil", "#2e86de"]];
 const deliveries = [];
 let phoneApp = null;
 function phoneShop(k) { return k === "bf" ? PHONE_BF : BUY[k]; }
@@ -2832,6 +2876,12 @@ function phoneRender(msg) {
     h += `<div class="ph-title">📚 Librairie</div><p class="ph-note">Tu as <b>${money} €</b>. Un livre acheté ici se lit tout de suite sur le téléphone !</p><div class="ph-list">`
       + BOOKS.map(b => ownBooks.includes(b.id) ? `<button class="ph-item" data-read="${b.id}">${b.e} ${b.t} <b>📖 Lire</b></button>` : `<button class="ph-item" data-book="${b.id}" ${money < b.p ? "style='opacity:.5'" : ""}>${b.e} ${b.t} <b>${b.p} €</b></button>`).join("") + `</div>`;
     if (msg) h += `<p class="ph-msg">${msg}</p>`;
+  } else if (phoneApp === "plombier") {
+    h += `<div class="ph-title">🔧 Plombier</div><p class="ph-msg">${msg || (QUEST.vagues === 3 ? "Tout marche bien à l'Aquaparc ! Merci encore pour ton aide 😊" : QUEST.vagues === 2 ? "Je suis déjà à l'Aquaparc, près du bouton des vagues ! Viens m'aider 🔧" : "Allô, Monsieur Robinet, plombier ! Un problème de tuyaux ?")}</p>`;
+    if (QUEST.vagues < 2) h += `<div class="ph-list"><button class="ph-item" data-plumb="1">🌊 La machine à vagues est en panne !</button></div>`;
+  } else if (phoneApp === "quetes") {
+    const st = ["Pas encore commencée : va voir le bouton des vagues dans l'Aquaparc 🌊", "Appelle le plombier avec le téléphone 🔧", "Va aider le plombier près du bouton des vagues ✖️", "Terminée ✅ Bravo !"][QUEST.vagues];
+    h += `<div class="ph-title">📜 Mes quêtes</div><div class="ph-list"><div class="ph-item" style="display:block"><b>🌊 La machine à vagues en panne</b><br><small>${st}</small></div><div class="ph-item" style="display:block;opacity:.7"><b>🦆 Les 10 canards</b><br><small>Trouve les 10 canards cachés dans le domaine.</small></div></div>`;
   } else if (phoneApp === "accueil") {
     h += `<div class="ph-title">📞 Accueil du Domaine</div><p class="ph-msg">${msg || "Bonjour, ici l'accueil du Domaine des Pins ! 😊 Comment je peux t'aider ?"}</p><div class="ph-list">`
       + [["perdu", "🗺️ Je suis perdu"], ["canard", "🦆 Où est un canard ?"], ["anniv", "🎂 Pour un anniversaire"], ["bloque", "🚐 Je suis bloqué, ramenez-moi"], ["merci", "📵 Raccrocher"]].map(([k, t]) => `<button class="ph-item" data-call="${k}">${t}</button>`).join("") + `</div>`;
@@ -2852,6 +2902,7 @@ $("phoneScreen").addEventListener("click", e => {
   if (b.dataset.home) { phoneApp = null; phoneRender(); return; }
   if (b.dataset.app) { phoneApp = b.dataset.app; if (phoneApp === "accueil") { phoneRender("📞 Ça sonne… dring… dring…"); [0, .5, 1.4, 1.9].forEach(d => tone(440, .35, "sine", .05, 0, d)); setTimeout(() => { if (phoneApp === "accueil" && !$("phoneView").hidden) phoneRender(); }, 2600); } else phoneRender(); return; }
   if (b.dataset.read) { fermer("phoneView"); openBook(b.dataset.read); return; }
+  if (b.dataset.plumb) { [0, .5].forEach(d => tone(440, .35, "sine", .05, 0, d)); QUEST.vagues = 2; questSave(); plumberArrive(); phoneRender("D'accord, j'arrive tout de suite à l'Aquaparc, près du bouton des vagues ! Mais j'aurai besoin de ton aide pour serrer les tuyaux… tu es fort en multiplications ? ✖️"); return; }
   if (b.dataset.book) { const bk = BOOKS.find(x => x.id === b.dataset.book); if (money < bk.p) { phoneRender(`Il te manque ${bk.p - money} € pour ce livre.`); return; } money -= bk.p; saveShop(); updMoney(); ownBook(bk.id); [880, 1175].forEach((f, i) => tone(f, .08, "triangle", .07, 0, i * .08)); phoneRender(`✅ « ${bk.t} » est dans ton téléphone. Touche-le pour le lire ! 📖`); return; }
   if (b.dataset.buy) { const [em, n, p] = phoneShop(phoneApp).items[+b.dataset.buy];
     if (money < p) { phoneRender(`Il te manque ${p - money} € pour ${em} ${n}.`); return; }
@@ -7366,6 +7417,7 @@ function doAct(a) {
   if (!a) return; sfx.click();
   if (a === "feed") { feedFish(); return; }
   if (a === "waves") { pressWaves(); return; }
+  if (a === "plumb") { questHelp(); return; }
   if (a === "golf") { golfStart(); return; }
   if (a === "golf3") { golf3Start(); return; }
   if (a === "laser" || a === "paint") { combatStart(a); return; }
@@ -7412,6 +7464,17 @@ $("actBtn").onclick = () => doAct(act1); $("act2Btn").onclick = () => doAct(act2
 const mc = $("mapc"), mx = mc.getContext("2d"); let mapOpen = false;
 $("mapBtn").onclick = () => { sfx.click(); mapOpen = true; $("mapView").hidden = false; };
 $("mapClose").onclick = () => { mapOpen = false; $("mapView").hidden = true; };
+// toucher la carte : on y va tout de suite (téléportation), si c'est un endroit où l'on peut marcher
+mc.addEventListener("pointerdown", e => {
+  if (state !== "walk" && state !== "drive") { toast("Termine d'abord ce que tu fais, puis réessaie 😉", 2000); return; }
+  const r = mc.getBoundingClientRect(), S = 640, k = S / (WORLD * 2 + 10), px = (e.clientX - r.left) * S / r.width, pz = (e.clientY - r.top) * S / r.height;
+  let x = px / k - WORLD - 5, z = pz / k - WORLD - 5; x = Math.max(-WORLD + 2, Math.min(WORLD - 2, x)); z = Math.max(-WORLD + 2, Math.min(WORLD - 2, z));
+  if (inWater(x, z) || inPoolRect(x, z, -1) || Math.hypot(x - 120, z - 95) < 9.5) { toast("🌊 Là, c'est de l'eau ! Touche un autre endroit sur la carte.", 2200); return; }
+  if (state === "drive") dismount(); if (state === "golf") golf3Stop();
+  const P = player.position; P.set(x, 0, z); resolve(P, { x, z }); P.y = floorY({ x: P.x, y: 0, z: P.z }); prev.x = P.x; prev.z = P.z;
+  whoosh(.5, .08, 600, 2400); tone(1046, .1, "sine", .08); tone(1568, .14, "sine", .07, 0, .1);
+  mapOpen = false; $("mapView").hidden = true; toast("✨ Hop ! Te voilà arrivé !", 1800);
+});
 function drawMap() {
   const S = 640, k = S / (WORLD * 2 + 10), X = x => (x + WORLD + 5) * k, Z = z => (z + WORLD + 5) * k;
   mx.fillStyle = "#6bb553"; mx.fillRect(0, 0, S, S);
@@ -8682,6 +8745,7 @@ function loop() {
  }
     if (state === "walk" && P.y < 1 && Math.hypot(P.x - PP.cabin[0], P.z - PP.cabin[1]) < 1.3) offer("locker", "👕 Cabine : maillot ou habits");
     if (state === "walk" && !COMBAT.on && inHall("lobby", P.x, P.z)) { if (Math.hypot(P.x - 54, P.z - 119) < 2.2) offer("laser", "🔫 Jouer au laser game"); if (Math.hypot(P.x - 58, P.z - 119) < 2.2) offer("paint", "🎨 Jouer au paintball"); }
+    if (state === "walk" && QUEST.vagues === 2 && plumber && plumber.visible && Math.hypot(P.x - plumber.position.x, P.z - plumber.position.z) < 2) offer("plumb", "🔧 Aider le plombier");
     if (state === "walk" && P.y < 1 && Math.hypot(P.x - GOLF.kiosk[0], P.z - (GOLF.kiosk[1] - 1.3)) < 1.8) offer("golf3", "⛳ Jouer au minigolf"); if (state === "walk" && P.y < 1 && Math.hypot(P.x - GOLF.kiosk[0], P.z - (GOLF.kiosk[1] - 1.3)) < 1.8) offer("golf", "🎯 Minigolf de poche");
     if (state === "walk" && P.y < 1 && Math.hypot(P.x - WAVE_BTN.x, P.z - WAVE_BTN.z) < 1.7) offer("waves", WAVES.t < 0 ? "🌊 Lancer les vagues (5 min)" : "⏹️ Arrêter les vagues");
     if (state === "walk") BSLIDES.forEach((b, i) => { if (P.y > b.y0 && P.y < b.y1 && Math.hypot(P.x - b.x, P.z - b.z) < 1.3) offer("balo" + i, b.name); });
