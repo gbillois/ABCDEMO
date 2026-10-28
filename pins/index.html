@@ -4273,7 +4273,7 @@ const TRI = [], LAMPES = [];
     if (o === player || o.isLight || o.isCamera) continue;
     b3.setFromObject(o); if (b3.isEmpty()) continue; b3.getBoundingSphere(sp); if (sp.radius > 26 && !o.userData.loin) continue;
     o.traverse(x => { if (x.isMesh) x.userData.cs0 = x.castShadow; });
-    TRI.push({ o, lc: o.worldToLocal(sp.center.clone()), far: (o.userData.loin ?? ((LOWQ ? 30 : 40) + sp.radius * (LOWQ ? 10 : 13))) + (o.userData.loin ? sp.radius : 0), ombre: (LOWQ ? 22 : 30) + sp.radius, off: false, omb: true });
+    TRI.push({ o, lc: o.worldToLocal(sp.center.clone()), far: o.userData.legs ? (LOWQ ? 80 : 120) : (o.userData.loin ?? ((LOWQ ? 30 : 40) + sp.radius * (LOWQ ? 10 : 13))) + (o.userData.loin ? sp.radius : 0), ombre: (LOWQ ? 22 : 30) + sp.radius, off: false, omb: true });
   }
   scene.traverse(o => {
     if (o.isPointLight) { LAMPES.push(o); o.visible = false; }
@@ -4289,20 +4289,21 @@ if (LOWQ) { const vus = new Set();
 }
 let triT = 0, imageN = 0;
 const _tv = new THREE.Vector3();
+const _sd = new THREE.Vector3(), _sr = new THREE.Vector3(), _su = new THREE.Vector3(), _st = new THREE.Vector3();
 function trier(dt) {
   triT -= dt; if (triT > 0) return; triT = .25;
   const C = camera.position;
-  for (const t of TRI) { const o = t.o; if (!o.parent) continue; _tv.copy(t.lc).applyMatrix4(o.matrixWorld); const off = _tv.distanceTo(C) > t.far;
+  for (const t of TRI) { const o = t.o; if (!o.parent) continue; _tv.copy(t.lc).applyMatrix4(o.matrixWorld); const dC = _tv.distanceTo(C), off = t.off ? dC > t.far : dC > t.far * 1.15; // marge : pas de clignotement à la limite
     if (off !== t.off) { t.off = off; o.traverse(x => { if (!x.isLight) x.layers.set(off ? 1 : 0); }); }
     // au-delà de quelques dizaines de mètres, l'ombre ne se voit plus : on ne la calcule pas
-    const omb = !off && _tv.distanceTo(player.position) < t.ombre;
+    const dP = _tv.distanceTo(player.position), omb = !off && (t.omb ? dP < t.ombre * 1.15 : dP < t.ombre);
     if (omb !== t.omb) { t.omb = omb; o.traverse(x => { if (x.isMesh && x.userData.cs0 !== undefined) x.castShadow = omb && x.userData.cs0; }); } }
   // les 2 lumières les plus proches (dans les 30 m)
   const près = LAMPES.filter(l => l.parent).map(l => [l, l.getWorldPosition(_tv).distanceTo(C)]).filter(([, d]) => d < 30).sort((a, b) => a[1] - b[1]).slice(0, 2).map(([l]) => l);
   for (const l of LAMPES) l.visible = près.includes(l);
 }
 // sur téléphone et tablette, les ombres sont recalculées une image sur deux
-if (LOWQ) renderer.shadowMap.autoUpdate = false;
+// (les ombres sont recalculées à chaque image : une image sur deux faisait sauter l'ombre des personnages qui bougent)
 function loop() {
   requestAnimationFrame(loop);
   const dt = Math.min(clock.getDelta(), .05); time += dt; uTime.value = time;
@@ -4500,7 +4501,9 @@ function loop() {
   netTick(dt);
 
   // le soleil suit le joueur pour des ombres nettes
-  sun.position.set(P.x + sunDir.x * 120, sunDir.y * 120, P.z + sunDir.z * 120); sun.target.position.set(P.x, 0, P.z);
+  { _sd.copy(sunDir).normalize(); _sr.set(0, 1, 0).cross(_sd).normalize(); _su.copy(_sd).cross(_sr).normalize(); const px = 2 * OMB / sun.shadow.mapSize.x;
+    _st.set(P.x, 0, P.z); const a = _st.dot(_sr), b = _st.dot(_su); _st.addScaledVector(_sr, Math.round(a / px) * px - a).addScaledVector(_su, Math.round(b / px) * px - b);
+    sun.target.position.copy(_st); sun.position.copy(_st).addScaledVector(_sd, 120); }
   const creaOn = !$("creaView").hidden;
   if (creaOn) { // créateur : on se voit en entier, de face, au-dessus (téléphone) ou à gauche (paysage) du panneau
     const a = player.rotation.y, Q = player.position, H = player.scale.y * 2.2, large = innerWidth > innerHeight, d = H * (large ? 2.4 : 3.1);
@@ -4508,7 +4511,7 @@ function loop() {
     const W = innerWidth, Hh = innerHeight; camera.setViewOffset(W, Hh, large ? W * .22 : 0, large ? 0 : Hh * .27, W, Hh); myLbl.visible = false;
   } else if (camera.view?.enabled) { camera.clearViewOffset(); myLbl.visible = true; }
   document.body.classList.toggle("crea-on", creaOn);
-  trier(dt); if (LOWQ && (imageN++ & 1) === 0) renderer.shadowMap.needsUpdate = true;
+  trier(dt);
   renderer.render(scene, camera);
 }
 window.__pins = { animPerson, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
