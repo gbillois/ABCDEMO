@@ -1237,6 +1237,69 @@ const terraceTpl = (() => {
 [-56, -40, 40, 56].forEach((x, i) => { cottage(x, 16, 0, false, 9 + i); path([x, 30], [x, 25], 1.8); });
 const myCottage = cottages.find(c => c.mine);
 let interiorHost = null;
+/* ---------- Chaque cottage est différent : couleurs de l'intérieur, objets en plus, paillasson, jardin ---------- */
+const COT_THEMES = [
+  { sofa: 0x2c8a8a, cush: 0x3aa3a3, bed: 0x5b7fbf, kid: 0x2e86de, bunk: 0xe74c3c, rug: 0xffffff },
+  { sofa: 0xc0392b, cush: 0xe57368, bed: 0xf1c40f, kid: 0x27ae60, bunk: 0x8e44ad, rug: 0xffd9b0 },
+  { sofa: 0x7f8c8d, cush: 0xbdc3c7, bed: 0x16a085, kid: 0xff8a2b, bunk: 0x2e86de, rug: 0xc8f0ff },
+  { sofa: 0x8e44ad, cush: 0xb985d6, bed: 0xe84393, kid: 0xffc93c, bunk: 0x27ae60, rug: 0xffd1f0 },
+  { sofa: 0xd35400, cush: 0xf0a060, bed: 0x2c3e50, kid: 0xe74c3c, bunk: 0x16a085, rug: 0xfff0c0 },
+  { sofa: 0x27ae60, cush: 0x7ed957, bed: 0xff8a65, kid: 0x9b59b6, bunk: 0xffc93c, rug: 0xd8ffd0 },
+  { sofa: 0x1f3a93, cush: 0x5d7bd6, bed: 0xecf0f1, kid: 0x00b894, bunk: 0xe84393, rug: 0xd0dcff },
+  { sofa: 0xf5cba7, cush: 0xffe0c0, bed: 0x6c3483, kid: 0x2980b9, bunk: 0xd35400, rug: 0xffffff },
+];
+const COT_M = { sofa: [], cush: [], bed: [], kid: [], bunk: [], rug: [] };
+interior.traverse(m => { if (!m.isMesh || !m.material || !m.material.color) return; const h = m.material.color.getHex(), M = m.material;
+  if (h === 0x2c8a8a) COT_M.sofa.push(M); else if (h === 0x3aa3a3) COT_M.cush.push(M); else if (h === 0x5b7fbf) COT_M.bed.push(M);
+  else if (h === 0x2e86de && m.position.y > .5) COT_M.kid.push(M); else if (h === 0xe74c3c && m.parent !== interior) COT_M.bunk.push(M);
+  if (M.map === rugTex) COT_M.rug.push(M); });
+// des objets en plus, différents selon le cottage
+const COT_X = [];
+{ const addX = (mask, up, build) => { const g = build(); (up ? interior.userData.up : interior).add(g); COT_X.push({ g, mask }); };
+  addX(n => n % 3 === 0, false, () => { const g = new THREE.Group(); g.position.set(0, .2, -3.45); const st = rbox(1.4, .5, .5, mat(0x3b2a1e, .6), .03); st.position.y = .25; g.add(st); // une télé
+    const tv = rbox(1.2, .7, .08, mat(0x111111, .3), .03); tv.position.y = .9; g.add(tv); const sc = new THREE.Mesh(new THREE.PlaneGeometry(1.08, .6), new THREE.MeshStandardMaterial({ color: 0x1a3a5a, emissive: 0x2a6fa8, emissiveIntensity: .5 })); sc.position.set(0, .9, .045); g.add(sc); return g; });
+  addX(n => n % 3 === 1, false, () => { const g = new THREE.Group(); g.position.set(0, .2, -3.45); const st = rbox(1.1, .7, .5, mat(0xf4f1ea, .6), .03); st.position.y = .35; g.add(st); // un aquarium
+    const tank = rbox(1, .6, .45, mat(0x7fd8ff, .05, { transparent: true, opacity: .45 }), .02); tank.position.y = 1; g.add(tank);
+    for (const [x, c] of [[-.2, 0xff8a2b], [.2, 0xffd23f]]) { const f = new THREE.Mesh(new THREE.SphereGeometry(.06, 8, 6), mat(c, .4)); f.scale.set(1.5, 1, .6); f.position.set(x, 1, 0); g.add(f); } return g; });
+  addX(n => n % 3 === 2, false, () => { const g = new THREE.Group(); g.position.set(0, .2, -3.4); // une guitare et un pouf
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(.25, .25, .1, 20), mat(0xc0392b, .4)); body.rotation.x = Math.PI / 2; body.position.y = .45; g.add(body); const neck = rbox(.07, .8, .05, mat(0x3b2a1e, .5), .01); neck.position.y = 1; g.add(neck);
+    const bag = new THREE.Mesh(new THREE.SphereGeometry(.42, 16, 10), mat(0xffc93c, .9)); bag.scale.y = .6; bag.position.set(.9, .22, .5); g.add(bag); return g; });
+  addX(n => n % 2 === 0, true, () => { const g = new THREE.Group(); g.position.set(.6, .16, 2.3); // un nounours géant
+    const bm = mat(0xa0522d, .95), b = new THREE.Mesh(new THREE.SphereGeometry(.35, 14, 10), bm); b.position.y = .35; g.add(b); const h = new THREE.Mesh(new THREE.SphereGeometry(.25, 14, 10), bm); h.position.y = .85; g.add(h);
+    for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(.09, 10, 8), bm); e.position.set(s * .18, 1.05, 0); g.add(e); } const sn = new THREE.Mesh(new THREE.SphereGeometry(.08, 10, 8), mat(0xf5deb3, .9)); sn.position.set(0, .82, .22); g.add(sn); return g; });
+  addX(n => n % 2 === 1, true, () => { const g = new THREE.Group(); g.position.set(.6, .16, 2.3); // un cheval à bascule
+    const hm = mat(0xffffff, .5), body = rbox(.8, .35, .3, hm, .1); body.position.y = .65; g.add(body); const head = rbox(.25, .45, .22, hm, .08); head.position.set(.42, .95, 0); head.rotation.z = -.4; g.add(head);
+    const mane = rbox(.08, .4, .05, mat(0xe84393, .6), .02); mane.position.set(.35, 1, 0); g.add(mane); for (const s of [-1, 1]) { const run = new THREE.Mesh(new THREE.TorusGeometry(.6, .03, 6, 16, 1.1), mat(0xe84393, .5)); run.position.set(0, .62, s * .15); run.rotation.z = Math.PI + 1; g.add(run); } return g; });
+}
+function cottageTheme(c) {
+  const th = COT_THEMES[(c.num * 5 + 3) % COT_THEMES.length]; for (const k of Object.keys(COT_M)) for (const M of COT_M[k]) M.color.setHex(th[k]);
+  for (const x of COT_X) x.g.visible = x.mask(c.num);
+}
+// dehors : un paillasson différent et deux choses dans le jardin
+{
+  const words = ["Bienvenue", "Coucou !", "Bonjour", "Hello !", "Entrez !", "Miaou 🐱", "Vacances !", "Salut !", "Hop !", "Youpi !", "Bisous", "Ouah !"];
+  const matCols = [["#8b5a2b", "#f2e2c4"], ["#c0392b", "#ffffff"], ["#27ae60", "#ffffff"], ["#2e86de", "#ffe066"], ["#6c3483", "#ffd1f0"], ["#2c3e50", "#ffc93c"]];
+  const YARD = [
+    () => { const g = new THREE.Group(), k = mat(0x222222, .4); const bowl = new THREE.Mesh(new THREE.SphereGeometry(.4, 16, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), k); bowl.position.y = .85; g.add(bowl); const lid = new THREE.Mesh(new THREE.SphereGeometry(.4, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), k); lid.position.set(0, .95, -.25); lid.rotation.x = -1.1; g.add(lid); for (let i = 0; i < 3; i++) { const l = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .85, 6), metalMat); const a = i * 2.1; l.position.set(Math.cos(a) * .25, .42, Math.sin(a) * .25); g.add(l); } return [g, .5]; }, // barbecue
+    () => { const g = new THREE.Group(), wd = mat(0x8a5a35, .8); for (const s of [-1, 1]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.07, .08, 1.6, 8), wd); p.position.set(s * 1.3, .8, 0); g.add(p); } const h = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.3, .8, 16, 1, true, Math.PI * .65, Math.PI * .7), mat(0xff8a2b, .8, { side: THREE.DoubleSide })); h.rotation.z = Math.PI / 2; h.position.y = 1.7; h.scale.set(.6, 1, .6); g.add(h); return [g, .3]; }, // hamac
+    () => { const g = new THREE.Group(); const bed = new THREE.Mesh(new THREE.CylinderGeometry(.9, .9, .06, 24), mat(0x222222, .6)); bed.position.y = .45; g.add(bed); const ring = new THREE.Mesh(new THREE.TorusGeometry(.95, .08, 8, 24), mat(0x2e86de, .5)); ring.rotation.x = Math.PI / 2; ring.position.y = .47; g.add(ring); for (let i = 0; i < 4; i++) { const l = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .45, 6), metalMat); l.position.set(Math.cos(i * 1.57) * .9, .22, Math.sin(i * 1.57) * .9); g.add(l); } return [g, 1]; }, // petit trampoline
+    () => { const g = new THREE.Group(), r = mat(0xe74c3c, .5); const lad = rbox(.5, 1.3, .08, mat(0xffc93c, .5), .02); lad.position.set(0, .65, -.8); g.add(lad); const top = rbox(.6, .08, .5, r, .02); top.position.set(0, 1.3, -.6); g.add(top); const sl = rbox(.5, .06, 1.8, r, .02); sl.position.set(0, .7, .3); sl.rotation.x = .75; g.add(sl); return [g, .7]; }, // toboggan
+    () => { const g = new THREE.Group(); const b = new THREE.Mesh(new THREE.ConeGeometry(.18, .35, 12), mat(0x2e86de, .6)); b.position.y = .18; g.add(b); const f = new THREE.Mesh(new THREE.SphereGeometry(.1, 10, 8), mat(0xf5c6a0, .7)); f.position.y = .42; g.add(f); const hat = new THREE.Mesh(new THREE.ConeGeometry(.11, .3, 10), mat(0xe74c3c, .5)); hat.position.y = .62; g.add(hat); const beard = new THREE.Mesh(new THREE.ConeGeometry(.09, .18, 10), mat(0xffffff, .8)); beard.rotation.x = Math.PI; beard.position.set(0, .33, .06); g.add(beard); return [g, .2]; }, // nain de jardin
+    () => { const g = new THREE.Group(), wd = mat(0x8a5a35, .8); for (const s of [-1, 1]) { const a = new THREE.Mesh(new THREE.CylinderGeometry(.05, .06, 2.1, 8), wd); a.position.set(s * .8, 1, 0); a.rotation.z = s * .12; g.add(a); } const top = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, 1.9, 8), wd); top.rotation.z = Math.PI / 2; top.position.y = 2.05; g.add(top); for (const s of [-1, 1]) { const ch = new THREE.Mesh(new THREE.CylinderGeometry(.01, .01, 1.5, 4), metalMat); ch.position.set(s * .22, 1.3, 0); g.add(ch); } const seat = rbox(.55, .05, .25, mat(0x27ae60, .5), .02); seat.position.y = .55; g.add(seat); return [g, .9]; }, // balançoire
+    () => { const g = new THREE.Group(), cs = [0xff5a4e, 0xffc93c, 0xe84393, 0xffffff, 0x9b59b6]; const bed = rbox(1.6, .2, .8, mat(0x6b4a2f, .9), .05); bed.position.y = .1; g.add(bed); for (let i = 0; i < 10; i++) { const f = new THREE.Mesh(new THREE.SphereGeometry(.1, 8, 6), mat(cs[i % 5], .6)); f.position.set(-.65 + (i % 5) * .32, .32, i < 5 ? -.18 : .18); g.add(f); } return [g, .5]; }, // fleurs
+    () => { const g = new THREE.Group(), wd = mat(0xb5562f, .8); const b = rbox(.9, .7, 1, wd, .04); b.position.y = .35; g.add(b); const r = new THREE.Mesh(new THREE.ConeGeometry(.8, .5, 4), mat(0x2c3e50, .7)); r.rotation.y = Math.PI / 4; r.position.y = .95; g.add(r); const hole = new THREE.Mesh(new THREE.CircleGeometry(.22, 16), mat(0x111111, .9)); hole.position.set(0, .3, .51); g.add(hole); return [g, .6]; }, // niche
+  ];
+  for (const c of cottages) {
+    const rot = c.g.rotation.y, n = c.num;
+    const [cA, cB] = matCols[n % matCols.length], cv = document.createElement("canvas"); cv.width = 256; cv.height = 128; const x = cv.getContext("2d");
+    x.fillStyle = cA; x.beginPath(); x.roundRect(0, 0, 256, 128, 18); x.fill(); x.strokeStyle = cB; x.lineWidth = 6; x.beginPath(); x.roundRect(10, 10, 236, 108, 12); x.stroke();
+    x.fillStyle = cB; x.font = 'bold 40px "Baloo 2", "Trebuchet MS", sans-serif'; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(words[n % words.length], 128, 66);
+    const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; const dm = new THREE.Mesh(new THREE.PlaneGeometry(1.3, .65), new THREE.MeshStandardMaterial({ map: t, roughness: .95, polygonOffset: true, polygonOffsetFactor: -2 }));
+    const [mx, mz] = c.toWorld(0, 4.75); dm.rotation.set(-Math.PI / 2, 0, rot); dm.position.set(mx, .225, mz); scene.add(dm);
+    [[-6.9, 6.8, (n * 3) % YARD.length], [6.9, 6.8, (n * 5 + 1) % YARD.length]].forEach(([lx, lz, k]) => { const [g, r] = YARD[k](); const [wx, wz] = c.toWorld(lx, lz); g.position.set(wx, 0, wz); g.rotation.y = rot + (lx < 0 ? .4 : -.4); shadowAll(g); scene.add(g); circles.push({ x: wx, z: wz, r }); });
+  }
+}
+
 
 /* ---------- Crêperie ---------- */
 {
@@ -7883,7 +7946,7 @@ function loop() {
 
   // intérieur posé dans le cottage le plus proche
   let near = null, nd = 1e9; for (const c of cottages) { const d = Math.hypot(P.x - c.x, P.z - c.z); if (d < nd) { nd = d; near = c; } }
-  if (nd < 26 && near !== interiorHost) { if (interiorHost) interiorHost.upper.visible = !interiorHost.single; near.g.add(interior); interiorHost = near; }
+  if (nd < 26 && near !== interiorHost) { if (interiorHost) interiorHost.upper.visible = !interiorHost.single; near.g.add(interior); interiorHost = near; cottageTheme(near); }
   // portes automatiques
   for (const c of cottages) {
     c.open += (c.want - c.open) * Math.min(1, dt * 3.2); c.door.rotation.y = c.open * 1.65;
