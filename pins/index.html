@@ -135,7 +135,7 @@ html.app .site{display:none!important}
 <div id="intro" class="overlay">
   <div class="card">
     <h1>Le Domaine des Pins</h1>
-    <p>Des vacances dans la forêt : ton cottage et sa terrasse, l'Aquaparc et ses toboggans, l'aquarium, le Multi Parcs, Burger Fast, l'acrobranche, l'accueil, la boulangerie, le Market Speed, la rivière sauvage, la ferme, le poney club, les karts, les vélos, la maison dans les arbres, le lac et son pédalo… et un chat roux qui vient te voir !</p>
+    <p>Des vacances dans la forêt : ton cottage et sa terrasse, l'Aquaparc et ses toboggans, l'aquarium, le Multi Parcs, Burger Fast, l'acrobranche, l'accueil, la boulangerie, le Market Speed, la rivière sauvage, la ferme, le poney club, les vélos, la maison dans les arbres, le lac et son pédalo… et un chat roux qui vient te voir !</p>
     <p><b>Mission :</b> 10 canards en plastique se sont échappés. Retrouve-les tous ! 🦆</p>
     <p class="small">Joystick à gauche pour marcher. Glisse ton doigt sur l'écran pour tourner la caméra. Sur ordinateur : flèches ou ZQSD, E pour agir (ouvrir une porte, nager, se changer…), T pour parler, J pour sauter, Maj pour courir. Tu as 4000 € pour la boutique de maillots de bain.</p>
     <div class="row"><button id="persoBtn" class="btn" style="background:var(--violet)">🎨 Mon personnage : <b id="persoNom">Théo</b></button></div>
@@ -216,7 +216,7 @@ html.app .site{display:none!important}
     <h1 style="color:#2e86de">Bienvenue ! ℹ️</h1>
     <h3>Ce qui va se passer pendant tes vacances</h3>
     <ul>
-      <li>🌴 <b>Le jour</b>, tu peux aller à l'Aquaparc (n'oublie pas ton maillot !), à l'aquarium, au Multi Parcs, chez Burger Fast, à la boulangerie, au Market Speed, à la ferme, au poney club, aux karts, à la rivière sauvage et dans la maison dans les arbres.</li>
+      <li>🌴 <b>Le jour</b>, tu peux aller à l'Aquaparc (n'oublie pas ton maillot !), à l'aquarium, au Multi Parcs, chez Burger Fast, à la boulangerie, au Market Speed, à la ferme, au poney club, à la rivière sauvage et dans la maison dans les arbres.</li>
       <li>🌙 <b>La nuit</b> tombe toutes les 8 minutes : la lune et les étoiles arrivent, les lampadaires s'allument. Dors dans ton cottage pour te réveiller le matin.</li>
       <li>🦆 <b>Ta mission</b> : retrouver les 10 canards en plastique cachés dans le domaine.</li>
       <li>💶 Tu as de l'argent pour la boutique de maillots, la boulangerie et le Market Speed. Au Multi Parcs, tu gagnes des tickets 🎟️.</li>
@@ -533,7 +533,7 @@ const FARM = { x1: -94, x2: -46, z1: -34, z2: 9 }, PONYZ = { x1: -95, x2: -44, z
 const ARENA = { x: -68, z: -58, rx: 14, rz: 9 }, KART = { x: 0, z: -80, rx: 23, rz: 7 }, RACK = { x1: 2, x2: 10, z1: 34.5, z2: 38.5 };
 const TREEH = { x1: 38, x2: 76, z1: 56.5, z2: 78 }, HUTS = [[28, 63], [58, 60.5], [75, 82]];
 const ENTREE = { x1: -13, x2: 13, z1: 3, z2: 26 }; // dégagé devant l'entrée de l'Aquaparc
-const ZONES = [FARM, PONYZ, KARTZ, RACK, TREEH, ENTREE, ...HUTS.map(([x, z]) => ({ x1: x - 3.5, x2: x + 3.5, z1: z - 3.5, z2: z + 3.5 }))];
+const ZONES = [FARM, PONYZ, RACK, TREEH, ENTREE, ...HUTS.map(([x, z]) => ({ x1: x - 3.5, x2: x + 3.5, z1: z - 3.5, z2: z + 3.5 }))];
 const inRect = (r, x, z, m = 0) => x > r.x1 - m && x < r.x2 + m && z > r.z1 - m && z < r.z2 + m;
 const RIVER_HW = 1.8, RAPIDS = [[.27, .36], [.76, .85]];
 const river = new THREE.CatmullRomCurve3([[-80, 62], [-60, 58], [-40, 62], [-22, 60], [-16, 72], [-26, 86], [-48, 88], [-62, 80], [-78, 86], [-86, 74]].map(([x, z]) => new THREE.Vector3(x, 0, z)), true, "centripetal");
@@ -608,7 +608,7 @@ function path(a, b, w = 3.2, texture = gravelTex) {
   paths.push([a, b, w]);
 }
 path([-74, 30], [74, 30], 3.4); path([0, 30], [0, 7.6], 3.4); path([24, 30], LAKE_PATH, 2.8);
-path([-70, 30], [-70, -44], 3); path([-70, -44], [-46, -44], 2.6); path([-46, -44], [-46, -58], 2.6); path([-46, -58], [-53.5, -58], 2.4); path([-46, -58], [-30, -66], 2.6); path([-30, -66], [9, -66], 3);
+path([-70, 30], [-70, -44], 3); path([-70, -44], [-46, -44], 2.6); path([-46, -44], [-46, -58], 2.6); path([-46, -58], [-53.5, -58], 2.4); path([-46, -58], [-30, -66], 2.6); 
 path([-24, 30], [-24, 56.4], 2.4); path([0, 30], [0, 56], 2.6); path([0, 56], [58, 56], 2.6); path([44, 56], [44, 58.3], 2.4); path([58, 56], [58, 57.9], 2); path([28, 56], [28, 60.6], 2);
 
 /* ---------- Aquaparc ---------- */
@@ -2556,23 +2556,7 @@ function ellStrip(E, r0, r1, N, vRep) { // anneau elliptique autour du tracé, e
   for (let i = 0; i < N; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
   const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3)); g.setIndex(idx); return g;
 }
-{
-  const road = new THREE.Mesh(ellStrip(KART, -3, 3, 200, 60), mat(0xffffff, .75, { map: asphaltTex, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -3 })); road.position.y = .03; road.receiveShadow = true; scene.add(road);
-  const curbT = tex(64, (x, s) => { x.fillStyle = "#f4f4f4"; x.fillRect(0, 0, s, s / 2); x.fillStyle = "#e03b2f"; x.fillRect(0, s / 2, s, s / 2); });
-  for (const [a, b] of [[-3.6, -3], [3, 3.6]]) { const c = new THREE.Mesh(ellStrip(KART, a, b, 200, 70), mat(0xffffff, .6, { map: curbT, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -4 })); c.position.y = .045; c.receiveShadow = true; scene.add(c); }
-  const chk = tex(64, (x, s) => { for (let i = 0; i < 2; i++) for (let j = 0; j < 8; j++) { x.fillStyle = (i + j) % 2 ? "#111" : "#fff"; x.fillRect(i * 32, j * 8, 32, 8); } }); chk.magFilter = THREE.NearestFilter;
-  const line = new THREE.Mesh(new THREE.PlaneGeometry(1, 6), mat(0xffffff, .6, { map: chk, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -5 })); line.rotation.x = -Math.PI / 2; line.position.set(0, .05, KART.z - KART.rz); scene.add(line);
-  const g = new THREE.Group(), tireM = mat(0x161616, .9), redM = mat(0xe03b2f, .5), whiteM = mat(0xf4f4f4, .5);
-  for (const z of [KART.z - KART.rz - 3.9, KART.z - KART.rz + 3.4]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, 3.6, 10), metalMat); p.position.set(0, 1.8, z); g.add(p); circles.push({ x: 0, z, r: .15 }); }
-  const gb = rbox(.3, .6, 7.6, redM, .05); gb.position.set(0, 3.5, KART.z - KART.rz - .25); g.add(gb);
-  // pneus empilés le long de la piste
-  for (let i = 0; i < 46; i++) { const a = i / 46 * Math.PI * 2, x = KART.x + (KART.rx + 4.2) * Math.cos(a), z = KART.z + (KART.rz + 4.2) * Math.sin(a);
-    if ((z > KART.z && Math.abs(x) < 9.5) || (z < KART.z && Math.abs(x) < 1.6)) continue;
-    for (let k = 0; k < 3; k++) { const t = new THREE.Mesh(new THREE.TorusGeometry(.3, .13, 8, 18), k === 1 ? (i % 2 ? redM : whiteM) : tireM); t.rotation.x = Math.PI / 2; t.position.set(x, .13 + k * .24, z); g.add(t); } circles.push({ x, z, r: .42 }); }
-  scene.add(bake(g));
-  const lb = label("DÉPART", "#111111", "#ffffff", .9); lb.position.set(0, 4.5, KART.z - KART.rz - .25); scene.add(lb);
-  const lb2 = label("Circuit de karts", "#e03b2f", "#ffffff", 1.2); lb2.position.set(0, 5, -66); scene.add(lb2);
-}
+// (le circuit de karts a été retiré du domaine)
 function makeKart(col) {
   const g = new THREE.Group(), body = mat(col, .3, { metalness: .25 }), dark = mat(0x232323, .6), tire = mat(0x151515, .9), rim = mat(0xd0d4d8, .3, { metalness: .7 });
   const ch = rbox(1.1, .1, 1.95, dark, .04); ch.position.y = .14; g.add(ch);
@@ -2612,7 +2596,6 @@ BIKE_COLS.forEach((c, i) => { const v = { kind: "bike", g: makeBike(c), x: 3 + i
 { const g = new THREE.Group(); for (let i = 0; i < 6; i++) { const h = new THREE.Mesh(new THREE.TorusGeometry(.32, .025, 8, 20, Math.PI), metalMat); h.position.set(2.25 + i * 1.5, 0, 37.55); g.add(h); }
   const bar = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, 7.6, 8), metalMat); bar.rotation.z = Math.PI / 2; bar.position.set(6, .3, 37.55); g.add(bar);
   const sign = label("Vélos 🚲", "#27ae60", "#ffffff", .7); sign.position.set(6, 1.9, 38.2); scene.add(sign); scene.add(bake(g)); boxes.push({ x1: 1.8, x2: 10.2, z1: 37.4, z2: 37.7 }); }
-[0xe74c3c, 0x2e86de, 0xf1c40f, 0x8e44ad].forEach((c, i) => { const v = { kind: "kart", g: makeKart(c), x: -6 + i * 4, z: -67.2, h: Math.PI, v: 0, r: .85 }; v.g.position.set(v.x, 0, v.z); v.g.rotation.y = v.h; scene.add(v.g); vehicles.push(v); movers.push(v); });
 caramel.r = .9; vehicles.push(caramel);
 // vélos garés sous l'abri du parking (on peut les prendre)
 BIKE_COLS.forEach((c, i) => { if (i > 4) return; const v = { kind: "bike", g: makeBike(c), x: PARK.x1 + 1, z: (PARK.z1 + PARK.z2) / 2 - 2.6 + i * 1.3, h: Math.PI / 2, v: 0, r: .55, lean: 0, ca: 0 }; v.g.position.set(v.x, 0, v.z); v.g.rotation.y = v.h; scene.add(v.g); vehicles.push(v); });
@@ -3123,7 +3106,6 @@ const npcs = [
   { name: "Josie, la crêpière", pos: [14, 20.4], o: { shirt: 0xffffff, hair: 0xc0392b, long: true, pants: 0xe84393 }, lines: ["Bienvenue à la crêperie !", "Tiens, une crêpe au chocolat pour toi ! 🥞", "Un petit canard jaune s'est caché juste derrière mon stand…"] },
   { name: "Gérard, le fermier", pos: [-73.5, -17], o: { shirt: 0x2e5e8c, pants: 0x3b5998, hair: 0x9a9a9a, cap: 0x6d4c2a, skin: 0xe0ac85 }, lines: ["Bienvenue à la ferme, mon petit ! Moi, c'est Gérard.", "Ici, il y a des vaches, des moutons, des cochons et des poules.", "Approche-toi d'un animal et appuie sur Caresser. Ils adorent ça !", "Le gros tracteur vert, c'est le mien. Et dans la grange, il y a plein de foin !"] },
   { name: "Clara, du poney club", pos: [-51.5, -55.2], o: { shirt: 0xe84393, pants: 0x2d3436, hair: 0xd4a017, long: true, shoe: 0x3b2a1a }, lines: ["Salut ! Je suis Clara, la monitrice du poney club.", "Caramel, le poney avec la selle, t'attend juste là. Monte dessus !", "À poney, tu peux te promener partout dans le domaine.", "Dans le manège, fonce vers les petites barres : Caramel saute tout seul !"] },
-  { name: "Nico, du circuit", pos: [11.5, -65.5], o: { shirt: 0x222f3e, pants: 0x222f3e, hair: 0x111111, cap: 0xff5a4e }, lines: ["Salut pilote ! Prends un kart et fais le tour du circuit.", "Passe la ligne à damier pour lancer le chrono. Essaie de battre ton record !", "Attention aux pneus dans les virages… et aux deux karts qui roulent déjà !"] },
   { name: "Lucas, de la rivière", pos: [RDOCK.x + RDOCK.tx * 3.4 + RDOCK.sx * 1.2, RDOCK.z + RDOCK.tz * 3.4 + RDOCK.sz * 1.2], o: { shirt: 0xff5a4e, pants: 0xffc93c, shorts: true, hair: 0x2d2018, skin: 0xc68e6a, cap: 0xff5a4e }, lines: ["Bienvenue à la rivière sauvage ! 🌊", "Monte dans une bouée sur le ponton, et le courant t'emporte.", "Il y a deux rapides : ça va très vite ! Penche-toi à gauche ou à droite pour te diriger.", "Le tour se termine ici, au ponton. Tu peux sortir avant si tu veux."] },
   { name: "Paul, le garde forestier", pos: [40, -10], o: { shirt: 0x6d8b3a, hair: 0x555555, cap: 0x4b6328, skin: 0xc68e6a }, lines: ["Bonjour, aventurier !", "Au ponton du lac, tu peux prendre le pédalo. Un canard flotte au milieu du lac !", "Ouvre la carte pour voir où ils se cachent. Les points jaunes, ce sont eux !", "Au bout du chemin, il y a l'aquarium ! Va voir Bubulle le requin 🦈"] },
   { name: "Nina, la soigneuse", pos: aqW(-4.4, 3.2), o: { shirt: 0x1f8fae, pants: 0x2d3436, hair: 0x2d2018, long: true, skin: 0xc68e6a }, lines: ["Bienvenue à l'aquarium ! Moi c'est Nina, je m'occupe des poissons.", "Le gros poisson gris, c'est Bubulle le requin. Il est très gentil !", "Tu as vu la tortue de mer ? Elle s'appelle Pistache 🐢", "Les méduses roses brillent dans le grand bassin du milieu.", "Approche-toi du grand bassin et appuie sur Nourrir les poissons 🐟"] },
@@ -3202,8 +3184,7 @@ function updateCrowd(dt) {
 // de la vie : deux cyclistes sur la grande allée, deux karts qui tournent, des baigneurs sur des bouées
 const cyclists = [0, 1].map(i => { const g = makeBike([0x16a085, 0xe67e22][i]), rider = person({ lite: true, shirt: [0xe74c3c, 0x9b59b6][i], pants: 0x34495e, shorts: true, skin: C_SKIN[i * 2], hair: C_HAIR[i + 1], long: i === 1, scale: .7, seed: 77 + i });
   rider.position.set(0, .24, -.27); g.add(rider); scene.add(g); const c = { g, rider, x: i ? 40 : -40, z: i ? 30.8 : 29.2, dir: i ? -1 : 1, v: 4.2, r: .6, ca: 0, ring: 0 }; movers.push(c); return c; });
-const aiKarts = [[0, 7.4, -1.3, 0x27ae60], [3, 6.6, 1.3, 0xff8a2b]].map(([th, sp, lane, col], i) => { const g = makeKart(col), d = person({ lite: true, shirt: [0x2d3436, 0xd63031][i], pants: 0x2d3436, shorts: false, cap: 0xffffff, skin: C_SKIN[i + 1], hair: 0x2d2018, scale: .62, seed: 91 + i });
-  d.position.set(0, -.2, -.3); g.add(d); animPerson(d, "kart", 0); scene.add(g); const k = { g, d, th, sp, lane, x: KART.x + (KART.rx + lane) * Math.cos(th), z: KART.z + (KART.rz + lane) * Math.sin(th), r: .85 }; g.position.set(k.x, 0, k.z); movers.push(k); return k; });
+const aiKarts = []; // plus de circuit de karts
 const floaters = [.12, .4, .58, .9].map((u, i) => { const b = makeBuoy(), g = bather(i % 2 === 1); g.visible = true; b.add(g); g.position.set(0, -.62, 0); scene.add(b); return { b, g, u, lat: (rnd() - .5) * 1.4, spin: rnd() * 6 }; });
 const myBuoy = makeBuoy(); myBuoy.visible = false; scene.add(myBuoy);
 // réglages de conduite : vitesse, accélération, virage, place du pilote
@@ -3397,7 +3378,6 @@ function zoneName(P) {
   if (inRect(BARN, P.x, P.z)) return "🐄 Dans la grange";
   if (inRect(FARM, P.x, P.z)) return "🚜 La ferme";
   if (inRect(PONYZ, P.x, P.z)) return "🐴 Poney club";
-  if (inRect(KARTZ, P.x, P.z)) return "🏁 Circuit de karts";
   if (riverNear(P.x, P.z).d < 7) return "🌊 Rivière sauvage";
   return "";
 }
@@ -3628,7 +3608,6 @@ function drawMap() {
   mx.strokeStyle = "#7a4f2e"; mx.lineWidth = 1.5; for (const r of [COWS, SHEEPS, PIGS]) mx.strokeRect(X(r.x1), Z(r.z1), (r.x2 - r.x1) * k, (r.z2 - r.z1) * k);
   mx.fillStyle = "#b03a2e"; mx.fillRect(X(-90), Z(-27), 12 * k, 14 * k); mx.fillStyle = "#9aa2a6"; mx.beginPath(); mx.arc(X(-91.5), Z(-6), 2.3 * k, 0, 7); mx.fill();
   mx.fillStyle = "#e8d2a6"; mx.strokeStyle = "#ffffff"; mx.lineWidth = 2; mx.beginPath(); mx.ellipse(X(ARENA.x), Z(ARENA.z), ARENA.rx * k, ARENA.rz * k, 0, 0, 7); mx.fill(); mx.stroke(); mx.fillStyle = "#8a5a30"; mx.fillRect(X(-93), Z(-64), 6 * k, 12 * k);
-  mx.strokeStyle = "#555a5e"; mx.lineWidth = 6 * k; mx.beginPath(); mx.ellipse(X(KART.x), Z(KART.z), KART.rx * k, KART.rz * k, 0, 0, 7); mx.stroke();
   mx.strokeStyle = "#3f9fbe"; mx.lineWidth = RIVER_HW * 2 * k; mx.lineJoin = "round"; mx.beginPath(); RIV.forEach((p, i) => i ? mx.lineTo(X(p.x), Z(p.z)) : mx.moveTo(X(p.x), Z(p.z))); mx.closePath(); mx.stroke();
   mx.fillStyle = "#6b4426"; mx.fillRect(X(40), Z(66), 10 * k, 10 * k); mx.fillRect(X(58), Z(66), 6 * k, 6 * k); HUTS.forEach(([x, z]) => mx.fillRect(X(x - 2), Z(z - 2), 4 * k, 4 * k));
   mx.fillStyle = "#27ae60"; mx.fillRect(X(RACK.x1), Z(36), (RACK.x2 - RACK.x1) * k, 1.5 * k);
@@ -3645,7 +3624,7 @@ function drawMap() {
   mx.fillStyle = "#e84393"; mx.fillRect(X(11.3), Z(21), 5.4 * k, 2 * k);
   mx.font = '700 13px "Baloo 2",sans-serif'; mx.textAlign = "center"; mx.fillStyle = "#0d3b52";
   mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2)); mx.fillText("Multi Parcs", X(BALO.x + 2), Z(BALO.z + BALO.hz + .5)); mx.fillText("Burger Fast", X(BFW.x), Z(BFW.z - BFW.hz - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Acrobranche", X((ACRO.x1 + ACRO.x2) / 2), Z((ACRO.z1 + ACRO.z2) / 2)); mx.fillStyle = "#1d3b2a"; mx.fillText("Accueil", X(ACCUEIL.x), Z(ACCUEIL.z - 5.5)); mx.fillText("Boulangerie", X(BOULANGERIE.x + 1), Z(BOULANGERIE.z - 5)); mx.fillText("Market Speed", X(MARKET.x), Z(MARKET.z + 6.5)); mx.fillStyle = "#ffffff"; mx.fillText("P Parking", X((PARK.x1 + PARK.x2) / 2), Z((PARK.z1 + PARK.z2) / 2)); mx.fillStyle = "#1d3b2a";
-  mx.fillText("Ferme", X(-70), Z(-36)); mx.fillText("Poney club", X(ARENA.x), Z(ARENA.z - ARENA.rz - 2)); mx.fillText("Karts", X(0), Z(-80)); mx.fillText("Rivière sauvage", X(-50), Z(75)); mx.fillText("Maison dans les arbres", X(50), Z(84)); mx.fillText("Vélos", X(6), Z(41));
+  mx.fillText("Ferme", X(-70), Z(-36)); mx.fillText("Poney club", X(ARENA.x), Z(ARENA.z - ARENA.rz - 2)); mx.fillText("Rivière sauvage", X(-50), Z(75)); mx.fillText("Maison dans les arbres", X(50), Z(84)); mx.fillText("Vélos", X(6), Z(41));
   mx.font = '700 11px "Baloo 2",sans-serif';
   npcs.forEach(n => { const nx = X(n.g.position.x), nz = Z(n.g.position.z); mx.fillStyle = "#8e44ad"; mx.beginPath(); mx.arc(nx, nz, 4, 0, 7); mx.fill(); mx.fillText(n.name.split(",")[0], nx, nz - 7); });
   ducks.forEach(d => { if (d.got) return; mx.fillStyle = "#ffd23f"; mx.strokeStyle = "#7a5a00"; mx.lineWidth = 1.5; mx.beginPath(); mx.arc(X(d.x), Z(d.z), 5.5, 0, 7); mx.fill(); mx.stroke(); });
