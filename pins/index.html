@@ -699,9 +699,35 @@ const causticTex = (() => { const S = 256, c = document.createElement("canvas");
 const caustics = [];
 function causticLayer(geo, x, y, z, rx, ry, k) { for (let l = 0; l < 2; l++) { const t = causticTex.clone(); t.repeat.set(rx * (l ? 1.3 : 1), ry * (l ? 1.3 : 1)); const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: t, color: 0xc8f4ff, transparent: true, opacity: k, blending: THREE.AdditiveBlending, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.position.set(x, y + l * .005, z); scene.add(m); caustics.push({ t, d: l ? -1 : 1 }); } }
 causticLayer(new THREE.PlaneGeometry(PW, PD), PCX, -1.78, PCZ, PW / 5, PD / 5, .32);
-const poolWater = new THREE.Mesh(new THREE.PlaneGeometry(PW, PD), new THREE.MeshStandardMaterial({ color: 0x42cbef, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.55, normalMap: waterNormal, normalScale: new THREE.Vector2(0.35, 0.35) }));
+const poolWater = new THREE.Mesh(new THREE.PlaneGeometry(PW, PD, 64, 36), new THREE.MeshStandardMaterial({ color: 0x42cbef, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.55, normalMap: waterNormal, normalScale: new THREE.Vector2(0.35, 0.35) }));
 poolWater.material.normalMap = waterNormal.clone(); poolWater.material.normalMap.repeat.set(PW / 6, PD / 6);
 poolWater.rotation.x = -Math.PI / 2; poolWater.position.set(PCX, -0.22, PCZ); poolWater.renderOrder = 1; scene.add(poolWater);
+// la piscine à vagues : on appuie sur le gros bouton du petit pilier, et les vagues durent 5 minutes
+const WAVES = { every: 300, dur: 300, next: Infinity, t: -1, amp: 0, warned: false, boomT: 0 };
+const WAVE_BTN = { x: POOL.x2 + 2.8, z: -36 };
+{ const g = new THREE.Group(); g.position.set(WAVE_BTN.x, 0, WAVE_BTN.z); scene.add(g);
+  const pil = new THREE.Mesh(new THREE.CylinderGeometry(.22, .28, 1.05, 18), mat(0x1fa5d6, .4)); pil.position.y = .52; g.add(pil);
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(.3, .3, .08, 20), mat(0xf4f4f4, .4)); cap.position.y = 1.08; g.add(cap);
+  const btn = new THREE.Mesh(new THREE.SphereGeometry(.2, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xff3b30, emissive: 0xff3b30, emissiveIntensity: .4, roughness: .3 })); btn.position.y = 1.12; g.add(btn); WAVE_BTN.btn = btn;
+  const sign = label("🌊 Vagues", "#1fa5d6", "#ffffff", .8); sign.position.y = 2; g.add(sign); shadowAll(g); circles.push({ x: WAVE_BTN.x, z: WAVE_BTN.z, r: .3 }); }
+function pressWaves() {
+  WAVE_BTN.btn.position.y = 1.07; setTimeout(() => WAVE_BTN.btn.position.y = 1.12, 250); tone(520, .08, "square", .06);
+  if (WAVES.t < 0) { WAVES.t = 0; tone(220, .5, "sawtooth", .07, 0, .1); tone(330, .5, "sawtooth", .07, 0, .6); toast("🌊 C'est parti pour 5 minutes de vagues ! Saute dans la grande piscine !", 3000); }
+  else { WAVES.t = Math.max(WAVES.t, WAVES.dur - 4); toast("Les vagues s'arrêtent… 🌊", 2000); } }
+function poolWaveH(x, z) { if (WAVES.amp <= 0) return 0; const ex = Math.min(x - POOL.x1, POOL.x2 - x), ez = Math.min(z - POOL.z1, POOL.z2 - z), edge = Math.max(0, Math.min(1, ex / 1.5, ez / 1.2));
+  return .26 * WAVES.amp * edge * Math.sin((x - POOL.x1) * 1.05 - WAVES.t * 2.3); }
+function updateWaves(dt, P) {
+  const inD = Math.hypot(P.x - DOME.x, P.z - DOME.z) < DOME.r + 10;
+  if (WAVES.t < 0) { WAVES.next -= dt;
+    if (WAVES.next < 6 && !WAVES.warned) { WAVES.warned = true; if (inD) { toast("🌊 Attention : les vagues arrivent dans la grande piscine !", 3000); tone(220, .5, "sawtooth", .07); tone(220, .5, "sawtooth", .07, 0, .7); } }
+    if (WAVES.next <= 0) { WAVES.t = 0; WAVES.warned = false; if (inD) toast("🌊 Les vagues ! Saute dans la grande piscine !", 2600); } }
+  else { WAVES.t += dt; WAVES.amp = Math.min(1, WAVES.t / 4, (WAVES.dur - WAVES.t) / 4);
+    WAVES.boomT -= dt; if (inD && WAVES.boomT < 0) { WAVES.boomT = 2.7; whoosh(1.6, .08, 300, 120); }
+    WAVE_BTN.btn.material.emissiveIntensity = .4 + .5 * Math.abs(Math.sin(WAVES.t * 4));
+    if (WAVES.t >= WAVES.dur) { WAVES.t = -1; WAVES.amp = 0; WAVES.next = Infinity; WAVE_BTN.btn.material.emissiveIntensity = .4; if (inD) toast("Les vagues sont finies. Appuie encore sur le bouton pour les relancer ! 🌊", 2800); } }
+  const pos = poolWater.geometry.attributes.position; if (WAVES.amp > 0 || WAVES.flat === false) { WAVES.flat = WAVES.amp <= 0;
+    for (let i = 0; i < pos.count; i++) pos.setZ(i, poolWaveH(PCX + pos.getX(i), PCZ - pos.getY(i))); pos.needsUpdate = true; poolWater.geometry.computeVertexNormals(); }
+}
 const coping = mat(0xf7f4ee, 0.5);
 [[PCX, POOL.z1 - .3, PW + 1.2, .7], [PCX, POOL.z2 + .3, PW + 1.2, .7], [POOL.x1 - .3, PCZ, .7, PD], [POOL.x2 + .3, PCZ, .7, PD]].forEach(([x, z, w, d]) => { const b = rbox(w, .22, d, coping, .08); b.position.set(x, .1, z); b.receiveShadow = true; scene.add(b); });
 // échelles de sortie de la piscine
@@ -1423,7 +1449,7 @@ function aqCollide(p, prev) {
 await souffle(35,"On gonfle le Baloba…");
 // Repère local : centre de la salle, porte au nord (+z) vers le grand chemin. Grande structure à trois étages au fond,
 // trampolines au fond à droite, grande piscine à balles devant à droite, coin des blocs en mousse et bar à goûter à gauche.
-const BALO = { x: 82, z: -2, hx: 11, hz: 13, h: 8, door: 1.4 };
+const BALO = { x: 88, z: -2, hx: 17, hz: 13, h: 8, door: 1.4 }; // agrandi vers l'est (salles d'anniversaire à l'ouest, grande piscine à balles à l'est)
 const bw = (lx, lz) => [BALO.x + lx, BALO.z + lz];
 const inBaloba = (x, z) => Math.abs(x - BALO.x) < BALO.hx - .2 && Math.abs(z - BALO.z) < BALO.hz - .2;
 path([74, 30], [87.9, 30], 3.4); // jusqu'à l'entrée du Multi Parcs (GTW n'existe pas encore ici)
@@ -1434,7 +1460,7 @@ const baloWallTex = tex(512, (x, s) => {
   for (let i = 0; i < 8; i++) { x.fillStyle = cols[i % 6]; x.fillRect(i * 64, s - 90, 64, 90); }
   for (let i = 0; i < 9; i++) { const bx = 30 + i * 57, by = 120 + (i % 3) * 70, r = 26 + (i % 2) * 10; x.fillStyle = cols[(i + 2) % 6]; x.beginPath(); x.arc(bx, by, r, 0, 7); x.fill(); x.strokeStyle = "rgba(0,0,0,.25)"; x.lineWidth = 2; x.beginPath(); x.moveTo(bx, by + r); x.quadraticCurveTo(bx + 8, by + r + 30, bx - 4, by + r + 60); x.stroke(); x.fillStyle = "rgba(255,255,255,.5)"; x.beginPath(); x.arc(bx - r * .35, by - r * .35, r * .25, 0, 7); x.fill(); }
 }, 4, 1);
-const baloFloorTex = tex(256, (x, s) => { const cols = ["#ff7a6e", "#ffd25e", "#4fa3ec", "#4cc47a"]; for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { x.fillStyle = cols[(i + j * 2) % 4]; x.fillRect(i * 64, j * 64, 64, 64); x.fillStyle = "rgba(0,0,0,.08)"; for (let k = 0; k < 4; k++) { x.fillRect(i * 64 + 8 + k * 14, j * 64 + 4, 6, 6); x.fillRect(i * 64 + 4, j * 64 + 8 + k * 14, 6, 6); } } }, 5.5, 6.5);
+const baloFloorTex = tex(256, (x, s) => { const cols = ["#ff7a6e", "#ffd25e", "#4fa3ec", "#4cc47a"]; for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { x.fillStyle = cols[(i + j * 2) % 4]; x.fillRect(i * 64, j * 64, 64, 64); x.fillStyle = "rgba(0,0,0,.08)"; for (let k = 0; k < 4; k++) { x.fillRect(i * 64 + 8 + k * 14, j * 64 + 4, 6, 6); x.fillRect(i * 64 + 4, j * 64 + 8 + k * 14, 6, 6); } } }, 8.5, 6.5);
 {
   const { hx, hz, h, door } = BALO, wallMat = mat(0xffffff, .7, { map: baloWallTex });
   const wall = (x1, x2, z1, z2, y0 = 0, y1 = h) => { const w = x2 - x1, d = z2 - z1, hh = y1 - y0, m = new THREE.Mesh(new THREE.BoxGeometry(w, hh, d), wallMat); m.position.set((x1 + x2) / 2, (y0 + y1) / 2, (z1 + z2) / 2); m.receiveShadow = true; baloG.add(m); return m; };
@@ -1521,20 +1547,59 @@ for (const s of BSLIDES) {
   for (let t = .06; t < .92; t += .07) { const p = s.curve.getPointAt(t), h = p.y - .7; if (h < .3 || !poleClear(p.x, p.z, h)) continue; const pole = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, h, 8), mat(0x2e86de, .4)); pole.position.set(p.x, h / 2, p.z); scene.add(pole); }
 }
 // la grande piscine à balles
-const BPIT = { x1: 3.5, x2: 10.6, z1: -2.5, z2: 10.5, gz1: 3, gz2: 5 };
+const BPIT = { x1: 3.5, x2: 16.6, z1: -2.5, z2: 10.5, gz1: 3, gz2: 5 }; // la grande piscine à balles
 {
   const pad = (x1, x2, z1, z2, c) => { const m = rbox(x2 - x1, .6, z2 - z1, mat(c, .6), .12); m.position.set((x1 + x2) / 2, .3, (z1 + z2) / 2); baloG.add(m); WALLS3.push({ x1: BALO.x + x1, x2: BALO.x + x2, z1: BALO.z + z1, z2: BALO.z + z2, y0: -1, y1: .5 }); };
   const { x1, x2, z1, z2, gz1, gz2 } = BPIT;
   pad(x1, x2, z1 - .3, z1, 0x2e86de); pad(x1, x2, z2, z2 + .3, 0x2e86de);
   pad(x1 - .3, x1, z1 - .3, gz1, 0xe84393); pad(x1 - .3, x1, gz2, z2 + .3, 0xe84393);
 }
-const BALLS = 2600, ballCols = [0xff5a4e, 0xffc93c, 0x2e86de, 0x27ae60, 0xe84393, 0x9b59b6];
+// deux petites salles d'anniversaire, contre le mur ouest (porte vers la grande salle)
+const BDAY = [{ z1: -12.85, z2: -6.4, door: -9.6 }, { z1: -5.6, z2: 1.4, door: -2.1 }].map(r => Object.assign(r, { x1: -16.85, x2: -11.2 }));
+const partyTex = tex(256, (x, s) => { x.fillStyle = "#fde6ef"; x.fillRect(0, 0, s, s); const cols = ["#ff5a4e", "#ffc93c", "#2e86de", "#27ae60", "#9b59b6"]; for (let i = 0; i < 70; i++) { x.fillStyle = cols[i % 5]; x.beginPath(); x.arc(Math.random() * s, Math.random() * s, 3 + Math.random() * 5, 0, 7); x.fill(); } }, 2, 1);
+{
+  const wallM = mat(0xffffff, .7, { map: partyTex }), H = 2.3;
+  for (const r of BDAY) {
+    const g = new THREE.Group(); baloG.add(g); const cx = (r.x1 + r.x2) / 2, cz = (r.z1 + r.z2) / 2;
+    const W = (x1, x2, z1, z2) => { const w = x2 - x1, d = z2 - z1, m = new THREE.Mesh(new THREE.BoxGeometry(w, H, d), wallM); m.position.set((x1 + x2) / 2, H / 2, (z1 + z2) / 2); g.add(m); const [a, b] = bw(x1, z1), [c2, d2] = bw(x2, z2); boxes.push({ x1: a, x2: c2, z1: b, z2: d2 }); };
+    W(r.x1, r.x2, r.z1 - .1, r.z1 + .1); W(r.x1, r.x2, r.z2 - .1, r.z2 + .1); W(r.x2 - .1, r.x2 + .1, r.z1, r.door - .75); W(r.x2 - .1, r.x2 + .1, r.door + .75, r.z2);
+    const fl = new THREE.Mesh(new THREE.PlaneGeometry(r.x2 - r.x1, r.z2 - r.z1), mat(0xffd1e1, .8, { polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -6 })); fl.rotation.x = -Math.PI / 2; fl.position.set(cx, .05, cz); g.add(fl);
+    // la table, le gâteau et ses bougies
+    const table = rbox(2.2, .1, 1.3, mat(0xffffff, .4), .04); table.position.set(cx - .3, .75, cz); g.add(table);
+    const cloth = rbox(2.3, .02, 1.4, mat(0xff8fb1, .7), .01); cloth.position.set(cx - .3, .81, cz); g.add(cloth);
+    for (const sx of [-.9, .9]) for (const sz of [-.5, .5]) { const l = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .75, 8), metalMat); l.position.set(cx - .3 + sx, .37, cz + sz); g.add(l); }
+    const [tx, tz] = bw(cx - .3, cz); boxes.push({ x1: tx - 1.15, x2: tx + 1.15, z1: tz - .7, z2: tz + .7 });
+    const cake = new THREE.Group(); cake.position.set(cx - .3, .82, cz); g.add(cake);
+    [[.34, .2, 0xfff3e0], [.26, .16, 0xff8fb1], [.18, .12, 0xfff3e0]].reduce((y, [rr, hh, c]) => { const t = new THREE.Mesh(new THREE.CylinderGeometry(rr, rr, hh, 24), mat(c, .6)); t.position.y = y + hh / 2; cake.add(t); return y + hh; }, 0);
+    r.flames = [];
+    for (let k = 0; k < 5; k++) { const a = k / 5 * 6.28; const cd = new THREE.Mesh(new THREE.CylinderGeometry(.015, .015, .12, 6), mat([0x2e86de, 0xffc93c, 0x27ae60, 0xe84393, 0x9b59b6][k], .5)); cd.position.set(Math.cos(a) * .1, .54, Math.sin(a) * .1); cake.add(cd);
+      const f = new THREE.Mesh(new THREE.ConeGeometry(.025, .07, 8), new THREE.MeshBasicMaterial({ color: 0xffb02e })); f.position.set(Math.cos(a) * .1, .63, Math.sin(a) * .1); cake.add(f); r.flames.push(f); }
+    // les chaises, les cadeaux
+    for (const [dx, dz] of [[-.6, -1], [.3, -1], [-.6, 1], [.3, 1]]) { const ch = rbox(.4, .45, .4, mat([0xff5a4e, 0xffc93c, 0x2e86de, 0x27ae60][(dx > 0) + (dz > 0) * 2], .5), .08); ch.position.set(cx - .3 + dx, .23, cz + dz); g.add(ch); }
+    for (let k = 0; k < 3; k++) { const b = rbox(.35, .3, .35, mat([0xe84393, 0x2e86de, 0xffc93c][k], .5), .03); b.position.set(r.x1 + .5, .16, r.z1 + .6 + k * .5); g.add(b); const rib = new THREE.Mesh(new THREE.BoxGeometry(.37, .31, .06), mat(0xffffff, .4)); rib.position.copy(b.position); g.add(rib); }
+    // les ballons et la guirlande de fanions
+    for (let k = 0; k < 6; k++) { const bx = r.x1 + .4 + Math.random() * (r.x2 - r.x1 - .8), bz = r.z1 + .4 + Math.random() * (r.z2 - r.z1 - .8), by = 1.9 + Math.random() * .3;
+      const ba = new THREE.Mesh(new THREE.SphereGeometry(.18, 14, 10), mat([0xff5a4e, 0xffc93c, 0x2e86de, 0x27ae60, 0xe84393, 0x9b59b6][k], .3)); ba.scale.y = 1.2; ba.position.set(bx, by, bz); g.add(ba);
+      const st = new THREE.Mesh(new THREE.CylinderGeometry(.005, .005, by - .3, 4), mat(0xffffff, .5)); st.position.set(bx, (by - .3) / 2 + .1, bz); g.add(st); }
+    for (let k = 0; k < 9; k++) { const f = new THREE.Mesh(new THREE.ConeGeometry(.13, .26, 3), mat([0xff5a4e, 0xffc93c, 0x2e86de][k % 3], .5)); f.rotation.x = Math.PI; f.scale.z = .2; f.position.set(r.x1 + .15, H - .25, r.z1 + .5 + k * (r.z2 - r.z1 - 1) / 8); f.rotation.y = Math.PI / 2; g.add(f); }
+    const sign = label("Anniversaire 🎂", "#e84393", "#ffffff", .8); sign.position.set(r.x2 + .2, H + .5, r.door); g.add(sign);
+    r.table = bw(cx - .3, cz); r.out = 0;
+  }
+}
+function blowCandles(r) {
+  if (r.out > 0) return; r.out = 8; r.flames.forEach(f => f.visible = false); whoosh(.6, .08, 1200, 400);
+  // « Joyeux anniversaire », joué à la flûte
+  const N = [[392, .3], [392, .15], [440, .45], [392, .45], [523, .45], [494, .9], [392, .3], [392, .15], [440, .45], [392, .45], [587, .45], [523, .9]];
+  let t = .4; for (const [f, d] of N) { tone(f, d * .95, "triangle", .1, 0, t); t += d * .85; }
+  setTimeout(() => petitEffet("confetti"), 400); toast("Joyeux anniversaire ! 🎂🎉", 3200);
+}
+const BALLS = LOWQ ? 3600 : 4800, ballCols = [0xff5a4e, 0xffc93c, 0x2e86de, 0x27ae60, 0xe84393, 0x9b59b6];
 const ballIM = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.14, 1), mat(0xffffff, .3), BALLS);
 const balls = Array.from({ length: BALLS }, (_, i) => { const b = { x: BALO.x + BPIT.x1 + .15 + rnd() * (BPIT.x2 - BPIT.x1 - .3), z: BALO.z + BPIT.z1 + .15 + rnd() * (BPIT.z2 - BPIT.z1 - .3), y: .14 + rnd() * .62, dx: 0, dy: 0, dz: 0 }; ballIM.setColorAt(i, new THREE.Color(ballCols[i % 6])); return b; });
 ballIM.receiveShadow = true; scene.add(ballIM);
 { const m = new THREE.Matrix4(); balls.forEach((b, i) => { m.makeTranslation(b.x, b.y, b.z); ballIM.setMatrixAt(i, m); }); }
 // six trampolines
-const TRAMPS = [[5.5, -11.3, 0x2e86de], [7.6, -11.3, 0xff5a4e], [9.7, -11.3, 0xffc93c], [5.5, -8.4, 0x27ae60], [7.6, -8.4, 0xe84393], [9.7, -8.4, 0x9b59b6]].map(([lx, lz, c]) => {
+const TRAMPS = [[5.5, -11.3, 0x2e86de], [7.6, -11.3, 0xff5a4e], [9.7, -11.3, 0xffc93c], [5.5, -8.4, 0x27ae60], [7.6, -8.4, 0xe84393], [9.7, -8.4, 0x9b59b6], [11.8, -11.3, 0x16a085], [13.9, -11.3, 0xff8a2b], [11.8, -8.4, 0xffffff], [13.9, -8.4, 0xff5a4e]].map(([lx, lz, c]) => {
   const g = new THREE.Group(); g.position.set(BALO.x + lx, 0, BALO.z + lz); scene.add(g);
   const ring = new THREE.Mesh(new THREE.TorusGeometry(.9, .14, 12, 40), mat(c, .5)); ring.rotation.x = Math.PI / 2; ring.position.y = .5; g.add(ring);
   const bed = new THREE.Mesh(new THREE.CircleGeometry(.8, 32), mat(0x222831, .9)); bed.rotation.x = -Math.PI / 2; bed.position.y = .45; g.add(bed);
@@ -1546,6 +1611,7 @@ const ballM = new THREE.Matrix4();
 function updateBaloba(dt, time, P) {
   const near = Math.abs(P.x - BALO.x) < 50 && Math.abs(P.z - BALO.z) < 50; ballIM.visible = near; if (!near) return false;
   const inside = inBaloba(P.x, P.z);
+  for (const r of BDAY) { if (r.out > 0) { r.out -= dt; if (r.out <= 0) r.flames.forEach(f => f.visible = true); } else r.flames.forEach((f, i) => f.scale.y = .8 + Math.sin(time * 15 + i * 2) * .25); }
   const want = Math.hypot(P.x - BALO.x, P.z - (BALO.z + BALO.hz)) < 4.5 ? 1 : 0; if (want && baloDoorOpen < .05) sfx.door();
   baloDoorOpen += (want - baloDoorOpen) * Math.min(1, dt * 5); for (const d of baloG.userData.doors) d.m.position.x = d.s * (BALO.door / 2 + baloDoorOpen * BALO.door * .95); baloG.userData.doorBox.off = baloDoorOpen > .6;
   baloFade += ((inside ? .2 : 1) - baloFade) * Math.min(1, dt * 6); const wm = baloG.userData.wallMat, tr = baloFade < .98;
@@ -2006,14 +2072,15 @@ const PARK_CARS = [];
   const CAR_COLS = [0xd62d20, 0x2e6fd8, 0xf4f4f4, 0x2b2b2b, 0xffc93c, 0x27ae60, 0x9b59b6, 0xff8a2b, 0x7f8c99];
   const spots = []; for (let i = 0; i < 7; i++) { spots.push([PARK.x1 + 4.8 + i * 2.6, PARK.z1 + 2.8, 0]); spots.push([PARK.x1 + 4.8 + i * 2.6, PARK.z2 - 2.8, Math.PI]); }
   let honkCarInit = 0;
-  spots.forEach(([x, z, h], i) => { if (i % 5 === 3 || (h === 0 && Math.abs(x - 83) < 2.5)) return; const c = makeCar(CAR_COLS[i % CAR_COLS.length], i); c.position.set(x, 0, z); c.rotation.y = h; scene.add(c); PARK_CARS.push({ g: c, x, z, h, flash: 0 }); boxes.push({ x1: x - .95, x2: x + .95, z1: z - 2.05, z2: z + 2.05 }); });
+  spots.forEach(([x, z, h], i) => { if (i % 5 === 3 || (h === 0 && Math.abs(x - 83) < 2.5)) return; const c = makeCar(CAR_COLS[i % CAR_COLS.length], i); c.position.set(x, 0, z); c.rotation.y = h; scene.add(c); PARK_CARS.push({ g: c, x, z, h, flash: 0 }); });
 }
 function makeCar(col, seed) {
   const g = new THREE.Group(), paint = mat(col, .25, { metalness: .4 }), glassC = mat(0x22313f, .1, { metalness: .6 }), tire = mat(0x1b1b1b, .9), rim = mat(0xcfd3d6, .3, { metalness: .7 });
   const body = rbox(1.8, .6, 4, paint, .22); body.position.y = .62; g.add(body);
   const van = seed % 4 === 1, cab = rbox(1.6, .6, van ? 2.9 : 2.1, paint, .25); cab.position.set(0, 1.18, van ? -.35 : -.15); g.add(cab);
   const win = rbox(1.64, .42, van ? 2.7 : 1.9, glassC, .18); win.position.set(0, 1.2, van ? -.35 : -.15); g.add(win);
-  for (const sx of [-.8, .8]) for (const sz of [-1.3, 1.3]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(.34, .34, .25, 20), tire); w.rotation.z = Math.PI / 2; w.position.set(sx, .34, sz); g.add(w); const r = new THREE.Mesh(new THREE.CylinderGeometry(.18, .18, .26, 14), rim); r.rotation.z = Math.PI / 2; r.position.set(sx, .34, sz); g.add(r); }
+  const wheels = []; g.userData.wheels = wheels; g.userData.wheelR = .34;
+  for (const sx of [-.8, .8]) for (const sz of [-1.3, 1.3]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(.34, .34, .25, 20), tire); w.rotation.z = Math.PI / 2; w.position.set(sx, .34, sz); g.add(w); wheels.push(w); const r = new THREE.Mesh(new THREE.CylinderGeometry(.18, .18, .26, 14), rim); r.rotation.z = Math.PI / 2; r.position.set(sx, .34, sz); g.add(r); wheels.push(r); }
   const heads = [], hm = new THREE.MeshStandardMaterial({ color: 0xfffbe6, emissive: 0xfff3c0, emissiveIntensity: .2 });
   for (const sx of [-.6, .6]) { const hl = new THREE.Mesh(new THREE.SphereGeometry(.12, 12, 8), hm); hl.scale.z = .4; hl.position.set(sx, .7, 2); g.add(hl); heads.push(hl);
     const tl = new THREE.Mesh(new THREE.BoxGeometry(.3, .12, .05), new THREE.MeshStandardMaterial({ color: 0xc0392b, emissive: 0x7a1010, emissiveIntensity: .5 })); tl.position.set(sx, .72, -2.01); g.add(tl); }
@@ -2293,6 +2360,63 @@ function updateAcro(P) {
 }
 $("acroGo").onclick = () => { setHarness(true); fermer("acroView"); sfx.click(); tone(660, .1, "triangle", .1); tone(880, .12, "triangle", .1, 0, .1); toast("Baudrier et casque mis ! Monte l'échelle 🧗", 2600); };
 $("acroClose").onclick = () => fermer("acroView");
+
+/* ---------- Dans le dôme : deux jacuzzis et de la végétation tropicale ---------- */
+const JACUZZIS = [{ x: 24, z: -18, r: 2.3 }, { x: 13, z: -15, r: 2.3 }];
+const inJacuzzi = (x, z) => JACUZZIS.find(j => Math.hypot(x - j.x, z - j.z) < j.r - .35) || null;
+{
+  const rimM = mat(0xf2ede4, .5), stepM = mat(0xd9cfc0, .7);
+  for (const j of JACUZZIS) {
+    const g = new THREE.Group(); g.position.set(j.x, 0, j.z); scene.add(g);
+    const wall = new THREE.Mesh(new THREE.CylinderGeometry(j.r + .25, j.r + .3, .55, 40, 1, true), mat(0xffffff, .5, { map: tileTex.clone(), side: THREE.DoubleSide })); wall.material.map.repeat.set(6, .4); wall.position.y = .27; g.add(wall);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(j.r + .27, .14, 10, 48), rimM); rim.rotation.x = Math.PI / 2; rim.position.y = .55; g.add(rim);
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(j.r + .25, 40), mat(0x3fb8e0, .3)); floor.rotation.x = -Math.PI / 2; floor.position.y = -.45; g.add(floor);
+    const bench = new THREE.Mesh(new THREE.TorusGeometry(j.r - .15, .28, 8, 40), stepM); bench.rotation.x = Math.PI / 2; bench.position.y = -.2; g.add(bench);
+    const wn = waterNormal.clone(); wn.repeat.set(2, 2); j.wn = wn;
+    const water = new THREE.Mesh(new THREE.CircleGeometry(j.r + .24, 40), new THREE.MeshStandardMaterial({ color: 0x7fe3f7, roughness: .05, transparent: true, opacity: .6, normalMap: wn, normalScale: new THREE.Vector2(.6, .6), emissive: 0x1a6f8f, emissiveIntensity: .25 }));
+    water.rotation.x = -Math.PI / 2; water.position.y = .4; water.renderOrder = 1; g.add(water);
+    // les bulles qui remontent
+    const N = 70, bub = new THREE.InstancedMesh(new THREE.SphereGeometry(.05, 8, 6), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: .7, roughness: .1 }), N); g.add(bub);
+    j.bub = bub; j.bubs = Array.from({ length: N }, () => { const a = Math.random() * 6.28, r = Math.sqrt(Math.random()) * (j.r - .2); return { x: Math.cos(a) * r, z: Math.sin(a) * r, y: -.4 + Math.random() * .8, s: .6 + Math.random() * .9 }; });
+    const lb = label("Jacuzzi 🫧", "#1fa5d6", "#ffffff", .9); lb.position.set(0, 2.6, 0); g.add(lb);
+    // une petite échelle pour entrer
+    for (const s of [-1, 1]) { const h = new THREE.Mesh(new THREE.TorusGeometry(.35, .03, 6, 12, Math.PI), metalMat); h.position.set(s * .25, .6, j.r + .2); h.rotation.y = Math.PI / 2; g.add(h); }
+    shadowAll(g, false, true);
+  }
+  // la végétation tropicale : des massifs de plantes et de fleurs tout autour, contre la verrière
+  const leafCols = [0x2f9a52, 0x3fae5e, 0x267f45, 0x4fbf6b], flowerCols = [0xff4f6d, 0xffc93c, 0xff8a2b, 0xe84393, 0xffffff];
+  const ok = (x, z) => {
+    if (inPoolRect(x, z, -3) || Math.hypot(x - KIDS.x, z - KIDS.z) < KIDS.r + 3) return false;
+    if (JACUZZIS.some(j => Math.hypot(x - j.x, z - j.z) < j.r + 2)) return false;
+    if (slides.some(s => Math.hypot(x - s.cx, z - s.cz) < 7.5 || Math.hypot(x - s.base.x, z - s.base.z) < 3)) return false;
+    if (Math.hypot(x - DOME.x, z - (DOME.z + DOME.r)) < 7 || Math.hypot(x - LDOOR.x, z - LDOOR.z) < 6) return false;
+    if (Math.abs(x) < 4 && z > DOME.z + 20) return false;
+    if (boxes.some(b => x > b.x1 - 1.5 && x < b.x2 + 1.5 && z > b.z1 - 1.5 && z < b.z2 + 1.5)) return false;
+    if (circles.some(c => c.r < 3 && Math.hypot(x - c.x, z - c.z) < c.r + 1.5)) return false;
+    return true; };
+  const clump = (x, z, big) => { const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+    const soil = new THREE.Mesh(new THREE.CylinderGeometry(big ? 1.6 : 1.1, big ? 1.7 : 1.2, .3, 20), mat(0x6b4a2f, .95)); soil.position.y = .15; g.add(soil);
+    const edge = new THREE.Mesh(new THREE.TorusGeometry(big ? 1.65 : 1.15, .12, 8, 24), mat(0xd9cfc0, .7)); edge.rotation.x = Math.PI / 2; edge.position.y = .3; g.add(edge);
+    for (let k = 0; k < (big ? 5 : 3); k++) { const b = new THREE.Mesh(blobGeo(.5 + Math.random() * .4, 2, .3, k), mat(leafCols[k % 4], .8)); const a = Math.random() * 6.28, r = Math.random() * (big ? .9 : .5); b.position.set(Math.cos(a) * r, .6 + Math.random() * .5, Math.sin(a) * r); b.scale.y = 1.2; g.add(b); }
+    for (let k = 0; k < (big ? 7 : 4); k++) { const f = new THREE.Mesh(new THREE.SphereGeometry(.12, 10, 8), mat(flowerCols[Math.floor(Math.random() * 5)], .5)); const a = Math.random() * 6.28, r = .4 + Math.random() * (big ? 1.1 : .7); f.position.set(Math.cos(a) * r, .7 + Math.random() * .7, Math.sin(a) * r); g.add(f); }
+    // de grandes feuilles qui retombent
+    for (let k = 0; k < 6; k++) { const l = new THREE.Mesh(leafGeo, leafMat); l.position.y = .3; l.rotation.order = "YXZ"; l.rotation.y = k / 6 * 6.28 + Math.random(); l.rotation.x = .9 + Math.random() * .4; l.scale.setScalar(big ? .5 : .38); g.add(l); }
+    shadowAll(g); circles.push({ x, z, r: big ? 1.6 : 1.1 }); };
+  let n = 0;
+  for (let i = 0; i < 64 && n < 22; i++) { const a = i / 64 * Math.PI * 2 + .05, rr = DOME.r - 3.2, x = DOME.x + Math.cos(a) * rr, z = DOME.z + Math.sin(a) * rr; if (ok(x, z)) { clump(x, z, i % 3 === 0); n++; i += 2; } }
+  for (const [x, z] of [[28, -20], [18, -11], [9, -18], [-26, -18], [-8, -20], [24, -33]]) if (ok(x, z)) clump(x, z, false);
+  for (const [x, z] of [[29, -13], [-28, -26], [-26, -38], [27, -40]]) if (ok(x, z)) palm(x, z, 6 + Math.random() * 2);
+}
+let jacSoundT = 0;
+function updateJacuzzis(dt, time, P) {
+  if (Math.hypot(P.x - DOME.x, P.z - DOME.z) > DOME.r + 20) return null;
+  const m4 = new THREE.Matrix4();
+  for (const j of JACUZZIS) { j.wn.offset.set(time * .15, time * .11);
+    j.bubs.forEach((b, i) => { b.y += dt * .9 * b.s; if (b.y > .42) b.y = -.4; m4.makeTranslation(b.x + Math.sin(time * 3 + i) * .03, b.y, b.z); j.bub.setMatrixAt(i, m4); }); j.bub.instanceMatrix.needsUpdate = true; }
+  const jz = state === "walk" ? inJacuzzi(P.x, P.z) : null;
+  if (jz) { jacSoundT -= dt; if (jacSoundT < 0) { jacSoundT = 1.4; whoosh(1.2, .03, 900, 1400); } }
+  return jz;
+}
 
 /* ---------- Végétation ---------- */
 function nearPath(x, z, pad) { return paths.some(([a, b, w]) => { const dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz; let t = ((x - a[0]) * dx + (z - a[1]) * dz) / L2; t = Math.max(0, Math.min(1, t)); return Math.hypot(x - (a[0] + t * dx), z - (a[1] + t * dz)) < w / 2 + pad; }); }
@@ -2700,6 +2824,8 @@ function makeBike(col) {
 const vehicles = [];
 const BIKE_COLS = [0xe74c3c, 0x2e86de, 0xf1c40f, 0x27ae60, 0xe84393];
 BIKE_COLS.forEach((c, i) => { const v = { kind: "bike", g: makeBike(c), x: 3 + i * 1.5, z: 36.6, h: Math.PI, v: 0, r: .55, lean: 0, ca: 0 }; v.g.position.set(v.x, 0, v.z); v.g.rotation.y = v.h; scene.add(v.g); vehicles.push(v); movers.push(v); });
+// les voitures du parking : on peut monter dedans et les conduire
+for (const c of PARK_CARS) { const v = { kind: "car", g: c.g, x: c.x, z: c.z, h: c.h, v: 0, r: 1.15 }; vehicles.push(v); movers.push(v); }
 { const g = new THREE.Group(); for (let i = 0; i < 6; i++) { const h = new THREE.Mesh(new THREE.TorusGeometry(.32, .025, 8, 20, Math.PI), metalMat); h.position.set(2.25 + i * 1.5, 0, 37.55); g.add(h); }
   const bar = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, 7.6, 8), metalMat); bar.rotation.z = Math.PI / 2; bar.position.set(6, .3, 37.55); g.add(bar);
   const sign = label("Vélos 🚲", "#27ae60", "#ffffff", .7); sign.position.set(6, 1.9, 38.2); scene.add(sign); scene.add(bake(g)); boxes.push({ x1: 1.8, x2: 10.2, z1: 37.4, z2: 37.7 }); }
@@ -5374,7 +5500,7 @@ const npcs = [
   { name: "Lucas, de la rivière", pos: [RDOCK.x + RDOCK.tx * 3.4 + RDOCK.sx * 1.2, RDOCK.z + RDOCK.tz * 3.4 + RDOCK.sz * 1.2], o: { shirt: 0xff5a4e, pants: 0xffc93c, shorts: true, hair: 0x2d2018, skin: 0xc68e6a, cap: 0xff5a4e }, lines: ["Bienvenue à la rivière sauvage ! 🌊", "Monte dans une bouée sur le ponton, et le courant t'emporte.", "Il y a deux rapides : ça va très vite ! Penche-toi à gauche ou à droite pour te diriger.", "Le tour se termine ici, au ponton. Tu peux sortir avant si tu veux."] },
   { name: "Paul, le garde forestier", pos: [40, -10], o: { shirt: 0x6d8b3a, hair: 0x555555, cap: 0x4b6328, skin: 0xc68e6a }, lines: ["Bonjour, aventurier !", "Au ponton du lac, tu peux prendre le pédalo. Un canard flotte au milieu du lac !", "Ouvre la carte pour voir où ils se cachent. Les points jaunes, ce sont eux !", "Au bout du chemin, il y a l'aquarium ! Va voir Bubulle le requin 🦈"] },
   { name: "Nina, la soigneuse", pos: aqW(-4.4, 3.2), o: { shirt: 0x1f8fae, pants: 0x2d3436, hair: 0x2d2018, long: true, skin: 0xc68e6a }, lines: ["Bienvenue à l'aquarium ! Moi c'est Nina, je m'occupe des poissons.", "Le gros poisson gris, c'est Bubulle le requin. Il est très gentil !", "Tu as vu la tortue de mer ? Elle s'appelle Pistache 🐢", "Les méduses roses brillent dans le grand bassin du milieu.", "Approche-toi du grand bassin et appuie sur Nourrir les poissons 🐟"] },
-  { name: "Tom, l'animateur", pos: bw(-3, 9.5), o: { shirt: 0xff8a2b, pants: 0x2e86de, hair: 0x8b4513, cap: 0x27ae60 }, lines: ["Salut ! Bienvenue au Multi Parcs ! 🎈", "Monte les marches de la grande structure, passe dans le tunnel et grimpe tout en haut.", "Il y a trois toboggans : le colimaçon tout en haut, le toboggan rapide au 2e étage et le toboggan à vagues au 1er !", "Les six trampolines sont au fond : saute dessus, tu vas rebondir très haut !", "Si tu as soif, va au bar à goûter ! 🧃", "Et la piscine à balles… plonge dedans ! On rentre par l'ouverture sur le côté."] },
+  { name: "Tom, l'animateur", pos: bw(-3, 9.5), o: { shirt: 0xff8a2b, pants: 0x2e86de, hair: 0x8b4513, cap: 0x27ae60 }, lines: ["Salut ! Bienvenue au Multi Parcs ! 🎈", "Monte les marches de la grande structure, passe dans le tunnel et grimpe tout en haut.", "Il y a trois toboggans : le colimaçon tout en haut, le toboggan rapide au 2e étage et le toboggan à vagues au 1er !", "Les six trampolines sont au fond : saute dessus, tu vas rebondir très haut !", "Si tu as soif, va au bar à goûter ! 🧃", "Au fond à gauche, il y a deux salles d'anniversaire : souffle les bougies du gâteau ! 🎂", "Et la piscine à balles… plonge dedans ! On rentre par l'ouverture sur le côté."] },
   { name: "Léon, du Multi Parcs", pos: gw(2.6, 7.2), o: { shirt: 0x8e44ad, pants: 0x1b1035, hair: 0x111111, cap: 0xff4fd8, skin: 0xd9a27a }, lines: ["Bienvenue au Multi Parcs ! Ici, ce sont les jeux d'arcade 🎮", "Les toboggans et les trampolines sont juste derrière, par la porte du fond 🎈", "Approche-toi d'une borne et appuie sur Jouer. Il y a Tape-Taupe, Panier Magique et Attrape-Étoiles !", "Chaque partie te fait gagner des tickets 🎟️.", "Avec 3 tickets, tu peux essayer la machine à pince… si tu as de la chance, tu gagnes une peluche !", "Au comptoir des cadeaux, au fond, tu échanges tes tickets contre des cadeaux 🎁", "Près de l'entrée, le distributeur de petites choses : bonbons, bulles, confettis… pour quelques tickets 🍬"] },
   { name: "Zoé, de Burger Fast", pos: fw(-1.2, -4.4), o: { shirt: 0xff7a2f, pants: 0x1f9e8f, hair: 0x5a3a22, long: true, cap: 0xff7a2f }, lines: ["Bienvenue chez Burger Fast ! 🍔", "Approche-toi de la caisse et appuie sur Commander pour choisir ton menu.", "Quand ta commande est prête, viens chercher ton plateau au bout du comptoir.", "Ensuite, va t'asseoir à une table pour manger. Bon appétit ! 😋"] },
   { name: "Margot, de l'accueil", pos: ACCUEIL.w(0, 2.3), o: { shirt: 0x2e86de, pants: 0x2d3436, hair: 0xd4a017, long: true }, lines: ["Bonjour et bienvenue au Domaine des Pins ! 😊", "Ici, je t'explique ce qui va se passer pendant tes vacances, et quoi faire si tu as un problème.", "Approche-toi du comptoir et appuie sur Le programme pour tout lire.", "Le grand plan du domaine est accroché au mur, derrière moi !"] },
@@ -5455,7 +5581,7 @@ const aiKarts = []; // plus de circuit de karts
 const floaters = [.12, .4, .58, .9].map((u, i) => { const b = makeBuoy(), g = bather(i % 2 === 1); g.visible = true; b.add(g); g.position.set(0, -.62, 0); scene.add(b); return { b, g, u, lat: (rnd() - .5) * 1.4, spin: rnd() * 6 }; });
 const myBuoy = makeBuoy(); myBuoy.visible = false; scene.add(myBuoy);
 // réglages de conduite : vitesse, accélération, virage, place du pilote
-const VK = { bike: { max: 7.5, acc: 1.5, turn: 2.6, y: .33, z: -.27, mode: "bike" }, kart: { max: 10, acc: 2, turn: 2.4, y: -.2, z: -.3, mode: "kart" }, pony: { max: 6.5, acc: 1.3, turn: 2.1, y: 1.03, z: .05, mode: "saddle" } };
+const VK = { car: { max: 13, acc: 2.2, turn: 1.9, y: .32, z: .15, x: .42, mode: "kart" }, bike: { max: 7.5, acc: 1.5, turn: 2.6, y: .33, z: -.27, mode: "bike" }, kart: { max: 10, acc: 2, turn: 2.4, y: -.2, z: -.3, mode: "kart" }, pony: { max: 6.5, acc: 1.3, turn: 2.1, y: 1.03, z: .05, mode: "saddle" } };
 let seatOffer = null, veh = null, engine = null, mountT = null, petT = null, seatT = null, riv = null, food = null, chestGot = false, musWant = "foret";
 function inp() { let ix = jx, iy = jy; if (!paused) { if (keys["arrowup"] || keys["z"] || keys["w"]) iy = -1; if (keys["arrowdown"] || keys["s"]) iy = 1; if (keys["arrowleft"] || keys["q"] || keys["a"]) ix = -1; if (keys["arrowright"] || keys["d"]) ix = 1; } else ix = iy = 0; return [ix, iy]; }
 function engineOn() { if (!actx || engine) return; try { const o = actx.createOscillator(), o2 = actx.createOscillator(), lp = actx.createBiquadFilter(), g = actx.createGain(); o.type = "sawtooth"; o2.type = "square"; lp.type = "lowpass"; lp.frequency.value = 520; g.gain.value = 0;
@@ -5472,13 +5598,14 @@ function vehOk(V, q) {
 function mountVeh(v) {
   veh = v; state = "drive"; v.v = 0; $("dialog").hidden = true; talking = null;
   if (v.kind === "pony") { v.ridden = true; v.hitched = false; animalSound("pony", 2); toast(`Hue, ${v.name || "petit poney"} ! 🐴 Tu peux aller partout.`, 2600); }
+  else if (v.kind === "car") { engineOn(); tone(392, .12, "square", .05); toast("Vroum ! 🚗 Tu conduis la voiture. Tu peux aller sur tous les chemins.", 2800); }
   else if (v.kind === "kart") { engineOn(); lap.t = -1; lap.px = 0; toast("Vroum ! 🏎️ Passe la ligne à damier pour lancer le chrono.", 2800); }
   else { tone(2100, .18, "sine", .07); tone(2100, .18, "sine", .07, 0, .22); toast("En selle ! 🚲 Tu peux descendre où tu veux.", 2400); }
 }
 function dismount() {
   const v = veh; if (!v) return; const rx = Math.cos(v.h), rz = -Math.sin(v.h), P = player.position;
   P.set(v.x + rx * 1.25, 0, v.z + rz * 1.25); skipM = v; resolve(P, { x: v.x, z: v.z }); skipM = null; P.y = floorY(P);
-  player.rotation.set(0, v.h, 0); v.v = 0; if (v.kind === "pony") { v.ridden = false; v.hitched = true; v.g.position.y = 0; } if (v.kind === "kart") engineOff();
+  player.rotation.set(0, v.h, 0); v.v = 0; if (v.kind === "pony") { v.ridden = false; v.hitched = true; v.g.position.y = 0; } if (v.kind === "kart" || v.kind === "car") engineOff();
   veh = null; state = "walk";
 }
 const lap = { t: -1, px: 0, best: null }; try { const b = parseFloat(localStorage.getItem("pins-kart")); if (b > 0) lap.best = b; } catch (e) {}
@@ -5504,9 +5631,9 @@ function driveTick(dt, P) {
   const lean = V.kind === "bike" ? THREE.MathUtils.clamp(-turn / Math.max(dt, 1e-3) * .1 * Math.min(1, V.v / 4), -.35, .35) : 0; V.lean = (V.lean || 0) + (lean - (V.lean || 0)) * Math.min(1, dt * 6);
   V.g.position.set(V.x, hy, V.z); V.g.rotation.set(0, V.h, V.kind === "bike" ? V.lean : 0);
   const bob = V.kind === "pony" ? Math.abs(Math.sin(V.ph)) * .06 * Math.min(1, V.v / 2) : 0;
-  P.set(V.x + Math.sin(V.h) * K.z, K.y + hy + bob, V.z + Math.cos(V.h) * K.z); player.rotation.y = V.h; player.rotation.z = V.kind === "bike" ? V.lean : 0;
+  P.set(V.x + Math.sin(V.h) * K.z + Math.cos(V.h) * (K.x || 0), K.y + hy + bob, V.z + Math.cos(V.h) * K.z - Math.sin(V.h) * (K.x || 0)); player.rotation.y = V.h; player.rotation.z = V.kind === "bike" ? V.lean : 0;
   if (V.kind === "bike") { const w = V.v * dt / .31; V.g.userData.wheels.forEach(x => x.rotation.x += w); V.ca += w * .55; V.g.userData.crank.rotation.x = V.ca; animPerson(player, "bike", V.ca); }
-  else if (V.kind === "kart") { V.g.userData.wheels.forEach(x => x.rotation.x += V.v * dt / .19); animPerson(player, "kart", 0); kartLap(V, dt);
+  else if (V.kind === "kart" || V.kind === "car") { V.g.userData.wheels.forEach(x => x.rotation.x += V.v * dt / (V.g.userData.wheelR || .19)); animPerson(player, "kart", 0); if (V.kind === "kart") kartLap(V, dt);
     if (engine) { const t = actx.currentTime; engine.o.frequency.setTargetAtTime(42 + Math.abs(V.v) * 9, t, .05); engine.o2.frequency.setTargetAtTime(21 + Math.abs(V.v) * 4.5, t, .05); engine.g.gain.setTargetAtTime(muted || paused ? 0 : .05, t, .05); } }
   else animPerson(player, "saddle", V.ph, V.v);
 }
@@ -5822,6 +5949,8 @@ let act1 = null, act2 = null, doorNear = null;
 function doAct(a) {
   if (!a) return; sfx.click();
   if (a === "feed") { feedFish(); return; }
+  if (a === "waves") { pressWaves(); return; }
+  if (/^bday\d$/.test(a)) { blowCandles(BDAY[+a.slice(4)]); return; }
   if (a === "acro") { if (harnessOn) { setHarness(false); toast("Tu as rendu ton baudrier. À bientôt ! 👋", 2000); } else ouvrir("acroView"); return; }
   if (a === "zip") { state = "ride"; riding = { curve: acroZip.curve, u: 0, dry: true, msg: "Youpi ! Quelle tyrolienne ! 🪂" }; $("dialog").hidden = true; talking = null; sfx.slide(); toast("Wiiiiii ! 🪂", 1600); return; }
   if (a === "prog") { ouvrir("progView"); return; }
@@ -6347,7 +6476,7 @@ function resolve(p, prev, who) {
   }
   aqCollide(p, prev);
   // le lac : on ne marche que sur le ponton
-  if (!wearing && !who) { const wp = (x, z) => inPoolRect(x, z, 0) || inKids(x, z); if (wp(p.x, p.z)) { if (!wp(p.x, prev.z)) p.z = prev.z; else if (!wp(prev.x, p.z)) p.x = prev.x; else { p.x = prev.x; p.z = prev.z; } if (time - suitToastT > 4) { suitToastT = time; toast("Il faut un maillot de bain : va aux vestiaires ! 👕", 2600); } } }
+  if (!wearing && !who) { const wp = (x, z) => inPoolRect(x, z, 0) || inKids(x, z) || !!inJacuzzi(x, z); if (wp(p.x, p.z)) { if (!wp(p.x, prev.z)) p.z = prev.z; else if (!wp(prev.x, p.z)) p.x = prev.x; else { p.x = prev.x; p.z = prev.z; } if (time - suitToastT > 4) { suitToastT = time; toast("Il faut un maillot de bain : va aux vestiaires ! 👕", 2600); } } }
   const wet = (x, z) => inWater(x, z) && !onDock(x, z);
   if (wet(p.x, p.z)) { if (!wet(p.x, prev.z)) p.z = prev.z; else if (!wet(prev.x, p.z)) p.x = prev.x; else { p.x = prev.x; p.z = prev.z; } }
   // la rivière : on ne la traverse que sur les ponts
@@ -6360,6 +6489,7 @@ function resolve(p, prev, who) {
 // hauteur du sol sous les pieds : ponton, terrasse, escalier, étage
 function floorY(p) {
   if (onDock(p.x, p.z)) return .38;
+  if (inJacuzzi(p.x, p.z)) return -.2; // assis sur le banc du jacuzzi, dans l'eau chaude
   for (const c of cottages) { const [lx, lz] = c.toLocal(p.x, p.z);
     if (lx > -5.2 && lx < 5.2 && lz > -4.2 && lz < 4.2) { if (c.single) return .2; if (inStair(lx, lz)) return Math.max(.2, stairH(lz)); return p.y > 1.8 ? UP : .2; }
     if (lx > -5.2 && lx < 5.2 && lz >= 4.2 && lz < 9.1) return .2; }
@@ -6413,6 +6543,8 @@ const players = [];
   const ball = new THREE.Mesh(new THREE.SphereGeometry(.18, 16, 12), mat(0xff5a4e, .4)); scene.add(ball); ballKids[0].ball = ball;
   for (const p of players) { p.g.position.set(p.x ?? 0, 0, p.z ?? 0); if (p.kind !== "pit" && p.kind !== "tramp" && p.kind !== "slide") circles.push({ x: p.x, z: p.z, r: .3 }); }
 }
+// des vacanciers qui se détendent dans les jacuzzis
+for (const [k, j] of JACUZZIS.entries()) { const g = bather(k === 1); g.visible = true; const a = k ? Math.PI * .75 : -Math.PI / 4; g.position.set(j.x + Math.cos(a) * (j.r - .7), -.2, j.z + Math.sin(a) * (j.r - .7)); g.rotation.y = Math.atan2(-Math.cos(a), -Math.sin(a)); animPerson(g, "sit", 0); circles.push({ x: g.position.x, z: g.position.z, r: .35 }); }
 function updateVacationers(dt, time, P) {
   for (const c of PARK_CARS) if (c.flash > 0) { c.flash -= dt; c.g.userData.lights.emissiveIntensity = c.flash > 0 && Math.sin(c.flash * 18) > 0 ? 3 : .2; }
   for (const w of walkers) {
@@ -6639,10 +6771,11 @@ function loop() {
       if (!swimming && state === "walk") { stepAcc += dt * s; if (stepAcc > .32) { stepAcc = 0; if (inCottage || inDome) sfx.step(); } }
     }
     if (state === "top") { const t = tower, dx = P.x - t.cx, dz = P.z - t.cz, d = Math.hypot(dx, dz); if (d > 2.25) { P.x = t.cx + dx / d * 2.25; P.z = t.cz + dz / d * 2.25; } if (d < 1e-3) P.x += .01; P.y = 9.95; }
-    else { const wasOn = prev.y > .6 && surfAt(prev.x, prev.z, prev.y) !== null; resolve(P, prev); if (wasOn && surfAt(P.x, P.z, prev.y) === null) { P.x = prev.x; P.z = prev.z; } swimming = inPoolRect(P.x, P.z); if (!swimming) swimFast = false; P.y = swimming ? (swimFast ? -.42 : -.98) + Math.sin(time * 3) * .04 : floorY(P); }
+    else { const wasOn = prev.y > .6 && surfAt(prev.x, prev.z, prev.y) !== null; resolve(P, prev); if (wasOn && surfAt(P.x, P.z, prev.y) === null) { P.x = prev.x; P.z = prev.z; } swimming = inPoolRect(P.x, P.z); if (!swimming) swimFast = false; P.y = swimming ? (swimFast ? -.42 : -.98) + Math.sin(time * 3) * .04 + poolWaveH(P.x, P.z) : floorY(P); }
     if (swimming) animPerson(player, swimFast ? "swim" : "tread", time * 4); else if (L > .08) animPerson(player, "walk", walkT, sp * Math.min(L, 1)); else animPerson(player, "idle", 0);
   }
   afterWalkJump(dt);
+  { const jz = updateJacuzzis(dt, time, P); if (jz && state === "walk" && Math.hypot(P.x - prev.x, P.z - prev.z) < .002) animPerson(player, "sit", 0); }
 
   // où suis-je ?
   inDome = Math.hypot(P.x - DOME.x, P.z - DOME.z) < DOME.r && state !== "ride" || state === "top" || state.startsWith("climb");
@@ -6709,7 +6842,7 @@ function loop() {
     mountT = petT = seatOffer = null;
     if (state === "walk" && P.y < 1) {
       let bv = null, bd = 2.3; for (const v of vehicles) { const d = Math.hypot(P.x - v.x, P.z - v.z); if (d < bd) { bd = d; bv = v; } }
-      if (bv) { mountT = bv; offer("mount", bv.kind === "bike" ? "🚲 Monter sur le vélo" : bv.kind === "kart" ? "🏎️ Monter dans le kart" : "🐴 Monter sur " + bv.name); }
+      if (bv) { mountT = bv; offer("mount", bv.kind === "car" ? "🚗 Monter dans la voiture" : bv.kind === "bike" ? "🚲 Monter sur le vélo" : bv.kind === "kart" ? "🏎️ Monter dans le kart" : "🐴 Monter sur " + bv.name); }
       let ba = null, bd2 = 1.4; for (const a of animals) { if (!a.g.visible) continue; const d = Math.hypot(P.x - a.x, P.z - a.z) - a.r; if (d < bd2) { bd2 = d; ba = a; } }
       if (Math.hypot(P.x - cat.x, P.z - cat.z) < 1.8) ba = cat;
       if (ba) { petT = ba; offer("pet", PET[ba.kind][0]); }
@@ -6719,12 +6852,14 @@ function loop() {
       if (Math.hypot(P.x - RDOCK.x, P.z - RDOCK.z) < 2.6) offer("river", "🛟 Descendre la rivière");
     }
     if (state === "walk" && P.y > 4) { if (Math.hypot(P.x - CHEST.x, P.z - CHEST.z) < 1.8) offer("chest", "🎁 Ouvrir le coffre"); if (Math.hypot(P.x - 63.3, P.z - 69) < 1.5) offer("treeslide", "🛝 Glisser !"); }
+    if (state === "walk" && P.y < 1) BDAY.forEach((r, i) => { if (Math.hypot(P.x - r.table[0], P.z - r.table[1]) < 1.9) offer("bday" + i, r.out > 0 ? "🎉 Joyeux anniversaire !" : "🎂 Souffler les bougies"); });
+    if (state === "walk" && P.y < 1 && Math.hypot(P.x - WAVE_BTN.x, P.z - WAVE_BTN.z) < 1.7) offer("waves", WAVES.t < 0 ? "🌊 Lancer les vagues (5 min)" : "⏹️ Arrêter les vagues");
     if (state === "walk") BSLIDES.forEach((b, i) => { if (P.y > b.y0 && P.y < b.y1 && Math.hypot(P.x - b.x, P.z - b.z) < 1.3) offer("balo" + i, b.name); });
     if (state === "walk" && P.y < 1 && inGameTown(P.x, P.z)) { GT_CABS.forEach((c, i) => { if (Math.hypot(P.x - c.x, P.z - c.z) < 1.1) offer("gt" + i, "🕹️ Jouer à " + GT_GAMES[c.k].name); });
       if (Math.hypot(P.x - gtClaw.front[0], P.z - gtClaw.front[1]) < 1.3) offer("claw", "🧸 Pince à peluches (3 🎟️)");
       if (Math.hypot(P.x - (GTW.x + 4.2), P.z - (GTW.z + 5.3)) < 2.2) offer("prizes", "🎁 Échanger mes tickets");
       if (Math.hypot(P.x - GT_SMALL.front[0], P.z - GT_SMALL.front[1]) < 1.3) offer("small", "🍬 Petites choses (tickets)"); }
-    honkCar = null; if (state === "walk" && P.y < 1 && inRect(PARK, P.x, P.z)) { honkCar = PARK_CARS.find(c => Math.hypot(P.x - c.x, P.z - c.z) < 2.9) || null; if (honkCar) offer("honk", "📯 Klaxonner"); }
+    honkCar = null; if (state === "walk" && P.y < 1 && inRect(PARK, P.x, P.z)) { honkCar = PARK_CARS.find(c => Math.hypot(P.x - c.g.position.x, P.z - c.g.position.z) < 2.9) || null; if (honkCar) offer("honk", "📯 Klaxonner"); }
     if (state === "walk" && P.y < 1) { if (ACCUEIL.in(P.x, P.z) && Math.hypot(P.x - ACCUEIL.x, P.z - (ACCUEIL.z - .1)) < 1.9) offer("prog", "📋 Le programme");
       if (BOULANGERIE.in(P.x, P.z) && Math.hypot(P.x - BOULANGERIE.x, P.z - (BOULANGERIE.z - .4)) < 2.6) offer("boul", "🥐 Acheter");
       if (MARKET.in(P.x, P.z) && Math.hypot(P.x - (MARKET.x + 5.6), P.z - (MARKET.z + .6)) < 1.7) offer("market", "🛒 Faire les courses"); }
@@ -6765,7 +6900,7 @@ function loop() {
   streamTex.offset.y = -time * 1.6;
   liveFace(player, dt); liveFace(swimmer, dt); npcs.forEach(n => liveFace(n.g, dt)); if (net) for (const o of net.autres.values()) liveFace(o.g, dt);
   // décor vivant
-  poolWater.material.normalMap.offset.set(time * .02, time * .013); lakeN.offset.set(time * .01, -time * .007);
+  updateWaves(dt, P); poolWater.material.normalMap.offset.set(time * .02, time * .013); lakeN.offset.set(time * .01, -time * .007);
   if (lake.material.uniforms) lake.material.uniforms.time.value += dt * .5;
   const ba = time * .08; boat.position.set(LAKE.x + Math.cos(ba) * LAKE.r * .55, .02, LAKE.z + Math.sin(ba) * LAKE.r * .55); boat.rotation.y = Math.atan2(-Math.sin(ba), Math.cos(ba)); boat.position.y = Math.sin(time * 2) * .04;
   if (myCottage.g.userData.flag) { const f = myCottage.g.userData.flag.geometry.attributes.position; for (let i = 0; i < f.count; i++) { const x = f.getX(i); f.setZ(i, Math.sin(x * 3 - time * 5) * .12 * (x + .8)); } f.needsUpdate = true; }
