@@ -177,6 +177,20 @@ html.app .site{display:none!important}
 .phrases .rdv{background:#e67e22}
 .phrases .nums{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
 .phrases .nums .btn{background:#8a5a30;font-size:26px;padding:8px 0}
+.phone{width:min(86vw,330px);height:min(78vh,620px);background:#111;border-radius:42px;padding:14px 12px 46px;position:relative;box-shadow:0 10px 40px rgba(0,0,0,.5),inset 0 0 0 3px #333}
+.ph-notch{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:90px;height:20px;background:#111;border-radius:0 0 14px 14px;z-index:2}
+.ph-screen{height:100%;border-radius:30px;background:linear-gradient(160deg,#7ed6ff,#a78bfa 60%,#f9a8d4);overflow:auto;padding:12px 12px 16px;color:#1d2340;font-family:inherit}
+.ph-top{display:flex;justify-content:space-between;font-weight:800;font-size:14px;padding:2px 10px 10px}
+.ph-title{font-weight:800;font-size:22px;text-align:center;margin:6px 0 14px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.25)}
+.ph-apps{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;padding:6px 10px}
+.ph-app{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:6px;font:700 14px inherit;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.3);cursor:pointer}
+.ph-app span{width:66px;height:66px;border-radius:18px;display:grid;place-items:center;font-size:34px;box-shadow:0 4px 10px rgba(0,0,0,.25)}
+.ph-list{display:flex;flex-direction:column;gap:8px}
+.ph-item{background:rgba(255,255,255,.88);border:0;border-radius:14px;padding:12px;font:700 16px inherit;display:flex;justify-content:space-between;gap:8px;text-align:left;cursor:pointer;color:#1d2340}
+.ph-msg{background:#fff;border-radius:16px;padding:12px;font-weight:700;margin:10px 0}
+.ph-note{text-align:center;color:#fff;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.3)}
+.ph-home{margin:14px auto 0;display:block;background:#1d2340;color:#fff;border:0;border-radius:999px;padding:10px 18px;font:700 15px inherit}
+.ph-btn{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);width:44px;height:26px;border-radius:13px;border:3px solid #444;background:#1a1a1a;cursor:pointer}
 </style>
 </head>
 <body class="chargement accueil-on">
@@ -192,6 +206,7 @@ html.app .site{display:none!important}
 </div>
 <div id="hudR">
   <span id="gpPill" class="btn ico" hidden role="img" aria-label="Manette reconnue">🎮</span>
+  <button id="phoneBtn" class="btn ico" aria-label="Mon téléphone">📱</button>
   <button id="invBtn" class="btn ico" aria-label="Mon sac à dos">🎒</button>
   <button id="mapBtn" class="btn ico" aria-label="Carte">🗺️</button>
   <button id="pauseBtn" class="btn ico" aria-label="Menu et réglages">⚙️</button>
@@ -304,6 +319,9 @@ html.app .site{display:none!important}
     <p id="bfRecap" class="small"></p>
     <div class="row"><button id="bfGo" class="btn" style="background:#ff7a2f">✅ Commander</button><button id="bfClose" class="btn" style="background:#34495e">Fermer</button></div>
   </div>
+</div>
+<div id="phoneView" class="overlay" hidden>
+  <div class="phone"><div class="ph-notch"></div><div id="phoneScreen" class="ph-screen"></div><button id="phoneClose" class="ph-btn" aria-label="Ranger le téléphone"></button></div>
 </div>
 <div id="buyView" class="overlay" hidden>
   <div class="card">
@@ -1282,7 +1300,7 @@ function cottageTheme(c) {
   const YARD = [
     () => { const g = new THREE.Group(), k = mat(0x222222, .4); const bowl = new THREE.Mesh(new THREE.SphereGeometry(.4, 16, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), k); bowl.position.y = .85; g.add(bowl); const lid = new THREE.Mesh(new THREE.SphereGeometry(.4, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), k); lid.position.set(0, .95, -.25); lid.rotation.x = -1.1; g.add(lid); for (let i = 0; i < 3; i++) { const l = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .85, 6), metalMat); const a = i * 2.1; l.position.set(Math.cos(a) * .25, .42, Math.sin(a) * .25); g.add(l); } return [g, .5]; }, // barbecue
     () => { const g = new THREE.Group(), wd = mat(0x8a5a35, .8); for (const s of [-1, 1]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.07, .08, 1.6, 8), wd); p.position.set(s * 1.3, .8, 0); g.add(p); } const h = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.3, .8, 16, 1, true, Math.PI * .65, Math.PI * .7), mat(0xff8a2b, .8, { side: THREE.DoubleSide })); h.rotation.z = Math.PI / 2; h.position.y = 1.7; h.scale.set(.6, 1, .6); g.add(h); return [g, .3]; }, // hamac
-    () => { const g = new THREE.Group(); const bed = new THREE.Mesh(new THREE.CylinderGeometry(.9, .9, .06, 24), mat(0x222222, .6)); bed.position.y = .45; g.add(bed); const ring = new THREE.Mesh(new THREE.TorusGeometry(.95, .08, 8, 24), mat(0x2e86de, .5)); ring.rotation.x = Math.PI / 2; ring.position.y = .47; g.add(ring); for (let i = 0; i < 4; i++) { const l = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .45, 6), metalMat); l.position.set(Math.cos(i * 1.57) * .9, .22, Math.sin(i * 1.57) * .9); g.add(l); } return [g, 1]; }, // petit trampoline
+    () => { const g = new THREE.Group(), wd = mat(0x8a5a35, .8); for (const [x, z, w, d] of [[0, -.8, 1.7, .12], [0, .8, 1.7, .12], [-.8, 0, .12, 1.7], [.8, 0, .12, 1.7]]) { const b = rbox(w, .25, d, wd, .03); b.position.set(x, .12, z); g.add(b); } const sand = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5), mat(0xf0d9a0, .95)); sand.rotation.x = -Math.PI / 2; sand.position.y = .18; g.add(sand); const bucket = new THREE.Mesh(new THREE.CylinderGeometry(.13, .1, .22, 12), mat(0xe74c3c, .5)); bucket.position.set(.3, .29, .2); g.add(bucket); const castle = new THREE.Mesh(new THREE.ConeGeometry(.18, .3, 8), mat(0xe8c98a, .95)); castle.position.set(-.3, .33, -.2); g.add(castle); const spade = rbox(.06, .02, .4, mat(0x2e86de, .5), .01); spade.position.set(0, .2, .45); spade.rotation.y = .5; g.add(spade); return [g, .9]; }, // bac à sable (à la place du trampoline)
     () => { const g = new THREE.Group(), r = mat(0xe74c3c, .5); const lad = rbox(.5, 1.3, .08, mat(0xffc93c, .5), .02); lad.position.set(0, .65, -.8); g.add(lad); const top = rbox(.6, .08, .5, r, .02); top.position.set(0, 1.3, -.6); g.add(top); const sl = rbox(.5, .06, 1.8, r, .02); sl.position.set(0, .7, .3); sl.rotation.x = .75; g.add(sl); return [g, .7]; }, // toboggan
     () => { const g = new THREE.Group(); const b = new THREE.Mesh(new THREE.ConeGeometry(.18, .35, 12), mat(0x2e86de, .6)); b.position.y = .18; g.add(b); const f = new THREE.Mesh(new THREE.SphereGeometry(.1, 10, 8), mat(0xf5c6a0, .7)); f.position.y = .42; g.add(f); const hat = new THREE.Mesh(new THREE.ConeGeometry(.11, .3, 10), mat(0xe74c3c, .5)); hat.position.y = .62; g.add(hat); const beard = new THREE.Mesh(new THREE.ConeGeometry(.09, .18, 10), mat(0xffffff, .8)); beard.rotation.x = Math.PI; beard.position.set(0, .33, .06); g.add(beard); return [g, .2]; }, // nain de jardin
     () => { const g = new THREE.Group(), wd = mat(0x8a5a35, .8); for (const s of [-1, 1]) { const a = new THREE.Mesh(new THREE.CylinderGeometry(.05, .06, 2.1, 8), wd); a.position.set(s * .8, 1, 0); a.rotation.z = s * .12; g.add(a); } const top = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, 1.9, 8), wd); top.rotation.z = Math.PI / 2; top.position.y = 2.05; g.add(top); for (const s of [-1, 1]) { const ch = new THREE.Mesh(new THREE.CylinderGeometry(.01, .01, 1.5, 4), metalMat); ch.position.set(s * .22, 1.3, 0); g.add(ch); } const seat = rbox(.55, .05, .25, mat(0x27ae60, .5), .02); seat.position.y = .55; g.add(seat); return [g, .9]; }, // balançoire
@@ -2588,6 +2606,56 @@ $("buyList").addEventListener("click", e => { const b = e.target.closest("button
   else { bag.push(em + " " + n); try { localStorage.setItem("pins-sac", JSON.stringify(bag.slice(-60))); } catch (e) {} sfx.duck(); renderBuy(); } });
 $("buyClose").onclick = () => fermer("buyView");
 function openBuy(k) { buyShop = k; renderBuy(); ouvrir("buyView"); }
+/* ---------- Le téléphone 📱 : commander à distance (livré au cottage) et appeler l'accueil ---------- */
+const PHONE_BF = { title: "Burger Fast 🍔", items: [["🍔", "Burger", 4], ["🍟", "Frites", 2], ["🍗", "Nuggets", 3], ["🥤", "Milkshake", 3], ["🍦", "Glace", 2], ["🥗", "Salade", 3]] };
+const PHONE_APPS = [["boul", "🥖", "Boulangerie", "#c47a3a"], ["market", "🛒", "Market Speed", "#27ae60"], ["bf", "🍔", "Burger Fast", "#e74c3c"], ["accueil", "📞", "Accueil", "#2e86de"]];
+const deliveries = [];
+let phoneApp = null;
+function phoneShop(k) { return k === "bf" ? PHONE_BF : BUY[k]; }
+function phoneRender(msg) {
+  const S = $("phoneScreen"), hh = new Date(); const clock = `${String(hh.getHours()).padStart(2, "0")}:${String(hh.getMinutes()).padStart(2, "0")}`;
+  let h = `<div class="ph-top"><span>${clock}</span><span>📶 🔋</span></div>`;
+  if (!phoneApp) {
+    h += `<div class="ph-title">Domaine des Pins</div><div class="ph-apps">` + PHONE_APPS.map(([k, e, n, c]) => `<button class="ph-app" data-app="${k}"><span style="background:${c}">${e}</span>${n}</button>`).join("") + `</div>`;
+    if (deliveries.length) h += `<p class="ph-note">🚲 ${deliveries.length} livraison${deliveries.length > 1 ? "s" : ""} en route vers ton cottage…</p>`;
+  } else if (phoneApp === "accueil") {
+    h += `<div class="ph-title">📞 Accueil du Domaine</div><p class="ph-msg">${msg || "Bonjour, ici l'accueil du Domaine des Pins ! 😊 Comment je peux t'aider ?"}</p><div class="ph-list">`
+      + [["perdu", "🗺️ Je suis perdu"], ["canard", "🦆 Où est un canard ?"], ["anniv", "🎂 Pour un anniversaire"], ["bloque", "🚐 Je suis bloqué, ramenez-moi"], ["merci", "📵 Raccrocher"]].map(([k, t]) => `<button class="ph-item" data-call="${k}">${t}</button>`).join("") + `</div>`;
+  } else {
+    const sh = phoneShop(phoneApp);
+    h += `<div class="ph-title">${sh.title}</div><p class="ph-note">Tu as <b>${money} €</b>. On livre à ton cottage ! 🚲</p><div class="ph-list">`
+      + sh.items.map(([e, n, p], i) => `<button class="ph-item" data-buy="${i}" ${money < p ? "style='opacity:.5'" : ""}>${e} ${n} <b>${p} €</b></button>`).join("") + `</div>`;
+    if (msg) h += `<p class="ph-msg">${msg}</p>`;
+  }
+  if (phoneApp) h += `<button class="ph-home" data-home="1">⬅ Retour</button>`;
+  S.innerHTML = h;
+}
+function phoneOpen() { phoneApp = null; phoneRender(); ouvrir("phoneView"); tone(1318, .06, "sine", .06); tone(1760, .08, "sine", .05, 0, .07); }
+$("phoneBtn").onclick = phoneOpen;
+$("phoneClose").onclick = () => fermer("phoneView");
+$("phoneScreen").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return; tone(1046, .04, "sine", .05);
+  if (b.dataset.home) { phoneApp = null; phoneRender(); return; }
+  if (b.dataset.app) { phoneApp = b.dataset.app; if (phoneApp === "accueil") { phoneRender("📞 Ça sonne… dring… dring…"); [0, .5, 1.4, 1.9].forEach(d => tone(440, .35, "sine", .05, 0, d)); setTimeout(() => { if (phoneApp === "accueil" && !$("phoneView").hidden) phoneRender(); }, 2600); } else phoneRender(); return; }
+  if (b.dataset.buy) { const [em, n, p] = phoneShop(phoneApp).items[+b.dataset.buy];
+    if (money < p) { phoneRender(`Il te manque ${p - money} € pour ${em} ${n}.`); return; }
+    money -= p; saveShop(); updMoney(); deliveries.push({ item: em + " " + n, t: 20 + Math.random() * 10 });
+    [880, 1175].forEach((f, i) => tone(f, .08, "triangle", .07, 0, i * .08)); phoneRender(`✅ Commande envoyée : ${em} ${n} ! Le livreur arrive à ton cottage dans moins d'une minute 🚲`); return; }
+  if (b.dataset.call) { const k = b.dataset.call;
+    if (k === "perdu") phoneRender("Pas de panique ! Ouvre la carte 🗺️ en haut de l'écran : la flèche, c'est toi. Ton cottage est marqué « Ton cottage ». Tu peux aussi suivre les panneaux en bois 🪧.");
+    if (k === "canard") { const d = ducks.filter(d => !d.got); phoneRender(d.length ? `Un vacancier a vu un canard 🦆 du côté de : ${zoneName({ x: d[0].x, z: d[0].z }) || "la forêt, près des chemins"} !` : "Bravo, tu as déjà trouvé tous les canards ! 🏆"); }
+    if (k === "anniv") phoneRender("Pour un anniversaire 🎂 : va dans les salles d'anniversaire du Multi Parcs et souffle les bougies. Ensuite, la piscine des anniversaires (dehors, à côté) est ouverte pour toi ! 🏊");
+    if (k === "bloque") { if (state === "walk" || state === "drive") { if (state === "drive") dismount(); player.position.set(SPAWN.x, 0, SPAWN.z); phoneRender("🚐 La navette de l'accueil t'a ramené devant ton cottage ! À bientôt 👋"); } else phoneRender("Termine d'abord ce que tu fais, puis rappelle-nous ! 😊"); }
+    if (k === "merci") { phoneApp = null; phoneRender(); tone(330, .2, "sine", .05); } }
+});
+// les livraisons arrivent toutes seules, même téléphone fermé
+setInterval(() => { if (!deliveries.length) return; try { if (paused && $("phoneView").hidden) return; } catch (e) { return; } for (const d of deliveries) d.t -= 1;
+  const ready = deliveries.filter(d => d.t <= 0); if (!ready.length) return;
+  for (const d of ready) { deliveries.splice(deliveries.indexOf(d), 1); bag.push(d.item); }
+  try { localStorage.setItem("pins-sac", JSON.stringify(bag.slice(-60))); } catch (e) {}
+  tone(988, .25, "sine", .1); tone(784, .4, "sine", .1, 0, .28); toast(`📦 Ding dong ! Livraison à ton cottage : ${ready.map(d => d.item).join(", ")}. C'est dans ton sac 🎒`, 4200);
+  if (!$("phoneView").hidden && !phoneApp) phoneRender(); }, 1000);
+
 $("progClose").onclick = () => fermer("progView");
 ACCUEIL.where = "🏨 Accueil"; BOULANGERIE.where = "🥖 Boulangerie"; MARKET.where = "🛒 Market Speed";
 
