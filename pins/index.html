@@ -186,7 +186,7 @@ html.app .site{display:none!important}
 </div>
 <div id="prizeView" class="overlay" hidden>
   <div class="card">
-    <h1>Les cadeaux 🎁</h1>
+    <h1 id="prizeTitle">Les cadeaux 🎁</h1>
     <p>Tu as <b id="prizeTickets">0</b> 🎟️ tickets.</p>
     <div id="prizeList" class="prizes"></div>
     <p id="prizeOwned" class="small"></p>
@@ -1631,6 +1631,38 @@ const gtTiles = [];
 for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { const m = new THREE.Mesh(new THREE.PlaneGeometry(.9, .9), new THREE.MeshBasicMaterial({ color: 0xff4fd8 })); m.rotation.x = -Math.PI / 2; m.position.set(-1.5 + i, .05, 2.5 + j); gtG.add(m); gtTiles.push(m); }
 const gtTileCols = [0xff4fd8, 0x2fd3ff, 0xffe066, 0x7cff6b, 0x1b1035];
 // tickets et cadeaux gagnés (gardés sur l'appareil)
+// le distributeur de petites choses, près de l'entrée : pas cher, et certaines font quelque chose !
+const GT_SMALL = [["🍬", "Bonbon", 1, "eat"], ["⭐", "Autocollant étoile", 1], ["🫧", "Bulles de savon", 2, "bubbles"], ["🎵", "Sifflet", 2, "whistle"], ["🎉", "Confettis", 2, "confetti"], ["🪀", "Yo-yo", 3], ["🔑", "Porte-clés", 3], ["🦆", "Mini canard", 4]];
+let prizeMode = "big";
+{
+  const g = new THREE.Group(); g.position.set(-2.8, 0, 7.75); g.rotation.y = Math.PI; gtG.add(g);
+  const body = rbox(1.25, 2.1, .8, mat(0x2fd3ff, .35), .08); body.position.y = 1.05; g.add(body);
+  const win = new THREE.Mesh(new THREE.PlaneGeometry(.9, 1.1), new THREE.MeshStandardMaterial({ color: 0x0b0620, emissive: 0x1b1035, emissiveIntensity: .5 })); win.position.set(-.1, 1.35, .41); g.add(win);
+  const cols = [0xff5a4e, 0xffc93c, 0x7cff6b, 0xff4fd8, 0xffffff, 0xff8a2b];
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { const it = r % 2 ? rbox(.12, .12, .08, mat(cols[(r + c) % 6], .4), .03) : new THREE.Mesh(new THREE.SphereGeometry(.07, 10, 8), mat(cols[(r * 2 + c) % 6], .4)); it.position.set(-.43 + c * .22, .95 + r * .26, .43); g.add(it); }
+  const glass = new THREE.Mesh(new THREE.PlaneGeometry(.95, 1.15), new THREE.MeshStandardMaterial({ color: 0xcfeefa, transparent: true, opacity: .2, roughness: .05, depthWrite: false })); glass.position.set(-.1, 1.35, .47); g.add(glass);
+  const pad = rbox(.22, .5, .06, mat(0x1b1035, .4), .02); pad.position.set(.45, 1.35, .43); g.add(pad);
+  for (let i = 0; i < 3; i++) { const bt = new THREE.Mesh(new THREE.CylinderGeometry(.035, .035, .03, 10), new THREE.MeshStandardMaterial({ color: cols[i], emissive: cols[i], emissiveIntensity: .6 })); bt.rotation.x = Math.PI / 2; bt.position.set(.45, 1.5 - i * .13, .47); g.add(bt); }
+  const tray = rbox(.7, .18, .1, mat(0x1b1035, .4), .03); tray.position.set(-.1, .5, .42); g.add(tray);
+  const sign = label("Petites choses 🎟️", "#2fd3ff", "#1b1035", .8); sign.position.set(0, 2.55, .2); g.add(sign);
+  shadowAll(g); const [wx, wz] = gw(-2.8, 7.75); boxes.push({ x1: wx - .7, x2: wx + .7, z1: wz - .45, z2: wz + .45 }); GT_SMALL.front = [wx, wz - 1.2];
+}
+// petits effets : bulles et confettis autour de toi, pendant quelques secondes
+function petitEffet(kind) {
+  const P = player.position, parts = [], cols = [0xff5a4e, 0xffc93c, 0x2fd3ff, 0x7cff6b, 0xff4fd8];
+  for (let i = 0; i < (kind === "bubbles" ? 26 : 60); i++) {
+    const m = kind === "bubbles" ? new THREE.Mesh(new THREE.SphereGeometry(.08 + Math.random() * .08, 12, 8), new THREE.MeshStandardMaterial({ color: 0xdff6ff, transparent: true, opacity: .45, roughness: .05, metalness: .3 }))
+      : new THREE.Mesh(new THREE.PlaneGeometry(.09, .05), new THREE.MeshBasicMaterial({ color: cols[i % 5], side: THREE.DoubleSide }));
+    const a = Math.random() * 6.28, r = Math.random() * .8; m.position.set(P.x + Math.cos(a) * r, P.y + (kind === "bubbles" ? 1 : 2.4), P.z + Math.sin(a) * r); scene.add(m);
+    parts.push({ m, vx: (Math.random() - .5) * (kind === "bubbles" ? .6 : 2.4), vy: kind === "bubbles" ? .4 + Math.random() * .5 : 1.5 + Math.random() * 2, vz: (Math.random() - .5) * (kind === "bubbles" ? .6 : 2.4), ph: Math.random() * 6 });
+  }
+  let t0 = performance.now(), last = t0;
+  const step = now => { const dt = Math.min(.05, (now - last) / 1000), t = (now - t0) / 1000; last = now;
+    for (const p of parts) { if (kind === "bubbles") { p.m.position.x += (p.vx + Math.sin(t * 2 + p.ph) * .2) * dt; p.m.position.y += p.vy * dt; p.m.position.z += p.vz * dt; }
+      else { p.vy -= 4 * dt; p.m.position.x += p.vx * dt; p.m.position.y = Math.max(.02, p.m.position.y + p.vy * dt); p.m.position.z += p.vz * dt; p.m.rotation.x += dt * 6; p.m.rotation.y += dt * 4; } }
+    if (t < 5) requestAnimationFrame(step); else for (const p of parts) { scene.remove(p.m); p.m.geometry.dispose(); p.m.material.dispose(); } };
+  requestAnimationFrame(step);
+}
 const GT_PRIZES = [["🍭", "Sucette", 5], ["🎈", "Ballon", 10], ["🧸", "Ourson", 20], ["🤖", "Robot", 35], ["🚀", "Fusée", 50], ["👑", "Couronne", 80]];
 let gtData = { tickets: 0, owned: [] };
 try { const s = JSON.parse(localStorage.getItem("pins-gametown") || "null"); if (s && Number.isFinite(s.tickets) && Array.isArray(s.owned)) gtData = { tickets: Math.max(0, Math.floor(s.tickets)), owned: s.owned.filter(o => typeof o === "string").slice(0, 200) }; } catch (e) {}
@@ -1665,14 +1697,19 @@ function clawPlay() {
   gtAddTickets(-3); gtClaw.t = 0; gtClaw.win = Math.random() < .45; gtClaw.x = (Math.random() - .5) * .9; gtClaw.z = (Math.random() - .5) * .7; whoosh(.8, .05, 400, 900); toast("La pince descend… 🤞", 1600);
 }
 function renderPrizes() {
+  const L = prizeMode === "small" ? GT_SMALL : GT_PRIZES; $("prizeTitle").textContent = prizeMode === "small" ? "Petites choses 🍬" : "Les cadeaux 🎁";
   $("prizeTickets").textContent = gtData.tickets;
-  $("prizeList").innerHTML = GT_PRIZES.map(([e, n, c], i) => `<button class="btn" data-p="${i}" style="background:${gtData.tickets >= c ? "#8e44ad" : "#9aa0b4"}">${e} ${n}<br><small>${c} 🎟️</small></button>`).join("");
+  $("prizeList").innerHTML = L.map(([e, n, c], i) => `<button class="btn" data-p="${i}" style="background:${gtData.tickets >= c ? "#8e44ad" : "#9aa0b4"}">${e} ${n}<br><small>${c} 🎟️</small></button>`).join("");
   const counts = {}; gtData.owned.forEach(o => counts[o] = (counts[o] || 0) + 1);
   $("prizeOwned").textContent = gtData.owned.length ? "Tes cadeaux : " + Object.entries(counts).map(([o, n]) => n > 1 ? `${o} ×${n}` : o).join(", ") : "Tu n'as pas encore de cadeau.";
 }
-$("prizeList").addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if (!b) return; const [em, n, c] = GT_PRIZES[+b.dataset.p];
+$("prizeList").addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if (!b) return; const [em, n, c, fx] = (prizeMode === "small" ? GT_SMALL : GT_PRIZES)[+b.dataset.p];
   if (gtData.tickets < c) { $("prizeOwned").textContent = `Il te manque ${c - gtData.tickets} tickets pour ${em} ${n}. Joue encore un peu !`; tone(260, .2, "triangle", .08); return; }
-  gtData.tickets -= c; gtData.owned.push(em + " " + n); gtSave(); sfx.win(); renderPrizes(); });
+  gtData.tickets -= c;
+  if (fx === "eat") { gtSave(); renderPrizes(); [160, 150, 170].forEach((f, i) => tone(f, .07, "square", .05, 0, i * .15)); $("prizeOwned").textContent = "Miam, un bonbon ! 😋"; return; }
+  if (fx === "whistle") { gtData.owned.push(em + " " + n); gtSave(); renderPrizes(); tone(2100, .18, "sine", .12, 300); tone(2400, .25, "sine", .12, -400, .2); $("prizeOwned").textContent = "Tuuuut ! 🎵 Ton sifflet est dans ton sac."; return; }
+  if (fx === "bubbles" || fx === "confetti") { gtSave(); fermer("prizeView"); petitEffet(fx); sfx.win(); toast(fx === "bubbles" ? "Des bulles partout ! 🫧" : "Youpi, des confettis ! 🎉", 2200); return; }
+  gtData.owned.push(em + " " + n); gtSave(); prizeMode === "small" ? tone(880, .1, "triangle", .1) : sfx.win(); renderPrizes(); });
 $("prizeClose").onclick = () => fermer("prizeView");
 gtSave();
 // les trois mini-jeux d'arcade, dessinés sur un canvas
@@ -3113,7 +3150,7 @@ const npcs = [
   { name: "Paul, le garde forestier", pos: [40, -10], o: { shirt: 0x6d8b3a, hair: 0x555555, cap: 0x4b6328, skin: 0xc68e6a }, lines: ["Bonjour, aventurier !", "Au ponton du lac, tu peux prendre le pédalo. Un canard flotte au milieu du lac !", "Ouvre la carte pour voir où ils se cachent. Les points jaunes, ce sont eux !", "Au bout du chemin, il y a l'aquarium ! Va voir Bubulle le requin 🦈"] },
   { name: "Nina, la soigneuse", pos: aqW(-4.4, 3.2), o: { shirt: 0x1f8fae, pants: 0x2d3436, hair: 0x2d2018, long: true, skin: 0xc68e6a }, lines: ["Bienvenue à l'aquarium ! Moi c'est Nina, je m'occupe des poissons.", "Le gros poisson gris, c'est Bubulle le requin. Il est très gentil !", "Tu as vu la tortue de mer ? Elle s'appelle Pistache 🐢", "Les méduses roses brillent dans le grand bassin du milieu.", "Approche-toi du grand bassin et appuie sur Nourrir les poissons 🐟"] },
   { name: "Tom, l'animateur", pos: bw(-3, 9.5), o: { shirt: 0xff8a2b, pants: 0x2e86de, hair: 0x8b4513, cap: 0x27ae60 }, lines: ["Salut ! Bienvenue au Multi Parcs ! 🎈", "Monte les marches de la grande structure, passe dans le tunnel et grimpe tout en haut.", "Il y a trois toboggans : le colimaçon tout en haut, le toboggan rapide au 2e étage et le toboggan à vagues au 1er !", "Les six trampolines sont au fond : saute dessus, tu vas rebondir très haut !", "Si tu as soif, va au bar à goûter ! 🧃", "Et la piscine à balles… plonge dedans ! On rentre par l'ouverture sur le côté."] },
-  { name: "Léon, du Multi Parcs", pos: gw(2.6, 7.2), o: { shirt: 0x8e44ad, pants: 0x1b1035, hair: 0x111111, cap: 0xff4fd8, skin: 0xd9a27a }, lines: ["Bienvenue au Multi Parcs ! Ici, ce sont les jeux d'arcade 🎮", "Les toboggans et les trampolines sont juste derrière, par la porte du fond 🎈", "Approche-toi d'une borne et appuie sur Jouer. Il y a Tape-Taupe, Panier Magique et Attrape-Étoiles !", "Chaque partie te fait gagner des tickets 🎟️.", "Avec 3 tickets, tu peux essayer la machine à pince… si tu as de la chance, tu gagnes une peluche !", "Au comptoir des cadeaux, au fond, tu échanges tes tickets contre des cadeaux 🎁"] },
+  { name: "Léon, du Multi Parcs", pos: gw(2.6, 7.2), o: { shirt: 0x8e44ad, pants: 0x1b1035, hair: 0x111111, cap: 0xff4fd8, skin: 0xd9a27a }, lines: ["Bienvenue au Multi Parcs ! Ici, ce sont les jeux d'arcade 🎮", "Les toboggans et les trampolines sont juste derrière, par la porte du fond 🎈", "Approche-toi d'une borne et appuie sur Jouer. Il y a Tape-Taupe, Panier Magique et Attrape-Étoiles !", "Chaque partie te fait gagner des tickets 🎟️.", "Avec 3 tickets, tu peux essayer la machine à pince… si tu as de la chance, tu gagnes une peluche !", "Au comptoir des cadeaux, au fond, tu échanges tes tickets contre des cadeaux 🎁", "Près de l'entrée, le distributeur de petites choses : bonbons, bulles, confettis… pour quelques tickets 🍬"] },
   { name: "Zoé, de Burger Fast", pos: fw(-1.2, -4.4), o: { shirt: 0xff7a2f, pants: 0x1f9e8f, hair: 0x5a3a22, long: true, cap: 0xff7a2f }, lines: ["Bienvenue chez Burger Fast ! 🍔", "Approche-toi de la caisse et appuie sur Commander pour choisir ton menu.", "Quand ta commande est prête, viens chercher ton plateau au bout du comptoir.", "Ensuite, va t'asseoir à une table pour manger. Bon appétit ! 😋"] },
   { name: "Margot, de l'accueil", pos: ACCUEIL.w(0, 2.3), o: { shirt: 0x2e86de, pants: 0x2d3436, hair: 0xd4a017, long: true }, lines: ["Bonjour et bienvenue au Domaine des Pins ! 😊", "Ici, je t'explique ce qui va se passer pendant tes vacances, et quoi faire si tu as un problème.", "Approche-toi du comptoir et appuie sur Le programme pour tout lire.", "Le grand plan du domaine est accroché au mur, derrière moi !"] },
   { name: "Hugo, moniteur d'acrobranche", pos: [-140.3, 103.4], o: { shirt: 0x27ae60, pants: 0x3b5998, hair: 0x5a3a22, cap: 0xff5a4e, skin: 0xe0ac85 }, lines: ["Salut ! Bienvenue à l'acrobranche 🧗", "D'abord, il faut ton baudrier et ton casque : approche-toi du comptoir.", "Ensuite tu montes l'échelle, tu passes les ponts dans les arbres…", "…et tu redescends par la tyrolienne ! 🪂"] },
@@ -3565,7 +3602,7 @@ function doAct(a) {
   if (/^bf(order|pick|eat)$/.test(a)) { bfAct(a); return; }
   if (/^gt\d$/.test(a)) { openArcade(GT_CABS[+a.slice(2)].k); return; }
   if (a === "claw") { clawPlay(); return; }
-  if (a === "prizes") { renderPrizes(); ouvrir("prizeView"); return; }
+  if (a === "prizes" || a === "small") { prizeMode = a === "small" ? "small" : "big"; renderPrizes(); ouvrir("prizeView"); return; }
   if (/^balo\d$/.test(a)) { state = "ride"; riding = { curve: BSLIDES[+a.slice(4)].curve, u: 0, dry: true, msg: "Youpi ! 🎈" }; $("dialog").hidden = true; talking = null; sfx.slide(); toast("Wiiiiii ! 🛝", 1600); return; }
   if (a === "mount" && mountT) { mountVeh(mountT); return; }
   if (a === "dismount") { dismount(); return; }
@@ -4407,7 +4444,8 @@ function loop() {
     if (state === "walk") BSLIDES.forEach((b, i) => { if (P.y > b.y0 && P.y < b.y1 && Math.hypot(P.x - b.x, P.z - b.z) < 1.3) offer("balo" + i, b.name); });
     if (state === "walk" && P.y < 1 && inGameTown(P.x, P.z)) { GT_CABS.forEach((c, i) => { if (Math.hypot(P.x - c.x, P.z - c.z) < 1.1) offer("gt" + i, "🕹️ Jouer à " + GT_GAMES[c.k].name); });
       if (Math.hypot(P.x - gtClaw.front[0], P.z - gtClaw.front[1]) < 1.3) offer("claw", "🧸 Pince à peluches (3 🎟️)");
-      if (Math.hypot(P.x - (GTW.x + 4.2), P.z - (GTW.z + 5.3)) < 2.2) offer("prizes", "🎁 Échanger mes tickets"); }
+      if (Math.hypot(P.x - (GTW.x + 4.2), P.z - (GTW.z + 5.3)) < 2.2) offer("prizes", "🎁 Échanger mes tickets");
+      if (Math.hypot(P.x - GT_SMALL.front[0], P.z - GT_SMALL.front[1]) < 1.3) offer("small", "🍬 Petites choses (tickets)"); }
     honkCar = null; if (state === "walk" && P.y < 1 && inRect(PARK, P.x, P.z)) { honkCar = PARK_CARS.find(c => Math.hypot(P.x - c.x, P.z - c.z) < 2.9) || null; if (honkCar) offer("honk", "📯 Klaxonner"); }
     if (state === "walk" && P.y < 1) { if (ACCUEIL.in(P.x, P.z) && Math.hypot(P.x - ACCUEIL.x, P.z - (ACCUEIL.z - .1)) < 1.9) offer("prog", "📋 Le programme");
       if (BOULANGERIE.in(P.x, P.z) && Math.hypot(P.x - BOULANGERIE.x, P.z - (BOULANGERIE.z - .4)) < 2.6) offer("boul", "🥐 Acheter");
