@@ -4144,6 +4144,7 @@ function makeKart(col) {
     const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r, w, 22), tire); t.rotation.z = Math.PI / 2; wg.add(t); const h = new THREE.Mesh(new THREE.CylinderGeometry(r * .55, r * .55, w + .01, 14), rim); h.rotation.z = Math.PI / 2; wg.add(h); g.add(wg); wheels.push(wg); }
   g.userData.wheels = wheels; g.rotation.order = "YXZ"; return shadowAll(g);
 }
+const BIKE_LIFT = .055;
 function makeBike(col) {
   const g = new THREE.Group(), fm = mat(col, .3, { metalness: .4 }), dark = mat(0x1d1d1d, .7), steel = mat(0xcfd3d6, .3, { metalness: .8 }), R = .31;
   const tube = (a, b, r, m) => { const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b), d = B.clone().sub(A), c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, d.length(), 10), m); c.position.copy(A).addScaledVector(d, .5); c.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); g.add(c); return c; };
@@ -4160,6 +4161,7 @@ function makeBike(col) {
   const ring = new THREE.Mesh(new THREE.TorusGeometry(.09, .012, 6, 24), steel); ring.rotation.y = Math.PI / 2; ring.position.set(.05, .3, -.02); g.add(ring);
   const crank = new THREE.Group(); crank.position.set(0, .3, -.02); for (const s of [-1, 1]) { const arm = rbox(.02, .17, .03, steel, .008); arm.position.set(s * .09, s * .08, 0); crank.add(arm); const ped = rbox(.1, .025, .07, dark, .01); ped.position.set(s * .14, s * .16, 0); crank.add(ped); } g.add(crank);
   const guard = new THREE.Mesh(new THREE.TorusGeometry(R + .05, .02, 6, 30, Math.PI * .7), fm); guard.rotation.set(0, Math.PI / 2, 0); guard.position.set(0, R, -.52); guard.rotation.z = .3; g.add(guard);
+  for (const c of g.children) c.position.y += BIKE_LIFT; // le pneu posé sur le sol (et sur les chemins, 2 cm plus haut), sans s'enfoncer
   g.userData = { wheels, crank }; g.rotation.order = "YXZ"; shadowAll(g);
   // un vélo, c'est 57 petites pièces (rayons, tubes…) : chaque roue, le pédalier et le cadre deviennent chacun 2 ou 3 maillages
   for (const w of wheels) fondre(w, [], "velo-roue"); fondre(crank, [], "velo-pedalier"); return fondre(g, [...wheels, crank]);
@@ -6943,12 +6945,12 @@ await souffle(78,"On gonfle les bouées…");
 /* ================= Nouveautés : vélos, karts, poney, animaux, chat, rivière, terrasse ================= */
 // de la vie : deux cyclistes sur la grande allée, deux karts qui tournent, des baigneurs sur des bouées
 const cyclists = [0, 1].map(i => { const g = makeBike([0x16a085, 0xe67e22][i]), rider = person({ lite: true, shirt: [0xe74c3c, 0x9b59b6][i], pants: 0x34495e, shorts: true, skin: C_SKIN[i * 2], hair: C_HAIR[i + 1], long: i === 1, scale: .7, seed: 77 + i });
-  rider.position.set(0, .24, -.27); g.add(rider); scene.add(g); const c = { g, rider, x: i ? 40 : -40, z: i ? 30.8 : 29.2, dir: i ? -1 : 1, v: 4.2, r: .6, ca: 0, ring: 0 }; movers.push(c); return c; });
+  rider.position.set(0, .24 + BIKE_LIFT, -.27); g.add(rider); scene.add(g); const c = { g, rider, x: i ? 40 : -40, z: i ? 30.8 : 29.2, dir: i ? -1 : 1, v: 4.2, r: .6, ca: 0, ring: 0 }; movers.push(c); return c; });
 const aiKarts = []; // plus de circuit de karts
 const floaters = [.12, .4, .58, .9].map((u, i) => { const b = makeBuoy(), g = bather(i % 2 === 1); g.visible = true; b.add(g); g.position.set(0, -.3, 0); scene.add(b); return { b, g, u, lat: (rnd() - .5) * 1.4, spin: rnd() * 6 }; });
 const myBuoy = makeBuoy(); myBuoy.visible = false; scene.add(myBuoy);
 // réglages de conduite : vitesse, accélération, virage, place du pilote
-const VK = { cart: { max: 7.5, acc: 2.4, turn: 2.4, y: .25, z: -.05, x: .3, mode: "kart" }, car: { max: 13, acc: 2.2, turn: 1.9, y: .17, z: .15, x: .42, mode: "kart" }, bike: { max: 7.5, acc: 1.5, turn: 2.6, y: .33, z: -.27, mode: "bike" }, kart: { max: 10, acc: 2, turn: 2.4, y: -.2, z: -.3, mode: "kart" }, pony: { max: 6.5, acc: 1.3, turn: 2.1, y: 1.03, z: .05, mode: "saddle" } };
+const VK = { cart: { max: 7.5, acc: 2.4, turn: 2.4, y: .25, z: -.05, x: .3, mode: "kart" }, car: { max: 13, acc: 2.2, turn: 1.9, y: .17, z: .15, x: .42, mode: "kart" }, bike: { max: 7.5, acc: 1.5, turn: 2.6, y: .33 + BIKE_LIFT, z: -.27, mode: "bike" }, kart: { max: 10, acc: 2, turn: 2.4, y: -.2, z: -.3, mode: "kart" }, pony: { max: 6.5, acc: 1.3, turn: 2.1, y: 1.03, z: .05, mode: "saddle" } };
 let domeLieT = null, seatOffer = null, veh = null, engine = null, mountT = null, petT = null, seatT = null, riv = null, food = null, chestGot = false, musWant = "foret";
 function inp() { let ix = jx, iy = jy; if (!paused) { if (keys["arrowup"] || keys["z"] || keys["w"]) iy = -1; if (keys["arrowdown"] || keys["s"]) iy = 1; if (keys["arrowleft"] || keys["q"] || keys["a"]) ix = -1; if (keys["arrowright"] || keys["d"]) ix = 1; } else ix = iy = 0; return [ix, iy]; }
 function engineOn() { if (!actx || engine) return; try { const o = actx.createOscillator(), o2 = actx.createOscillator(), lp = actx.createBiquadFilter(), g = actx.createGain(); o.type = "sawtooth"; o2.type = "square"; lp.type = "lowpass"; lp.frequency.value = 520; g.gain.value = 0;
