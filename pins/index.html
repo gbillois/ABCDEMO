@@ -699,9 +699,24 @@ const causticTex = (() => { const S = 256, c = document.createElement("canvas");
 const caustics = [];
 function causticLayer(geo, x, y, z, rx, ry, k) { for (let l = 0; l < 2; l++) { const t = causticTex.clone(); t.repeat.set(rx * (l ? 1.3 : 1), ry * (l ? 1.3 : 1)); const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: t, color: 0xc8f4ff, transparent: true, opacity: k, blending: THREE.AdditiveBlending, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.position.set(x, y + l * .005, z); scene.add(m); caustics.push({ t, d: l ? -1 : 1 }); } }
 causticLayer(new THREE.PlaneGeometry(PW, PD), PCX, -1.78, PCZ, PW / 5, PD / 5, .32);
-const poolWater = new THREE.Mesh(new THREE.PlaneGeometry(PW, PD), new THREE.MeshStandardMaterial({ color: 0x42cbef, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.55, normalMap: waterNormal, normalScale: new THREE.Vector2(0.35, 0.35) }));
+const poolWater = new THREE.Mesh(new THREE.PlaneGeometry(PW, PD, 64, 36), new THREE.MeshStandardMaterial({ color: 0x42cbef, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.55, normalMap: waterNormal, normalScale: new THREE.Vector2(0.35, 0.35) }));
 poolWater.material.normalMap = waterNormal.clone(); poolWater.material.normalMap.repeat.set(PW / 6, PD / 6);
 poolWater.rotation.x = -Math.PI / 2; poolWater.position.set(PCX, -0.22, PCZ); poolWater.renderOrder = 1; scene.add(poolWater);
+// la piscine à vagues : toutes les 5 minutes, une minute de vagues qui partent du fond de la grande piscine
+const WAVES = { every: 300, dur: 60, next: 90, t: -1, amp: 0, warned: false, boomT: 0 };
+function poolWaveH(x, z) { if (WAVES.amp <= 0) return 0; const ex = Math.min(x - POOL.x1, POOL.x2 - x), ez = Math.min(z - POOL.z1, POOL.z2 - z), edge = Math.max(0, Math.min(1, ex / 1.5, ez / 1.2));
+  return .26 * WAVES.amp * edge * Math.sin((x - POOL.x1) * 1.05 - WAVES.t * 2.3); }
+function updateWaves(dt, P) {
+  const inD = Math.hypot(P.x - DOME.x, P.z - DOME.z) < DOME.r + 10;
+  if (WAVES.t < 0) { WAVES.next -= dt;
+    if (WAVES.next < 6 && !WAVES.warned) { WAVES.warned = true; if (inD) { toast("🌊 Attention : les vagues arrivent dans la grande piscine !", 3000); tone(220, .5, "sawtooth", .07); tone(220, .5, "sawtooth", .07, 0, .7); } }
+    if (WAVES.next <= 0) { WAVES.t = 0; WAVES.warned = false; if (inD) toast("🌊 Les vagues ! Saute dans la grande piscine !", 2600); } }
+  else { WAVES.t += dt; WAVES.amp = Math.min(1, WAVES.t / 4, (WAVES.dur - WAVES.t) / 4);
+    WAVES.boomT -= dt; if (inD && WAVES.boomT < 0) { WAVES.boomT = 2.7; whoosh(1.6, .08, 300, 120); }
+    if (WAVES.t >= WAVES.dur) { WAVES.t = -1; WAVES.amp = 0; WAVES.next = WAVES.every - WAVES.dur; if (inD) toast("Les vagues sont finies. Elles reviennent dans 5 minutes ! 🌊", 2600); } }
+  const pos = poolWater.geometry.attributes.position; if (WAVES.amp > 0 || WAVES.flat === false) { WAVES.flat = WAVES.amp <= 0;
+    for (let i = 0; i < pos.count; i++) pos.setZ(i, poolWaveH(PCX + pos.getX(i), PCZ - pos.getY(i))); pos.needsUpdate = true; poolWater.geometry.computeVertexNormals(); }
+}
 const coping = mat(0xf7f4ee, 0.5);
 [[PCX, POOL.z1 - .3, PW + 1.2, .7], [PCX, POOL.z2 + .3, PW + 1.2, .7], [POOL.x1 - .3, PCZ, .7, PD], [POOL.x2 + .3, PCZ, .7, PD]].forEach(([x, z, w, d]) => { const b = rbox(w, .22, d, coping, .08); b.position.set(x, .1, z); b.receiveShadow = true; scene.add(b); });
 // échelles de sortie de la piscine
@@ -6631,7 +6646,7 @@ function loop() {
       if (!swimming && state === "walk") { stepAcc += dt * s; if (stepAcc > .32) { stepAcc = 0; if (inCottage || inDome) sfx.step(); } }
     }
     if (state === "top") { const t = tower, dx = P.x - t.cx, dz = P.z - t.cz, d = Math.hypot(dx, dz); if (d > 2.25) { P.x = t.cx + dx / d * 2.25; P.z = t.cz + dz / d * 2.25; } if (d < 1e-3) P.x += .01; P.y = 9.95; }
-    else { const wasOn = prev.y > .6 && surfAt(prev.x, prev.z, prev.y) !== null; resolve(P, prev); if (wasOn && surfAt(P.x, P.z, prev.y) === null) { P.x = prev.x; P.z = prev.z; } swimming = inPoolRect(P.x, P.z); if (!swimming) swimFast = false; P.y = swimming ? (swimFast ? -.42 : -.98) + Math.sin(time * 3) * .04 : floorY(P); }
+    else { const wasOn = prev.y > .6 && surfAt(prev.x, prev.z, prev.y) !== null; resolve(P, prev); if (wasOn && surfAt(P.x, P.z, prev.y) === null) { P.x = prev.x; P.z = prev.z; } swimming = inPoolRect(P.x, P.z); if (!swimming) swimFast = false; P.y = swimming ? (swimFast ? -.42 : -.98) + Math.sin(time * 3) * .04 + poolWaveH(P.x, P.z) : floorY(P); }
     if (swimming) animPerson(player, swimFast ? "swim" : "tread", time * 4); else if (L > .08) animPerson(player, "walk", walkT, sp * Math.min(L, 1)); else animPerson(player, "idle", 0);
   }
   afterWalkJump(dt);
@@ -6757,7 +6772,7 @@ function loop() {
   streamTex.offset.y = -time * 1.6;
   liveFace(player, dt); liveFace(swimmer, dt); npcs.forEach(n => liveFace(n.g, dt)); if (net) for (const o of net.autres.values()) liveFace(o.g, dt);
   // décor vivant
-  poolWater.material.normalMap.offset.set(time * .02, time * .013); lakeN.offset.set(time * .01, -time * .007);
+  updateWaves(dt, P); poolWater.material.normalMap.offset.set(time * .02, time * .013); lakeN.offset.set(time * .01, -time * .007);
   if (lake.material.uniforms) lake.material.uniforms.time.value += dt * .5;
   const ba = time * .08; boat.position.set(LAKE.x + Math.cos(ba) * LAKE.r * .55, .02, LAKE.z + Math.sin(ba) * LAKE.r * .55); boat.rotation.y = Math.atan2(-Math.sin(ba), Math.cos(ba)); boat.position.y = Math.sin(time * 2) * .04;
   if (myCottage.g.userData.flag) { const f = myCottage.g.userData.flag.geometry.attributes.position; for (let i = 0; i < f.count; i++) { const x = f.getX(i); f.setZ(i, Math.sin(x * 3 - time * 5) * .12 * (x + .8)); } f.needsUpdate = true; }
