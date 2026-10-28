@@ -1017,7 +1017,9 @@ function lounger(x, z, ry) {
   g.add(frame, cushion, back); for (const sx of [-.3, .3]) for (const sz of [-.8, .8]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .38), metalMat); leg.position.set(sx, .19, sz); g.add(leg); }
   g.position.set(x, 0, z); g.rotation.y = ry; shadowAll(g); scene.add(g); const side = Math.abs(Math.sin(ry)) > .5; boxes.push(side ? { x1: x - 1, x2: x + 1, z1: z - .5, z2: z + .5 } : { x1: x - .5, x2: x + .5, z1: z - 1, z2: z + 1 });
 }
-[-6, -2, 2, 6, 10, 14].forEach(x => lounger(x, -23.5, Math.PI)); [-31, -35, -39, -43].forEach(z => lounger(-15.2, z, Math.PI / 2));
+const DOME_LOUNGERS = []; // on peut s'y allonger (sauf ceux où un vacancier bronze déjà)
+[-6, -2, 2, 6, 10, 14].forEach(x => { lounger(x, -23.5, Math.PI); if (x !== 6) DOME_LOUNGERS.push({ x, z: -23.5, ry: Math.PI }); }); [-31, -35, -39, -43].forEach(z => { lounger(-15.2, z, Math.PI / 2); if (z !== -35 && z !== -43) DOME_LOUNGERS.push({ x: -15.2, z, ry: Math.PI / 2 }); });
+const lzW = (L, lx, lz) => [L.x + lx * Math.cos(L.ry) + lz * Math.sin(L.ry), L.z - lx * Math.sin(L.ry) + lz * Math.cos(L.ry)];
 
 // entrée vitrée avec portes automatiques
 const vest = new THREE.Group(); scene.add(vest);
@@ -1929,7 +1931,7 @@ await souffle(39, "On allume la salle d'arcade…");
 // Repère local : bornes d'arcade le long des murs est et ouest, air hockey au milieu, pince et piste lumineuse près de l'entrée, cadeaux à l'est.
 const GTW = { x: 86.5, z: 19.6, hx: 6.5, hz: 8.5, h: 5.5, door: 1.2 };
 const gw = (lx, lz) => [GTW.x + lx, GTW.z + lz];
-const inArcade = (x, z) => Math.abs(x - GTW.x) < GTW.hx - .2 && Math.abs(z - GTW.z) < GTW.hz - .2;
+const inArcade = (x, z) => Math.abs(x - GTW.x) < GTW.hx - .2 && Math.abs(z - GTW.z) < GTW.hz - .2 || (typeof GT_ANNEX !== "undefined" && x > GT_ANNEX.x1 - .2 && x < GT_ANNEX.x2 - .2 && z > GT_ANNEX.z1 + .2 && z < GT_ANNEX.z2 - .2);
 path(gw(0, GTW.hz + .3), [GTW.x, 30], 2.6);
 const gtG = new THREE.Group(); gtG.position.set(GTW.x, 0, GTW.z); scene.add(gtG);
 const gtWallTex = tex(512, (x, s) => {
@@ -1948,11 +1950,11 @@ const gtCarpetTex = tex(256, (x, s) => {
   const { hx, hz, h, door } = GTW, wallMat = mat(0xffffff, .8, { map: gtWallTex });
   const wall = (x1, x2, z1, z2, y0 = 0, y1 = h) => { const w = x2 - x1, d = z2 - z1, hh = y1 - y0, m = new THREE.Mesh(new THREE.BoxGeometry(w, hh, d), wallMat); m.position.set((x1 + x2) / 2, (y0 + y1) / 2, (z1 + z2) / 2); m.receiveShadow = true; gtG.add(m); };
   // le mur sud est celui de la grande salle de jeux (avec sa porte automatique) : on ne le double pas
-  wall(-hx - .15, -hx + .15, -hz, hz); wall(hx - .15, hx + .15, -hz, hz);
+  wall(-hx - .15, -hx + .15, -hz, hz); wall(hx - .15, hx + .15, -hz, -.3); wall(hx - .15, hx + .15, 2.5, hz); wall(hx - .15, hx + .15, -.3, 2.5, 3.3, h); // une grande ouverture vers la salle n°2
   wall(-hx, -door, hz - .15, hz + .15); wall(door, hx, hz - .15, hz + .15); wall(-door, door, hz - .15, hz + .15, 3.3, h);
   gtG.userData.wallMat = wallMat;
   const [x1, z1] = gw(-hx, -hz), [x2, z2] = gw(hx, hz);
-  boxes.push({ x1: x1 - .15, x2: x1 + .15, z1, z2 }, { x1: x2 - .15, x2: x2 + .15, z1, z2 },
+  boxes.push({ x1: x1 - .15, x2: x1 + .15, z1, z2 }, { x1: x2 - .15, x2: x2 + .15, z1, z2: GTW.z - .3 }, { x1: x2 - .15, x2: x2 + .15, z1: GTW.z + 2.5, z2 },
     { x1, x2: GTW.x - door, z1: z2 - .15, z2: z2 + .15 }, { x1: GTW.x + door, x2, z1: z2 - .15, z2: z2 + .15 });
   const db = { x1: GTW.x - door, x2: GTW.x + door, z1: z2 - .1, z2: z2 + .1, off: false }; boxes.push(db); gtG.userData.doorBox = db;
   gtG.userData.doors = [-1, 1].map(s => { const d = new THREE.Mesh(new THREE.BoxGeometry(door, 3.1, .08), glassMat.clone()); d.material.opacity = .5; d.material.color.set(0xff9bea); d.position.set(s * door / 2, 1.55, hz); gtG.add(d); return { m: d, s }; });
@@ -1989,7 +1991,7 @@ function drawScreens(time) {
 drawScreens(0);
 const GT_CABS = [];
 {
-  const spots = [[5.6, -6.5, 0], [5.6, -4.1, 1], [5.6, -1.7, 2], [5.6, .7, 3], [-5.6, -.5, 1], [-5.6, 1.9, 2], [-5.6, 4.3, 3]];
+  const spots = [[5.6, -6.5, 0], [5.6, -4.1, 1], [5.6, -1.7, 2], [-5.6, -.5, 1], [-5.6, 1.9, 2], [-5.6, 4.3, 3]];
   for (const [lx, lz, k] of spots) {
     const face = lx < 0 ? 1 : -1, g = new THREE.Group(); g.position.set(lx, 0, lz); g.rotation.y = face * Math.PI / 2; gtG.add(g);
     const gm = GT_GAMES[k], body = rbox(1.3, 2.3, .95, mat(0x1b1035, .5), .1); body.position.y = 1.15; g.add(body);
@@ -2005,6 +2007,40 @@ const GT_CABS = [];
     GT_CABS.push({ k, x: wx + face * 1.25, z: wz, face: face > 0 ? -Math.PI / 2 : Math.PI / 2 });
   }
 }
+// la deuxième salle d'arcade, à côté (on y passe par la grande ouverture du mur est) : encore plus de bornes !
+const GT_ANNEX = { x1: GTW.x + GTW.hx, x2: GTW.x + GTW.hx + 11, z1: GTW.z - GTW.hz, z2: GTW.z + GTW.hz };
+ZONES.push({ x1: GT_ANNEX.x1, x2: GT_ANNEX.x2 + 2, z1: GT_ANNEX.z1, z2: GT_ANNEX.z2 + 1.5 });
+function buildCab(parent, lx, lz, k, face) {
+  const g = new THREE.Group(); g.position.set(lx, 0, lz); g.rotation.y = face; parent.add(g);
+  const gm = GT_GAMES[k], body = rbox(1.3, 2.3, .95, mat(0x1b1035, .5), .1); body.position.y = 1.15; g.add(body);
+  const side = rbox(1.36, 2.1, .7, mat(gm.c3, .4), .06); side.position.set(0, 1.1, -.05); g.add(side);
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(1.0, .75), new THREE.MeshBasicMaterial({ map: gtScreens[k].t })); scr.position.set(0, 1.6, .49); scr.rotation.x = -.15; g.add(scr);
+  const panel = rbox(1.25, .14, .5, mat(0x111111, .5), .04); panel.position.set(0, 1.0, .6); panel.rotation.x = -.25; g.add(panel);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(.07, 12, 8), mat(0xff5a4e, .3)); knob.position.set(-.3, 1.27, .6); g.add(knob);
+  [0xff5a4e, 0xffc93c, 0x2fd3ff].forEach((c, i) => { const b = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, .05, 12), new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: .5 })); b.position.set(.05 + i * .17, 1.1, .62); b.rotation.x = -.25; g.add(b); });
+  const marq = new THREE.Mesh(new THREE.BoxGeometry(1.3, .35, .5), new THREE.MeshStandardMaterial({ color: gm.c3, emissive: gm.c3, emissiveIntensity: .7 })); marq.position.set(0, 2.45, .2); g.add(marq);
+  shadowAll(g); g.updateMatrixWorld(true);
+  const wp = new THREE.Vector3(); g.getWorldPosition(wp); const fx = Math.sin(face), fz = Math.cos(face);
+  boxes.push({ x1: wp.x - (Math.abs(fx) > .5 ? .55 : .7), x2: wp.x + (Math.abs(fx) > .5 ? .55 : .7), z1: wp.z - (Math.abs(fx) > .5 ? .7 : .55), z2: wp.z + (Math.abs(fx) > .5 ? .7 : .55) });
+  GT_CABS.push({ k, x: wp.x + fx * 1.25, z: wp.z + fz * 1.25, face: face + Math.PI });
+}
+{
+  const { h } = GTW, wm = gtG.userData.wallMat, L = (x, z) => [x - GTW.x, z - GTW.z], A = GT_ANNEX;
+  const wall = (x1, x2, z1, z2) => { const [a, b] = L(x1, z1), [c, d] = L(x2, z2), m = new THREE.Mesh(new THREE.BoxGeometry(c - a, h, d - b), wm); m.position.set((a + c) / 2, h / 2, (b + d) / 2); gtG.add(m); boxes.push({ x1, x2, z1, z2 }); };
+  wall(A.x1, A.x2, A.z2 - .15, A.z2 + .15); wall(A.x2 - .15, A.x2 + .15, A.z1, A.z2);
+  const [fx, fz] = L((A.x1 + A.x2) / 2, (A.z1 + A.z2) / 2);
+  const fl = new THREE.Mesh(new THREE.PlaneGeometry(A.x2 - A.x1, A.z2 - A.z1), mat(0xffffff, .95, { map: gtCarpetTex, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 })); fl.rotation.x = -Math.PI / 2; fl.position.set(fx, .03, fz); gtG.add(fl);
+  const slab = rbox(A.x2 - A.x1 + .6, .5, A.z2 - A.z1 + .6, mat(0x2b1d5f, .5), .25); slab.position.set(fx, h + .25, fz); gtG.userData.roof.add(slab);
+  const n = new THREE.Mesh(new THREE.BoxGeometry(.1, .1, A.z2 - A.z1 - .6), new THREE.MeshBasicMaterial({ color: 0x7cff6b })); n.position.set(L(A.x2 - .2, 0)[0], h - .4, fz); gtG.add(n);
+  for (const z of [-4, 4]) { const l = new THREE.PointLight(z < 0 ? 0x7cff6b : 0xffc93c, 12, 14, 1.4); l.position.set(fx, h - .8, z); gtG.add(l); }
+  const sign = label("🕹️ Salle d'arcade n°2", "#7cff6b", "#1b1035", 1); sign.position.set(L(A.x1, 0)[0], 3.9, L(0, GTW.z + 1.1)[1]); gtG.add(sign);
+  // 6 bornes contre le mur est, 4 contre le mur nord, et un îlot de 4 bornes au milieu
+  let k = 0; const nextK = () => [3, 0, 1, 2][k++ % 4];
+  for (let i = 0; i < 6; i++) { const [lx, lz] = L(A.x2 - .7, A.z1 + 2 + i * 2.5); buildCab(gtG, lx, lz, nextK(), -Math.PI / 2); }
+  for (let i = 0; i < 4; i++) { const [lx, lz] = L(A.x1 + 1.6 + i * 2.1, A.z2 - .7); buildCab(gtG, lx, lz, nextK(), Math.PI); }
+  for (let i = 0; i < 2; i++) for (const s of [-1, 1]) { const [lx, lz] = L((A.x1 + A.x2) / 2 - .2 + s * .75, A.z1 + 4.5 + i * 3.2); buildCab(gtG, lx, lz, nextK(), s * Math.PI / 2); }
+}
+
 // la table de air hockey (le palet bouge tout seul)
 const gtPuck = { x: 0, z: 0, vx: 2.2, vz: 1.5 };
 {
@@ -6742,7 +6778,7 @@ const floaters = [.12, .4, .58, .9].map((u, i) => { const b = makeBuoy(), g = ba
 const myBuoy = makeBuoy(); myBuoy.visible = false; scene.add(myBuoy);
 // réglages de conduite : vitesse, accélération, virage, place du pilote
 const VK = { cart: { max: 7.5, acc: 2.4, turn: 2.4, y: .25, z: -.05, x: .3, mode: "kart" }, car: { max: 13, acc: 2.2, turn: 1.9, y: .17, z: .15, x: .42, mode: "kart" }, bike: { max: 7.5, acc: 1.5, turn: 2.6, y: .33, z: -.27, mode: "bike" }, kart: { max: 10, acc: 2, turn: 2.4, y: -.2, z: -.3, mode: "kart" }, pony: { max: 6.5, acc: 1.3, turn: 2.1, y: 1.03, z: .05, mode: "saddle" } };
-let seatOffer = null, veh = null, engine = null, mountT = null, petT = null, seatT = null, riv = null, food = null, chestGot = false, musWant = "foret";
+let domeLieT = null, seatOffer = null, veh = null, engine = null, mountT = null, petT = null, seatT = null, riv = null, food = null, chestGot = false, musWant = "foret";
 function inp() { let ix = jx, iy = jy; if (!paused) { if (keys["arrowup"] || keys["z"] || keys["w"]) iy = -1; if (keys["arrowdown"] || keys["s"]) iy = 1; if (keys["arrowleft"] || keys["q"] || keys["a"]) ix = -1; if (keys["arrowright"] || keys["d"]) ix = 1; } else ix = iy = 0; return [ix, iy]; }
 function engineOn() { if (!actx || engine) return; try { const o = actx.createOscillator(), o2 = actx.createOscillator(), lp = actx.createBiquadFilter(), g = actx.createGain(); o.type = "sawtooth"; o2.type = "square"; lp.type = "lowpass"; lp.frequency.value = 520; g.gain.value = 0;
   o.connect(lp); o2.connect(lp); lp.connect(g).connect(fxBus); o.frequency.value = 45; o2.frequency.value = 23; o.start(); o2.start(); engine = { o, o2, g }; } catch (e) {} }
@@ -6947,6 +6983,7 @@ function updateTraffic(dt) {
     k.g.position.set(k.x, 0, k.z); k.g.rotation.y = Math.atan2(-ax * Math.sin(k.th), az * Math.cos(k.th)); k.g.userData.wheels.forEach(x => x.rotation.x += sp * dt / .19); }
 }
 // ---------- la terrasse : manger et bronzer ----------
+function lieDome(L) { seatT = { dome: L, kind: "lie", t: 0 }; $("dialog").hidden = true; talking = null; const [wx, wz] = lzW(L, 0, .78); player.position.set(wx, .8, wz); player.rotation.set(0, L.ry, 0); state = "lie"; toast("Ahhh… un petit repos au bord de la piscine 😎 (bouge pour te lever)", 2600); }
 function sitDown(c, kind, k) {
   seatT = { c, kind, k, t: 0, done: false }; $("dialog").hidden = true; talking = null;
   if (kind === "eat") { const [lx, lz, a] = TERR.chairs[k], [wx, wz] = c.toWorld(lx, lz), [tx, tz] = TERR.table, [px, pz] = c.toWorld(tx + Math.sin(a) * .45, tz + Math.cos(a) * .45);
@@ -6956,7 +6993,8 @@ function sitDown(c, kind, k) {
     food.position.set(px, 1.05, pz); scene.add(shadowAll(food)); toast("Bon appétit ! 🥞", 1800); }
   else { const [wx, wz] = c.toWorld(TERR.loungers[k], TERR.ly + .78); player.position.set(wx, .8, wz); player.rotation.set(0, c.g.rotation.y, 0); state = "lie"; toast("Ahhh… on est bien au soleil 😎", 2200); }
 }
-function standUp() { if (!seatT) { state = "walk"; return; } const { c, kind } = seatT, [wx, wz] = kind === "eat" ? c.toWorld(-1.1, 7) : c.toWorld(.4, 7.4); player.position.set(wx, .2, wz); player.rotation.x = 0; if (food) { scene.remove(food); food = null; } seatT = null; state = "walk"; }
+function standUp() { if (!seatT) { state = "walk"; return; }
+  if (seatT.dome) { const [wx, wz] = lzW(seatT.dome, 1.1, .3); player.position.set(wx, 0, wz); player.rotation.x = 0; seatT = null; state = "walk"; return; } const { c, kind } = seatT, [wx, wz] = kind === "eat" ? c.toWorld(-1.1, 7) : c.toWorld(.4, 7.4); player.position.set(wx, .2, wz); player.rotation.x = 0; if (food) { scene.remove(food); food = null; } seatT = null; state = "walk"; }
 function seatTick(dt) {
   const [ix, iy] = inp(); if (Math.hypot(ix, iy) > .3) { standUp(); return; }
   seatT.t += dt;
@@ -7228,6 +7266,7 @@ function doAct(a) {
   if (a === "lockbike") { lockBike(); return; }
   if (a === "pet" && petT) { petAnimal(petT); return; }
   if ((a === "eat" || a === "lie") && seatOffer) { sitDown(seatOffer.c, a, seatOffer.k); return; }
+  if (a === "domelie" && domeLieT) { lieDome(domeLieT); return; }
   if (a === "getup") { standUp(); return; }
   if (a === "river") { startRiver(); return; }
   if (a === "riverout") { endRiver(); return; }
@@ -8535,6 +8574,7 @@ function loop() {
     if (state === "river" && (riv.stop || riv.dist > 10 && Math.hypot(P.x - RDOCK.x, P.z - RDOCK.z) < 6)) offer("riverout", "🧍 Sortir sur le ponton");
     if (state === "river" && riv.stop) offer("riveragain", "🔁 Refaire un tour");
     if (state === "lie" || state === "eat") offer("getup", "🧍 Se lever");
+    domeLieT = null; if (state === "walk" && inDome && P.y < .6) for (const L of DOME_LOUNGERS) if (Math.hypot(P.x - L.x, P.z - L.z) < 1.4) { domeLieT = L; offer("domelie", "😎 Se reposer sur le transat"); break; }
   }
   setBtn($("actBtn"), t1); setBtn($("act2Btn"), t2);
 
