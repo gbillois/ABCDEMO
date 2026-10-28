@@ -308,7 +308,7 @@ html.app .site{display:none!important}
   <div class="card">
     <h1>Carte du domaine</h1>
     <canvas id="mapc" width="640" height="640"></canvas>
-    <p class="small">🔺 Toi · 🟡 canards à trouver · 🟣 personnages · ronds de couleur : tes amis</p>
+    <p class="small">🔺 Toi · 🟡 canards à trouver · 🟣 personnages · ronds de couleur : tes amis<br><b>✨ Touche un endroit de la carte pour y aller tout de suite !</b></p>
     <div class="row"><button id="mapClose" class="btn">Fermer</button></div>
   </div>
 </div>
@@ -7464,6 +7464,17 @@ $("actBtn").onclick = () => doAct(act1); $("act2Btn").onclick = () => doAct(act2
 const mc = $("mapc"), mx = mc.getContext("2d"); let mapOpen = false;
 $("mapBtn").onclick = () => { sfx.click(); mapOpen = true; $("mapView").hidden = false; };
 $("mapClose").onclick = () => { mapOpen = false; $("mapView").hidden = true; };
+// toucher la carte : on y va tout de suite (téléportation), si c'est un endroit où l'on peut marcher
+mc.addEventListener("pointerdown", e => {
+  if (state !== "walk" && state !== "drive") { toast("Termine d'abord ce que tu fais, puis réessaie 😉", 2000); return; }
+  const r = mc.getBoundingClientRect(), S = 640, k = S / (WORLD * 2 + 10), px = (e.clientX - r.left) * S / r.width, pz = (e.clientY - r.top) * S / r.height;
+  let x = px / k - WORLD - 5, z = pz / k - WORLD - 5; x = Math.max(-WORLD + 2, Math.min(WORLD - 2, x)); z = Math.max(-WORLD + 2, Math.min(WORLD - 2, z));
+  if (inWater(x, z) || inPoolRect(x, z, -1) || Math.hypot(x - 120, z - 95) < 9.5) { toast("🌊 Là, c'est de l'eau ! Touche un autre endroit sur la carte.", 2200); return; }
+  if (state === "drive") dismount(); if (state === "golf") golf3Stop();
+  const P = player.position; P.set(x, 0, z); resolve(P, { x, z }); P.y = floorY({ x: P.x, y: 0, z: P.z }); prev.x = P.x; prev.z = P.z;
+  whoosh(.5, .08, 600, 2400); tone(1046, .1, "sine", .08); tone(1568, .14, "sine", .07, 0, .1);
+  mapOpen = false; $("mapView").hidden = true; toast("✨ Hop ! Te voilà arrivé !", 1800);
+});
 function drawMap() {
   const S = 640, k = S / (WORLD * 2 + 10), X = x => (x + WORLD + 5) * k, Z = z => (z + WORLD + 5) * k;
   mx.fillStyle = "#6bb553"; mx.fillRect(0, 0, S, S);
