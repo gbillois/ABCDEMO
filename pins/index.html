@@ -725,6 +725,7 @@ const ARENA = { x: -68, z: -58, rx: 14, rz: 9 }, KART = { x: 0, z: -80, rx: 23, 
 const TREEH = { x1: 38, x2: 76, z1: 56.5, z2: 78 }, HUTS = [[28, 63], [58, 60.5], [75, 82]];
 const ENTREE = { x1: -13, x2: 13, z1: 3, z2: 26 }; // dégagé devant l'entrée de l'Aquaparc
 const ZONES = [FARM, PONYZ, RACK, TREEH, ENTREE, ...HUTS.map(([x, z]) => ({ x1: x - 3.5, x2: x + 3.5, z1: z - 3.5, z2: z + 3.5 }))];
+ZONES.push({ x1: -36, x2: 38, z1: -110, z2: -66 }); // le zoo (pas d'arbres dedans)
 const inRect = (r, x, z, m = 0) => x > r.x1 - m && x < r.x2 + m && z > r.z1 - m && z < r.z2 + m;
 const RIVER_HW = 1.8, RAPIDS = [[.27, .36], [.76, .85]];
 const river = new THREE.CatmullRomCurve3([[-80, 62], [-60, 58], [-40, 62], [-22, 60], [-16, 72], [-26, 86], [-48, 88], [-62, 80], [-78, 86], [-86, 74]].map(([x, z]) => new THREE.Vector3(x, 0, z)), true, "centripetal");
@@ -4102,6 +4103,98 @@ for (let i = 0; i < 7; i++) addAnimal("chicken", makeChicken([0xf6f2ea, 0xa0522d
 const PONY_JUMPS = [[-73, -58, Math.PI / 2], [-62, -56.5, Math.PI / 2 + .3]];
 [[0x8b4a22, 0x3b2412], [0xd8d2c8, 0xf0ece4], [0x2b2420, 0x161210]].forEach(([c, m]) => addAnimal("pony", makePony(c, m, false), ARENA, 1.1, .9));
 const caramel = addAnimal("pony", makePony(0x9a5a2c, 0x1e1410, true), { x1: -51, x2: -49, z1: -61, z2: -60 }, 1.1, .9, { hitched: true, name: "Caramel" });
+/* ---------- Le zoo 🦁 : au sud de l'Aquaparc, entouré d'une barrière, avec des enclos ---------- */
+const ZOO = { x1: -34, x2: 36, z1: -108, z2: -68, pathZ: -88 };
+ZONES.push({ x1: ZOO.x1 - 1, x2: ZOO.x2 + 1, z1: ZOO.z1 - 1, z2: ZOO.z2 + 1 });
+path([-38, ZOO.pathZ], [ZOO.x1 + .5, ZOO.pathZ], 2.6); path([ZOO.x1 + .5, ZOO.pathZ], [ZOO.x2 - 2, ZOO.pathZ], 3);
+const inZoo = (x, z) => x > ZOO.x1 && x < ZOO.x2 && z > ZOO.z1 && z < ZOO.z2;
+const ZOO_PENS = [
+  { k: "zebre", name: "Les zèbres 🦓", x1: -32, x2: -14, z1: -84, z2: -70, ground: 0xd8c27a },
+  { k: "girafe", name: "Les girafes 🦒", x1: -12, x2: 6, z1: -84, z2: -70, ground: 0xd2b46c },
+  { k: "elephant", name: "Les éléphants 🐘", x1: 8, x2: 34, z1: -84, z2: -70, ground: 0xc9a86a },
+  { k: "lion", name: "Les lions 🦁", x1: -32, x2: -14, z1: -106, z2: -92, ground: 0xd9b26a },
+  { k: "hippo", name: "Les hippopotames 🦛", x1: -12, x2: 6, z1: -106, z2: -92, ground: 0x7fa65a },
+  { k: "pingouin", name: "Les manchots 🐧", x1: 8, x2: 19, z1: -106, z2: -92, ground: 0xe8f4ff },
+  { k: "singe", name: "Les singes 🐒", x1: 21, x2: 34, z1: -106, z2: -92, ground: 0x6f9a4a },
+];
+{
+  const g = new THREE.Group(); scene.add(g); const wood = mat(0x8a5a35, .8), green = mat(0x2d6a4f, .7);
+  // la grande barrière du zoo (avec l'entrée à l'ouest) et l'arche
+  const fence = (ax, az, bx, bz, m, hgt = 1.4, step = 1.6) => { const L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.round(L / step));
+    for (let k = 0; k <= n; k++) { const p = rbox(.14, hgt, .14, m, .03); p.position.set(ax + (bx - ax) * k / n, hgt / 2, az + (bz - az) * k / n); g.add(p); }
+    for (const y of [hgt * .4, hgt * .85]) { const r = rbox(Math.abs(bx - ax) + .1, .1, Math.abs(bz - az) + .1, m, .02); r.position.set((ax + bx) / 2, y, (az + bz) / 2); g.add(r); }
+    boxes.push({ x1: Math.min(ax, bx) - .1, x2: Math.max(ax, bx) + .1, z1: Math.min(az, bz) - .1, z2: Math.max(az, bz) + .1 }); };
+  const { x1, x2, z1, z2, pathZ } = ZOO;
+  fence(x1, z1, x2, z1, green, 2); fence(x1, z2, x2, z2, green, 2); fence(x2, z1, x2, z2, green, 2); fence(x1, z1, x1, pathZ - 2, green, 2); fence(x1, pathZ + 2, x1, z2, green, 2);
+  for (const s of [-1, 1]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.3, .35, 5, 10), wood); p.position.set(x1, 2.5, pathZ + s * 2.2); g.add(p); circles.push({ x: x1, z: pathZ + s * 2.2, r: .35 }); }
+  const beam = rbox(.6, .8, 5.2, wood, .1); beam.position.set(x1, 5, pathZ); g.add(beam);
+  const sign = label("🦁 LE ZOO DU DOMAINE 🦒", "#2d6a4f", "#ffe066", 1.6); sign.position.set(x1, 6.3, pathZ); g.add(sign);
+  // les enclos : sol, barrière basse, panneau, et quelques décors
+  for (const P of ZOO_PENS) { const cx = (P.x1 + P.x2) / 2, cz = (P.z1 + P.z2) / 2;
+    const fl = new THREE.Mesh(new THREE.PlaneGeometry(P.x2 - P.x1, P.z2 - P.z1), mat(P.ground, .95, { map: sandTex, polygonOffset: true, polygonOffsetFactor: -1.5, polygonOffsetUnits: -3 })); fl.rotation.x = -Math.PI / 2; fl.position.set(cx, .022, cz); fl.receiveShadow = true; g.add(fl);
+    const side = cz > pathZ ? P.z1 : P.z2; // le côté qui donne sur l'allée
+    fence(P.x1, P.z1, P.x2, P.z1, wood, 1.3); fence(P.x1, P.z2, P.x2, P.z2, wood, 1.3); fence(P.x1, P.z1, P.x1, P.z2, wood, 1.3); fence(P.x2, P.z1, P.x2, P.z2, wood, 1.3);
+    const lb = label(P.name, "#ffffff", "#2d6a4f", 1); lb.position.set(cx, 2.4, side + (cz > pathZ ? -.4 : .4)); g.add(lb);
+    if (P.k === "girafe" || P.k === "zebre") for (let i = 0; i < 2; i++) { const t = new THREE.Group(); t.position.set(P.x1 + 3 + i * (P.x2 - P.x1 - 6), 0, P.z1 + 3 + i * 6); const tr = new THREE.Mesh(new THREE.CylinderGeometry(.15, .25, P.k === "girafe" ? 5 : 3, 8), wood); tr.position.y = P.k === "girafe" ? 2.5 : 1.5; t.add(tr);
+      const cr = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 1.6, .8, 12), mat(0x4f8a3a, .9)); cr.position.y = P.k === "girafe" ? 5.2 : 3.2; t.add(cr); g.add(t); }
+    if (P.k === "elephant" || P.k === "hippo" || P.k === "pingouin") { const pond = new THREE.Mesh(new THREE.CircleGeometry(P.k === "pingouin" ? 2.4 : 3.2, 32), new THREE.MeshStandardMaterial({ color: P.k === "pingouin" ? 0x8fd8ff : 0x3f8aa8, roughness: .05, polygonOffset: true, polygonOffsetFactor: -3 })); pond.rotation.x = -Math.PI / 2; pond.position.set(cx + 2, .03, cz - (cz > pathZ ? 2 : -2)); g.add(pond); }
+    if (P.k === "lion") for (const [dx, dz, r] of [[-4, 3, 1.4], [3, -3, 1.1], [5, 4, .9]]) { const rk = new THREE.Mesh(blobGeo(r, 2, .25, dx), mat(0xa08f78, .9)); rk.position.set(cx + dx, r * .5, cz + dz); rk.scale.y = .7; g.add(rk); }
+    if (P.k === "singe") { for (const [dx, dz] of [[-3, -2], [2, 2]]) for (const dy of [0]) { const pl = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, 4, 8), wood); pl.position.set(cx + dx, 2, cz + dz); g.add(pl); } const bar = new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, 6.4, 8), wood); bar.rotation.z = Math.PI / 2; bar.rotation.y = Math.atan2(4, 5); bar.position.set(cx - .5, 3.8, cz); g.add(bar); }
+    if (P.k === "pingouin") { const ice = rbox(3, .8, 2, mat(0xffffff, .3), .3); ice.position.set(cx - 2.5, .4, cz); g.add(ice); } }
+  // des bancs le long de l'allée
+  for (const x of [-20, 0, 20]) { const b = rbox(1.8, .1, .5, wood, .03); b.position.set(x, .45, pathZ + 1.6); g.add(b); boxes.push({ x1: x - .9, x2: x + .9, z1: pathZ + 1.35, z2: pathZ + 1.85 }); }
+  shadowAll(g);
+}
+// les animaux du zoo (fabriqués en formes, avec des pelages peints)
+const zebraTex = tex(256, (x, s) => { x.fillStyle = "#f6f3ec"; x.fillRect(0, 0, s, s); x.fillStyle = "#151515"; for (let i = 0; i < 18; i++) { const y0 = i * s / 18; x.beginPath(); x.moveTo(0, y0); for (let k = 0; k <= 16; k++) x.lineTo(k * s / 16, y0 + Math.sin(k * .8 + i) * 4); for (let k = 16; k >= 0; k--) x.lineTo(k * s / 16, y0 + 6 + Math.sin(k * .8 + i) * 4); x.fill(); } });
+const girTex = tex(256, (x, s) => { x.fillStyle = "#f3d9a0"; x.fillRect(0, 0, s, s); x.fillStyle = "#b5651d"; for (let i = 0; i < 26; i++) { const cx = (i % 6) * 44 + (Math.floor(i / 6) % 2) * 22 + 10, cy = Math.floor(i / 6) * 52 + 14; x.beginPath(); for (let k = 0; k < 6; k++) { const a = k / 6 * 6.28 + .3; x.lineTo(cx + Math.cos(a) * 16, cy + Math.sin(a) * 18); } x.fill(); } });
+const ZEBM = new THREE.MeshStandardMaterial({ vertexColors: true, map: zebraTex, roughness: .8 }), GIRM = new THREE.MeshStandardMaterial({ vertexColors: true, map: girTex, roughness: .8 });
+function makeZebra() { const r = makePony(0xffffff, 0x111111, false); r.g.traverse(m => { if (m.isMesh && m.material === FUR) m.material = ZEBM; }); return r; }
+function makeGiraffe() {
+  const neck = []; for (let k = 0; k < 6; k++) neck.push([CAP(.17 - k * .01, .35), 0xffffff, [0, 2.35 + k * .36, .62 + k * .16], [-.42, 0, 0]]);
+  return animalRig({ body: [[CAP(.42, .9, 18), 0xffffff, [0, 2.05, 0], [Math.PI / 2 - .25, 0, 0], [1, 1.1, 1]], ...neck], bodyM: GIRM,
+    head: [[CAP(.12, .38), 0xffffff, [0, 0, .14], [-1.3, 0, 0]], [CONE(.035, .2), 0x7a4a22, [-.07, .2, -.04]], [CONE(.035, .2), 0x7a4a22, [.07, .2, -.04]], [SP(.05), 0xf3d9a0, [-.15, .08, -.04], [0, 0, 0], [1.6, .5, .8]], [SP(.05), 0xf3d9a0, [.15, .08, -.04], [0, 0, 0], [1.6, .5, .8]]], headM: GIRM,
+    face: [...eyes(.1, .04, .1, .035), [SP(.07), 0x5a3a22, [0, -.12, .36], [0, 0, 0], [1, .8, 1]]],
+    headAt: [0, 4.5, 1.6], legs: [[-.25, 1.8, .55], [.25, 1.8, .55], [-.25, 1.75, -.55], [.25, 1.75, -.55]], legLen: 1.8, legR: .09, legCol: 0xffffff, hoof: 0x3a2a1a, legM: GIRM,
+    tail: [[new THREE.CylinderGeometry(.02, .025, .8, 6), 0xf3d9a0, [0, -.4, 0]], [CAP(.05, .12), 0x2a1a10, [0, -.85, 0]]], tailAt: [0, 2.1, -.95] });
+}
+function makeLion(male) { const tan = 0xd8a24a;
+  return animalRig({ body: [[CAP(.36, .9, 18), tan, [0, .95, 0], [Math.PI / 2, 0, 0], [1, 1, 1]]],
+    head: [[SP(.27), tan, [0, 0, .05], [0, 0, 0], [1, .95, 1.05]], ...(male ? [[blobGeo(.48, 2, .3, 1), 0x7a4a1c, [0, .02, -.08], [0, 0, 0], [1, 1, .7]]] : []), [SP(.07), tan, [-.18, .22, 0]], [SP(.07), tan, [.18, .22, 0]]],
+    face: [[SP(.12), 0xf2d29a, [0, -.08, .25], [0, 0, 0], [1.1, .8, .8]], [SP(.04), 0x3a2018, [0, -.02, .35]], ...eyes(.1, .07, .22, .03)],
+    headAt: [0, 1.3, .78], legs: [[-.2, .7, .5], [.2, .7, .5], [-.2, .7, -.5], [.2, .7, -.5]], legLen: .7, legR: .09, legCol: tan, hoof: 0xc89040,
+    tail: [[new THREE.CylinderGeometry(.03, .03, .8, 6), tan, [0, -.35, -.15], [.6, 0, 0]], [SP(.08), 0x6b3a14, [0, -.72, -.38]]], tailAt: [0, 1.05, -.8] }); }
+function makeHippo() { const c = 0x8c7d93;
+  return animalRig({ body: [[SP(.9, 24, 16), c, [0, 1.05, 0], [0, 0, 0], [1.05, .85, 1.55]]],
+    head: [[SP(.55), c, [0, 0, .2], [0, 0, 0], [1.1, .85, 1.1]], [SP(.45), 0xb4a3b8, [0, -.12, .55], [0, 0, 0], [1.25, .75, .8]], [SP(.08), c, [-.3, .42, 0]], [SP(.08), c, [.3, .42, 0]]],
+    face: [[SP(.05), 0x2a2030, [-.15, .05, .9]], [SP(.05), 0x2a2030, [.15, .05, .9]], ...eyes(.25, .32, .3, .05)],
+    headAt: [0, 1.2, 1.25], legs: [[-.5, .5, .75], [.5, .5, .75], [-.5, .5, -.75], [.5, .5, -.75]], legLen: .5, legR: .2, legCol: c, hoof: 0x6a5d70,
+    tail: [[CONE(.06, .3), c, [0, -.12, 0], [Math.PI, 0, 0]]], tailAt: [0, 1.2, -1.4] }); }
+function makeElephant() { const c = 0x9a9a9e, trunk = new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[0, 0, 0], [0, -.4, .25], [0, -.95, .3], [0, -1.35, .2], [0, -1.5, .32]].map(p => new THREE.Vector3(...p))), 20, .12, 10);
+  return animalRig({ body: [[SP(1.15, 24, 16), c, [0, 2.0, 0], [0, 0, 0], [1, .95, 1.35]]],
+    head: [[SP(.7), c, [0, 0, .1]], [new THREE.CircleGeometry(.75, 20), 0x8a8a8f, [-.62, .05, -.15], [0, -1.2, 0]], [new THREE.CircleGeometry(.75, 20), 0x8a8a8f, [.62, .05, -.15], [0, 1.2, 0]], [trunk, c, [0, -.15, .6]], [CONE(.07, .5), 0xf4efe0, [-.28, -.45, .55], [1.9, 0, 0]], [CONE(.07, .5), 0xf4efe0, [.28, -.45, .55], [1.9, 0, 0]]],
+    face: [...eyes(.32, .15, .58, .05)],
+    headAt: [0, 2.6, 1.55], legs: [[-.55, 1.3, .8], [.55, 1.3, .8], [-.55, 1.3, -.8], [.55, 1.3, -.8]], legLen: 1.3, legR: .28, legCol: c, hoof: 0xd8d2c4,
+    tail: [[new THREE.CylinderGeometry(.03, .04, .8, 6), c, [0, -.4, 0]]], tailAt: [0, 2.3, -1.5] }); }
+function makePenguin() {
+  return animalRig({ body: [[CAP(.2, .3, 16), 0x1c1c22, [0, .45, 0]], [SP(.17), 0xffffff, [0, .4, .08], [0, 0, 0], [1, 1.6, .7]], [SP(.06), 0x1c1c22, [-.2, .45, 0], [0, 0, .3], [.35, 1.6, .8]], [SP(.06), 0x1c1c22, [.2, .45, 0], [0, 0, -.3], [.35, 1.6, .8]]], bodyM: VC,
+    head: [[SP(.14), 0x1c1c22, [0, 0, 0]], [SP(.06), 0xffd23f, [-.1, -.04, .06], [0, 0, 0], [.6, 1, .5]], [SP(.06), 0xffd23f, [.1, -.04, .06], [0, 0, 0], [.6, 1, .5]]], headM: VC,
+    face: [[CONE(.04, .14), 0xff8a2b, [0, -.02, .17], [Math.PI / 2, 0, 0]], ...eyes(.06, .04, .11, .022)],
+    headAt: [0, .86, .02], legs: [[-.07, .14, .05], [.07, .14, .05]], legLen: .14, legR: .035, legCol: 0xff8a2b, hoof: 0xff8a2b, legM: VC }); }
+function makeMonkey() { const c = 0x6b4226;
+  return animalRig({ body: [[CAP(.17, .3, 14), c, [0, .55, 0], [1.1, 0, 0]]],
+    head: [[SP(.16), c, [0, 0, 0]], [SP(.1), 0xe8c39e, [0, -.03, .1], [0, 0, 0], [1.2, 1, .7]], [SP(.06), 0xe8c39e, [-.17, .02, 0], [0, 0, 0], [.6, 1, .5]], [SP(.06), 0xe8c39e, [.17, .02, 0], [0, 0, 0], [.6, 1, .5]]],
+    face: [...eyes(.055, .04, .14, .022), [SP(.02), 0x3a2018, [0, -.06, .18]]],
+    headAt: [0, .85, .25], legs: [[-.12, .4, .18], [.12, .4, .18], [-.12, .4, -.15], [.12, .4, -.15]], legLen: .4, legR: .045, legCol: c, hoof: 0xe8c39e,
+    tail: [[new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[0, 0, 0], [0, .1, -.3], [0, .45, -.45], [0, .65, -.3]].map(p => new THREE.Vector3(...p))), 16, .025, 6), c]], tailAt: [0, .55, -.2] }); }
+{ const pen = k => { const P = ZOO_PENS.find(p => p.k === k); return { x1: P.x1 + 1, x2: P.x2 - 1, z1: P.z1 + 1, z2: P.z2 - 1 }; };
+  for (let i = 0; i < 3; i++) addAnimal("zebre", makeZebra(), pen("zebre"), 1.2, .9);
+  for (let i = 0; i < 2; i++) addAnimal("girafe", makeGiraffe(), pen("girafe"), .9, 1);
+  for (let i = 0; i < 2; i++) { const a = addAnimal("elephant", makeElephant(), pen("elephant"), .7, 1.6); if (i) a.g.scale.setScalar(.7); }
+  addAnimal("lion", makeLion(true), pen("lion"), 1, .9); addAnimal("lion", makeLion(false), pen("lion"), 1, .9);
+  for (let i = 0; i < 2; i++) addAnimal("hippo", makeHippo(), pen("hippo"), .5, 1.4);
+  for (let i = 0; i < 5; i++) addAnimal("pingouin", makePenguin(), pen("pingouin"), .5, .3);
+  for (let i = 0; i < 3; i++) addAnimal("singe", makeMonkey(), pen("singe"), 1.4, .35); }
 caramel.x = -50; caramel.z = -60.7; caramel.h = Math.PI; caramel.g.position.set(caramel.x, 0, caramel.z); caramel.g.rotation.y = Math.PI;
 { const cl = label("Caramel", "#e84393", "#ffffff", .5); cl.position.set(0, 2.55, 0); caramel.g.add(cl); }
 
@@ -7063,13 +7156,19 @@ function animalSound(k, d = 5) { const v = Math.max(.2, 1 - d / 25);
   if (k === "chicken") for (let i = 0; i < 3; i++) tone(980 + i * 70, .07, "triangle", .05 * v, -320, i * .13);
   if (k === "pony") for (let i = 0; i < 7; i++) tone(900 - i * 55, .1, "sawtooth", .028 * v, -60, i * .07);
   if (k === "cat") { tone(720, .5, "sine", .07 * v, -270); tone(1080, .32, "triangle", .018 * v, -400); }
+  if (k === "lion") { tone(110, 1.4, "sawtooth", .06 * v, -40); whoosh(1.2, .08 * v, 300, 120); }
+  if (k === "elephant") { tone(330, .9, "square", .05 * v, 220); tone(495, .9, "sawtooth", .03 * v, 300); }
+  if (k === "hippo") for (let i = 0; i < 3; i++) tone(90, .3, "sawtooth", .05 * v, -20, i * .25);
+  if (k === "singe") for (let i = 0; i < 4; i++) tone(500 + i * 120, .12, "triangle", .05 * v, 300, i * .13);
+  if (k === "pingouin") for (let i = 0; i < 3; i++) tone(700, .1, "square", .03 * v, -200, i * .14);
+  if (k === "zebre") for (let i = 0; i < 3; i++) tone(600, .12, "sawtooth", .03 * v, -250, i * .16);
 }
 function purr() { for (let i = 0; i < 18; i++) whoosh(.1, .07, 70, 120, i * .11); }
 const heartTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d"); x.fillStyle = "#ff4d6d"; x.beginPath(); x.moveTo(32, 56); x.bezierCurveTo(4, 36, 6, 10, 22, 10); x.bezierCurveTo(28, 10, 32, 16, 32, 20); x.bezierCurveTo(32, 16, 36, 10, 42, 10); x.bezierCurveTo(58, 10, 60, 36, 32, 56); x.fill();
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
 const hearts = [];
 function heartsAt(x, y, z) { for (let i = 0; i < 5; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: heartTex, transparent: true, depthWrite: false })); s.scale.setScalar(.3 + Math.random() * .15); s.position.set(x + (Math.random() - .5) * .7, y + i * .15, z + (Math.random() - .5) * .7); scene.add(s); hearts.push({ s, t: 1.4 + i * .18 }); } }
-const PET = { cow: ["🐄 Caresser la vache", "Meuuuh ! La vache est contente 🐄"], sheep: ["🐑 Caresser le mouton", "Bêêê ! Le mouton est tout doux 🐑"], pig: ["🐖 Caresser le cochon", "Groin groin ! Le cochon adore ça 🐖"], chicken: ["🐔 Caresser la poule", "Cot cot codec ! 🐔"], pony: ["🐴 Caresser le poney", "Le poney te fait un gros câlin 🐴"], cat: ["🐱 Caresser le chat", "Ronron… le chat t'adore ! 🐱"] };
+const PET = { zebre: ["🦓 Regarder le zèbre", "Le zèbre te regarde avec ses grands yeux 🦓"], girafe: ["🦒 Regarder la girafe", "La girafe baisse la tête pour te dire bonjour 🦒"], elephant: ["🐘 Saluer l'éléphant", "Pouuuh ! L'éléphant lève sa trompe 🐘"], lion: ["🦁 Regarder le lion", "ROAAAR ! (c'est pour rire) 🦁"], hippo: ["🦛 Saluer l'hippopotame", "L'hippopotame ouvre une grande bouche 🦛"], pingouin: ["🐧 Saluer le manchot", "Le manchot fait une petite danse 🐧"], singe: ["🐒 Saluer le singe", "Hou hou ha ha ! 🐒"], cow: ["🐄 Caresser la vache", "Meuuuh ! La vache est contente 🐄"], sheep: ["🐑 Caresser le mouton", "Bêêê ! Le mouton est tout doux 🐑"], pig: ["🐖 Caresser le cochon", "Groin groin ! Le cochon adore ça 🐖"], chicken: ["🐔 Caresser la poule", "Cot cot codec ! 🐔"], pony: ["🐴 Caresser le poney", "Le poney te fait un gros câlin 🐴"], cat: ["🐱 Caresser le chat", "Ronron… le chat t'adore ! 🐱"] };
 function petAnimal(a) { a.pet = 3; a.v = 0; animalSound(a.kind, 2); if (a.kind === "cat") { purr(); a.st = "follow"; a.t = Math.max(a.t, 25); }
   heartsAt(a.x, a.kind === "cow" || a.kind === "pony" ? 2.3 : a.kind === "cat" ? .8 : 1.3, a.z); toast(PET[a.kind][1], 2200); }
 function updateAnimals(dt) {
@@ -7169,6 +7268,7 @@ function openChest() {
 // ---------- où suis-je dans les nouveaux coins ----------
 const BARN = { x1: -90, x2: -78, z1: -27, z2: -13 };
 function zoneName(P) {
+  if (inZoo(P.x, P.z)) return "🦁 Le zoo";
   if (inRect(PP, P.x, P.z, 1)) return "🎂 Piscine des anniversaires";
   if (inRect({ x1: MANOR.x1 - 4.5, x2: MANOR.x2 + 3, z1: MANOR.z1 - 3.5, z2: MANOR.z2 + 3.5 }, P.x, P.z)) return HALLO.on ? "🏚️ Manoir hanté" : "🏡 Le grand cottage";
   if (inAqua(P.x, P.z)) return "🐠 Aquarium";
@@ -7189,7 +7289,7 @@ function zoneName(P) {
   if (riverNear(P.x, P.z).d < 7) return "🌊 Rivière sauvage";
   return "";
 }
-const ZTOAST = { "🏡 Le grand cottage": "Le grand cottage ! Entre et monte à l'étage 🏡", "🎂 Piscine des anniversaires": "La piscine des anniversaires ! Mets ton maillot dans la cabine et plonge 🏊🎈", "🏚️ Manoir hanté": "Le manoir hanté ! Entre si tu l'oses… Ouvre le cercueil, joue du piano et prends des bonbons 🍬", "⛳ Minigolf": "Le minigolf ! Va au kiosque vert pour jouer les 6 trous ⛳", "🧗 Acrobranche": "L'acrobranche ! Va à l'accueil pour mettre ton baudrier 🦺", "👕 Vestiaires": "Les vestiaires ! Entre dans une cabine pour te changer 👕", "🏨 Accueil": "L'accueil ! Margot t'explique tout : approche-toi du comptoir 📋", "🥖 Boulangerie": "Ça sent bon le pain chaud ! 🥖", "🛒 Market Speed": "Le Market Speed ! Va à la caisse pour faire tes courses 🛒⚡", "🅿️ Parking": "Le parking ! Approche-toi d'une voiture pour klaxonner 📯. Les vélos sous l'abri, tu peux les prendre 🚲", "🍔 Burger Fast": "Burger Fast ! Va à la caisse pour commander ton menu 🍔🍟", "🎈 Multi Parcs": "Bienvenue au Multi Parcs ! Joue aux bornes d'arcade pour gagner des tickets 🎟️. Au fond : grimpe, glisse, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
+const ZTOAST = { "🦁 Le zoo": "Bienvenue au zoo ! Zèbres, girafes, éléphants, lions, hippopotames, manchots et singes t'attendent 🦒", "🏡 Le grand cottage": "Le grand cottage ! Entre et monte à l'étage 🏡", "🎂 Piscine des anniversaires": "La piscine des anniversaires ! Mets ton maillot dans la cabine et plonge 🏊🎈", "🏚️ Manoir hanté": "Le manoir hanté ! Entre si tu l'oses… Ouvre le cercueil, joue du piano et prends des bonbons 🍬", "⛳ Minigolf": "Le minigolf ! Va au kiosque vert pour jouer les 6 trous ⛳", "🧗 Acrobranche": "L'acrobranche ! Va à l'accueil pour mettre ton baudrier 🦺", "👕 Vestiaires": "Les vestiaires ! Entre dans une cabine pour te changer 👕", "🏨 Accueil": "L'accueil ! Margot t'explique tout : approche-toi du comptoir 📋", "🥖 Boulangerie": "Ça sent bon le pain chaud ! 🥖", "🛒 Market Speed": "Le Market Speed ! Va à la caisse pour faire tes courses 🛒⚡", "🅿️ Parking": "Le parking ! Approche-toi d'une voiture pour klaxonner 📯. Les vélos sous l'abri, tu peux les prendre 🚲", "🍔 Burger Fast": "Burger Fast ! Va à la caisse pour commander ton menu 🍔🍟", "🎈 Multi Parcs": "Bienvenue au Multi Parcs ! Joue aux bornes d'arcade pour gagner des tickets 🎟️. Au fond : grimpe, glisse, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
   "🌊 Rivière sauvage": "La rivière sauvage ! Va au ponton pour prendre une bouée 🛟", "🌳 Maison dans les arbres": "Tu es dans les arbres ! Traverse le pont de singe… et descends par le toboggan 🛝", "🛖 Une cabane": "Une petite cabane en rondins 🛖" };
 const seenZ = new Set();
 
@@ -7490,6 +7590,7 @@ function drawMap() {
   mx.fillStyle = HALLO.on ? "#4a2a6a" : "#c9a27e"; mx.fillRect(X(MANOR.x1), Z(MANOR.z1), (MANOR.x2 - MANOR.x1) * k, (MANOR.z2 - MANOR.z1) * k);
   mx.fillStyle = "#f3c6dd"; mx.fillRect(X(PP.x1), Z(PP.z1), (PP.x2 - PP.x1) * k, (PP.z2 - PP.z1) * k); mx.fillStyle = "#5fd8ff"; mx.fillRect(X(PPOOL.x1), Z(PPOOL.z1), (PPOOL.x2 - PPOOL.x1) * k, (PPOOL.z2 - PPOOL.z1) * k);
   mx.strokeStyle = "#5c6066"; mx.lineWidth = RING.w * k; mx.strokeRect(X(-RING.r), Z(-RING.r), 2 * RING.r * k, 2 * RING.r * k);
+  mx.fillStyle = "#c9b27a"; mx.fillRect(X(ZOO.x1), Z(ZOO.z1), (ZOO.x2 - ZOO.x1) * k, (ZOO.z2 - ZOO.z1) * k);
   mx.fillStyle = "#5c6066"; mx.fillRect(X(ROAD.x - ROAD.w / 2), Z(ROAD.z1), ROAD.w * k, (ROAD.z2 - ROAD.z1) * k);
   mx.fillStyle = "#2fa85a"; mx.fillRect(X(GOLF.x1), Z(GOLF.z1), (GOLF.x2 - GOLF.x1) * k, (GOLF.z2 - GOLF.z1) * k);
   mx.fillStyle = "#2d6a4f"; mx.fillRect(X(ACRO.x1), Z(ACRO.z1), (ACRO.x2 - ACRO.x1) * k, (ACRO.z2 - ACRO.z1) * k);
@@ -7497,7 +7598,7 @@ function drawMap() {
   mx.fillStyle = "#1f8fae"; mx.beginPath(); mx.arc(X(AQU.x), Z(AQU.z), AQU.r * k, 0, 7); mx.fill(); mx.strokeStyle = "#ffffff"; mx.lineWidth = 2; mx.stroke();
   mx.fillStyle = "#e84393"; mx.fillRect(X(11.3), Z(21), 5.4 * k, 2 * k);
   mx.font = '700 13px "Baloo 2",sans-serif'; mx.textAlign = "center"; mx.fillStyle = "#0d3b52";
-  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2)); mx.fillText("Multi Parcs", X(BALO.x + 2), Z(BALO.z + BALO.hz + .5)); mx.fillText("Burger Fast", X(BFW.x), Z(BFW.z - BFW.hz - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Acrobranche", X((ACRO.x1 + ACRO.x2) / 2), Z((ACRO.z1 + ACRO.z2) / 2)); mx.fillText("Minigolf", X((GOLF.x1 + GOLF.x2) / 2), Z((GOLF.z1 + GOLF.z2) / 2)); mx.fillText(HALLO.on ? "🏚️ Manoir hanté" : "Le grand cottage", X((MANOR.x1 + MANOR.x2) / 2), Z(MANOR.z1 - 2)); mx.fillStyle = "#1d3b2a"; mx.fillText("Accueil", X(ACCUEIL.x), Z(ACCUEIL.z - 5.5)); mx.fillText("Boulangerie", X(BOULANGERIE.x + 1), Z(BOULANGERIE.z - 5)); mx.fillText("Market Speed", X(MARKET.x), Z(MARKET.z + 6.5)); mx.fillStyle = "#ffffff"; mx.fillText("P Parking", X((PARK.x1 + PARK.x2) / 2), Z((PARK.z1 + PARK.z2) / 2)); mx.fillStyle = "#1d3b2a";
+  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2)); mx.fillText("Multi Parcs", X(BALO.x + 2), Z(BALO.z + BALO.hz + .5)); mx.fillText("Burger Fast", X(BFW.x), Z(BFW.z - BFW.hz - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Acrobranche", X((ACRO.x1 + ACRO.x2) / 2), Z((ACRO.z1 + ACRO.z2) / 2)); mx.fillText("Minigolf", X((GOLF.x1 + GOLF.x2) / 2), Z((GOLF.z1 + GOLF.z2) / 2)); mx.fillText("Zoo 🦁", X((ZOO.x1 + ZOO.x2) / 2), Z((ZOO.z1 + ZOO.z2) / 2)); mx.fillText(HALLO.on ? "🏚️ Manoir hanté" : "Le grand cottage", X((MANOR.x1 + MANOR.x2) / 2), Z(MANOR.z1 - 2)); mx.fillStyle = "#1d3b2a"; mx.fillText("Accueil", X(ACCUEIL.x), Z(ACCUEIL.z - 5.5)); mx.fillText("Boulangerie", X(BOULANGERIE.x + 1), Z(BOULANGERIE.z - 5)); mx.fillText("Market Speed", X(MARKET.x), Z(MARKET.z + 6.5)); mx.fillStyle = "#ffffff"; mx.fillText("P Parking", X((PARK.x1 + PARK.x2) / 2), Z((PARK.z1 + PARK.z2) / 2)); mx.fillStyle = "#1d3b2a";
   mx.fillText("Ferme", X(-70), Z(-36)); mx.fillText("Poney club", X(ARENA.x), Z(ARENA.z - ARENA.rz - 2)); mx.fillText("Rivière sauvage", X(-50), Z(75)); mx.fillText("Maison dans les arbres", X(50), Z(84)); mx.fillText("Vélos", X(6), Z(41));
   mx.font = '700 11px "Baloo 2",sans-serif';
   npcs.forEach(n => { const nx = X(n.g.position.x), nz = Z(n.g.position.z); mx.fillStyle = "#8e44ad"; mx.beginPath(); mx.arc(nx, nz, 4, 0, 7); mx.fill(); mx.fillText(n.name.split(",")[0], nx, nz - 7); });
