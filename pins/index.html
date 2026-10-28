@@ -2537,7 +2537,7 @@ path([115, 30], [115, GOLF.z1 - .3], 2.6);
   { const w = rbox(.36, .3, 1, border, .05); w.position.set(106, .27, 47); g.add(w); }
   for (const [x, z] of [[104.5, 52.55], [107.5, 53.45]]) { const st = new THREE.Mesh(new THREE.CylinderGeometry(.08, .1, .25, 10), mat(0xffffff, .5)); st.position.set(x, .24, z); g.add(st); const cap = new THREE.Mesh(new THREE.SphereGeometry(.24, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xff5a4e, .4)); cap.position.set(x, .3, z); g.add(cap); }
   { const sw = new THREE.Group(); sw.position.set(122, 0, 41); const post = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, .5, 10), mat(0xffc93c, .4)); post.position.y = .3; sw.add(post);
-    const bar = rbox(.08, .12, 2.1, mat(0xff5a4e, .4), .03); bar.position.y = .22; sw.add(bar); for (const e of [-1, 1]) { const st = rbox(.09, .13, .3, mat(0xffffff, .4), .03); st.position.set(0, .22, e * .6); sw.add(st); } g.add(sw); GOLF.sweep = sw; }
+    const bar = rbox(.08, .12, 1.56, mat(0xff5a4e, .4), .03); bar.position.y = .22; sw.add(bar); for (const e of [-1, 1]) { const st = rbox(.09, .13, .3, mat(0xffffff, .4), .03); st.position.set(0, .22, e * .45); sw.add(st); } g.add(sw); GOLF.sweep = sw; }
   for (let k = 0; k < 3; k++) { const r = new THREE.Mesh(blobGeo(.3, 2, .3, k), mat(0x8d8f96, .9)); r.position.set(119 + k * 2.2, .25, 53 + (k % 2 ? .5 : -.5)); g.add(r); }
   // le kiosque où l'on prend sa balle et son club
   const k = new THREE.Group(); k.position.set(GOLF.kiosk[0], 0, GOLF.kiosk[1]); g.add(k);
@@ -7098,7 +7098,7 @@ addEventListener("keyup", e => { if (G3.on && e.key === " ") g3Charge(false); })
 function g3Obst(h) { const [x, z] = GOLF.lanes[h];
   if (h === 1) return { rects: [[x - .18, x + .18, z - .5, z + .5]] };
   if (h === 2) return { circles: [[x - 1.5, z - .45, .22, 1.5], [x + 1.5, z + .45, .22, 1.5]] };
-  if (h === 3) return { sweep: [x, z, 1.05] };
+  if (h === 3) return { sweep: [x, z, .78] };
   if (h === 4) return { hump: x };
   if (h === 5) return { circles: [[119, 52.5, .32, .7], [121.2, 53.5, .32, .7], [123.4, 52.5, .32, .7]] };
   return {};
@@ -7107,7 +7107,7 @@ function golf3Tick(dt, time, P) {
   const B = G3.ball, [lx, lz, L, W] = g3Lane(), hx = lx + L / 2 - .8, hz = lz, O = g3Obst(G3.hole), r = .07;
   let ix = jx; if (keys["arrowleft"] || keys["q"] || keys["a"]) ix = -1; if (keys["arrowright"] || keys["d"]) ix = 1;
   // la barrière tournante du trou 4 tourne toujours
-  const swA = time * 1.5;
+  const swA = time * .75; // la barrière tourne doucement
   if (GOLF.sweep) GOLF.sweep.rotation.y = swA;
   if (G3.phase === "aim") {
     if (!G3.from) { G3.a -= ix * dt * 1.5; if (G3.charging) { G3.power += G3.pdir * dt * .85; if (G3.power > 1) { G3.power = 1; G3.pdir = -1; } if (G3.power < 0) { G3.power = 0; G3.pdir = 1; } } }
@@ -7126,7 +7126,7 @@ function golf3Tick(dt, time, P) {
         if (d < r) { const nx = d ? dx / d : (B.x < (a1 + a2) / 2 ? -1 : 1), nz = d ? dz / d : 0; B.x = cx + nx * r; B.z = cz + nz * r; const vn = B.vx * nx + B.vz * nz; if (vn < 0) { B.vx -= 1.75 * vn * nx; B.vz -= 1.75 * vn * nz; hit = 1; } } }
       for (const [cx, cz, cr, boost] of O.circles || []) { const dx = B.x - cx, dz = B.z - cz, d = Math.hypot(dx, dz); if (d < cr + r) { const nx = dx / d, nz = dz / d; B.x = cx + nx * (cr + r); B.z = cz + nz * (cr + r); const vn = B.vx * nx + B.vz * nz; if (vn < 0) { B.vx -= (1 + boost * .55) * vn * nx; B.vz -= (1 + boost * .55) * vn * nz; if (boost > 1) { B.vx += nx * .8; B.vz += nz * .8; tone(660, .07, "sine", .1); } else hit = 1; } } }
       if (O.sweep) { const [cx, cz, len] = O.sweep; for (const off of [0, Math.PI]) { const ex = cx + Math.sin(swA + off) * len, ez = cz + Math.cos(swA + off) * len, sx = ex - cx, sz = ez - cz, t = Math.max(0, Math.min(1, ((B.x - cx) * sx + (B.z - cz) * sz) / (len * len))), px = cx + sx * t, pz = cz + sz * t, dx = B.x - px, dz = B.z - pz, d = Math.hypot(dx, dz);
-        if (d < r + .05) { const nx = d ? dx / d : 1, nz = d ? dz / d : 0; B.x = px + nx * (r + .05); B.z = pz + nz * (r + .05); const vn = B.vx * nx + B.vz * nz; if (vn < 0) { B.vx -= 1.6 * vn * nx; B.vz -= 1.6 * vn * nz; } B.vx += nx * 1.2; B.vz += nz * 1.2; hit = 2; } } }
+        if (d < r + .05) { const nx = d ? dx / d : 1, nz = d ? dz / d : 0; B.x = px + nx * (r + .05); B.z = pz + nz * (r + .05); const vn = B.vx * nx + B.vz * nz; if (vn < 0) { B.vx -= 1.6 * vn * nx; B.vz -= 1.6 * vn * nz; } B.vx += nx * .5; B.vz += nz * .5; hit = 2; } } }
       if (hit === 1 && Math.hypot(B.vx, B.vz) > .6) tone(220, .04, "square", .04); if (hit === 2) tone(150, .05, "square", .05);
       // le trou : la balle tombe si elle n'est pas trop rapide ; tout près, il l'attire un peu
       const dh = Math.hypot(B.x - hx, B.z - hz); sp = Math.hypot(B.vx, B.vz);
