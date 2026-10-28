@@ -206,6 +206,7 @@ html.app .site{display:none!important}
 </div>
 <div id="hudR">
   <span id="gpPill" class="btn ico" hidden role="img" aria-label="Manette reconnue">🎮</span>
+  <button id="halloTop" class="btn ico" aria-label="Halloween">🎃</button>
   <button id="phoneBtn" class="btn ico" aria-label="Mon téléphone">📱</button>
   <button id="invBtn" class="btn ico" aria-label="Mon sac à dos">🎒</button>
   <button id="mapBtn" class="btn ico" aria-label="Carte">🗺️</button>
@@ -2510,6 +2511,33 @@ function updateRoad(dt, P) {
   if (near(P.x, P.z)) want = 1; for (const v of vehicles) if (v.kind === "car" && near(v.x, v.z)) want = 1;
   ROAD.open += (want - ROAD.open) * Math.min(1, dt * 2.5); ROAD.arm.rotation.z = -ROAD.open * 1.45;
 }
+const CARTS = [];
+// les voiturettes électriques du Domaine (comme de petites voitures de golf) : on peut rouler partout, même sur les chemins, doucement
+function makeCart(col) {
+  const g = new THREE.Group(), white = mat(0xf7f7f2, .35), body = mat(col, .35), dark = mat(0x222222, .7), tire = mat(0x1b1b1b, .9), rim = mat(0xcfd3d6, .3, { metalness: .7 }), seatM = mat(0x5a3a26, .6);
+  const base = rbox(1.25, .32, 2.3, white, .12); base.position.y = .42; g.add(base);
+  const nose = rbox(1.2, .45, .55, body, .18); nose.position.set(0, .7, .92); g.add(nose);
+  for (const s of [-1, 1]) { const l = new THREE.Mesh(new THREE.SphereGeometry(.08, 10, 8), new THREE.MeshStandardMaterial({ color: 0xfffbe0, emissive: 0xfff2b0, emissiveIntensity: .6 })); l.position.set(s * .4, .74, 1.2); g.add(l); }
+  const seat = rbox(1.1, .18, .55, seatM, .06); seat.position.set(0, .72, -.05); g.add(seat); const back = rbox(1.1, .55, .14, seatM, .06); back.position.set(0, 1.02, -.33); g.add(back);
+  const rear = rbox(1.15, .25, .6, body, .08); rear.position.set(0, .7, -.85); g.add(rear); // le petit coffre
+  for (const [x, z] of [[-.55, .7], [.55, .7], [-.55, -.55], [.55, -.55]]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, 1.35, 8), white); p.position.set(x, 1.25, z); g.add(p); }
+  const roof = rbox(1.35, .1, 1.55, body, .05); roof.position.set(0, 1.95, .08); g.add(roof); const stripe = rbox(1.37, .05, 1.57, white, .02); stripe.position.set(0, 1.88, .08); g.add(stripe);
+  const wind = new THREE.Mesh(new THREE.PlaneGeometry(1.05, .65), mat(0xbfe6ff, .05, { transparent: true, opacity: .35, side: THREE.DoubleSide })); wind.position.set(0, 1.45, .72); wind.rotation.x = -.15; g.add(wind);
+  const wheel = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .06, 6), dark); wheel.rotation.x = .9; wheel.position.set(-.28, 1.05, .45); g.add(wheel); const rimS = new THREE.Mesh(new THREE.TorusGeometry(.17, .03, 6, 16), dark); rimS.rotation.x = .9 - Math.PI / 2; rimS.position.set(-.28, 1.08, .47); g.add(rimS);
+  const wheels = []; for (const [x, z] of [[-.6, .72], [.6, .72], [-.6, -.72], [.6, -.72]]) { const w = new THREE.Group(); w.position.set(x, .22, z); const t = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, .16, 16), tire); t.rotation.z = Math.PI / 2; w.add(t); const r = new THREE.Mesh(new THREE.CylinderGeometry(.11, .11, .17, 10), rim); r.rotation.z = Math.PI / 2; w.add(r); g.add(w); wheels.push(w); }
+  g.userData.wheels = wheels; g.userData.wheelR = .22; return shadowAll(g);
+}
+{ // la station des voiturettes, à l'ouest du village
+  const g = new THREE.Group(); scene.add(g); const sx = -98, sz = 35;
+  ZONES.push({ x1: sx - 5, x2: sx + 5, z1: sz - 3.5, z2: sz + 4 });
+  const pad = new THREE.Mesh(new THREE.PlaneGeometry(9, 6), mat(0xffffff, .95, { map: parkTex, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 })); pad.rotation.x = -Math.PI / 2; pad.position.set(sx, .024, sz + .5); g.add(pad);
+  const roofM = mat(0x27ae60, .5); const roof = rbox(9.4, .14, 3.4, roofM, .05); roof.position.set(sx, 2.6, sz + 2); roof.rotation.x = -.08; g.add(roof);
+  for (const x of [sx - 4.4, sx + 4.4]) for (const z of [sz + .5, sz + 3.5]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, 2.6, 8), metalMat); p.position.set(x, 1.3, z); g.add(p); circles.push({ x, z, r: .1 }); }
+  const lb = label("🛺 Voiturettes du Domaine", "#27ae60", "#ffffff", 1); lb.position.set(sx, 3.4, sz + 2); g.add(lb);
+  shadowAll(g);
+  [0x27ae60, 0x2e86de, 0xff8a2b].forEach((c, i) => { const cg = makeCart(c), x = sx - 3 + i * 3, z = sz + 2, h = Math.PI; cg.position.set(x, 0, z); cg.rotation.y = h; scene.add(cg);
+    CARTS.push({ kind: "cart", g: cg, x, z, h, v: 0, r: .85, home: [x, z, h] }); });
+}
 function makeCar(col, seed) {
   const g = new THREE.Group(), paint = mat(col, .25, { metalness: .4 }), glassC = mat(0x22313f, .1, { metalness: .6 }), tire = mat(0x1b1b1b, .9), rim = mat(0xcfd3d6, .3, { metalness: .7 });
   const body = rbox(1.8, .6, 4, paint, .22); body.position.y = .62; g.add(body);
@@ -2822,16 +2850,26 @@ let acroZip = null; const ACRO_SWING = [];
     x.strokeStyle = "#9fd0e8"; x.lineWidth = 9; x.lineCap = "round"; x.beginPath(); x.moveTo(170, 80); x.quadraticCurveTo(220, 40, 255, 95); x.quadraticCurveTo(300, 40, 350, 70); x.stroke(); x.beginPath(); x.moveTo(250, 95); x.lineTo(240, 125); x.stroke();
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; const wall = new THREE.Mesh(new THREE.BoxGeometry(7, 1.9, .2), [dkwood, dkwood, dkwood, dkwood, new THREE.MeshStandardMaterial({ map: t, roughness: .9 }), dkwood]); wall.position.set(x1 + 3.5, .95, z2 + .55); g.add(wall); boxes.push({ x1: x1, x2: x1 + 7, z1: z2 + .4, z2: z2 + .7 }); }
   // ESCALIERS EN COLIMAÇON : A (du sol au filet, dans sa cage) et B (du filet aux plateformes du haut)
-  const stair = ([sx, sz], a0, h0, h1, cage) => { SURF.push((x, z) => harnessOn ? spiralSurf(sx, sz, a0, h0, h1)(x, z) : null);
-    for (let k = 0; k <= 14; k++) { const a = a0 + k / 14 * 1.5 * Math.PI, h = h0 + k / 14 * (h1 - h0), st = rbox(1.5, .08, .55, plank, .02); st.position.set(sx + Math.cos(a) * 1.25, h - .04, sz + Math.sin(a) * 1.25); st.rotation.y = -a; g.add(st); }
-    tube(Array.from({ length: 16 }, (_, k) => { const a = a0 + k / 15 * 1.5 * Math.PI; return [sx + Math.cos(a) * 2, h0 + k / 15 * (h1 - h0) + .95, sz + Math.sin(a) * 2]; }), .035, rope);
-    if (cage) { const cg = new THREE.Mesh(new THREE.CylinderGeometry(2.15, 2.15, h1 - h0 + 1.5, 20, 1, true, a0 + .3, 1.5 * Math.PI - .3), netM(30, 12)); cg.position.set(sx, (h0 + h1 + 1.5) / 2, sz); g.add(cg); } };
-  stair(AC.A, -Math.PI / 4, 0, L1, true); stair(AC.B, Math.PI / 4, L1, L2, false);
+  // LE GRAND ESCALIER EN COLIMAÇON (2 tours, dans sa cage) : du sol jusqu'au filet (3,5 m), puis jusqu'aux plateformes (7,5 m)
+  { const [sx, sz] = AC.A, RISE = L2 / 2, TURN = 2 * Math.PI, aL1 = 225 * Math.PI / 180, a0 = aL1 - (L1 / RISE) * TURN; AC.a0 = a0;
+    for (let k = 0; k < 2; k++) SURF.push((x, z) => { if (!harnessOn) return null; const dx = x - sx, dz = z - sz, r = Math.hypot(dx, dz); if (r < .45 || r > 2.05) return null;
+      const ph = ((Math.atan2(dz, dx) - a0) % TURN + TURN) % TURN; return k * RISE + Math.round(ph / TURN * 16) / 16 * RISE; });
+    for (let k = 0; k <= 32; k++) { const a = a0 + k / 16 * Math.PI, h = k / 32 * L2, st = rbox(1.5, .08, .55, plank, .02); st.position.set(sx + Math.cos(a) * 1.25, Math.max(.04, h - .04), sz + Math.sin(a) * 1.25); st.rotation.y = -a; g.add(st); }
+    tube(Array.from({ length: 41 }, (_, k) => { const a = a0 + k / 20 * Math.PI; return [sx + Math.cos(a) * 2, k / 40 * L2 + .95, sz + Math.sin(a) * 2]; }), .035, rope);
+    // la cage en grillage : on ne passe pas à travers (sauf par l'entrée en bas et les deux sorties)
+    const gap = (a, c, w) => Math.abs(Math.atan2(Math.sin(a - c), Math.cos(a - c))) < w;
+    const cg = new THREE.Mesh(new THREE.CylinderGeometry(2.25, 2.25, L2 + 2, 28, 1, true), netM(36, 24)); cg.position.set(sx, (L2 + 2) / 2, sz); cg.rotation.y = 0; g.add(cg);
+    for (let i = 0; i < 32; i++) { const a = i / 32 * TURN, px = sx + Math.cos(a) * 2.3, pz = sz + Math.sin(a) * 2.3, W = (y0, y1) => WALLS3.push({ x1: px - .24, x2: px + .24, z1: pz - .24, z2: pz + .24, y0, y1 });
+      const inEntry = gap(a, a0 + .35, .55), inL1 = gap(a, aL1, .45), inTop = gap(a, a0, .5);
+      const cuts = []; if (inEntry) cuts.push([-1, 2.4]); if (inL1) cuts.push([L1 - .6, L1 + 2.2]); if (inTop) cuts.push([L2 - .6, L2 + 2.5]);
+      let y = -1; for (const [c0, c1] of cuts.sort((p, q) => p[0] - q[0])) { if (c0 > y) W(y, c0); y = Math.max(y, c1); } if (y < L2 + 2) W(y, L2 + 2); }
+    // le petit palier en haut, qui rejoint la plateforme du coin
+    const lx = sx + Math.cos(a0) * 1.3, lz = sz + Math.sin(a0) * 1.3, pad = rbox(1.8, .16, 1.8, plank, .03); pad.position.set(lx - .2, L2 - .08, lz - .2); g.add(pad);
+    SURF.push((px, pz) => harnessOn && Math.abs(px - lx + .2) < .9 && Math.abs(pz - lz + .2) < .9 ? L2 : null);
+    ACRO.gate = [sx + Math.cos(a0 + .35) * 2.7, sz + Math.sin(a0 + .35) * 2.7]; Object.assign(ACRO_GATE, { x1: ACRO.gate[0] - .7, x2: ACRO.gate[0] + .7, z1: ACRO.gate[1] - .2, z2: ACRO.gate[1] + .2 }); }
   // NIVEAU 2 : les plateformes en bois autour des poteaux
   for (const [x, z] of ACRO_P) { const d = rbox(ACRO_R * 2, .16, ACRO_R * 2, plank, .03); d.position.set(x, L2 - .08, z); g.add(d); for (let k = 0; k < 4; k++) { const b = rbox(.1, .3, ACRO_R * 2, dkwood, .01); b.position.set(x - ACRO_R + .3 + k * .5, L2 - .3, z); g.add(b); }
     SURF.push((px, pz) => harnessOn && Math.abs(px - x) < ACRO_R && Math.abs(pz - z) < ACRO_R ? L2 : null); }
-  { const [bx, bz] = AC.B, a = Math.PI / 4 + 1.5 * Math.PI, lx = bx + Math.cos(a) * 1.25, lz = bz + Math.sin(a) * 1.25; // le palier en haut de l'escalier B
-    const pad = rbox(2.2, .16, 3, plank, .03); pad.position.set(lx + .2, L2 - .08, (lz + z1) / 2 - .2); g.add(pad); SURF.push((px, pz) => harnessOn && Math.abs(px - lx - .2) < 1.1 && pz > lz - 1 && pz < z1 ? L2 : null); }
   // les 8 ponts, tous différents
   const kinds = ["planches", "singe", "etriers", "filet", "poutre", "echelle", "balancoire", "tunnel"];
   ACRO_P.forEach(([ax, az], i) => {
@@ -2861,7 +2899,7 @@ let acroZip = null; const ACRO_SWING = [];
     const ep = new THREE.Mesh(new THREE.CylinderGeometry(.18, .22, PH + .5, 12), steel); ep.position.set(PX, (PH + .5) / 2, PZ); g.add(ep); circles.push({ x: PX, z: PZ, r: .3 });
     const mat2 = rbox(2.4, .25, 2.4, mat(0x2e86de, .9), .1); mat2.position.set(endX - zux * .6, .12, endZ - zuz * .6); g.add(mat2);
     const zl = label("🪂 Tyrolienne", "#27ae60", "#ffffff", .8); zl.position.set(zx + zux * .7, L2 + 3.4, zz + zuz * .7); g.add(zl); }
-  const gateBar = rbox(1.8, .12, .12, mat(0xff5a4e, .5), .04); gateBar.position.set(-115.8, .9, 126.5); g.add(gateBar); ACRO_GATE.bar = gateBar;
+  const gateBar = rbox(1.8, .12, .12, mat(0xff5a4e, .5), .04); gateBar.position.set(ACRO.gate[0], .9, ACRO.gate[1]); gateBar.scale.x = .8; g.add(gateBar); ACRO_GATE.bar = gateBar;
   // l'accueil : un chalet ouvert avec un comptoir et les baudriers accrochés
   const hut = new THREE.Group(); hut.position.set(-140.5, 0, 104.6); g.add(hut);
   const back = rbox(.25, 2.8, 4, mat(0xffffff, .8, { map: woodTex }), .05); back.position.set(-1.3, 1.4, 0); hut.add(back);
@@ -2871,7 +2909,7 @@ let acroZip = null; const ACRO_SWING = [];
   for (let k = 0; k < 4; k++) { const hz = -1.2 + k * .8, hook = new THREE.Mesh(new THREE.TorusGeometry(.18, .05, 6, 14), mat([0xff5a4e, 0x2e86de, 0xffc93c, 0x27ae60][k], .6)); hook.position.set(-1.1, 1.9, hz); hook.rotation.y = Math.PI / 2; hut.add(hook); }
   boxes.push({ x1: -142, x2: -139.1, z1: 102.4, z2: 106.8 });
   const sign = label("ACROBRANCHE 🧗", "#27ae60", "#ffffff", 1.6); sign.position.set(-140.5, 4.4, 104.6); g.add(sign);
-  const s2 = label("Départ ↑ (avec le baudrier)", "#ff5a4e", "#ffffff", .9); s2.position.set(-115.8, 2.4, 126.2); g.add(s2);
+  const s2 = label("Départ ↑ (avec le baudrier)", "#ff5a4e", "#ffffff", .9); s2.position.set(ACRO.gate[0], 2.6, ACRO.gate[1] - .3); g.add(s2);
   shadowAll(g); fondre(g, ACRO_SWING.map(sw => sw.g)); // 340 pièces immobiles → quelques maillages (les planches de la balançoire bougent : on les garde)
 }
 function updateAcroSwing(time) { for (const s of ACRO_SWING) { const a = Math.sin(time * 1.6 + s.ph) * .12; s.g.rotation.set(s.az * a, 0, -s.ax * a); } }
@@ -3150,8 +3188,9 @@ function updateHalloween(dt, time, P, night) {
   }
 }
 // au bouton 🎃 : on allume ou on éteint Halloween
-function setHalloBtn() { const b = $("halloBtn"); if (!b) return; document.querySelectorAll(".themes [data-theme]").forEach(t => t.setAttribute("aria-pressed", (t.dataset.theme === "halloween") === HALLO.on ? "true" : "false")); b.setAttribute("aria-label", HALLO.on ? "Enlever Halloween" : "Mettre Halloween"); }
+function setHalloBtn() { const b = $("halloBtn"); if (!b) return; const tb = $("halloTop"); if (tb) tb.style.opacity = HALLO.on ? "1" : ".5"; document.querySelectorAll(".themes [data-theme]").forEach(t => t.setAttribute("aria-pressed", (t.dataset.theme === "halloween") === HALLO.on ? "true" : "false")); b.setAttribute("aria-label", HALLO.on ? "Enlever Halloween" : "Mettre Halloween"); }
 setHalloBtn();
+$("halloTop").onclick = () => $("halloBtn").click();
 $("halloBtn").onclick = () => { HALLO.on = !HALLO.on; try { localStorage.setItem("pins-halloween", HALLO.on ? "1" : "0"); } catch (e) {} setHalloBtn(); sfx.click(); for (const c of HALLO.costumes || []) c.visible = HALLO.on; setManorOn(HALLO.on);
   if (HALLO.on) { toast("🎃 Joyeux Halloween ! Cherche les fantômes 👻", 2400); [196, 233, 277, 330].forEach((f, i) => tone(f, .5, "triangle", .1, 0, i * .18)); } else toast("Halloween est rangé jusqu'à l'an prochain !", 2000); };
 
@@ -3210,17 +3249,17 @@ const inManor = (x, z) => x > MANOR.x1 && x < MANOR.x2 && z > MANOR.z1 && z < MA
     for (let k = 0; k < 5; k++) { const b = new THREE.Mesh(new THREE.CylinderGeometry(.03, .08, 1.6, 5), tm); const a = k * 1.3; b.position.set(Math.cos(a) * .4, 2.6 + k * .3, Math.sin(a) * .4); b.rotation.set(Math.sin(a) * .9, 0, -Math.cos(a) * .9); t.add(b); } scircle({ x, z, r: .35 }); }
   // dedans : lustre, longue table, piano, cercueil, chaudron qui bouillonne, toiles d'araignée, tableaux
   const floor = rbox(W - .3, .2, D - .3, mat(0x3a2a22, .8, { map: woodTex }), .02); floor.position.set(cx, .1, cz); g.add(floor);
-  const table = rbox(5, .12, 1.3, mat(0x4a2c1a, .6), .03); table.position.set(cx, 1, cz); g.add(table); for (const [dx, dz] of [[-2.3, -.5], [2.3, -.5], [-2.3, .5], [2.3, .5]]) { const l = rbox(.1, 1, .1, mat(0x4a2c1a, .6), .02); l.position.set(cx + dx, .5, cz + dz); g.add(l); }
-  box(cx - 2.6, cx + 2.6, cz - .7, cz + .7);
+  const table = rbox(5, .12, 1.3, mat(0x4a2c1a, .6), .03); table.position.set(cx, 1, cz); spook.add(table); for (const [dx, dz] of [[-2.3, -.5], [2.3, -.5], [-2.3, .5], [2.3, .5]]) { const l = rbox(.1, 1, .1, mat(0x4a2c1a, .6), .02); l.position.set(cx + dx, .5, cz + dz); spook.add(l); }
+  sbox(cx - 2.6, cx + 2.6, cz - .7, cz + .7);
   MANOR.flames = [];
-  for (const dx of [-1.5, 0, 1.5]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .3, 8), mat(0xf5ecd6, .6)); c.position.set(cx + dx, 1.21, cz); g.add(c); const f = new THREE.Mesh(new THREE.SphereGeometry(.05, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffb347 })); f.scale.y = 1.8; f.position.set(cx + dx, 1.42, cz); g.add(f); MANOR.flames.push(f); }
-  const chand = new THREE.Group(); chand.position.set(cx, H - 1.4, cz); g.add(chand); MANOR.chand = chand;
+  for (const dx of [-1.5, 0, 1.5]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .3, 8), mat(0xf5ecd6, .6)); c.position.set(cx + dx, 1.21, cz); spook.add(c); const f = new THREE.Mesh(new THREE.SphereGeometry(.05, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffb347 })); f.scale.y = 1.8; f.position.set(cx + dx, 1.42, cz); spook.add(f); MANOR.flames.push(f); }
+  const chand = new THREE.Group(); chand.position.set(cx, H - 1.4, cz); spook.add(chand); MANOR.chand = chand;
   const ringC = new THREE.Mesh(new THREE.TorusGeometry(1, .05, 6, 24), iron); ringC.rotation.x = Math.PI / 2; chand.add(ringC);
   for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2, f = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffb347 })); f.position.set(Math.cos(a), .15, Math.sin(a)); chand.add(f); MANOR.flames.push(f); }
   const chain = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, 1.3, 4), iron); chain.position.y = .7; chand.add(chain);
   const light = new THREE.PointLight(0xff8a3a, 6, 14, 1.6); light.position.set(cx, H - 2, cz); g.add(light); MANOR.light = light;
   // le piano
-  { const p = rbox(2, 1.3, .8, mat(0x111111, .25), .05); p.position.set(x2 - 1.2, .75, z2 - 2.5); p.rotation.y = -Math.PI / 2; g.add(p); const keys = rbox(.35, .05, 1.8, mat(0xf4f1e8, .4), .01); keys.position.set(x2 - 1.75, 1, z2 - 2.5); g.add(keys); box(x2 - 1.7, x2 - .2, z2 - 3.5, z2 - 1.5); MANOR.piano = [x2 - 2.4, z2 - 2.5]; }
+  { const p = rbox(2, 1.3, .8, mat(0x111111, .25), .05); p.position.set(x2 - 1.2, .75, z2 - 2.5); p.rotation.y = -Math.PI / 2; spook.add(p); const keys = rbox(.35, .05, 1.8, mat(0xf4f1e8, .4), .01); keys.position.set(x2 - 1.75, 1, z2 - 2.5); spook.add(keys); sbox(x2 - 1.7, x2 - .2, z2 - 3.5, z2 - 1.5); MANOR.piano = [x2 - 2.4, z2 - 2.5]; }
   // le cercueil qui s'ouvre
   { const cf = new THREE.Group(); cf.position.set(x2 - 2, 0, z1 + 2.2); cf.rotation.y = Math.PI / 2; spook.add(cf);
     const shp = new THREE.Shape(); shp.moveTo(-.3, -1); shp.lineTo(.3, -1); shp.lineTo(.42, .4); shp.lineTo(.3, 1); shp.lineTo(-.3, 1); shp.lineTo(-.42, .4); shp.lineTo(-.3, -1);
@@ -3286,11 +3325,12 @@ const inManor = (x, z) => x > MANOR.x1 && x < MANOR.x2 && z > MANOR.z1 && z < MA
     const lamp = new THREE.Mesh(new THREE.ConeGeometry(.15, .2, 12, 1, true), mat(0xffc93c, .5, { side: THREE.DoubleSide })); lamp.position.set(UF.x1 + 4, Y + 1.05, z1 + .5); calm.add(lamp);
     const toy = rbox(.9, .5, .55, mat(0x2e86de, .5), .05); toy.position.set(UF.x1 + 2.8, Y + .25, z1 + 4.8); calm.add(toy);
     const pot = new THREE.Mesh(new THREE.CylinderGeometry(.2, .16, .35, 12), mat(0xd35400, .7)); pot.position.set(x2 - .6, Y + .18, z1 + 4.9); calm.add(pot); const pl = new THREE.Mesh(blobGeo(.35, 2, .25, 1), mat(0x2d8a4f, .8)); pl.position.set(x2 - .6, Y + .6, z1 + 4.9); calm.add(pl); }
-  // la grande maison (sans Halloween) : un salon, des fleurs et des haies devant
-  { const sofa = new THREE.Group(); sofa.position.set(cx - 4, 0, z2 - 2.2); calm.add(sofa); const sm = mat(0x2e86de, .8);
+  // le grand cottage (sans Halloween) : une bande de bois entre les deux étages, un salon, des fleurs devant
+  for (const [w2, d2, bx, bz] of [[W + .5, .25, cx, z1], [W + .5, .25, cx, z2], [.25, D + .5, x1, cz], [.25, D + .5, x2, cz]]) { const band = rbox(w2, .3, d2, mat(0x6b4a2f, .8), .04); band.position.set(bx, 3.1, bz); calm.add(band); }
+  { const sofa = new THREE.Group(); sofa.position.set(cx - 4, 0, z2 - 2.2); calm.add(sofa); const sm = mat(0x2c8a8a, .9);
     const base = rbox(2.6, .45, .9, sm, .1); base.position.y = .42; sofa.add(base); const back = rbox(2.6, .7, .25, sm, .1); back.position.set(0, .85, .4); sofa.add(back); for (const s of [-1, 1]) { const arm = rbox(.25, .6, .9, sm, .1); arm.position.set(s * 1.3, .6, 0); sofa.add(arm); }
     { const b = { x1: cx - 5.4, x2: cx - 2.6, z1: z2 - 2.7, z2: z2 - 1.7, off: HALLO.on }; boxes.push(b); MANOR.cboxes = [b]; }
-    const crug = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 2.2), mat(0xe9c46a, .9)); crug.rotation.x = -Math.PI / 2; crug.position.set(cx - 4, .21, z2 - 3.6); calm.add(crug);
+    const crug = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 2.2), mat(0xe9d7b5, .9)); crug.rotation.x = -Math.PI / 2; crug.position.set(cx - 4, .21, z2 - 3.6); calm.add(crug);
     const shelf = rbox(.4, 2.2, 1.8, mat(0x8a5a35, .7), .03); shelf.position.set(x1 + .5, 1.3, z2 - 2.4); calm.add(shelf); for (let k = 0; k < 12; k++) { const bk = rbox(.25, .3, .1, mat([0xe74c3c, 0x2e86de, 0x27ae60, 0xffc93c][k % 4], .6), .01); bk.position.set(x1 + .55, .75 + Math.floor(k / 6) * .6, z2 - 3.1 + (k % 6) * .25); calm.add(bk); }
     for (const z of [door - 2.6, door + 2.6]) { const pot = new THREE.Mesh(new THREE.CylinderGeometry(.3, .25, .5, 12), mat(0xd35400, .7)); pot.position.set(x1 - 1.6, .25, z); calm.add(pot); const ball = new THREE.Mesh(new THREE.SphereGeometry(.55, 14, 10), mat(0x2d8a4f, .8)); ball.position.set(x1 - 1.6, 1, z); calm.add(ball); }
     for (const [ax, bz] of [[x1 - .6, z1 - .6], [x1 - .6, z2 + .6]]) for (let k = 0; k < 6; k++) { const f = new THREE.Mesh(new THREE.SphereGeometry(.18, 8, 6), mat([0xff5a4e, 0xffc93c, 0xe84393, 0xffffff][k % 4], .6)); f.position.set(x1 + 1 + k * 2.4, .25, bz); calm.add(f); const lf = new THREE.Mesh(new THREE.SphereGeometry(.28, 8, 6), mat(0x3a7d44, .8)); lf.scale.y = .5; lf.position.set(x1 + 1 + k * 2.4, .1, bz); calm.add(lf); }
@@ -3303,7 +3343,7 @@ function setManorOn(on) { // le même bâtiment : manoir hanté pour Halloween, 
   MANOR.wallM.color.set(on ? 0x6a5a78 : 0xffffff); // sans Halloween : du bois comme les autres cottages, un toit en bardeaux, des volets verts
   MANOR.darkM.color.set(on ? 0x2b2235 : 0xffffff); MANOR.darkM.map = on ? null : roofMat.map; MANOR.darkM.needsUpdate = true; MANOR.trimM.color.set(on ? 0x1a1420 : 0x2e6b47);
   MANOR.glow.color.set(on ? 0x3a2a10 : 0x9fd8ff); MANOR.glow.emissive.set(on ? 0xff9a2a : 0xffe2a8); MANOR.glowK = on ? 1 : .15;
-  MANOR.light.color.set(on ? 0xff8a3a : 0xffe6c0); MANOR.blanketM.color.set(on ? 0x5b5560 : 0x2e86de); MANOR.rug.material.color.set(on ? 0x5a1e2a : 0xe9c46a);
+  MANOR.light.color.set(on ? 0xff8a3a : 0xffe6c0); MANOR.blanketM.color.set(on ? 0x5b5560 : 0x5b7fbf); MANOR.rug.material.color.set(on ? 0x5a1e2a : 0xe9d7b5); MANOR.light.intensity = on ? 6 : 4;
 }
 function updateManor(dt, time, P) {
   const inside = inManor(P.x, P.z); if (inside !== MANOR.inside) { MANOR.inside = inside; if (inside) { if (HALLO.on) { toast("🏚️ Bienvenue au manoir hanté… Hou hou ! 👻 Monte l'escalier !", 2600); tone(110, 1.2, "sine", .14, -40); tone(165, 1.2, "sine", .08, -60, .2); } else toast("🏡 Bienvenue dans le grand cottage ! Il y a un étage.", 2400); } }
@@ -3498,7 +3538,19 @@ pines.concat(leafy).forEach(t => circles.push({ x: t.x, z: t.z, r: .4 * t.s }));
 // buissons, fleurs, herbes, rochers
 const bushes = [], flowers = [], tufts = [], rocks = [];
 for (let i = 0; i < 8000 && bushes.length < 600; i++) { const x = (rnd() * 2 - 1) * WORLD, z = (rnd() * 2 - 1) * WORLD; if (!blocked(x, z, 1)) bushes.push({ x, z, s: .6 + rnd() * .9, r: rnd() * 6, c: rnd() }); }
-{ const bd = depthOf(leafTex2, .45); for (const im of instancedParCase(clusterGeo(30, .9).translate(0, .55, 0), leafMat2, bushes, (t, c) => c.setRGB(.55 + t.c * .2, .65 + t.c * .2, .45 + t.c * .15), 32, LOWQ ? 70 : 100)) im.customDepthMaterial = bd; }
+// des buissons plus vrais : trois touffes de feuilles serrées (une grande au milieu, deux plus petites), un cœur sombre pour qu'on ne voie pas à travers,
+// et des feuilles plus foncées en bas (à l'ombre) et plus claires en haut (au soleil)
+function bushGeo() {
+  const lobes = [[0, .62, 0, 1], [.55, .45, .25, .72], [-.45, .42, -.3, .68], [.1, .4, -.55, .6]], parts = [];
+  for (const [lx, ly, lz, ls] of lobes) { const n = Math.round(26 * ls); for (let i = 0; i < n; i++) { const p = new THREE.PlaneGeometry(.62 * ls + .2, .62 * ls + .2), u = rnd() * 6.28, v = Math.acos(2 * rnd() - 1), d = Math.cbrt(rnd()) * .62 * ls;
+      p.rotateX(rnd() * 6.28); p.rotateY(rnd() * 6.28); p.rotateZ(rnd() * 6.28); p.translate(lx + Math.sin(v) * Math.cos(u) * d * 1.15, Math.max(.12, ly + Math.cos(v) * d * .75), lz + Math.sin(v) * Math.sin(u) * d * 1.15); parts.push(p); } }
+  const g = mergeGeometries(parts), P = g.attributes.position, N = g.attributes.normal, C = new Float32Array(P.count * 3), t = new THREE.Vector3();
+  for (let i = 0; i < P.count; i++) { t.set(P.getX(i), P.getY(i) - .25, P.getZ(i)).normalize(); N.setXYZ(i, t.x, t.y, t.z); const k = .55 + Math.min(1, P.getY(i) / 1.2) * .55; C[i * 3] = k; C[i * 3 + 1] = k; C[i * 3 + 2] = k; }
+  g.setAttribute("color", new THREE.BufferAttribute(C, 3)); return g;
+}
+const bushLeafM = leafMat2.clone(); bushLeafM.vertexColors = true;
+{ const bd = depthOf(leafTex2, .45); for (const im of instancedParCase(bushGeo(), bushLeafM, bushes, (t, c) => c.setRGB(.5 + t.c * .22, .62 + t.c * .22, .4 + t.c * .15), 32, LOWQ ? 70 : 100)) im.customDepthMaterial = bd;
+  const core = new THREE.SphereGeometry(.55, 10, 7); core.scale(1.35, .75, 1.2); core.translate(.05, .45, -.05); instancedParCase(core, mat(0x1f4a24, .95), bushes, null, 32, LOWQ ? 70 : 100); }
 for (let i = 0; i < 16000 && flowers.length < 2200; i++) { const x = (rnd() * 2 - 1) * WORLD, z = (rnd() * 2 - 1) * WORLD; if (!blocked(x, z, .3)) flowers.push({ x, z, s: .7 + rnd() * .6, r: 0, c: rnd() }); }
 const fCols = [0xffffff, 0xffe066, 0xff8fb1, 0xb39ddb, 0xff6b6b];
 { const parts = []; for (let k = 0; k < 6; k++) { const pg = new THREE.SphereGeometry(.06, 6, 3); pg.scale(1.3, .22, .55); pg.translate(.07, 0, 0); pg.rotateY(k / 6 * Math.PI * 2); pg.translate(0, .24, 0); parts.push(pg); }
@@ -3802,6 +3854,7 @@ const BIKE_COLS = [0xe74c3c, 0x2e86de, 0xf1c40f, 0x27ae60, 0xe84393];
 BIKE_COLS.forEach((c, i) => { const v = { kind: "bike", g: makeBike(c), x: 3 + i * 1.5, z: 36.6, h: Math.PI, v: 0, r: .55, lean: 0, ca: 0 }; v.g.position.set(v.x, 0, v.z); v.g.rotation.y = v.h; scene.add(v.g); vehicles.push(v); movers.push(v); });
 // les voitures du parking : on peut monter dedans et les conduire
 for (const c of PARK_CARS) { const v = { kind: "car", g: c.g, x: c.x, z: c.z, h: c.h, v: 0, r: 1.15, home: [c.x, c.z, c.h] }; vehicles.push(v); movers.push(v); }
+for (const v of CARTS) { vehicles.push(v); movers.push(v); }
 { const g = new THREE.Group(); for (let i = 0; i < 6; i++) { const h = new THREE.Mesh(new THREE.TorusGeometry(.32, .025, 8, 20, Math.PI), metalMat); h.position.set(2.25 + i * 1.5, 0, 37.55); g.add(h); }
   const bar = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, 7.6, 8), metalMat); bar.rotation.z = Math.PI / 2; bar.position.set(6, .3, 37.55); g.add(bar);
   const sign = label("Vélos 🚲", "#27ae60", "#ffffff", .7); sign.position.set(6, 1.9, 38.2); scene.add(sign); scene.add(bake(g)); boxes.push({ x1: 1.8, x2: 10.2, z1: 37.4, z2: 37.7 }); }
@@ -6578,7 +6631,7 @@ const aiKarts = []; // plus de circuit de karts
 const floaters = [.12, .4, .58, .9].map((u, i) => { const b = makeBuoy(), g = bather(i % 2 === 1); g.visible = true; b.add(g); g.position.set(0, -.3, 0); scene.add(b); return { b, g, u, lat: (rnd() - .5) * 1.4, spin: rnd() * 6 }; });
 const myBuoy = makeBuoy(); myBuoy.visible = false; scene.add(myBuoy);
 // réglages de conduite : vitesse, accélération, virage, place du pilote
-const VK = { car: { max: 13, acc: 2.2, turn: 1.9, y: .17, z: .15, x: .42, mode: "kart" }, bike: { max: 7.5, acc: 1.5, turn: 2.6, y: .33, z: -.27, mode: "bike" }, kart: { max: 10, acc: 2, turn: 2.4, y: -.2, z: -.3, mode: "kart" }, pony: { max: 6.5, acc: 1.3, turn: 2.1, y: 1.03, z: .05, mode: "saddle" } };
+const VK = { cart: { max: 7.5, acc: 2.4, turn: 2.4, y: .25, z: -.05, x: .3, mode: "kart" }, car: { max: 13, acc: 2.2, turn: 1.9, y: .17, z: .15, x: .42, mode: "kart" }, bike: { max: 7.5, acc: 1.5, turn: 2.6, y: .33, z: -.27, mode: "bike" }, kart: { max: 10, acc: 2, turn: 2.4, y: -.2, z: -.3, mode: "kart" }, pony: { max: 6.5, acc: 1.3, turn: 2.1, y: 1.03, z: .05, mode: "saddle" } };
 let seatOffer = null, veh = null, engine = null, mountT = null, petT = null, seatT = null, riv = null, food = null, chestGot = false, musWant = "foret";
 function inp() { let ix = jx, iy = jy; if (!paused) { if (keys["arrowup"] || keys["z"] || keys["w"]) iy = -1; if (keys["arrowdown"] || keys["s"]) iy = 1; if (keys["arrowleft"] || keys["q"] || keys["a"]) ix = -1; if (keys["arrowright"] || keys["d"]) ix = 1; } else ix = iy = 0; return [ix, iy]; }
 function engineOn() { if (!actx || engine) return; try { const o = actx.createOscillator(), o2 = actx.createOscillator(), lp = actx.createBiquadFilter(), g = actx.createGain(); o.type = "sawtooth"; o2.type = "square"; lp.type = "lowpass"; lp.frequency.value = 520; g.gain.value = 0;
@@ -6609,16 +6662,16 @@ function voitureOk(x, z) {
     if (Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t) < w / 2 + 1.1) return false; }
   return true;
 }
-// Interdiction de conduire : gardée sur l'appareil (1 heure), même si on relance le jeu
+// Interdiction de conduire : gardée sur l'appareil (4 minutes), même si on relance le jeu
 let permisT = 0; try { permisT = +localStorage.getItem("pins-permis") || 0; } catch (e) {}
 const minutesSansPermis = () => Math.max(1, Math.ceil((permisT - Date.now()) / 60000));
 function interdireConduite() {
   const V = veh; if (!V) return;
-  permisT = Date.now() + 3600e3; try { localStorage.setItem("pins-permis", String(permisT)); } catch (e) {}
+  permisT = Date.now() + 4 * 60e3; // 4 minutes sans conduire try { localStorage.setItem("pins-permis", String(permisT)); } catch (e) {}
   dismount(); [V.x, V.z, V.h] = V.home; V.v = 0; V.g.position.set(V.x, 0, V.z); V.g.rotation.set(0, V.h, 0); // la voiture retourne à sa place
   const P = player.position; P.set((PARK.x1 + PARK.x2) / 2 - 4, 0, (PARK.z1 + PARK.z2) / 2); prev.x = P.x; prev.z = P.z; player.rotation.set(0, Math.PI, 0);
   for (let i = 0; i < 4; i++) tone(i % 2 ? 620 : 880, .22, "square", .05, 0, i * .25); // la sirène
-  toast("🚫 On ne fonce pas sur les gens ! Interdiction de conduire pendant 1 heure.", 4500);
+  toast("🚫 On ne fonce pas sur les gens ! Interdiction de conduire pendant 4 minutes.", 4500);
 }
 // Les piétons se jettent sur le côté quand une voiture arrive sur eux ; si on continue vers eux, plus de permis
 function plonger(o, V, rx, rz) {
@@ -6627,7 +6680,7 @@ function plonger(o, V, rx, rz) {
 }
 function voituresTick(dt) {
   const V = veh;
-  if (V && V.kind === "car" && state === "drive") {
+  if (V && (V.kind === "car" || V.kind === "cart") && state === "drive") {
     const fx = Math.sin(V.h), fz = Math.cos(V.h), rx = Math.cos(V.h), rz = -Math.sin(V.h), sp = Math.abs(V.v), sg = Math.sign(V.v) || 1;
     const gens = [...walkers.filter(w => w.g.visible).map(w => ({ ref: w, g: w.g })), ...npcs.map(n => ({ ref: n, g: n.g })), ...(net ? [...net.autres.values()].filter(o => o.g.visible).map(o => ({ ref: null, g: o.g })) : [])];
     for (const { ref, g } of gens) {
@@ -6646,9 +6699,10 @@ function voituresTick(dt) {
     else { g.rotation.x = 0; o.dive = null; } }
 }
 function mountVeh(v) {
-  if (v.kind === "car" && Date.now() < permisT) { toast(`🚫 Tu n'as plus le droit de conduire pendant encore ${minutesSansPermis()} min. Tu peux prendre un vélo 🚲`, 3200); tone(200, .2, "square", .04); return; }
+  if ((v.kind === "car" || v.kind === "cart") && Date.now() < permisT) { toast(`🚫 Tu n'as plus le droit de conduire pendant encore ${minutesSansPermis()} min. Tu peux prendre un vélo 🚲`, 3200); tone(200, .2, "square", .04); return; }
   veh = v; state = "drive"; v.v = 0; $("dialog").hidden = true; talking = null;
   if (v.kind === "pony") { v.ridden = true; v.hitched = false; animalSound("pony", 2); toast(`Hue, ${v.name || "petit poney"} ! 🐴 Tu peux aller partout.`, 2600); }
+  else if (v.kind === "cart") { tone(660, .08, "sine", .06); tone(880, .1, "sine", .05, 0, .09); toast("🛺 C'est parti en voiturette ! Tu peux rouler sur les chemins, doucement. Attention aux gens !", 3200); }
   else if (v.kind === "car") { engineOn(); tone(392, .12, "square", .05); toast("Vroum ! 🚗 Roule sur le parking et dans l'herbe : pas sur les chemins, pas dans les bâtiments. Attention aux gens !", 3600); }
   else if (v.kind === "kart") { engineOn(); lap.t = -1; lap.px = 0; toast("Vroum ! 🏎️ Passe la ligne à damier pour lancer le chrono.", 2800); }
   else { tone(2100, .18, "sine", .07); tone(2100, .18, "sine", .07, 0, .22); toast("En selle ! 🚲 Tu peux descendre où tu veux.", 2400); }
@@ -6684,7 +6738,7 @@ function driveTick(dt, P) {
   const bob = V.kind === "pony" ? Math.abs(Math.sin(V.ph)) * .06 * Math.min(1, V.v / 2) : 0;
   P.set(V.x + Math.sin(V.h) * K.z + Math.cos(V.h) * (K.x || 0), K.y + hy + bob, V.z + Math.cos(V.h) * K.z - Math.sin(V.h) * (K.x || 0)); player.rotation.y = V.h; player.rotation.z = V.kind === "bike" ? V.lean : 0;
   if (V.kind === "bike") { const w = V.v * dt / .31; V.g.userData.wheels.forEach(x => x.rotation.x += w); V.ca += w * .55; V.g.userData.crank.rotation.x = V.ca; animPerson(player, "bike", V.ca); }
-  else if (V.kind === "kart" || V.kind === "car") { V.g.userData.wheels.forEach(x => x.rotation.x += V.v * dt / (V.g.userData.wheelR || .19)); animPerson(player, "kart", 0); if (V.kind === "kart") kartLap(V, dt);
+  else if (V.kind === "kart" || V.kind === "car" || V.kind === "cart") { V.g.userData.wheels.forEach(x => x.rotation.x += V.v * dt / (V.g.userData.wheelR || .19)); animPerson(player, "kart", 0); if (V.kind === "kart") kartLap(V, dt);
     if (engine) { const t = actx.currentTime; engine.o.frequency.setTargetAtTime(42 + Math.abs(V.v) * 9, t, .05); engine.o2.frequency.setTargetAtTime(21 + Math.abs(V.v) * 4.5, t, .05); engine.g.gain.setTargetAtTime(muted || paused ? 0 : .05, t, .05); } }
   else animPerson(player, "saddle", V.ph, V.v);
 }
@@ -8291,7 +8345,7 @@ function loop() {
     mountT = petT = seatOffer = null;
     if (state === "walk" && P.y < 1) {
       let bv = null, bd = 2.3; for (const v of vehicles) { const d = Math.hypot(P.x - v.x, P.z - v.z); if (d < bd) { bd = d; bv = v; } }
-      if (bv) { mountT = bv; offer("mount", bv.kind === "car" ? "🚗 Monter dans la voiture" : bv.kind === "bike" ? "🚲 Monter sur le vélo" : bv.kind === "kart" ? "🏎️ Monter dans le kart" : "🐴 Monter sur " + bv.name); }
+      if (bv) { mountT = bv; offer("mount", bv.kind === "cart" ? "🛺 Monter dans la voiturette" : bv.kind === "car" ? "🚗 Monter dans la voiture" : bv.kind === "bike" ? "🚲 Monter sur le vélo" : bv.kind === "kart" ? "🏎️ Monter dans le kart" : "🐴 Monter sur " + bv.name); }
       let ba = null, bd2 = 1.4; for (const a of animals) { if (!a.g.visible) continue; const d = Math.hypot(P.x - a.x, P.z - a.z) - a.r; if (d < bd2) { bd2 = d; ba = a; } }
       if (Math.hypot(P.x - cat.x, P.z - cat.z) < 1.8) ba = cat;
       if (ba) { petT = ba; offer("pet", PET[ba.kind][0]); }
@@ -8302,7 +8356,7 @@ function loop() {
     }
     if (state === "walk" && P.y > 4) { if (Math.hypot(P.x - CHEST.x, P.z - CHEST.z) < 1.8) offer("chest", "🎁 Ouvrir le coffre"); if (Math.hypot(P.x - 63.3, P.z - 69) < 1.5) offer("treeslide", "🛝 Glisser !"); }
     if (state === "walk" && P.y < 1) BDAY.forEach((r, i) => { if (Math.hypot(P.x - r.table[0], P.z - r.table[1]) < 1.9) offer("bday" + i, r.out > 0 ? "🎉 Joyeux anniversaire !" : "🎂 Souffler les bougies"); });
-    if (MANOR.inside && state === "walk" && P.y < 1 && Math.hypot(P.x - MANOR.piano[0], P.z - MANOR.piano[1]) < 1.4) offer("m_piano", "🎹 Jouer du piano");
+    if (HALLO.on && MANOR.inside && state === "walk" && P.y < 1 && Math.hypot(P.x - MANOR.piano[0], P.z - MANOR.piano[1]) < 1.4) offer("m_piano", "🎹 Jouer du piano");
     if (HALLO.on && MANOR.inside && state === "walk" && P.y > 2.5 && Math.hypot(P.x - MANOR.orbAt[0], P.z - MANOR.orbAt[1]) < 1.4) offer("m_orb", "🔮 Regarder la boule de cristal");
     if (HALLO.on && MANOR.inside && state === "walk" && P.y < 1) { const { x1, x2, z1, z2 } = MANOR, cx = (x1 + x2) / 2, cz = (z1 + z2) / 2;
       if (Math.hypot(P.x - MANOR.coffinAt[0], P.z - MANOR.coffinAt[1]) < 1.6) offer("m_coffin", "⚰️ Ouvrir le cercueil");
