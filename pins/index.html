@@ -3113,8 +3113,19 @@ scene.add(HALLO.g);
 }
 const C_FOG_HALLO = new THREE.Color(0x3a1f55), C_MOON_HALLO = new THREE.Color(0xffb36b), C_WHITE = new THREE.Color(0xffffff);
 const _bm = new THREE.Matrix4(), _bq = new THREE.Quaternion(), _bq2 = new THREE.Quaternion(), _bv = new THREE.Vector3(), _bs = new THREE.Vector3(1, 1, 1), _be = new THREE.Euler();
+let capeFrame = 0;
+function updateCapes(time) { // la cape part en arrière et ondule quand on marche, elle pend presque droite à l'arrêt
+  if (!HALLO.capes) return; capeFrame++; const C = camera.position;
+  for (const c of HALLO.capes) { const g = c.w.g; if (!g.visible || (g.position.x - C.x) ** 2 + (g.position.z - C.z) ** 2 > 2500) continue;
+    const sp = c.w.st === "walk" ? 1 : .15, pa = c.geo.attributes.position, L = c.L, sg = c.sg;
+    for (let k = 0; k < pa.count; k++) { const x = c.base[k * 2], t = c.base[k * 2 + 1];
+      const back = (t * t * .32 + t * .06) * (.35 + sp) / sg, wave = Math.sin(time * (4 + 6 * sp) - t * 5 + x * sg * 4 + c.ph) * .07 * t * (.25 + sp) / sg, wrap = (x * sg) ** 2 * .45 / sg;
+      pa.setXYZ(k, x, -t * L * (1 - .08 * sp * t), -back - wave + wrap); }
+    pa.needsUpdate = true; if ((capeFrame + c.ph * 10 | 0) % 3 === 0) c.geo.computeVertexNormals(); }
+}
 function updateHalloween(dt, time, P, night) {
   HALLO.g.visible = HALLO.on; if (!HALLO.on) return;
+  updateCapes(time);
   HALLO.pmat.emissiveIntensity = .35 + 2.6 * night + Math.sin(time * 9) * .15 * night;
   // chauves-souris
   const B = HALLO.bats; B.list.forEach((b, i) => {
@@ -7631,8 +7642,14 @@ HALLO.costumes = [];
     const kind = KINDS[i % KINDS.length], c = new THREE.Group(); h.add(c);
     const s = h.getWorldScale(v).y || 1, hy = h.getWorldPosition(v).y - w.g.position.y, u = 1 / s; // u : 1 mètre, en unités de la tête
     c.position.set(0, .2, 0);
-    const cape = (m1, m2, len = hy * .78) => { const geo = new THREE.PlaneGeometry(.55 * u, len * u, 1, 6); geo.translate(0, -len * u / 2, 0); const pa = geo.attributes.position; for (let k = 0; k < pa.count; k++) pa.setX(k, pa.getX(k) * (1 + (-pa.getY(k) / (len * u)) * .6));
-      const a = new THREE.Mesh(geo, m1); a.position.set(0, -.18, -.2 * u); a.rotation.x = .12; c.add(a); if (m2) { const b = new THREE.Mesh(geo, m2); b.position.set(0, -.18, -.19 * u); b.rotation.x = .12; c.add(b); } };
+    // une vraie cape en tissu : accrochée aux épaules, elle flotte derrière quand on marche (voir updateCapes)
+    const cape = (m1, m2, len = hy * .82) => { const sg = w.g.scale.y || 1, L = len / sg, top = .34 / sg, bot = .78 / sg, NX = 6, NY = 10;
+      const geo = new THREE.PlaneGeometry(1, 1, NX, NY), pa = geo.attributes.position, base = new Float32Array(pa.count * 2);
+      for (let k = 0; k < pa.count; k++) { const t = .5 - pa.getY(k), hw = top + (bot - top) * t; base[k * 2] = pa.getX(k) * hw; base[k * 2 + 1] = t; pa.setXYZ(k, base[k * 2], -t * L, 0); }
+      const cc = new THREE.Group(); cc.position.set(0, (hy - .08) / sg, -.12 / sg); w.g.add(cc);
+      const a = new THREE.Mesh(geo, m2 ? Object.assign(m1.clone(), { side: THREE.FrontSide }) : m1); a.castShadow = true; cc.add(a);
+      if (m2) { const b = new THREE.Mesh(geo, Object.assign(m2.clone(), { side: THREE.BackSide })); cc.add(b); }
+      cc.visible = HALLO.on; HALLO.costumes.push(cc); (HALLO.capes ||= []).push({ geo, base, L, sg, w, ph: Math.random() * 6 }); };
     if (kind === "sorciere" || kind === "magicien") {
       const brim = new THREE.Mesh(new THREE.CylinderGeometry(.36, .36, .02, 24), kind === "magicien" ? blue : black); brim.position.y = .12; c.add(brim);
       const cone = new THREE.Mesh(new THREE.ConeGeometry(.2, .55, 20), kind === "magicien" ? blue : black); cone.position.set(0, .4, -.03); cone.rotation.x = -.18; c.add(cone);
