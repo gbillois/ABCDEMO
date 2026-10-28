@@ -2783,8 +2783,7 @@ scene.add(HALLO.g);
 const C_FOG_HALLO = new THREE.Color(0x3a1f55), C_MOON_HALLO = new THREE.Color(0xffb36b), C_WHITE = new THREE.Color(0xffffff);
 const _bm = new THREE.Matrix4(), _bq = new THREE.Quaternion(), _bq2 = new THREE.Quaternion(), _bv = new THREE.Vector3(), _bs = new THREE.Vector3(1, 1, 1), _be = new THREE.Euler();
 function updateHalloween(dt, time, P, night) {
-  HALLO.g.visible = HALLO.on; if (!HALLO.on) { MANOR.inside = false; return; }
-  updateManor(dt, time, P);
+  HALLO.g.visible = HALLO.on; if (!HALLO.on) return;
   HALLO.pmat.emissiveIntensity = .35 + 2.6 * night + Math.sin(time * 9) * .15 * night;
   // chauves-souris
   const B = HALLO.bats; B.list.forEach((b, i) => {
@@ -2820,11 +2819,12 @@ ZONES.push({ x1: MANOR.x1 - 5, x2: MANOR.x2 + 4, z1: MANOR.z1 - 4, z2: MANOR.z2 
 path([0, MANOR.door], [MANOR.x1 - 3.2, MANOR.door], 2.4);
 const inManor = (x, z) => x > MANOR.x1 && x < MANOR.x2 && z > MANOR.z1 && z < MANOR.z2;
 {
-  const g = new THREE.Group(); HALLO.g.add(g); MANOR.g = g;
+  const g = new THREE.Group(); scene.add(g); MANOR.g = g; const spook = new THREE.Group(), calm = new THREE.Group(); g.add(spook, calm); MANOR.spook = spook; MANOR.calm = calm; MANOR.sboxes = []; MANOR.scircles = []; MANOR.boards = [];
+  const sbox = (x1, x2, z1, z2) => { const b = { x1, x2, z1, z2, off: !HALLO.on }; boxes.push(b); MANOR.sboxes.push(b); }, scircle = c => { c.r0 = c.r; if (!HALLO.on) c.r = -1; circles.push(c); MANOR.scircles.push(c); };
   const { x1, x2, z1, z2, door, H } = MANOR, cx = (x1 + x2) / 2, cz = (z1 + z2) / 2, W = x2 - x1, D = z2 - z1;
   const wallM = mat(0x6a5a78, .9, { map: woodTex }); MANOR.wallM = wallM;
-  const dark = mat(0x2b2235, .8), trim = mat(0x1a1420, .7), stone = mat(0x6f6a72, .95), glow = new THREE.MeshStandardMaterial({ color: 0x3a2a10, emissive: 0xff9a2a, emissiveIntensity: 1.2, roughness: .4 }); MANOR.glow = glow;
-  const box = (x1, x2, z1, z2) => { const b = { x1, x2, z1, z2, off: !HALLO.on }; boxes.push(b); MANOR.boxes.push(b); };
+  const dark = mat(0x2b2235, .8); MANOR.darkM = dark; const _u = 0, trim = mat(0x1a1420, .7), stone = mat(0x6f6a72, .95), glow = new THREE.MeshStandardMaterial({ color: 0x3a2a10, emissive: 0xff9a2a, emissiveIntensity: 1.2, roughness: .4 }); MANOR.glow = glow;
+  const box = (x1, x2, z1, z2) => { const b = { x1, x2, z1, z2, off: false }; boxes.push(b); MANOR.boxes.push(b); };
   // les murs (une porte à l'ouest)
   const wall = (w, d, x, z) => { const m = rbox(w, H, d, wallM, .05); m.position.set(x, H / 2, z); g.add(m); };
   wall(W, .3, cx, z1); wall(W, .3, cx, z2); wall(.3, D, x2, cz);
@@ -2843,7 +2843,7 @@ const inManor = (x, z) => x > MANOR.x1 && x < MANOR.x2 && z > MANOR.z1 && z < MA
   // les fenêtres qui brillent (certaines avec des planches clouées)
   const winG = new THREE.Group(); g.add(winG); MANOR.winG = winG; // cachées quand on est dedans (on voit mieux)
   const winW = (x, y, z, ry, boards) => { const f = rbox(1.1, 1.5, .08, trim, .02); f.position.set(x, y, z); f.rotation.y = ry; winG.add(f); const w = new THREE.Mesh(new THREE.PlaneGeometry(.9, 1.3), glow); w.position.set(x + Math.sin(ry) * .05, y, z + Math.cos(ry) * .05); w.rotation.y = ry; winG.add(w);
-    if (boards) for (const t of [-.3, .25]) { const b = rbox(1.2, .14, .05, mat(0x7a5a3a, .9), .01); b.position.set(x + Math.sin(ry) * .09, y + t, z + Math.cos(ry) * .09); b.rotation.set(0, ry, t * .8); winG.add(b); } };
+    if (boards) for (const t of [-.3, .25]) { const b = rbox(1.2, .14, .05, mat(0x7a5a3a, .9), .01); b.position.set(x + Math.sin(ry) * .09, y + t, z + Math.cos(ry) * .09); b.rotation.set(0, ry, t * .8); winG.add(b); MANOR.boards.push(b); } };
   for (const [k, x] of [x1 + 2.5, x1 + 6.5, x2 - 6.5, x2 - 2.5].entries()) { winW(x, 1.9, z2 + .17, 0, k === 1); winW(x, 4.4, z2 + .17, 0, k === 3); winW(x, 1.9, z1 - .17, Math.PI, k === 2); winW(x, 4.4, z1 - .17, Math.PI, false); }
   for (const z of [z1 + 2.5, z2 - 2.5]) { winW(x1 - .17, 1.9, z, -Math.PI / 2, z > cz); winW(x1 - .17, 4.4, z, -Math.PI / 2, false); }
   // le porche : marches, colonnes, porte entrouverte qui grince
@@ -2851,20 +2851,21 @@ const inManor = (x, z) => x > MANOR.x1 && x < MANOR.x2 && z > MANOR.z1 && z < MA
   for (const s of [-1, 1]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(.15, .18, 3.2, 10), trim); c.position.set(x1 - 2.2, 1.6, door + s * 1.5); g.add(c); circles.push({ x: x1 - 2.2, z: door + s * 1.5, r: .2 }); MANOR.porchC = (MANOR.porchC || []).concat(circles[circles.length - 1]); }
   const porch = rbox(2.6, .2, 3.6, dark, .03); porch.position.set(x1 - 1.3, 3.3, door); g.add(porch);
   const doorL = rbox(.08, 2.5, 1.05, mat(0x3b2416, .8), .02); doorL.position.set(x1 - .55, 1.25, door - 1.35); doorL.rotation.y = -1.1; g.add(doorL);
-  const sign = label("🏚️ Le manoir hanté", "#2b1640", "#ffa53a", 1.5); sign.position.set(x1 - 2.6, 4.6, door); g.add(sign);
+  const sign = label("🏚️ Le manoir hanté", "#2b1640", "#ffa53a", 1.5); sign.position.set(x1 - 2.6, 4.6, door); spook.add(sign);
+  const sign2 = label("🏡 La grande maison", "#2d6a4f", "#ffffff", 1.4); sign2.position.set(x1 - 2.6, 4.6, door); calm.add(sign2);
   // le jardin : grille en fer, tombes, arbres morts, citrouilles
   const iron = mat(0x1b1b22, .5, { metalness: .5 });
-  for (let z = z1 - 3; z <= z2 + 3; z += .5) { if (Math.abs(z - door) < 1.6) continue; const sp = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, 1.4, 5), iron); sp.position.set(x1 - 4.4, .7, z); g.add(sp); const tip = new THREE.Mesh(new THREE.ConeGeometry(.06, .16, 5), iron); tip.position.set(x1 - 4.4, 1.48, z); g.add(tip); }
-  for (const s of [-1, 1]) { const r = rbox(.06, .06, (z2 + 3) - (door + 1.6), iron, .01); r.position.set(x1 - 4.4, 1.2, s > 0 ? (door + 1.6 + z2 + 3) / 2 : (z1 - 3 + door - 1.6) / 2); r.scale.z = 1; g.add(r); box(x1 - 4.5, x1 - 4.3, s > 0 ? door + 1.6 : z1 - 3, s > 0 ? z2 + 3 : door - 1.6); }
+  for (let z = z1 - 3; z <= z2 + 3; z += .5) { if (Math.abs(z - door) < 1.6) continue; const sp = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, 1.4, 5), iron); sp.position.set(x1 - 4.4, .7, z); spook.add(sp); const tip = new THREE.Mesh(new THREE.ConeGeometry(.06, .16, 5), iron); tip.position.set(x1 - 4.4, 1.48, z); spook.add(tip); }
+  for (const s of [-1, 1]) { const r = rbox(.06, .06, (z2 + 3) - (door + 1.6), iron, .01); r.position.set(x1 - 4.4, 1.2, s > 0 ? (door + 1.6 + z2 + 3) / 2 : (z1 - 3 + door - 1.6) / 2); r.scale.z = 1; spook.add(r); sbox(x1 - 4.5, x1 - 4.3, s > 0 ? door + 1.6 : z1 - 3, s > 0 ? z2 + 3 : door - 1.6); }
   const gtx = document.createElement("canvas"); gtx.width = 128; gtx.height = 160; { const x = gtx.getContext("2d"); x.fillStyle = "#8d8a90"; x.fillRect(0, 0, 128, 160); for (let i = 0; i < 300; i++) { x.fillStyle = Math.random() < .5 ? "#7a777d" : "#a09ca4"; x.fillRect(Math.random() * 128, Math.random() * 160, 3, 3); } x.fillStyle = "#3c3a40"; x.font = "bold 40px serif"; x.textAlign = "center"; x.fillText("R.I.P", 64, 70); x.font = "bold 22px serif"; x.fillText("Bouh !", 64, 110); }
   const gT = new THREE.CanvasTexture(gtx); gT.colorSpace = THREE.SRGBColorSpace; const graveM = new THREE.MeshStandardMaterial({ map: gT, roughness: .95 });
   [[x1 - 2.8, z1 + 1], [x1 - 3, z1 + 3.4], [x1 - 2.7, z2 - 1.2], [x1 - 3.1, z2 - 3.6], [cx, z2 + 2.2], [cx + 4, z2 + 2.4], [cx - 3, z1 - 2.2]].forEach(([x, z], k) => {
-    const gr = new THREE.Group(); gr.position.set(x, 0, z); gr.rotation.set(0, z > z2 ? 0 : z < z1 ? Math.PI : -Math.PI / 2, (k % 3 - 1) * .08); g.add(gr);
+    const gr = new THREE.Group(); gr.position.set(x, 0, z); gr.rotation.set(0, z > z2 ? 0 : z < z1 ? Math.PI : -Math.PI / 2, (k % 3 - 1) * .08); spook.add(gr);
     const st = new THREE.Mesh(new THREE.BoxGeometry(.8, 1, .16), graveM); st.position.y = .5; gr.add(st); const top = new THREE.Mesh(new THREE.CylinderGeometry(.4, .4, .16, 16, 1, false, 0, Math.PI), stone); top.rotation.set(Math.PI / 2, 0, Math.PI / 2); top.position.y = 1; gr.add(top);
-    circles.push({ x, z, r: .45 }); });
-  for (const [x, z] of [[x1 - 3.4, z1 - 2], [x2 + 2.2, z2 + 2], [x2 + 2.5, cz]]) { const t = new THREE.Group(); t.position.set(x, 0, z); g.add(t); const tm = mat(0x2a2024, .95);
+    scircle({ x, z, r: .45 }); });
+  for (const [x, z] of [[x1 - 3.4, z1 - 2], [x2 + 2.2, z2 + 2], [x2 + 2.5, cz]]) { const t = new THREE.Group(); t.position.set(x, 0, z); spook.add(t); const tm = mat(0x2a2024, .95);
     const tr = new THREE.Mesh(new THREE.CylinderGeometry(.15, .3, 4, 7), tm); tr.position.y = 2; t.add(tr);
-    for (let k = 0; k < 5; k++) { const b = new THREE.Mesh(new THREE.CylinderGeometry(.03, .08, 1.6, 5), tm); const a = k * 1.3; b.position.set(Math.cos(a) * .4, 2.6 + k * .3, Math.sin(a) * .4); b.rotation.set(Math.sin(a) * .9, 0, -Math.cos(a) * .9); t.add(b); } circles.push({ x, z, r: .35 }); }
+    for (let k = 0; k < 5; k++) { const b = new THREE.Mesh(new THREE.CylinderGeometry(.03, .08, 1.6, 5), tm); const a = k * 1.3; b.position.set(Math.cos(a) * .4, 2.6 + k * .3, Math.sin(a) * .4); b.rotation.set(Math.sin(a) * .9, 0, -Math.cos(a) * .9); t.add(b); } scircle({ x, z, r: .35 }); }
   // dedans : lustre, longue table, piano, cercueil, chaudron qui bouillonne, toiles d'araignée, tableaux
   const floor = rbox(W - .3, .2, D - .3, mat(0x3a2a22, .8, { map: woodTex }), .02); floor.position.set(cx, .1, cz); g.add(floor);
   const table = rbox(5, .12, 1.3, mat(0x4a2c1a, .6), .03); table.position.set(cx, 1, cz); g.add(table); for (const [dx, dz] of [[-2.3, -.5], [2.3, -.5], [-2.3, .5], [2.3, .5]]) { const l = rbox(.1, 1, .1, mat(0x4a2c1a, .6), .02); l.position.set(cx + dx, .5, cz + dz); g.add(l); }
@@ -2879,7 +2880,7 @@ const inManor = (x, z) => x > MANOR.x1 && x < MANOR.x2 && z > MANOR.z1 && z < MA
   // le piano
   { const p = rbox(2, 1.3, .8, mat(0x111111, .25), .05); p.position.set(x2 - 1.2, .75, z2 - 2.5); p.rotation.y = -Math.PI / 2; g.add(p); const keys = rbox(.35, .05, 1.8, mat(0xf4f1e8, .4), .01); keys.position.set(x2 - 1.75, 1, z2 - 2.5); g.add(keys); box(x2 - 1.7, x2 - .2, z2 - 3.5, z2 - 1.5); MANOR.piano = [x2 - 2.4, z2 - 2.5]; }
   // le cercueil qui s'ouvre
-  { const cf = new THREE.Group(); cf.position.set(x2 - 2, 0, z1 + 2.2); cf.rotation.y = Math.PI / 2; g.add(cf);
+  { const cf = new THREE.Group(); cf.position.set(x2 - 2, 0, z1 + 2.2); cf.rotation.y = Math.PI / 2; spook.add(cf);
     const shp = new THREE.Shape(); shp.moveTo(-.3, -1); shp.lineTo(.3, -1); shp.lineTo(.42, .4); shp.lineTo(.3, 1); shp.lineTo(-.3, 1); shp.lineTo(-.42, .4); shp.lineTo(-.3, -1);
     const bodyG = new THREE.ExtrudeGeometry(shp, { depth: .5, bevelEnabled: false }); bodyG.rotateX(-Math.PI / 2); const bm = mat(0x4a2c1a, .7);
     const body = new THREE.Mesh(bodyG, bm); cf.add(body); const lidG = new THREE.ExtrudeGeometry(shp, { depth: .1, bevelEnabled: false }); lidG.rotateX(-Math.PI / 2);
@@ -2889,22 +2890,22 @@ const inManor = (x, z) => x > MANOR.x1 && x < MANOR.x2 && z > MANOR.z1 && z < MA
     const skull = new THREE.Mesh(new THREE.SphereGeometry(.17, 14, 10), bone); skull.position.set(0, .45, .65); sk.add(skull);
     for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(.045, 8, 6), mat(0x111111, .5)); e.position.set(s * .06, .47, .8); sk.add(e); }
     for (let k = 0; k < 4; k++) { const r = new THREE.Mesh(new THREE.TorusGeometry(.13 - k * .01, .015, 4, 12, Math.PI), bone); r.position.set(0, .35, .35 - k * .1); r.rotation.y = Math.PI / 2; sk.add(r); }
-    sk.position.y = -.3; box(x2 - 3.1, x2 - .9, z1 + 1.8, z1 + 2.7); MANOR.coffinAt = [x2 - 2, z1 + 3.4]; }
+    sk.position.y = -.3; sbox(x2 - 3.1, x2 - .9, z1 + 1.8, z1 + 2.7); MANOR.coffinAt = [x2 - 2, z1 + 3.4]; }
   // le chaudron de la sorcière
-  { const c = new THREE.Mesh(new THREE.SphereGeometry(.6, 16, 10, 0, Math.PI * 2, Math.PI * .35, Math.PI * .65), iron); c.position.set(x1 + 2.2, .65, z1 + 2.2); g.add(c);
-    const soup = new THREE.Mesh(new THREE.CircleGeometry(.5, 20), new THREE.MeshStandardMaterial({ color: 0x5cff5c, emissive: 0x2aff2a, emissiveIntensity: .8 })); soup.rotation.x = -Math.PI / 2; soup.position.set(x1 + 2.2, 1, z1 + 2.2); g.add(soup);
-    MANOR.bubbles = []; for (let k = 0; k < 6; k++) { const b = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), new THREE.MeshStandardMaterial({ color: 0x9bff9b, emissive: 0x2aff2a, emissiveIntensity: .6, transparent: true, opacity: .8 })); g.add(b); MANOR.bubbles.push({ m: b, t: k / 6 }); }
-    circles.push({ x: x1 + 2.2, z: z1 + 2.2, r: .7 }); MANOR.cauldron = [x1 + 2.2, z1 + 2.2]; }
+  { const c = new THREE.Mesh(new THREE.SphereGeometry(.6, 16, 10, 0, Math.PI * 2, Math.PI * .35, Math.PI * .65), iron); c.position.set(x1 + 2.2, .65, z1 + 3.6); spook.add(c);
+    const soup = new THREE.Mesh(new THREE.CircleGeometry(.5, 20), new THREE.MeshStandardMaterial({ color: 0x5cff5c, emissive: 0x2aff2a, emissiveIntensity: .8 })); soup.rotation.x = -Math.PI / 2; soup.position.set(x1 + 2.2, 1, z1 + 3.6); spook.add(soup);
+    MANOR.bubbles = []; for (let k = 0; k < 6; k++) { const b = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), new THREE.MeshStandardMaterial({ color: 0x9bff9b, emissive: 0x2aff2a, emissiveIntensity: .6, transparent: true, opacity: .8 })); spook.add(b); MANOR.bubbles.push({ m: b, t: k / 6 }); }
+    scircle({ x: x1 + 2.2, z: z1 + 3.6, r: .7 }); MANOR.cauldron = [x1 + 2.2, z1 + 3.6]; }
   // la coupe de bonbons
-  { const bowl = new THREE.Mesh(new THREE.SphereGeometry(.35, 16, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), mat(0xff8a1c, .5)); bowl.rotation.x = Math.PI; bowl.position.set(cx + 2, 1.42, cz); g.add(bowl);
-    for (let k = 0; k < 9; k++) { const c = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), mat([0xff4fd8, 0x2fd3ff, 0x7cff6b, 0xffc93c][k % 4], .4)); c.position.set(cx + 2 + Math.cos(k) * .18, 1.42 + (k % 3) * .04, cz + Math.sin(k) * .18); g.add(c); } }
+  { const bowl = new THREE.Mesh(new THREE.SphereGeometry(.35, 16, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), mat(0xff8a1c, .5)); bowl.rotation.x = Math.PI; bowl.position.set(cx + 2, 1.42, cz); spook.add(bowl);
+    for (let k = 0; k < 9; k++) { const c = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), mat([0xff4fd8, 0x2fd3ff, 0x7cff6b, 0xffc93c][k % 4], .4)); c.position.set(cx + 2 + Math.cos(k) * .18, 1.42 + (k % 3) * .04, cz + Math.sin(k) * .18); spook.add(c); } }
   // toiles d'araignée dans les coins
   { const wc = document.createElement("canvas"); wc.width = wc.height = 128; const x = wc.getContext("2d"); x.strokeStyle = "rgba(255,255,255,.85)"; x.lineWidth = 1.5;
     for (let k = 0; k <= 6; k++) { const a = k / 6 * Math.PI / 2; x.beginPath(); x.moveTo(0, 0); x.lineTo(Math.cos(a) * 128, Math.sin(a) * 128); x.stroke(); }
     for (let r = 20; r < 128; r += 18) { x.beginPath(); for (let k = 0; k <= 6; k++) { const a = k / 6 * Math.PI / 2; const px = Math.cos(a) * r, py = Math.sin(a) * r; k ? x.quadraticCurveTo(Math.cos(a - .13) * r * .9, Math.sin(a - .13) * r * .9, px, py) : x.moveTo(px, py); } x.stroke(); }
     const wt = new THREE.CanvasTexture(wc); const webM = new THREE.MeshBasicMaterial({ map: wt, transparent: true, side: THREE.DoubleSide, depthWrite: false });
-    for (const [x, z, ry] of [[x1 + .2, z1 + .2, 0], [x2 - .2, z2 - .2, Math.PI], [x1 + .2, z2 - .2, Math.PI / 2], [x2 - .2, z1 + .2, -Math.PI / 2]]) { const w = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.6), webM); w.position.set(x, H - 1, z); w.rotation.y = ry + Math.PI / 4; g.add(w); }
-    const ow = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4), webM); ow.position.set(x1 - 2.1, 2.6, door + 1.45); ow.rotation.y = Math.PI / 2; g.add(ow); }
+    for (const [x, z, ry] of [[x1 + .2, z1 + .2, 0], [x2 - .2, z2 - .2, Math.PI], [x1 + .2, z2 - .2, Math.PI / 2], [x2 - .2, z1 + .2, -Math.PI / 2]]) { const w = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.6), webM); w.position.set(x, H - 1, z); w.rotation.y = ry + Math.PI / 4; spook.add(w); }
+    const ow = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4), webM); ow.position.set(x1 - 2.1, 2.6, door + 1.45); ow.rotation.y = Math.PI / 2; spook.add(ow); }
   // les tableaux aux yeux qui suivent
   MANOR.eyes = [];
   for (const [x, z] of [[cx - 3, z2 - .17], [cx + 3, z2 - .17]]) { const fr = rbox(1.3, 1.6, .08, mat(0xb08d3c, .4, { metalness: .5 }), .02); fr.position.set(x, 3, z); g.add(fr);
@@ -2913,18 +2914,64 @@ const inManor = (x, z) => x > MANOR.x1 && x < MANOR.x2 && z > MANOR.z1 && z < MA
     for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(.025, 6, 6), mat(0x111111, .3)); e.position.set(x - s * .115, 3.08, z - .07); g.add(e); MANOR.eyes.push({ m: e, x: x - s * .115 }); } }
   // deux fantômes dans le manoir
   MANOR.ghosts = [];
-  for (const [x, z, ph] of [[cx - 4, cz - 3, 0], [cx + 3.5, cz + 3, 2]]) { const gg = new THREE.Group(), b = new THREE.Mesh(HALLO.ghostGeo, HALLO.gm); gg.add(b); for (const s of [-1, 1]) { const ey = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), mat(0x111111, .4)); ey.position.set(s * .15, .85, .4); ey.scale.set(1, 1.4, .6); gg.add(ey); } gg.position.set(x, 1.6, z); g.add(gg); MANOR.ghosts.push({ g: gg, x, z, ph }); }
+  for (const [x, z, ph] of [[cx - 4, cz - 3, 0], [cx + 3.5, cz + 3, 2]]) { const gg = new THREE.Group(), b = new THREE.Mesh(HALLO.ghostGeo, HALLO.gm); gg.add(b); for (const s of [-1, 1]) { const ey = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), mat(0x111111, .4)); ey.position.set(s * .15, .85, .4); ey.scale.set(1, 1.4, .6); gg.add(ey); } gg.position.set(x, 1.6, z); spook.add(gg); MANOR.ghosts.push({ g: gg, x, z, ph }); }
+  // l'étage : un plancher au nord, un escalier le long du mur, une rambarde
+  const UF = { x1: x1 + 8.2, x2: x2 - .2, z1: z1 + .2, z2: z1 + 5.6, y: 3.1 }, ST = { x1: x1 + 3, x2: x1 + 8.2, z1: z1 + .3, z2: z1 + 1.8 }; MANOR.UF = UF;
+  SURF.push((x, z) => x > x1 + .2 && x < x2 - .2 && z > z1 + .2 && z < z2 - .2 ? .2 : null);
+  SURF.push((x, z) => x > UF.x1 - .05 && x < UF.x2 && z > UF.z1 && z < UF.z2 ? UF.y : null);
+  SURF.push((x, z) => { if (x < ST.x1 || x > ST.x2 || z < ST.z1 || z > ST.z2) return null; const t = Math.min(1, (x - ST.x1) / (ST.x2 - ST.x1)); return .2 + Math.ceil(t * 10) / 10 * (UF.y - .2); });
+  const woodF = mat(0x5a3a26, .8, { map: woodTex }); MANOR.woodF = woodF;
+  const slab = rbox(UF.x2 - UF.x1, .2, UF.z2 - UF.z1, woodF, .02); slab.position.set((UF.x1 + UF.x2) / 2, UF.y - .1, (UF.z1 + UF.z2) / 2); g.add(slab);
+  for (let k = 0; k < 10; k++) { const h = .2 + (k + 1) / 10 * (UF.y - .2), w = (ST.x2 - ST.x1) / 10, st = rbox(w, h, ST.z2 - ST.z1, woodF, .02); st.position.set(ST.x1 + w * (k + .5), h / 2, (ST.z1 + ST.z2) / 2); g.add(st); }
+  const railM = mat(0x2b1a10, .6), rail = (ax, az, bx, bz, y0) => { const L = Math.hypot(bx - ax, bz - az), r = rbox(L, .08, .08, railM, .02); r.position.set((ax + bx) / 2, y0 + .95, (az + bz) / 2); r.rotation.y = -Math.atan2(bz - az, bx - ax); g.add(r);
+    for (let k = 0; k <= Math.round(L / .5); k++) { const t = k / Math.round(L / .5), p = rbox(.05, .95, .05, railM, .01); p.position.set(ax + (bx - ax) * t, y0 + .47, az + (bz - az) * t); g.add(p); } };
+  rail(UF.x1, UF.z2, UF.x2, UF.z2, UF.y); rail(UF.x1, ST.z2 + .05, UF.x1, UF.z2, UF.y);
+  WALLS3.push({ x1: UF.x1 - .05, x2: UF.x2, z1: UF.z2 - .08, z2: UF.z2 + .08, y0: UF.y - .5, y1: UF.y + 2 }, { x1: UF.x1 - .1, x2: UF.x1 + .02, z1: ST.z2 + .05, z2: UF.z2, y0: UF.y - .5, y1: UF.y + 2 });
+  // la chambre de l'étage (dans les deux maisons)
+  const Y = UF.y, bed = new THREE.Group(); bed.position.set(x2 - 2.2, Y, z1 + 2.2); g.add(bed);
+  const frame = rbox(2.2, .45, 1.6, mat(0x3b2416, .6), .04); frame.position.y = .3; bed.add(frame); const head = rbox(.12, 1.2, 1.6, mat(0x3b2416, .6), .04); head.position.set(1.05, .6, 0); bed.add(head);
+  const blanketM = mat(0x5b3a86, .8); MANOR.blanketM = blanketM; const bl = rbox(1.7, .18, 1.5, blanketM, .06); bl.position.set(-.2, .6, 0); bed.add(bl); const pil = rbox(.4, .14, 1.1, mat(0xf4f1e8, .8), .06); pil.position.set(.75, .62, 0); bed.add(pil);
+  WALLS3.push({ x1: x2 - 3.3, x2: x2 - 1.1, z1: z1 + 1.4, z2: z1 + 3, y0: Y - .3, y1: Y + 1.2 });
+  const ward = rbox(1.6, 2.4, .6, mat(0x4a2c1a, .6), .04); ward.position.set(UF.x1 + 1.4, Y + 1.2, z1 + .55); g.add(ward);
+  const rug = new THREE.Mesh(new THREE.CircleGeometry(1.2, 24), mat(0x8e3b46, .9)); rug.rotation.x = -Math.PI / 2; rug.position.set(UF.x1 + 3, Y + .01, z1 + 3.2); g.add(rug); MANOR.rug = rug;
+  // en mode Halloween : un fauteuil qui se balance tout seul et une boule de cristal
+  const rock = new THREE.Group(); rock.position.set(UF.x1 + 1.6, Y, z1 + 4.2); spook.add(rock); MANOR.rock = rock; const rm = mat(0x2b1a10, .7);
+  { const seat = rbox(.7, .08, .7, rm, .02); seat.position.y = .45; rock.add(seat); const back = rbox(.08, .9, .7, rm, .02); back.position.set(-.33, .9, 0); rock.add(back); for (const s of [-1, 1]) { const run = new THREE.Mesh(new THREE.TorusGeometry(.6, .03, 6, 16, 1.2), rm); run.position.set(0, .6, s * .3); run.rotation.z = Math.PI + .9; rock.add(run); } }
+  const orbT = rbox(.6, .7, .6, mat(0x2b1a10, .6), .03); orbT.position.set(UF.x1 + 4.4, Y + .35, z1 + 1.2); spook.add(orbT);
+  const orb = new THREE.Mesh(new THREE.SphereGeometry(.22, 20, 14), new THREE.MeshStandardMaterial({ color: 0xc9a7ff, emissive: 0x8e44ad, emissiveIntensity: 1, transparent: true, opacity: .85, roughness: .1 })); orb.position.set(UF.x1 + 4.4, Y + .92, z1 + 1.2); spook.add(orb); MANOR.orb = orb; MANOR.orbAt = [UF.x1 + 4.4, z1 + 2];
+  // pour la grande maison : un bureau, un coffre à jouets, une plante
+  { const desk = rbox(1.4, .08, .7, mat(0xc49a6c, .6), .02); desk.position.set(UF.x1 + 4.4, Y + .75, z1 + .6); calm.add(desk); for (const [dx, dz] of [[-.6, -.28], [.6, -.28], [-.6, .28], [.6, .28]]) { const l = rbox(.05, .75, .05, mat(0xc49a6c, .6), .01); l.position.set(UF.x1 + 4.4 + dx, Y + .37, z1 + .6 + dz); calm.add(l); }
+    const lamp = new THREE.Mesh(new THREE.ConeGeometry(.15, .2, 12, 1, true), mat(0xffc93c, .5, { side: THREE.DoubleSide })); lamp.position.set(UF.x1 + 4, Y + 1.05, z1 + .5); calm.add(lamp);
+    const toy = rbox(.9, .5, .55, mat(0x2e86de, .5), .05); toy.position.set(UF.x1 + 2.8, Y + .25, z1 + 4.8); calm.add(toy);
+    const pot = new THREE.Mesh(new THREE.CylinderGeometry(.2, .16, .35, 12), mat(0xd35400, .7)); pot.position.set(x2 - .6, Y + .18, z1 + 4.9); calm.add(pot); const pl = new THREE.Mesh(blobGeo(.35, 2, .25, 1), mat(0x2d8a4f, .8)); pl.position.set(x2 - .6, Y + .6, z1 + 4.9); calm.add(pl); }
+  // la grande maison (sans Halloween) : un salon, des fleurs et des haies devant
+  { const sofa = new THREE.Group(); sofa.position.set(cx - 4, 0, z2 - 2.2); calm.add(sofa); const sm = mat(0x2e86de, .8);
+    const base = rbox(2.6, .45, .9, sm, .1); base.position.y = .42; sofa.add(base); const back = rbox(2.6, .7, .25, sm, .1); back.position.set(0, .85, .4); sofa.add(back); for (const s of [-1, 1]) { const arm = rbox(.25, .6, .9, sm, .1); arm.position.set(s * 1.3, .6, 0); sofa.add(arm); }
+    { const b = { x1: cx - 5.4, x2: cx - 2.6, z1: z2 - 2.7, z2: z2 - 1.7, off: HALLO.on }; boxes.push(b); MANOR.cboxes = [b]; }
+    const crug = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 2.2), mat(0xe9c46a, .9)); crug.rotation.x = -Math.PI / 2; crug.position.set(cx - 4, .21, z2 - 3.6); calm.add(crug);
+    const shelf = rbox(.4, 2.2, 1.8, mat(0x8a5a35, .7), .03); shelf.position.set(x1 + .5, 1.3, z2 - 2.4); calm.add(shelf); for (let k = 0; k < 12; k++) { const bk = rbox(.25, .3, .1, mat([0xe74c3c, 0x2e86de, 0x27ae60, 0xffc93c][k % 4], .6), .01); bk.position.set(x1 + .55, .75 + Math.floor(k / 6) * .6, z2 - 3.1 + (k % 6) * .25); calm.add(bk); }
+    for (const z of [door - 2.6, door + 2.6]) { const pot = new THREE.Mesh(new THREE.CylinderGeometry(.3, .25, .5, 12), mat(0xd35400, .7)); pot.position.set(x1 - 1.6, .25, z); calm.add(pot); const ball = new THREE.Mesh(new THREE.SphereGeometry(.55, 14, 10), mat(0x2d8a4f, .8)); ball.position.set(x1 - 1.6, 1, z); calm.add(ball); }
+    for (const [ax, bz] of [[x1 - .6, z1 - .6], [x1 - .6, z2 + .6]]) for (let k = 0; k < 6; k++) { const f = new THREE.Mesh(new THREE.SphereGeometry(.18, 8, 6), mat([0xff5a4e, 0xffc93c, 0xe84393, 0xffffff][k % 4], .6)); f.position.set(x1 + 1 + k * 2.4, .25, bz); calm.add(f); const lf = new THREE.Mesh(new THREE.SphereGeometry(.28, 8, 6), mat(0x3a7d44, .8)); lf.scale.y = .5; lf.position.set(x1 + 1 + k * 2.4, .1, bz); calm.add(lf); }
+    const bench = rbox(1.8, .1, .5, mat(0x8a5a35, .7), .02); bench.position.set(x1 - 3.6, .45, door + 3.8); calm.add(bench); }
   shadowAll(g); light.castShadow = false;
 }
-function setManorOn(on) { for (const b of MANOR.boxes) b.off = !on; }
+function setManorOn(on) { // le même bâtiment : manoir hanté pour Halloween, grande maison le reste du temps
+  for (const b of MANOR.sboxes) b.off = !on; for (const b of MANOR.cboxes) b.off = on; for (const c of MANOR.scircles) c.r = on ? c.r0 : -1;
+  MANOR.spook.visible = on; MANOR.calm.visible = !on; for (const b of MANOR.boards) b.visible = on;
+  MANOR.wallM.color.set(on ? 0x6a5a78 : 0xf3e6cf); MANOR.darkM.color.set(on ? 0x2b2235 : 0xb5523b);
+  MANOR.glow.color.set(on ? 0x3a2a10 : 0x9fd8ff); MANOR.glow.emissive.set(on ? 0xff9a2a : 0xffe2a8); MANOR.glowK = on ? 1 : .15;
+  MANOR.light.color.set(on ? 0xff8a3a : 0xffe6c0); MANOR.blanketM.color.set(on ? 0x5b5560 : 0x2e86de); MANOR.rug.material.color.set(on ? 0x5a1e2a : 0xe9c46a);
+}
 function updateManor(dt, time, P) {
-  const inside = inManor(P.x, P.z) && P.y < 3; if (inside !== MANOR.inside) { MANOR.inside = inside; if (inside) { toast("🏚️ Bienvenue au manoir hanté… Hou hou ! 👻", 2600); tone(110, 1.2, "sine", .14, -40); tone(165, 1.2, "sine", .08, -60, .2); } }
+  const inside = inManor(P.x, P.z); if (inside !== MANOR.inside) { MANOR.inside = inside; if (inside) { if (HALLO.on) { toast("🏚️ Bienvenue au manoir hanté… Hou hou ! 👻 Monte l'escalier !", 2600); tone(110, 1.2, "sine", .14, -40); tone(165, 1.2, "sine", .08, -60, .2); } else toast("🏡 Bienvenue dans la grande maison ! Il y a un étage.", 2400); } }
   MANOR.roof.visible = !inside; MANOR.winG.visible = !inside;
   MANOR.fade += ((inside ? .25 : 1) - MANOR.fade) * Math.min(1, dt * 6); const wm = MANOR.wallM, tr = MANOR.fade < .98; if (wm.transparent !== tr) { wm.transparent = tr; wm.depthWrite = !tr; wm.needsUpdate = true; } wm.opacity = MANOR.fade;
   const far = Math.hypot(P.x - 16, P.z - 93); MANOR.g.visible = far < 150; if (far > 70) return;
   for (const f of MANOR.flames) f.scale.setScalar(.8 + Math.random() * .4);
   MANOR.light.intensity = 5 + Math.sin(time * 13) * .8 + Math.random() * .8; MANOR.chand.rotation.y = Math.sin(time * .7) * .15;
-  MANOR.glow.emissiveIntensity = 1 + Math.sin(time * 3) * .2;
+  MANOR.glow.emissiveIntensity = (MANOR.glowK ?? 1) * (1 + Math.sin(time * 3) * .2);
+  if (!HALLO.on) return;
+  MANOR.rock.rotation.z = Math.sin(time * 1.8) * .18; MANOR.orb.material.emissiveIntensity = .8 + Math.sin(time * 4) * .4;
   for (const b of MANOR.bubbles) { b.t = (b.t + dt * .5) % 1; const [x, z] = MANOR.cauldron, a = b.t * 9 + b.m.id; b.m.position.set(x + Math.cos(a) * .25, 1 + b.t * .7, z + Math.sin(a) * .25); b.m.scale.setScalar(1 - b.t); }
   for (const G of MANOR.ghosts) { const a = time * .5 + G.ph; G.g.position.set(G.x + Math.cos(a) * 2, 1.6 + Math.sin(time * 2 + G.ph) * .3, G.z + Math.sin(a) * 1.5); G.g.rotation.y = Math.atan2(P.x - G.g.position.x, P.z - G.g.position.z); }
   for (const e of MANOR.eyes) { const dx = Math.max(-1, Math.min(1, (P.x - e.x) / 4)) * .02; e.m.position.x = e.x + dx; }
@@ -2934,9 +2981,11 @@ function updateManor(dt, time, P) {
 function manorAct(a) {
   if (a === "coffin") { if (MANOR.coffin.t > -9) return; MANOR.coffin.t = 0; [196, 185, 175, 165].forEach((f, i) => tone(f, .25, "sawtooth", .05, 0, i * .12)); tone(880, .4, "square", .07, -500, .5); toast("💀 AAAH ! Un squelette ! … Il te fait coucou 👋", 2800); }
   if (a === "candy") { if (time - MANOR.candyT < 30) { toast("🍬 Tu as déjà pris des bonbons ! Reviens plus tard.", 2000); return; } MANOR.candyT = time; money += 20; saveShop(); updMoney(); [1046, 1318, 1568].forEach((f, i) => tone(f, .12, "triangle", .1, 0, i * .08)); toast("🍬 Des bonbons ! Et une pièce cachée : +20 € 🎃", 2600); }
+  if (a === "orb") { const F = ["🔮 Je vois… beaucoup de bonbons dans ton avenir ! 🍬", "🔮 Je vois… un canard caché près de l'eau 🦆", "🔮 Je vois… un fantôme qui veut être ton ami 👻", "🔮 Je vois… un trou en un au minigolf ⛳", "🔮 Je vois… une grande glissade sur le toboggan rouge 🛝"]; toast(F[Math.floor(Math.random() * F.length)], 3200); tone(660, .6, "sine", .08, 300); tone(990, .6, "sine", .05, 200, .2); }
   if (a === "piano") { [220, 261, 311, 293, 233, 220].forEach((f, i) => tone(f, .5, "triangle", .1, 0, i * .28)); toast("🎹 Une musique qui fait peur… 👻", 2000); }
 }
 
+setManorOn(HALLO.on);
 /* ---------- La piscine des anniversaires 🎂 : dehors, à l'est du Multi Parcs ; on y entre après avoir soufflé les bougies ---------- */
 let partyOK = false; try { partyOK = localStorage.getItem("pins-fete") === "1"; } catch (e) {}
 const PPGATE = { x1: PP.gx - 1.3, x2: PP.gx + 1.3, z1: PP.z2 - .15, z2: PP.z2 + .15, off: partyOK }; boxes.push(PPGATE);
@@ -2949,8 +2998,13 @@ path([PP.gx, 30], [PP.gx, PP.z2 + .6], 2.6);
   const fl = tileTex.clone(); fl.repeat.set(W / 4, D / 4); const bottom = new THREE.Mesh(new THREE.PlaneGeometry(W, D), mat(0xffffff, .3, { map: fl })); bottom.rotation.x = -Math.PI / 2; bottom.position.set(cx, -1.8, cz); g.add(bottom);
   const water = new THREE.Mesh(new THREE.PlaneGeometry(W, D), new THREE.MeshStandardMaterial({ color: 0x5fd8ff, roughness: .05, transparent: true, opacity: .6, normalMap: waterNormal })); water.material.normalMap = waterNormal.clone(); water.material.normalMap.repeat.set(W / 6, D / 6); water.rotation.x = -Math.PI / 2; water.position.set(cx, -.22, cz); water.renderOrder = 1; g.add(water); PP.water = water;
   // la plage en bois autour, la margelle
-  const deck = new THREE.Mesh(new THREE.PlaneGeometry(PP.x2 - PP.x1, PP.z2 - PP.z1), mat(0xffffff, .85, { map: woodTex, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
-  deck.rotation.x = -Math.PI / 2; deck.position.set((PP.x1 + PP.x2) / 2, .02, (PP.z1 + PP.z2) / 2); deck.receiveShadow = true; g.add(deck);
+  // la terrasse en bois tout autour, avec un trou pour le bassin (sinon elle cache l'eau)
+  const dS = new THREE.Shape(); dS.moveTo(PP.x1, -PP.z2); dS.lineTo(PP.x2, -PP.z2); dS.lineTo(PP.x2, -PP.z1); dS.lineTo(PP.x1, -PP.z1); dS.lineTo(PP.x1, -PP.z2);
+  const dH = new THREE.Path(); dH.moveTo(P2.x1, -P2.z2); dH.lineTo(P2.x1, -P2.z1); dH.lineTo(P2.x2, -P2.z1); dH.lineTo(P2.x2, -P2.z2); dH.lineTo(P2.x1, -P2.z2); dS.holes.push(dH);
+  const dG = new THREE.ShapeGeometry(dS); { const pa = dG.attributes.position, uv = dG.attributes.uv; for (let i = 0; i < pa.count; i++) uv.setXY(i, pa.getX(i) / 4, pa.getY(i) / 4); }
+  const dT = woodTex.clone(); dT.wrapS = dT.wrapT = THREE.RepeatWrapping; dT.needsUpdate = true;
+  const deck = new THREE.Mesh(dG, mat(0xffffff, .85, { map: dT, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
+  deck.rotation.x = -Math.PI / 2; deck.position.set(0, .02, 0); deck.receiveShadow = true; g.add(deck);
   const hole = new THREE.Mesh(new THREE.PlaneGeometry(W, D), mat(0x2a7fa8, .2)); hole.visible = false; g.add(hole);
   const cop = mat(0xffffff, .5); [[cx, P2.z1 - .3, W + 1.2, .6], [cx, P2.z2 + .3, W + 1.2, .6], [P2.x1 - .3, cz, .6, D], [P2.x2 + .3, cz, .6, D]].forEach(([x, z, w, d]) => { const b = rbox(w, .2, d, cop, .06); b.position.set(x, .1, z); g.add(b); });
   // une barrière blanche tout autour, avec un portail
@@ -6410,7 +6464,7 @@ function openChest() {
 const BARN = { x1: -90, x2: -78, z1: -27, z2: -13 };
 function zoneName(P) {
   if (inRect(PP, P.x, P.z, 1)) return "🎂 Piscine des anniversaires";
-  if (HALLO.on && inRect({ x1: MANOR.x1 - 4.5, x2: MANOR.x2 + 3, z1: MANOR.z1 - 3.5, z2: MANOR.z2 + 3.5 }, P.x, P.z)) return "🏚️ Manoir hanté";
+  if (inRect({ x1: MANOR.x1 - 4.5, x2: MANOR.x2 + 3, z1: MANOR.z1 - 3.5, z2: MANOR.z2 + 3.5 }, P.x, P.z)) return HALLO.on ? "🏚️ Manoir hanté" : "🏡 La grande maison";
   if (inAqua(P.x, P.z)) return "🐠 Aquarium";
   if (inBaloba(P.x, P.z)) return "🎈 Multi Parcs";
   if (inGameTown(P.x, P.z)) return "🎈 Multi Parcs";
@@ -6429,7 +6483,7 @@ function zoneName(P) {
   if (riverNear(P.x, P.z).d < 7) return "🌊 Rivière sauvage";
   return "";
 }
-const ZTOAST = { "🎂 Piscine des anniversaires": "La piscine des anniversaires ! Mets ton maillot dans la cabine et plonge 🏊🎈", "🏚️ Manoir hanté": "Le manoir hanté ! Entre si tu l'oses… Ouvre le cercueil, joue du piano et prends des bonbons 🍬", "⛳ Minigolf": "Le minigolf ! Va au kiosque vert pour jouer les 6 trous ⛳", "🧗 Acrobranche": "L'acrobranche ! Va à l'accueil pour mettre ton baudrier 🦺", "👕 Vestiaires": "Les vestiaires ! Entre dans une cabine pour te changer 👕", "🏨 Accueil": "L'accueil ! Margot t'explique tout : approche-toi du comptoir 📋", "🥖 Boulangerie": "Ça sent bon le pain chaud ! 🥖", "🛒 Market Speed": "Le Market Speed ! Va à la caisse pour faire tes courses 🛒⚡", "🅿️ Parking": "Le parking ! Approche-toi d'une voiture pour klaxonner 📯. Les vélos sous l'abri, tu peux les prendre 🚲", "🍔 Burger Fast": "Burger Fast ! Va à la caisse pour commander ton menu 🍔🍟", "🎈 Multi Parcs": "Bienvenue au Multi Parcs ! Joue aux bornes d'arcade pour gagner des tickets 🎟️. Au fond : grimpe, glisse, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
+const ZTOAST = { "🏡 La grande maison": "La grande maison ! Entre et monte à l'étage 🏡", "🎂 Piscine des anniversaires": "La piscine des anniversaires ! Mets ton maillot dans la cabine et plonge 🏊🎈", "🏚️ Manoir hanté": "Le manoir hanté ! Entre si tu l'oses… Ouvre le cercueil, joue du piano et prends des bonbons 🍬", "⛳ Minigolf": "Le minigolf ! Va au kiosque vert pour jouer les 6 trous ⛳", "🧗 Acrobranche": "L'acrobranche ! Va à l'accueil pour mettre ton baudrier 🦺", "👕 Vestiaires": "Les vestiaires ! Entre dans une cabine pour te changer 👕", "🏨 Accueil": "L'accueil ! Margot t'explique tout : approche-toi du comptoir 📋", "🥖 Boulangerie": "Ça sent bon le pain chaud ! 🥖", "🛒 Market Speed": "Le Market Speed ! Va à la caisse pour faire tes courses 🛒⚡", "🅿️ Parking": "Le parking ! Approche-toi d'une voiture pour klaxonner 📯. Les vélos sous l'abri, tu peux les prendre 🚲", "🍔 Burger Fast": "Burger Fast ! Va à la caisse pour commander ton menu 🍔🍟", "🎈 Multi Parcs": "Bienvenue au Multi Parcs ! Joue aux bornes d'arcade pour gagner des tickets 🎟️. Au fond : grimpe, glisse, saute sur les trampolines et plonge dans la piscine à balles 🎈", "🐠 Aquarium": "Bienvenue à l'aquarium ! Regarde les poissons, le requin et la tortue 🐠", "🚜 La ferme": "Bienvenue à la ferme ! Approche-toi des animaux pour les caresser 🐄", "🐴 Poney club": "Le poney club ! Caramel, le poney sellé, t'attend à l'entrée 🐴", "🏁 Circuit de karts": "Le circuit ! Monte dans un kart garé au bord 🏎️",
   "🌊 Rivière sauvage": "La rivière sauvage ! Va au ponton pour prendre une bouée 🛟", "🌳 Maison dans les arbres": "Tu es dans les arbres ! Traverse le pont de singe… et descends par le toboggan 🛝", "🛖 Une cabane": "Une petite cabane en rondins 🛖" };
 const seenZ = new Set();
 
@@ -6677,7 +6731,7 @@ function drawMap() {
   mx.fillStyle = "#3b2a7a"; mx.fillRect(X(GTW.x - GTW.hx), Z(GTW.z - GTW.hz), GTW.hx * 2 * k, GTW.hz * 2 * k); mx.strokeStyle = "#ff4fd8"; mx.lineWidth = 3; mx.strokeRect(X(GTW.x - GTW.hx), Z(GTW.z - GTW.hz), GTW.hx * 2 * k, GTW.hz * 2 * k);
   mx.fillStyle = "#5a5e64"; mx.fillRect(X(PARK.x1), Z(PARK.z1), (PARK.x2 - PARK.x1) * k, (PARK.z2 - PARK.z1) * k);
   for (const sh of SHOPS) { mx.fillStyle = sh === ACCUEIL ? "#2e86de" : sh === MARKET ? "#27ae60" : "#8a4b2a"; mx.fillRect(X(sh.x - sh.hx), Z(sh.z - sh.hz), sh.hx * 2 * k, sh.hz * 2 * k); }
-  if (HALLO.on) { mx.fillStyle = "#4a2a6a"; mx.fillRect(X(MANOR.x1), Z(MANOR.z1), (MANOR.x2 - MANOR.x1) * k, (MANOR.z2 - MANOR.z1) * k); }
+  mx.fillStyle = HALLO.on ? "#4a2a6a" : "#c9a27e"; mx.fillRect(X(MANOR.x1), Z(MANOR.z1), (MANOR.x2 - MANOR.x1) * k, (MANOR.z2 - MANOR.z1) * k);
   mx.fillStyle = "#f3c6dd"; mx.fillRect(X(PP.x1), Z(PP.z1), (PP.x2 - PP.x1) * k, (PP.z2 - PP.z1) * k); mx.fillStyle = "#5fd8ff"; mx.fillRect(X(PPOOL.x1), Z(PPOOL.z1), (PPOOL.x2 - PPOOL.x1) * k, (PPOOL.z2 - PPOOL.z1) * k);
   mx.fillStyle = "#5c6066"; mx.fillRect(X(ROAD.x - ROAD.w / 2), Z(ROAD.z1), ROAD.w * k, (ROAD.z2 - ROAD.z1) * k);
   mx.fillStyle = "#2fa85a"; mx.fillRect(X(GOLF.x1), Z(GOLF.z1), (GOLF.x2 - GOLF.x1) * k, (GOLF.z2 - GOLF.z1) * k);
@@ -6686,7 +6740,7 @@ function drawMap() {
   mx.fillStyle = "#1f8fae"; mx.beginPath(); mx.arc(X(AQU.x), Z(AQU.z), AQU.r * k, 0, 7); mx.fill(); mx.strokeStyle = "#ffffff"; mx.lineWidth = 2; mx.stroke();
   mx.fillStyle = "#e84393"; mx.fillRect(X(11.3), Z(21), 5.4 * k, 2 * k);
   mx.font = '700 13px "Baloo 2",sans-serif'; mx.textAlign = "center"; mx.fillStyle = "#0d3b52";
-  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2)); mx.fillText("Multi Parcs", X(BALO.x + 2), Z(BALO.z + BALO.hz + .5)); mx.fillText("Burger Fast", X(BFW.x), Z(BFW.z - BFW.hz - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Acrobranche", X((ACRO.x1 + ACRO.x2) / 2), Z((ACRO.z1 + ACRO.z2) / 2)); mx.fillText("Minigolf", X((GOLF.x1 + GOLF.x2) / 2), Z((GOLF.z1 + GOLF.z2) / 2)); if (HALLO.on) mx.fillText("🏚️ Manoir hanté", X((MANOR.x1 + MANOR.x2) / 2), Z(MANOR.z1 - 2)); mx.fillStyle = "#1d3b2a"; mx.fillText("Accueil", X(ACCUEIL.x), Z(ACCUEIL.z - 5.5)); mx.fillText("Boulangerie", X(BOULANGERIE.x + 1), Z(BOULANGERIE.z - 5)); mx.fillText("Market Speed", X(MARKET.x), Z(MARKET.z + 6.5)); mx.fillStyle = "#ffffff"; mx.fillText("P Parking", X((PARK.x1 + PARK.x2) / 2), Z((PARK.z1 + PARK.z2) / 2)); mx.fillStyle = "#1d3b2a";
+  mx.fillText("Aquaparc", X(DOME.x), Z(DOME.z - DOME.r - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Lac", X(LAKE.x), Z(LAKE.z + 1)); mx.fillStyle = "#1d3b2a"; mx.fillText("Ton cottage", X(-16), Z(52)); mx.fillText("Crêperie", X(14), Z(17)); mx.fillText("Aquarium", X(AQU.x), Z(AQU.z - AQU.r - 2)); mx.fillText("Multi Parcs", X(BALO.x + 2), Z(BALO.z + BALO.hz + .5)); mx.fillText("Burger Fast", X(BFW.x), Z(BFW.z - BFW.hz - 2)); mx.fillStyle = "#ffffff"; mx.fillText("Acrobranche", X((ACRO.x1 + ACRO.x2) / 2), Z((ACRO.z1 + ACRO.z2) / 2)); mx.fillText("Minigolf", X((GOLF.x1 + GOLF.x2) / 2), Z((GOLF.z1 + GOLF.z2) / 2)); mx.fillText(HALLO.on ? "🏚️ Manoir hanté" : "La grande maison", X((MANOR.x1 + MANOR.x2) / 2), Z(MANOR.z1 - 2)); mx.fillStyle = "#1d3b2a"; mx.fillText("Accueil", X(ACCUEIL.x), Z(ACCUEIL.z - 5.5)); mx.fillText("Boulangerie", X(BOULANGERIE.x + 1), Z(BOULANGERIE.z - 5)); mx.fillText("Market Speed", X(MARKET.x), Z(MARKET.z + 6.5)); mx.fillStyle = "#ffffff"; mx.fillText("P Parking", X((PARK.x1 + PARK.x2) / 2), Z((PARK.z1 + PARK.z2) / 2)); mx.fillStyle = "#1d3b2a";
   mx.fillText("Ferme", X(-70), Z(-36)); mx.fillText("Poney club", X(ARENA.x), Z(ARENA.z - ARENA.rz - 2)); mx.fillText("Rivière sauvage", X(-50), Z(75)); mx.fillText("Maison dans les arbres", X(50), Z(84)); mx.fillText("Vélos", X(6), Z(41));
   mx.font = '700 11px "Baloo 2",sans-serif';
   npcs.forEach(n => { const nx = X(n.g.position.x), nz = Z(n.g.position.z); mx.fillStyle = "#8e44ad"; mx.beginPath(); mx.arc(nx, nz, 4, 0, 7); mx.fill(); mx.fillText(n.name.split(",")[0], nx, nz - 7); });
@@ -7697,7 +7751,7 @@ function loop() {
   if (state === "river") riverTick(dt, P);
   if (state === "lie" || state === "eat") seatTick(dt);
   if (state === "golf") golf3Tick(dt, time, P);
-  updateRoad(dt, P); updatePartyPool(dt, time, P);
+  updateRoad(dt, P); updatePartyPool(dt, time, P); updateManor(dt, time, P);
   updateRacks();
 
   if (state === "walk" || state === "top") {
@@ -7755,7 +7809,7 @@ function loop() {
 
   // caméra
   if (state !== "ride") {
-    if (inCottage || inAq || inBalo || inGT || inBF || inShop || (HALLO.on && MANOR.inside)) { camDist = 7.5; minPitch = 1.0; } if (inLock) { camDist = 6.5; minPitch = 1.05; } if (state === "golf") { camDist = 5; minPitch = .45; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
+    if (inCottage || inAq || inBalo || inGT || inBF || inShop || MANOR.inside) { camDist = 7.5; minPitch = 1.0; } if (inLock) { camDist = 6.5; minPitch = 1.05; } if (state === "golf") { camDist = 5; minPitch = .45; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
     const pt = Math.max(pitch, minPitch); const baseY = state === "top" ? 9.95 : state === "boat" ? .6 : Math.max(P.y, 0);
     const cx = P.x + Math.sin(yaw) * Math.cos(pt) * camDist, cz = P.z + Math.cos(yaw) * Math.cos(pt) * camDist, cy = baseY + 1.5 + Math.sin(pt) * camDist;
     camera.position.lerp(tv.set(cx, Math.max(cy, .6), cz), Math.min(1, dt * 7)); camera.lookAt(P.x, baseY + 1.4, P.z);
@@ -7800,10 +7854,12 @@ function loop() {
     }
     if (state === "walk" && P.y > 4) { if (Math.hypot(P.x - CHEST.x, P.z - CHEST.z) < 1.8) offer("chest", "🎁 Ouvrir le coffre"); if (Math.hypot(P.x - 63.3, P.z - 69) < 1.5) offer("treeslide", "🛝 Glisser !"); }
     if (state === "walk" && P.y < 1) BDAY.forEach((r, i) => { if (Math.hypot(P.x - r.table[0], P.z - r.table[1]) < 1.9) offer("bday" + i, r.out > 0 ? "🎉 Joyeux anniversaire !" : "🎂 Souffler les bougies"); });
-    if (HALLO.on && MANOR.inside && state === "walk") { const { x1, x2, z1, z2 } = MANOR, cx = (x1 + x2) / 2, cz = (z1 + z2) / 2;
+    if (MANOR.inside && state === "walk" && P.y < 1 && Math.hypot(P.x - MANOR.piano[0], P.z - MANOR.piano[1]) < 1.4) offer("m_piano", "🎹 Jouer du piano");
+    if (HALLO.on && MANOR.inside && state === "walk" && P.y > 2.5 && Math.hypot(P.x - MANOR.orbAt[0], P.z - MANOR.orbAt[1]) < 1.4) offer("m_orb", "🔮 Regarder la boule de cristal");
+    if (HALLO.on && MANOR.inside && state === "walk" && P.y < 1) { const { x1, x2, z1, z2 } = MANOR, cx = (x1 + x2) / 2, cz = (z1 + z2) / 2;
       if (Math.hypot(P.x - MANOR.coffinAt[0], P.z - MANOR.coffinAt[1]) < 1.6) offer("m_coffin", "⚰️ Ouvrir le cercueil");
       if (Math.abs(P.x - (cx + 2)) < 1.6 && Math.abs(P.z - cz) < 1.6) offer("m_candy", "🍬 Prendre des bonbons");
-      if (Math.hypot(P.x - MANOR.piano[0], P.z - MANOR.piano[1]) < 1.4) offer("m_piano", "🎹 Jouer du piano"); }
+ }
     if (state === "walk" && P.y < 1 && Math.hypot(P.x - PP.cabin[0], P.z - PP.cabin[1]) < 1.3) offer("locker", "👕 Cabine : maillot ou habits");
     if (state === "walk" && P.y < 1 && Math.hypot(P.x - GOLF.kiosk[0], P.z - (GOLF.kiosk[1] - 1.3)) < 1.8) offer("golf3", "⛳ Jouer au minigolf"); if (state === "walk" && P.y < 1 && Math.hypot(P.x - GOLF.kiosk[0], P.z - (GOLF.kiosk[1] - 1.3)) < 1.8) offer("golf", "🎯 Minigolf de poche");
     if (state === "walk" && P.y < 1 && Math.hypot(P.x - WAVE_BTN.x, P.z - WAVE_BTN.z) < 1.7) offer("waves", WAVES.t < 0 ? "🌊 Lancer les vagues (5 min)" : "⏹️ Arrêter les vagues");
