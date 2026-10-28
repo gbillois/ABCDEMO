@@ -139,6 +139,7 @@ html.app .site{display:none!important}
     <p><b>Mission :</b> 10 canards en plastique se sont échappés. Retrouve-les tous ! 🦆</p>
     <p class="small">Joystick à gauche pour marcher. Glisse ton doigt sur l'écran pour tourner la caméra. Sur ordinateur : flèches ou ZQSD, E pour agir (ouvrir une porte, nager, se changer…), T pour parler, J pour sauter, Maj pour courir. Tu as 4000 € pour la boutique de maillots de bain.</p>
     <div class="row"><button id="persoBtn" class="btn" style="background:var(--violet)">🎨 Mon personnage : <b id="persoNom">Théo</b></button></div>
+    <p id="loadMsg" class="small">⏳ Préparation du domaine…</p>
     <div class="row"><button id="startBtn" class="btn">▶ Jouer</button><button id="introMulti" class="btn" style="background:var(--violet)">👫 À plusieurs</button><a class="btn site" style="background:#34495e" href="../index.html">🏠 Accueil</a></div>
     <div class="row"><button id="majBtn" class="btn" style="background:#34495e" hidden>🔄 Mettre à jour</button></div>
     <p id="majMsg" class="small"></p>
@@ -2189,6 +2190,16 @@ $("acroClose").onclick = () => fermer("acroView");
 
 /* ---------- Végétation ---------- */
 function nearPath(x, z, pad) { return paths.some(([a, b, w]) => { const dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz; let t = ((x - a[0]) * dx + (z - a[1]) * dz) / L2; t = Math.max(0, Math.min(1, t)); return Math.hypot(x - (a[0] + t * dx), z - (a[1] + t * dz)) < w / 2 + pad; }); }
+// pour placer vite des milliers d'arbres et de brins d'herbe : une grille de 10 m où chaque case
+// connaît seulement les boîtes et les chemins qui la touchent (au lieu de tout vérifier à chaque fois)
+const BG = 10, bgrid = new Map(), EMPTY_CELL = { b: [], p: [] }; let bgridN = -1;
+function blockCell(x, z) {
+  if (bgridN !== boxes.length + paths.length) { bgrid.clear(); bgridN = boxes.length + paths.length;
+    const put = (x1, x2, z1, z2, kind, it) => { for (let i = Math.floor((x1 - 3) / BG); i <= Math.floor((x2 + 3) / BG); i++) for (let j = Math.floor((z1 - 3) / BG); j <= Math.floor((z2 + 3) / BG); j++) { const k = i * 1000 + j; let c = bgrid.get(k); if (!c) bgrid.set(k, c = { b: [], p: [] }); c[kind].push(it); } };
+    for (const b of boxes) put(b.x1, b.x2, b.z1, b.z2, "b", b);
+    for (const pa of paths) { const [a, c2, w] = pa, h = w / 2; put(Math.min(a[0], c2[0]) - h, Math.max(a[0], c2[0]) + h, Math.min(a[1], c2[1]) - h, Math.max(a[1], c2[1]) + h, "p", pa); } }
+  return bgrid.get(Math.floor(x / BG) * 1000 + Math.floor(z / BG)) || EMPTY_CELL;
+}
 function blocked(x, z, pad) {
   if (Math.hypot(x - DOME.x, z - DOME.z) < DOME.r + pad + 2) return true;
   if (Math.hypot(x, z - 5) < 6 + pad) return true;
@@ -2199,8 +2210,9 @@ function blocked(x, z, pad) {
   if (Math.abs(x - BFW.x) < BFW.hx + 2 + pad && Math.abs(z - BFW.z) < BFW.hz + 2 + pad) return true;
   if (cottages.some(c => Math.abs(x - c.x) < 5.5 + pad && (Math.abs(z - c.z) < 4.5 + pad || Math.abs(z - (c.z + c.s * 6.6)) < 2.7 + pad))) return true;
   if (ZONES.some(r => inRect(r, x, z, pad)) || riverNear(x, z).d < RIVER_HW + 3.2 + pad || Math.hypot((x - ARENA.x) / (ARENA.rx + 3), (z - ARENA.z) / (ARENA.rz + 3)) < 1) return true;
-  if (boxes.some(b => x > b.x1 - pad && x < b.x2 + pad && z > b.z1 - pad && z < b.z2 + pad)) return true;
-  if (nearPath(x, z, pad)) return true;
+  const cell = blockCell(x, z);
+  if (cell.b.some(b => x > b.x1 - pad && x < b.x2 + pad && z > b.z1 - pad && z < b.z2 + pad)) return true;
+  if (cell.p.some(([a, b, w]) => { const dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz; let t = ((x - a[0]) * dx + (z - a[1]) * dz) / L2; t = Math.max(0, Math.min(1, t)); return Math.hypot(x - (a[0] + t * dx), z - (a[1] + t * dz)) < w / 2 + pad; })) return true;
   if (DUCK_SPOTS.some(([dx, dz]) => Math.hypot(x - dx, z - dz) < 2.5 + pad)) return true;
   if (lampPos.some(([lx, lz]) => Math.hypot(x - lx, z - lz) < 1 + pad)) return true;
   return Math.abs(x) > WORLD + 1 || Math.abs(z) > WORLD + 1;
@@ -4480,7 +4492,10 @@ function loop() {
   renderer.render(scene, camera);
 }
 window.__pins = { animPerson, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, set pitch(v) { pitch = v; } };
-loop();
+// on prépare les « dessinateurs » de la carte graphique en arrière-plan (plusieurs à la fois quand c'est possible),
+// pendant que l'écran d'accueil est affiché : le jeu ne se fige plus au premier dessin
+{ let parti = false; const go = () => { if (parti) return; parti = true; const m = $("loadMsg"); if (m) m.hidden = true; loop(); };
+  try { renderer.compileAsync(scene, camera).then(go, go); } catch (e) { go(); } setTimeout(go, 8000); }
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
