@@ -7640,11 +7640,11 @@ function person(o) { return completer(personBrut(o)); }
 function setOutfit(g, id) { setOutfitBrut(g, id); completer(g); }
 function putGlasses(g, i) { putGlassesBrut(g, i); completer(g); }
 function putSwimGear(g, x) { putSwimGearBrut(g, x); completer(g); }
-return { traitsVisage, apercuVisage, animPerson, liveFace, person, setOutfit, putGlasses, putSwimGear };
+return { traitsVisage, apercuVisage, animPerson, liveFace, person, setOutfit, putGlasses, putSwimGear, putterPoints, gGr, gTe, HANCHES_ANCIEN, ZIP_MAINS };
 })();
 return M_index;
 })();
-const { traitsVisage, apercuVisage, animPerson, liveFace, person, setOutfit, putGlasses, putSwimGear } = ATELIER_PERSOS;
+const { traitsVisage, apercuVisage, animPerson, liveFace, person, setOutfit, putGlasses, putSwimGear, putterPoints, gGr, gTe, HANCHES_ANCIEN, ZIP_MAINS } = ATELIER_PERSOS;
 let player = person({ shirt: 0x2e86de, pants: 0xf39c12, shorts: true, cap: 0xff5a4e, shoe: 0xff5a4e, scale: .6 }); scene.add(player);
 const pLbl = label("Théo", "#2e86de", "#ffffff", .8); pLbl.position.y = 2.75; player.add(pLbl);
 const SPAWN = { x: -16, z: 33 };
