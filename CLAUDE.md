@@ -94,6 +94,15 @@ Accord du propriétaire : le jeu vit dans `pins/` pour avoir sa propre adresse
   `pins/icone.svg`, lui-même dessiné en code. Pas d'image téléchargée.
 - Dans l'application installée, les liens vers le site des jeux (classe `site`) sont cachés.
 
+## Exception : sons enregistrés du Domaine des Pins
+
+Accord du propriétaire (octobre 2026) pour ce seul jeu : `pins/sons/` contient des fichiers MP3.
+- `foret.mp3` et `oiseau-*.mp3` viennent du dépôt TheNewLearners du propriétaire (ambiances, lecture seule) ;
+  `piscine.mp3` (ambiance de l'Aquaparc) et `magasin.mp3` (musique des magasins) sont générés avec ElevenLabs.
+- Ils sont chargés après le premier toucher, depuis le même site (pas d'autre serveur), et gardés hors ligne
+  par `pins/sw.js` (liste `FICHIERS`). Sans eux, le jeu garde ses sons faits maison.
+- Les autres jeux restent entièrement synthétisés (Web Audio API).
+
 ## Publication
 
 Les pages sont servies à deux endroits :
