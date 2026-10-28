@@ -2751,10 +2751,12 @@ function person(o) {
   for (const s of [-1, 1]) {
     const hip = new THREE.Bone(); hip.position.set(s * .15, .94, 0); body.add(hip);
     put(hip, "sk", sph(.13)); put(hip, "sk", lathe([[0, .02], [.13, 0], [.145, -.08], [.135, -.24], [.11, -.4], [.098, -.46], [0, -.48]]));
-    put(hip, "pa", lathe([[.15, -.035], [.163, -.07], [.16, o.shorts ? -.28 : -.44], [.155, o.shorts ? -.3 : -.47]], 32)); put(hip, "pa", new THREE.TorusGeometry(.156, .012, 6, 32), [0, o.shorts ? -.3 : -.46, 0], [Math.PI / 2, 0, 0]);
+    if (o.shorts) { put(hip, "pa", lathe([[.15, -.035], [.163, -.07], [.16, -.28], [.155, -.3]], 32)); put(hip, "pa", new THREE.TorusGeometry(.156, .012, 6, 32), [0, -.3, 0], [Math.PI / 2, 0, 0]); }
+    else put(hip, "pa", lathe([[.15, -.035], [.162, -.07], [.155, -.2], [.137, -.38], [.126, -.5]], 32)); // pantalon : cuisse qui s'affine jusqu'au genou, sans ourlet
+
     const knee = new THREE.Bone(); knee.position.y = -.46; hip.add(knee);
     put(knee, "sk", sph(.1)); put(knee, "sk", lathe([[0, .02], [.098, 0], [.108, -.1], [.1, -.2], [.075, -.36], [.062, -.42], [0, -.44]]));
-    if (!o.shorts) put(knee, "pa", lathe([[.12, .05], [.122, -.15], [.105, -.4], [.105, -.41]], 28));
+    if (!o.shorts) put(knee, "pa", lathe([[.124, .06], [.12, -.15], [.106, -.38], [.104, -.41]], 28));
     const foot = new THREE.Bone(); foot.position.y = -.44; knee.add(foot);
     put(foot, "sk", sph(.06), [0, -.005, .05], [0, 0, 0], [1.05, .75, 2.1]); for (let t = 0; t < 5; t++) put(foot, "sk", sph(.017, 10, 8), [(t - 2) * .022 * (t === 0 ? 1.3 : 1), -.01, .17 - Math.abs(t - 1.2) * .008]);
     const shoe = sph(.07, 32, 20); put(foot, "so", shoe, [0, .005, .055], [0, 0, 0], [1.08, .82, 2.05]);
@@ -3525,7 +3527,7 @@ function libererPersonnage(g) {
    Ils sont gardés sur l'appareil ; un code court permet de les mettre sur un autre appareil ;
    en ligne, seuls le surnom, fille/garçon et les numéros des choix sont envoyés. */
 const PEAUX = [0xf6d6c0, 0xf1c6a0, 0xe0ac85, 0xc68e6a, 0xa86f4c, 0x8d5a3b, 0x6b4430, 0x4a2f22];
-const CHEVEUX = [0x111111, 0x2d2018, 0x5a3a22, 0x8b4513, 0xa67b4f, 0xd96c2c, 0xb5651d, 0xd4a017, 0xe8d2a0, 0xc0392b, 0x8e44ad, 0x2e86de];
+const CHEVEUX = [0x111111, 0x2d2018, 0x5a3a22, 0x8b4513, 0xa67b4f, 0xa8693d, 0xb5651d, 0xd4a017, 0xe8d2a0, 0xc0392b, 0x8e44ad, 0x2e86de];
 const COUPES = ["Courts", "Longs", "Queue de cheval", "Couettes", "Carré", "Bouclés", "Chignon", "Très courts", "Mi-longs bouclés"];
 const YEUX = [0x6b4424, 0x3a78b5, 0x4f8a3a, 0x8a5a2b, 0x5b5b6b, 0x8e44ad];
 const TETES = [.92, 1, 1.1], TAILLES = [.56, .6, .64], TROIS = ["Petit", "Moyen", "Grand"];
