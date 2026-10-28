@@ -54,6 +54,14 @@ html,body{height:100%;margin:0;overflow:hidden;background:#9fc7e0;color:var(--in
 .card p{font-size:18px;line-height:1.35;margin:8px 0}
 .card .small{font-size:15px;opacity:.75}
 .prog{text-align:left;max-width:560px}.prog h1{text-align:center}.prog h3{margin:12px 0 4px;color:#1d5fa8}.prog ul{margin:0;padding-left:4px;list-style:none;display:grid;gap:6px;font-size:16px;line-height:1.35}.prog .row{justify-content:center}
+body.crea-on #stick,body.crea-on #moveBtns,body.crea-on #actions,body.crea-on #hudR,body.crea-on #where{display:none!important}
+.crea{align-items:flex-end;background:transparent;pointer-events:none}.crea .card{pointer-events:auto;margin:auto 0 0;max-height:56vh;overflow:auto;max-width:560px;padding:14px;background:rgba(255,253,244,.96)}
+@media (orientation:landscape){.crea{justify-content:flex-end;align-items:center}.crea .card{margin:auto 0 auto auto;max-height:calc(100vh - 32px);max-width:min(460px,52vw)}}
+.crea h1{font-size:24px}.crea h3{margin:10px 0 4px;font-size:16px;text-align:left;color:var(--leaf)}.crea .opts{display:flex;flex-wrap:wrap;gap:6px}
+.crea .opt{min-width:44px;height:44px;border-radius:12px;border:3px solid transparent;font:inherit;font-size:15px;font-weight:800;padding:0 10px;background:#e8e4d6;color:#1d3b2a;cursor:pointer}
+.crea .opt.coul{width:44px;padding:0;border-color:rgba(0,0,0,.15)}.crea .opt[aria-pressed="true"]{border-color:#ff7a2f;box-shadow:0 0 0 3px #ffc93c}
+.crea .creaNom{display:block;font-weight:800;margin:6px 0}.crea input{font:inherit;font-size:18px;padding:8px 12px;border-radius:12px;border:3px solid #1d3b2a;width:min(240px,64vw);text-align:center;background:#fff;color:#1d3b2a;user-select:text;-webkit-user-select:text;touch-action:manipulation}
+.crea .perso{background:#9aa0b4;font-size:15px;padding:6px 10px}.crea .perso.on{background:var(--violet);outline:3px solid #ffc93c}.crea .code{font-size:24px;font-weight:800;letter-spacing:1px;word-break:break-all;user-select:text;-webkit-user-select:text}
 .sexe .btn{background:#9aa0b4}.sexe .btn[aria-checked="true"]{background:#e84393;outline:3px solid #ffc93c}.sexe #sexeG[aria-checked="true"]{background:#2e86de}
 .bfmenu h3{margin:10px 0 4px;font-size:17px;text-align:left;color:#1f9e8f}.bfrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.bfrow .btn{font-size:16px;padding:7px 8px;background:#9aa0b4}.bfrow .btn.on{background:#ff7a2f;outline:3px solid #ffc93c}
 .prizes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}.prizes .btn{font-size:17px;line-height:1.15}.prizes small{font-size:13px;opacity:.9}
@@ -130,12 +138,7 @@ html.app .site{display:none!important}
     <p>Des vacances dans la forêt : ton cottage et sa terrasse, l'Aquaparc et ses toboggans, l'aquarium, le Baloba, Game Town, Burger Fast, l'accueil, la boulangerie, le Market Speed, la rivière sauvage, la ferme, le poney club, les karts, les vélos, la maison dans les arbres, le lac et son pédalo… et un chat roux qui vient te voir !</p>
     <p><b>Mission :</b> 10 canards en plastique se sont échappés. Retrouve-les tous ! 🦆</p>
     <p class="small">Joystick à gauche pour marcher. Glisse ton doigt sur l'écran pour tourner la caméra. Sur ordinateur : flèches ou ZQSD, E pour agir (ouvrir une porte, nager, se changer…), T pour parler, J pour sauter, Maj pour courir. Tu as 4000 € pour la boutique de maillots de bain.</p>
-    <p style="margin:10px 0 4px;font-weight:800">Tu joues…</p>
-    <div class="row sexe" role="radiogroup" aria-label="Ton personnage"><button id="sexeF" class="btn" role="radio" data-s="f">👧 une fille</button><button id="sexeG" class="btn" role="radio" data-s="g">👦 un garçon</button></div>
-    <p style="margin:10px 0 4px;font-weight:800">Ton nom dans le jeu</p>
-    <div class="row"><input id="nomIn" type="text" maxlength="16" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Théo" aria-describedby="nomMsg" style="font:inherit;font-size:18px;padding:10px 14px;border-radius:14px;border:3px solid #1d3b2a;width:min(260px,70vw);text-align:center;background:#fff;color:#1d3b2a;user-select:text;-webkit-user-select:text;touch-action:manipulation"></div>
-    <p id="nomMsg" class="small">Un prénom ou un surnom, comme tu veux. Il reste sur cet appareil.</p>
-    <div class="row"><button id="glassesBtn" class="btn" style="background:#34495e" aria-pressed="false">👓 Sans lunettes</button></div>
+    <div class="row"><button id="persoBtn" class="btn" style="background:var(--violet)">🎨 Mon personnage : <b id="persoNom">Théo</b></button></div>
     <div class="row"><button id="startBtn" class="btn">▶ Jouer</button><button id="introMulti" class="btn" style="background:var(--violet)">👫 À plusieurs</button><a class="btn site" style="background:#34495e" href="../index.html">🏠 Accueil</a></div>
     <div class="row"><button id="majBtn" class="btn" style="background:#34495e" hidden>🔄 Mettre à jour</button></div>
     <p id="majMsg" class="small"></p>
@@ -244,16 +247,26 @@ html.app .site{display:none!important}
     <div class="row"><button id="winClose" class="btn">Continuer à jouer</button><button id="winReplay" class="btn" style="background:var(--slide)">🔄 Rejouer</button></div>
   </div>
 </div>
+<div id="creaView" class="overlay crea" hidden>
+  <div class="card">
+    <h1>Ton personnage 🎨</h1>
+    <div id="creaListe" class="row"></div>
+    <label class="creaNom">Ton surnom <input id="creaNomIn" type="text" maxlength="16" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Théo"></label>
+    <p id="creaMsg" class="small">Quand tu joues à plusieurs, les autres voient ce surnom : pas ton vrai prénom.</p>
+    <div id="creaOpts"></div>
+    <div class="row"><button id="creaOk" class="btn">✅ C'est moi !</button><button id="creaHasard" class="btn" style="background:#ff8a2b">🎲 Au hasard</button></div>
+    <div class="row"><button id="creaCodeBtn" class="btn" style="background:#34495e">🔑 Mon code</button><button id="creaImportBtn" class="btn" style="background:#34495e">📥 J'ai un code</button><button id="creaSuppr" class="btn" style="background:#9aa0b4">🗑️ Effacer</button></div>
+    <div id="creaCodeBox" hidden><p class="small">Tape ce code sur un autre téléphone ou ordinateur (bouton « J'ai un code ») pour y retrouver ton personnage :</p><p id="creaCode" class="code"></p></div>
+    <div id="creaImportBox" hidden><input id="creaCodeIn" type="text" maxlength="48" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH-…"><button id="creaCodeOk" class="btn">Ajouter</button></div>
+  </div>
+</div>
 <div id="multiView" class="overlay" hidden>
   <div class="card">
     <h1>Jouer à plusieurs 👫</h1>
     <div id="multiOff">
       <fieldset class="profil">
         <legend>Ton personnage</legend>
-        <div class="choix">
-          <label><input type="radio" name="personnage" value="f"> Fille</label>
-          <label><input type="radio" name="personnage" value="g" checked> Garçon</label>
-        </div>
+        <p class="small" style="margin:4px 0">Tu joues avec ton personnage : <b id="multiPerso"></b> (bouton « Mon personnage » pour le changer).</p>
         <label for="pseudoIn">Ton surnom (facultatif, 2 à 16 caractères)</label>
         <input id="pseudoIn" type="text" maxlength="16" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Exemple : Petit Panda" aria-describedby="pseudoAide">
         <small id="pseudoAide">Choisis un surnom, pas ton vrai prénom. Sans surnom, tu gardes le nom de ton animal. Les insultes sont refusées.</small>
@@ -2668,6 +2681,19 @@ function matVisage(iris, sourcil, f) {
   const m = toon(0xffffff, { map: atlasVisage(iris, sourcil, f), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   m.userData.partage = true; return MAT_VISAGE[key] = m;
 }
+// motifs des habits (rayures, imprimé étoiles, cerises, jean), dessinés en code
+const MOTIFS = {};
+function motif(k, col) {
+  const key = k + col; if (MOTIFS[key]) return MOTIFS[key];
+  const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d"), hx = "#" + new THREE.Color(col).getHexString();
+  if (k === "rayures") { x.fillStyle = "#f6f5ef"; x.fillRect(0, 0, 128, 128); x.fillStyle = hx; for (let y = 0; y < 128; y += 16) x.fillRect(0, y, 128, 5); }
+  else if (k === "etoiles") { x.fillStyle = hx; x.fillRect(0, 0, 128, 128); const st = (cx, cy, r, f) => { x.fillStyle = f; x.beginPath(); for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5 - Math.PI / 2, rr = i % 2 ? r * .45 : r; x.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); } x.fill(); };
+    for (const [cx, cy, r, f] of [[10, 52, 9, "#ffffff"], [118, 60, 8, "#b39ddb"], [6, 74, 6, "#ffc93c"], [122, 40, 6, "#ff8fb1"], [16, 32, 5, "#ffffff"]]) st(cx, cy, r, f); }
+  else if (k === "arcenciel") { x.fillStyle = "#f7f6f0"; x.fillRect(0, 0, 128, 128); ["#f3a6c0", "#f7dc5a", "#3a7fd5"].forEach((cc, i) => { x.fillStyle = cc; x.fillRect(0, 40 + i * 9, 30, 6); x.fillRect(98, 40 + i * 9, 30, 6); }); }
+  else if (k === "cerises") { x.fillStyle = "#f8f6f0"; x.fillRect(0, 0, 128, 128); for (let i = 0; i < 26; i++) { const px = (i * 37) % 128, py = (i * 53 + (i >> 2) * 11) % 128; x.strokeStyle = "#3d7a3a"; x.lineWidth = 1.5; x.beginPath(); x.moveTo(px, py); x.lineTo(px + 3, py - 7); x.stroke(); x.fillStyle = hx; x.beginPath(); x.arc(px, py, 3.2, 0, 7); x.fill(); } }
+  else if (k === "jean") { x.fillStyle = hx; x.fillRect(0, 0, 128, 128); for (let i = 0; i < 128; i += 2) { x.fillStyle = `rgba(255,255,255,${.05 + (i % 6 === 0 ? .06 : 0)})`; x.fillRect(i, 0, 1, 128); } x.fillStyle = "rgba(240,200,80,.6)"; x.fillRect(0, 60, 128, 1.5); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(2, 2); return MOTIFS[key] = t;
+}
 const PERSO_GEO = new Map(), VISAGE_GEO = new Map(), PERSO_UNE = new Map();
 // foule : tout le corps en un seul maillage et un seul matériau ; la couleur de chaque partie (peau, t-shirt, short…)
 // et ce qui est caché (habits ou maillot) sont choisis dans le shader
@@ -2695,7 +2721,9 @@ function person(o) {
   const g = new THREE.Group(), body = new THREE.Bone(); body.name = "corps"; g.add(body);
   const female = !!o.long, R = mulberry(o.seed ?? Math.floor(rnd() * 1e6));
   // les personnages du même genre partagent la même forme (une seule copie en mémoire) ; 3 coiffures par genre
-  const hv = Math.floor(R() * 3), RH = mulberry(17 + hv), ckey = [female, !!o.shorts, !!o.lite, !!o.cap, hv].join("|"), dejaFait = PERSO_GEO.has(ckey);
+  // coiffure (0 courts, 1 longs, 2 queue de cheval, 3 couettes, 4 carré, 5 bouclés, 6 chignon, 7 très courts) et accessoire de tête
+  const coif = o.coiffure ?? (female ? 1 : 0), acc = o.acc ?? (o.cap ? "casquette" : null);
+  const hv = Math.floor(R() * 3), RH = mulberry(17 + hv), ckey = [female, !!o.shorts, !!o.lite, acc, hv, coif, !!o.manches, !!o.capuche].join("|"), dejaFait = PERSO_GEO.has(ckey);
   const skinC = new THREE.Color(o.skin ?? 0xf1c6a0), hairC = new THREE.Color(o.hair ?? 0x5a3a22);
   const M = {
     sk: toon(skinC, { emissive: skinC.clone().lerp(new THREE.Color(0xff7050), .5).multiplyScalar(.06) }),
@@ -2738,9 +2766,10 @@ function person(o) {
   for (const s of [-1, 1]) {
     const sho = new THREE.Bone(); sho.position.set(s * .35, 1.55, 0); body.add(sho);
     put(sho, "sk", sph(.082)); put(sho, "sk", lathe([[0, .03], [.094, 0], [.1, -.1], [.088, -.28], [.078, -.35], [0, -.36]]));
-    put(sho, "sh", lathe([[.0, .05], [.075, .045], [.108, .01], [.114, -.06], [.117, -.16], [.118, -.19]], 32)); // manche près du bras put(sho, "sh", new THREE.TorusGeometry(.136, .012, 6, 32), [0, -.19, 0], [Math.PI / 2, 0, 0]);
+    put(sho, "sh", lathe([[.0, .05], [.075, .045], [.108, .01], [.114, -.06], [.117, -.16], o.manches ? [.112, -.37] : [.118, -.19]], 32)); // manche près du bras put(sho, "sh", new THREE.TorusGeometry(.136, .012, 6, 32), [0, -.19, 0], [Math.PI / 2, 0, 0]);
     const elb = new THREE.Bone(); elb.position.y = -.35; sho.add(elb);
     put(elb, "sk", sph(.078)); put(elb, "sk", lathe([[0, .01], [.077, 0], [.082, -.07], [.066, -.22], [.052, -.31], [0, -.33]]));
+    if (o.manches) { put(elb, "sh", sph(.096), [0, .0, 0]); put(elb, "sh", lathe([[.098, .02], [.1, -.08], [.084, -.22], [.074, -.29], [.07, -.3]], 28)); } // manches longues
     const hand = new THREE.Bone(); hand.position.y = -.33; elb.add(hand);
     put(hand, "sk", sph(.055, 24, 18), [0, -.045, 0], [0, 0, 0], [.95, 1.15, .45]);
     put(hand, "sk", cap(.03, .04), [0, -.105, .006], [.22, 0, 0], [1.5, 1, .62]); // doigts serrés, comme une moufle
@@ -2760,6 +2789,9 @@ function person(o) {
   put(body, "sh", new THREE.TorusGeometry(.118, .025, 10, 32), [0, 1.645, 0], [Math.PI / 2, 0, 0]);
   put(body, "sh", new THREE.TorusGeometry(.3 + (female ? .01 : 0), .014, 6, 40), [0, .875, 0], [Math.PI / 2, 0, 0], [1, .78, 1]);
   put(body, "pa", lathe([[.278, -.04], [.292, -.08], [.3, -.11], [.2, -.16], [0, -.17]], 40), [0, .97, 0], [0, 0, 0], [1.02, 1, .74]); // le haut reste caché sous le t-shirt
+  if (o.capuche) { // sweat : capuche dans le dos et fermeture éclair
+    put(body, "sh", new THREE.SphereGeometry(.2, 28, 16, 0, Math.PI * 2, 0, Math.PI * .55), [0, 1.62, -.16], [-1.9, 0, 0], [1.15, .8, .75]);
+    put(body, "deco", new THREE.BoxGeometry(.016, .6, .012), [0, 1.3, .222], [-.08, 0, 0], [1, 1, 1], 0xd0d0d0); }
   // ---- maillot de bain, porté à la place des habits
   put(body, "sw", lathe([[0, -.165], [.2, -.155], [.302, -.07], [.298, .03], [.288, .14]], 40), [0, .97, 0], [0, 0, 0], [1.04, 1, .82]);
   if (!female) { // short de bain : ceinture, cordon et jambes jusqu'à mi-cuisse
@@ -2801,22 +2833,34 @@ function person(o) {
     VG = o.lite ? { tout: fusion([...yeux, ...reste]) } : { yeux: yeux.map(d => { d.geo.userData.partage = true; return d; }), reste: fusion(reste) }; VISAGE_GEO.set(vk, VG); }
   const pose = (geo, c) => { const m = new THREE.Mesh(geo, fm); if (c) m.position.copy(c); m.renderOrder = 1; head.add(m); return m; };
   if (o.lite) pose(VG.tout); else { for (const d of VG.yeux) lids.push(pose(d.geo, d.c)); pose(VG.reste); }
-  // cheveux
-  put(head, "hr", new THREE.SphereGeometry(.243, 48, 24, 0, Math.PI * 2, 0, Math.PI * .5), [0, .045, -.02], [-.35, 0, 0]);
-  put(head, "hr", sph(.232, 40, 28), [0, .01, -.055], [0, 0, 0], [.98, .97, .9]);
-  if (!female) {
-    for (let i = 0; i < (o.lite ? 26 : 70); i++) { const th = RH() * 1.25, ph = RH() * Math.PI * 2; if (Math.cos(ph) > .5 && th > .95) continue;
+  // cheveux : une calotte, puis la coiffure choisie
+  if (coif !== 7) put(head, "hr", new THREE.SphereGeometry(.243, 48, 24, 0, Math.PI * 2, 0, Math.PI * .5), [0, .045, -.02], [-.35, 0, 0]);
+  put(head, "hr", sph(.232, 40, 28), [0, .01, -.055], [0, 0, 0], coif === 7 ? [.96, .95, .9] : [.98, .97, .9]);
+  const meches = n => { for (let i = 0; i < n; i++) { const th = RH() * 1.25, ph = RH() * Math.PI * 2; if (Math.cos(ph) > .5 && th > .95) continue;
       const d = new THREE.Vector3(Math.sin(th) * Math.sin(ph), Math.cos(th), Math.sin(th) * Math.cos(ph)), base = d.clone().multiplyScalar(.238).add(new THREE.Vector3(0, .04, -.02));
       const out = d.clone().multiplyScalar(.3).add(new THREE.Vector3((RH() - .5) * .3, -.6, d.z > .35 ? .55 : -.65)).normalize(), L = .07 + RH() * .05;
-      const geo = new THREE.ConeGeometry(.028 + RH() * .012, L, 10, 2); geo.translate(0, L / 2, 0); geo.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), out)); geo.translate(base.x, base.y, base.z); put(head, "hr", geo); }
-  } else {
-    for (let i = 0; i < (o.lite ? 24 : 64); i++) { const ph = Math.PI * .45 + RH() * Math.PI * 1.1, th = .3 + RH() * 1.0, d = new THREE.Vector3(Math.sin(th) * Math.sin(ph), Math.cos(th), Math.sin(th) * Math.cos(ph));
-      const p0 = d.clone().multiplyScalar(.24).add(new THREE.Vector3(0, .04, -.02)), L = .32 + RH() * .14, sx = d.x * 1.1;
+      const geo = new THREE.ConeGeometry(.028 + RH() * .012, L, 10, 2); geo.translate(0, L / 2, 0); geo.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), out)); geo.translate(base.x, base.y, base.z); put(head, "hr", geo); } };
+  const longs = (n, Lmin, Lvar, cote) => { for (let i = 0; i < n; i++) { const ph = Math.PI * .45 + RH() * Math.PI * 1.1, th = .3 + RH() * 1.0, d = new THREE.Vector3(Math.sin(th) * Math.sin(ph), Math.cos(th), Math.sin(th) * Math.cos(ph));
+      const p0 = d.clone().multiplyScalar(.24).add(new THREE.Vector3(0, .04, -.02)), L = Lmin + RH() * Lvar, sx = d.x * 1.1;
       put(head, "hr", tube([[p0.x, p0.y, p0.z], [p0.x * 1.18 + sx * .02, p0.y - .1, p0.z - .03], [p0.x * 1.15, -.14, -.12 - RH() * .05], [p0.x * 1.08 + (RH() - .5) * .04, -.14 - L, -.12 - RH() * .06]], .02 + RH() * .008, 12)); }
-    for (const s of [-1, 1]) put(head, "hr", tube([[s * .12, .2, .11], [s * .2, .06, .1], [s * .215, -.12, .05], [s * .2, -.3, .02]], .028, 14));
-  }
-  if (o.cap) { const cm = toon(o.cap); M.cap = cm; put(head, "cap", new THREE.SphereGeometry(.252, 40, 16, 0, Math.PI * 2, 0, Math.PI * .5), [0, .055, -.01], [-.12, 0, 0], [1, .8, 1.02]);
-    const brim = new THREE.CylinderGeometry(.19, .2, .016, 32, 1, false, -Math.PI / 2, Math.PI); put(head, "cap", brim, [0, .085, .19], [.12, 0, 0], [1, 1, 1.3]); put(head, "cap", sph(.022, 12, 8), [0, .26, -.02]); }
+    for (const s of [-1, 1]) put(head, "hr", tube([[s * .12, .2, .11], [s * .2, .06, .1], [s * .215, -.12, .05], [s * .2, -.12 - cote, .02]], .028, 14)); };
+  const nL = o.lite ? 24 : 64, nC = o.lite ? 26 : 70;
+  if (coif === 0) meches(nC);
+  else if (coif === 1) longs(nL, .32, .14, .18);
+  else if (coif === 2) { meches(nC >> 1); put(head, "hr", tube([[0, .16, -.2], [0, .06, -.3], [0, -.12, -.31], [0, -.3, -.27]], .05, 14)); put(head, "hr", sph(.06, 14, 10), [0, .14, -.22]); }
+  else if (coif === 3) { meches(nC >> 1); for (const s of [-1, 1]) { put(head, "hr", sph(.055, 14, 10), [s * .2, .1, -.06]); put(head, "hr", tube([[s * .21, .09, -.06], [s * .3, .0, -.07], [s * .32, -.16, -.05], [s * .3, -.28, -.03]], .045, 12)); } }
+  else if (coif === 4) longs(nL, .06, .05, .02);
+  else if (coif === 5) for (let i = 0; i < (o.lite ? 22 : 56); i++) { const th = RH() * 1.5, ph = RH() * Math.PI * 2; if (Math.cos(ph) > .55 && th > .85) continue;
+      const d = new THREE.Vector3(Math.sin(th) * Math.sin(ph), Math.cos(th), Math.sin(th) * Math.cos(ph)); put(head, "hr", sph(.055 + RH() * .025, 10, 8), [d.x * .25, .04 + d.y * .25, -.02 + d.z * .25]); }
+  else if (coif === 6) { meches(nC >> 1); put(head, "hr", sph(.1, 18, 14), [0, .25, -.12]); }
+  else if (coif === 8) { longs(nL >> 1, .12, .1, .08); for (let i = 0; i < (o.lite ? 26 : 64); i++) { const ph = Math.PI * .35 + RH() * Math.PI * 1.3, y = .22 - RH() * .5, r = .21 + RH() * .07 + Math.max(0, -y) * .15;
+      put(head, "hr", sph(.05 + RH() * .025, 10, 8), [Math.sin(ph) * r, y, Math.cos(ph) * r - .03]); } }
+  // accessoire de tête : casquette, nœud ou bandeau (les lunettes sont posées à part)
+  if (acc) { M.cap = toon(o.accCol ?? o.cap ?? 0xff5a4e);
+    if (acc === "casquette") { put(head, "cap", new THREE.SphereGeometry(.252, 40, 16, 0, Math.PI * 2, 0, Math.PI * .5), [0, .055, -.01], [-.12, 0, 0], [1, .8, 1.02]);
+      const brim = new THREE.CylinderGeometry(.19, .2, .016, 32, 1, false, -Math.PI / 2, Math.PI); put(head, "cap", brim, [0, .085, .19], [.12, 0, 0], [1, 1, 1.3]); put(head, "cap", sph(.022, 12, 8), [0, .26, -.02]); }
+    else if (acc === "noeud") { for (const s of [-1, 1]) put(head, "cap", new THREE.ConeGeometry(.05, .1, 12), [.13 + s * .05, .2, .08], [0, 0, s * Math.PI / 2], [1, 1, .55]); put(head, "cap", sph(.025, 12, 8), [.13, .2, .085]); }
+    else if (acc === "bandeau") put(head, "cap", new THREE.TorusGeometry(.236, .02, 8, 40), [0, .09, -.02], [Math.PI / 2 - .35, 0, 0], [1, 1.04, 1]); }
   // assemblage : une seule pièce par matériau pour tout le corps, accrochée aux articulations (peu d'appels de dessin)
   g.updateMatrixWorld(true);
   const bones = [...bins.keys()];
@@ -2825,7 +2869,8 @@ function person(o) {
       for (let i = 0; i < n; i++) { si[i * 4] = bi; sw[i * 4] = 1; } gg.setAttribute("skinIndex", new THREE.BufferAttribute(si, 4)); gg.setAttribute("skinWeight", new THREE.BufferAttribute(sw, 4)); (byKey[key] ??= []).push(gg); } });
     const geos = {}; for (const [key, list] of Object.entries(byKey)) { const m = mergeGeometries(list); m.userData.partage = true; geos[key] = m; list.forEach(x => x.dispose()); }
     PERSO_GEO.set(ckey, geos); }
-  const skel = new THREE.Skeleton(bones), parts = { sh: [], pa: [], so: [], sole: [], hr: [], sw: [] }, top = [], sleeves = [], zone = new THREE.Sphere(new THREE.Vector3(0, 1.1, 0), 1.8);
+  const skel = new THREE.Skeleton(bones); head.scale.setScalar(o.tete ?? 1); // taille du visage (après la pose de départ)
+  const parts = { sh: [], pa: [], so: [], sole: [], hr: [], sw: [] }, top = [], sleeves = [], zone = new THREE.Sphere(new THREE.Vector3(0, 1.1, 0), 1.8);
   M.skl = M.sk;
   if (o.lite) { // la foule : un seul maillage
     let une = PERSO_UNE.get(ckey); if (!une) { une = geoUne(PERSO_GEO.get(ckey)); PERSO_UNE.set(ckey, une); }
@@ -2840,7 +2885,9 @@ function person(o) {
     if (!o.lite && key !== "deco" && key !== "skl") { const c = new THREE.SkinnedMesh(geo, matContour); c.bind(skel, new THREE.Matrix4()); c.boundingSphere = zone; mesh.add(c); } }
   g.scale.setScalar(o.scale ?? .76); g.rotation.order = "YXZ";
   parts.sw.forEach(m => m.visible = false);
-  g.userData = { swim: parts.sw, suit: M.sw, pantsParts: parts.pa, female, top, sleeves, legs, arms, knees, elbows, head, lids, blink: 2 + R() * 4, shirt: M.sh, pants: M.pa, shoe: M.so, skin: M.sk, skinColor: skinC.getHex(), shirtParts: parts.sh, shoeParts: parts.so.concat(parts.sole), longPants: o.shorts ? [] : [], clothes: { shirt: o.shirt, pants: o.pants ?? 0x3a4a63, shoe: o.shoe ?? 0xf5f5f5 } };
+  const shM = o.motifHaut ? motif(o.motifHaut, o.shirt) : null, paM = o.motifBas ? motif(o.motifBas, o.pants) : null;
+  g.userData = { swim: parts.sw, suit: M.sw, pantsParts: parts.pa, female, top, sleeves, legs, arms, knees, elbows, head, lids, blink: 2 + R() * 4, shirt: M.sh, pants: M.pa, shoe: M.so, skin: M.sk, skinColor: skinC.getHex(), shirtParts: parts.sh, shoeParts: parts.so.concat(parts.sole), longPants: o.shorts ? [] : [],
+    clothes: { shirt: shM ? 0xffffff : o.shirt, pants: paM ? 0xffffff : o.pants ?? 0x3a4a63, shoe: o.shoe ?? 0xf5f5f5, shirtMap: shM, pantsMap: paM } };
   return g;
 }
 // clignement des yeux et respiration, pour tous les personnages
@@ -2879,7 +2926,7 @@ function setOutfit(g, id) {
   show(u.swim, !!su && !su.full);
   if (!su) { // habits
     show(u.shirtParts, true); show(u.pantsParts, true); show(u.shoeParts, true);
-    u.shirt.color.setHex(u.clothes.shirt); u.shirt.map = null; u.pants.color.setHex(u.clothes.pants); u.pants.map = null; u.pants.metalness = 0; u.pants.roughness = .8;
+    u.shirt.color.setHex(u.clothes.shirt); u.shirt.map = u.clothes.shirtMap ?? null; u.pants.color.setHex(u.clothes.pants); u.pants.map = u.clothes.pantsMap ?? null; u.pants.metalness = 0; u.pants.roughness = .8;
   } else if (su.full) { // combinaison de surf : haut à manches et bas, pieds nus
     show(u.shirtParts, true); show(u.pantsParts, true); show(u.shoeParts, false);
     u.shirt.color.set(su.a); u.shirt.map = null; u.pants.color.setHex(0xffffff); u.pants.map = suitTex(su); u.pants.metalness = 0; u.pants.roughness = .7;
@@ -3279,7 +3326,7 @@ $("soundBtn").onclick = () => { muted = !muted; try { localStorage.setItem("pins
 /* ================= Interface ================= */
 let toastT = 0; function toast(t, ms = 2200) { $("toast").textContent = t; $("toast").hidden = false; toastT = ms / 1000; }
 let paused = true;
-$("startBtn").onclick = () => { if (!nommer($("nomIn").value, true)) { sfx.click(); $("nomIn").focus(); return; } audioOn(); sfx.click(); $("intro").hidden = true; paused = false; toast("Va voir Sophie pour dire bonjour !"); };
+$("startBtn").onclick = () => { audioOn(); sfx.click(); $("intro").hidden = true; paused = false; toast("Va voir Sophie pour dire bonjour !"); };
 $("pauseBtn").onclick = () => { if (!$("intro").hidden) return; sfx.click(); paused = true; $("pauseCount").textContent = found; $("pauseView").hidden = false; };
 $("resumeBtn").onclick = () => { sfx.click(); $("pauseView").hidden = true; paused = false; };
 function replay() {
@@ -3473,52 +3520,135 @@ function libererPersonnage(g) {
   g.traverse(o => { if (o.isMesh) { if (!o.geometry.userData.partage) o.geometry.dispose(); materiaux.add(o.material); } else if (o.isSprite) effacerLabel(o); });
   materiaux.forEach(m => { if (!m.userData.partage) m.dispose(); });
 }
-function choisirPersonnage(sexe) {
-  if (player.userData.female === (sexe === "f")) return;
-  const ancien = player;
-  player = person({ long: sexe === "f", shirt: 0x2e86de, pants: 0xf39c12, shorts: true, cap: 0xff5a4e, shoe: 0xff5a4e, scale: .6 });
-  player.position.copy(ancien.position); player.rotation.copy(ancien.rotation);
+/* ================= Créateur de personnage (comme les Mii) =================
+   Un personnage = un surnom, fille ou garçon, et des choix dans des listes fermées (« look »).
+   Ils sont gardés sur l'appareil ; un code court permet de les mettre sur un autre appareil ;
+   en ligne, seuls le surnom, fille/garçon et les numéros des choix sont envoyés. */
+const PEAUX = [0xf6d6c0, 0xf1c6a0, 0xe0ac85, 0xc68e6a, 0xa86f4c, 0x8d5a3b, 0x6b4430, 0x4a2f22];
+const CHEVEUX = [0x111111, 0x2d2018, 0x5a3a22, 0x8b4513, 0xa67b4f, 0xd96c2c, 0xb5651d, 0xd4a017, 0xe8d2a0, 0xc0392b, 0x8e44ad, 0x2e86de];
+const COUPES = ["Courts", "Longs", "Queue de cheval", "Couettes", "Carré", "Bouclés", "Chignon", "Très courts", "Mi-longs bouclés"];
+const YEUX = [0x6b4424, 0x3a78b5, 0x4f8a3a, 0x8a5a2b, 0x5b5b6b, 0x8e44ad];
+const TETES = [.92, 1, 1.1], TAILLES = [.56, .6, .64], TROIS = ["Petit", "Moyen", "Grand"];
+const ACCS = ["Rien", "Lunettes rouges", "Lunettes bleues", "Lunettes de soleil", "Lunettes en or", "Casquette", "Nœud", "Bandeau", "Lunettes roses"];
+const COULS = [0xff5a4e, 0xff8a2b, 0xffc93c, 0x27ae60, 0x16a085, 0x2e86de, 0x8e44ad, 0xe84393, 0xffffff, 0x34495e, 0x2d3436, 0xf78fb3, 0xc4c7cc, 0x5f8f6a];
+const HAUTS = ["T-shirt", "T-shirt rayé", "T-shirt imprimé", "Sweat à capuche", "T-shirt arc-en-ciel"], BAS = ["Short", "Pantalon", "Legging à cerises", "Jean"];
+const ACC_COULS = COULS.slice(0, 8), TSHIRTS = COULS, SHORTS = [0xf39c12, 0x3a4a63, 0x1f2a44, 0x7b1e2b, 0x3b5b8c, 0x2d3436, 0x6c5ce7, 0x1f9e8f, 0xe84393, 0xffffff, 0xc0392b, 0x7f8c99], CHAUSS = [0xff5a4e, 0xffffff, 0x2d3436, 0x2e86de, 0xffc93c, 0x27ae60, 0xe84393, 0x8b4513];
+// ordre des choix : peau, couleur des cheveux, coupe, yeux, visage, taille, accessoire, couleur de l'accessoire,
+// couleur du haut, couleur du bas, chaussures, sorte de haut, sorte de bas
+const LOOK_MAX = [8, 12, 9, 6, 3, 3, 9, 8, 14, 12, 8, 5, 4];
+const lookValide = l => Array.isArray(l) && l.length === LOOK_MAX.length && l.every((v, i) => Number.isInteger(v) && v >= 0 && v < LOOK_MAX[i]);
+function optsDePerso(p, extra = {}) {
+  const l = p.look, a = l[6];
+  return { long: p.sexe === "f", skin: PEAUX[l[0]], hair: CHEVEUX[l[1]], coiffure: l[2], eyes: YEUX[l[3]], tete: TETES[l[4]], scale: TAILLES[l[5]],
+    acc: a === 5 ? "casquette" : a === 6 ? "noeud" : a === 7 ? "bandeau" : null, accCol: ACC_COULS[l[7]], shirt: TSHIRTS[l[8]], pants: SHORTS[l[9]], shoe: CHAUSS[l[10]], lunettes: a >= 1 && a <= 4 ? a : a === 8 ? 5 : 0,
+    shorts: l[12] === 0, motifHaut: [null, "rayures", "etoiles", null, "arcenciel"][l[11]], manches: l[11] === 3, capuche: l[11] === 3, motifBas: [null, null, "cerises", "jean"][l[12]], ...extra };
+}
+function persoAuHasard(sexe) { const l = LOOK_MAX.map(m => Math.floor(Math.random() * m)); l[2] = sexe === "f" ? [1, 2, 3, 4, 6][Math.floor(Math.random() * 5)] : [0, 5, 7][Math.floor(Math.random() * 3)]; l[4] = 1; l[5] = 1; l[6] = Math.random() < .6 ? 0 : l[6]; l[12] = Math.random() < .5 ? 0 : l[12]; return { nom: "", sexe, look: l }; }
+// code : le tout dans un grand nombre, écrit avec 32 signes faciles à lire (sans I, O, 0 ni 1), avec une petite somme de contrôle
+const CODE32 = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", NOM_CH = " abcdefghijklmnopqrstuvwxyz0123456789-'_éèêëàâäçîïôöùûüÿñòóõãáíì";
+const nomPourCode = n => [...n].map(c => { const l = c.toLowerCase(); if (NOM_CH.includes(l)) return c; const b = c.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); return NOM_CH.includes(b.toLowerCase()) ? b : ""; }).join("").slice(0, 16);
+function persoEnCode(p) {
+  let v = BigInt(p.sexe === "f" ? 1 : 0); p.look.forEach((x, i) => v = v * BigInt(LOOK_MAX[i]) + BigInt(x));
+  const nom = nomPourCode(p.nom || ""); for (const c of nom) { const k = NOM_CH.indexOf(c.toLowerCase()); v = v * 128n + BigInt(k * 2 + (c !== c.toLowerCase() ? 1 : 0)); }
+  v = v * 17n + BigInt([...nom].length); v = v * 1024n + v % 1021n;
+  let t = ""; while (v > 0n) { t = CODE32[Number(v % 32n)] + t; v /= 32n; } return t.match(/.{1,4}/g).join("-");
+}
+function codeEnPerso(code) {
+  const t = String(code).toUpperCase().replace(/[^A-Z0-9]/g, ""); if (t.length < 6 || t.length > 40) return null;
+  let v = 0n; for (const c of t) { const k = CODE32.indexOf(c); if (k < 0) return null; v = v * 32n + BigInt(k); }
+  const ctl = v % 1024n; v /= 1024n; if (v % 1021n !== ctl) return null;
+  const n = Number(v % 17n); v /= 17n; const ch = [];
+  for (let i = 0; i < n; i++) { const k = Number(v % 128n); v /= 128n; const c = NOM_CH[k >> 1]; if (!c) return null; ch.unshift(k & 1 ? c.toUpperCase() : c); }
+  const look = []; for (let i = LOOK_MAX.length - 1; i >= 0; i--) { look.unshift(Number(v % BigInt(LOOK_MAX[i]))); v /= BigInt(LOOK_MAX[i]); }
+  if (v > 1n) return null; const nom = filtrerSurnom(ch.join("")); if (nom === null) return null;
+  return { nom, sexe: v === 1n ? "f" : "g", look };
+}
+// les personnages gardés sur l'appareil (6 au plus) et celui qu'on joue
+let PERSOS = [], persoI = 0;
+try { const v = JSON.parse(localStorage.getItem("pins-persos") || "[]"); if (Array.isArray(v)) PERSOS = v.filter(p => p && ["f", "g"].includes(p.sexe) && lookValide(p.look) && filtrerSurnom(p.nom ?? "") !== null).slice(0, 6); persoI = Math.min(PERSOS.length - 1, Math.max(0, +localStorage.getItem("pins-perso") || 0)); } catch (e) {}
+const premiereFois = !PERSOS.length;
+if (premiereFois) { // on reprend les anciens choix (fille/garçon, nom, lunettes) s'il y en a
+  let sx = "g", nom = "", lu = 0; try { sx = localStorage.getItem("pins-sexe") === "f" ? "f" : "g"; nom = filtrerSurnom(localStorage.getItem("pins-nom") || "") || ""; lu = Math.min(4, Math.max(0, +localStorage.getItem("pins-lunettes") || 0)); } catch (e) {}
+  const p = { nom, sexe: sx, look: [1, sx === "f" ? 3 : 2, sx === "f" ? 1 : 0, 0, 1, 1, lu || (sx === "f" ? 0 : 5), 0, sx === "f" ? 11 : 5, sx === "f" ? 6 : 0, 0, 0, 0] }; PERSOS = [p]; persoI = 0; }
+const monPerso = () => PERSOS[persoI];
+function sauverPersos() { try { localStorage.setItem("pins-persos", JSON.stringify(PERSOS)); localStorage.setItem("pins-perso", persoI); } catch (e) {} }
+// le joueur prend l'apparence du personnage choisi
+function appliquerPerso() {
+  const p = monPerso(), o = optsDePerso(p), ancien = player;
+  player = person(o); player.position.copy(ancien.position); player.rotation.copy(ancien.rotation);
   ancien.remove(myLbl); player.add(myLbl); scene.add(player); scene.remove(ancien); libererPersonnage(ancien);
-  setOutfit(player, wearing);
+  putGlasses(player, o.lunettes); setOutfit(player, wearing); nommer(p.nom);
+  $("persoNom").textContent = monNom; $("multiPerso").textContent = (p.sexe === "f" ? "👧 " : "👦 ") + monNom;
 }
-// nom affiché au-dessus du personnage (écran de départ ; gardé sur l'appareil) ; les animateurs l'appellent par ce nom
+// nom affiché au-dessus du personnage ; les animateurs l'appellent par ce nom
 let monNom = "Théo";
-function nommer(v, sauver) {
-  const p = filtrerSurnom(v ?? "");
-  if (p === null) { $("nomMsg").textContent = "Ce nom ne marche pas : de 2 à 16 lettres, sans gros mot."; return false; }
-  monNom = p || "Théo"; $("nomMsg").textContent = "Un prénom ou un surnom, comme tu veux. Il reste sur cet appareil.";
+function nommer(v) {
+  monNom = filtrerSurnom(v ?? "") || "Théo";
   const n = label(monNom, "#2e86de", "#ffffff", .8); pLbl.material.map.dispose(); pLbl.material.dispose(); pLbl.material = n.material; pLbl.scale.copy(n.scale);
-  if (sauver) { try { localStorage.setItem("pins-nom", p); } catch (e) {} }
-  return true;
 }
-$("nomIn").addEventListener("change", () => nommer($("nomIn").value, true));
-$("nomIn").addEventListener("keydown", e => { e.stopPropagation(); if (e.key === "Enter") $("startBtn").click(); });
-{ let v = ""; try { v = localStorage.getItem("pins-nom") || ""; } catch (e) {} $("nomIn").value = v; nommer(v, false); }
-// choix fille / garçon sur l'écran de départ (gardé sur l'appareil, et repris pour le jeu à plusieurs)
-function choisirSexe(sx, sauver = true) {
-  choisirPersonnage(sx);
-  for (const b of [$("sexeF"), $("sexeG")]) b.setAttribute("aria-checked", b.dataset.s === sx ? "true" : "false");
-  const r = document.querySelector(`input[name="personnage"][value="${sx}"]`); if (r) r.checked = true;
-  if (sauver) { try { localStorage.setItem("pins-sexe", sx); } catch (e) {} }
+// l'écran du créateur : on voit son personnage de face pendant qu'on le change
+const CREA = [["Tu es", "sexe"], ["Peau", 0, PEAUX], ["Couleur des cheveux", 1, CHEVEUX], ["Coiffure", 2, COUPES], ["Yeux", 3, YEUX], ["Visage", 4, TROIS], ["Taille", 5, TROIS],
+  ["Accessoire", 6, ACCS], ["Couleur de l'accessoire", 7, ACC_COULS], ["Haut", 11, HAUTS], ["Couleur du haut", 8, TSHIRTS], ["Bas", 12, BAS], ["Couleur du bas", 9, SHORTS], ["Chaussures", 10, CHAUSS]];
+let creaRetour = null;
+function dessinerCrea() {
+  const p = monPerso(), L = $("creaListe"); L.innerHTML = "";
+  PERSOS.forEach((q, i) => { const b = document.createElement("button"); b.className = "btn perso" + (i === persoI ? " on" : ""); b.textContent = (q.sexe === "f" ? "👧 " : "👦 ") + (q.nom || "Sans nom");
+    b.onclick = () => { persoI = i; sfx.click(); appliquerPerso(); dessinerCrea(); }; L.append(b); });
+  if (PERSOS.length < 6) { const b = document.createElement("button"); b.className = "btn perso"; b.textContent = "➕ Nouveau"; b.onclick = () => { PERSOS.push(persoAuHasard(Math.random() < .5 ? "f" : "g")); persoI = PERSOS.length - 1; sfx.click(); appliquerPerso(); dessinerCrea(); }; L.append(b); }
+  $("creaNomIn").value = p.nom; $("creaSuppr").hidden = PERSOS.length < 2;
+  const O = $("creaOpts"); O.innerHTML = "";
+  for (const [titre, k, liste] of CREA) {
+    if (k === 7 && !(p.look[6] >= 5 && p.look[6] <= 7)) continue; // couleur seulement pour casquette, nœud, bandeau
+    const h = document.createElement("h3"); h.textContent = titre; O.append(h); const d = document.createElement("div"); d.className = "opts"; O.append(d);
+    const items = k === "sexe" ? [["👧 Fille", "f"], ["👦 Garçon", "g"]] : liste.map((v, i) => [v, i]);
+    for (const [v, val] of items) { const b = document.createElement("button"), on = k === "sexe" ? p.sexe === val : p.look[k] === val; b.className = "opt" + (typeof v === "number" ? " coul" : "");
+      if (typeof v === "number") { b.style.background = "#" + v.toString(16).padStart(6, "0"); b.setAttribute("aria-label", titre + " " + (val + 1)); } else b.textContent = v;
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.onclick = () => { if (k === "sexe") p.sexe = val; else p.look[k] = val; sfx.click(); appliquerPerso(); dessinerCrea(); }; d.append(b); }
+  }
 }
-for (const b of [$("sexeF"), $("sexeG")]) b.onclick = () => { audioOn(); sfx.click(); choisirSexe(b.dataset.s); };
-{ let sx = "g"; try { const v = localStorage.getItem("pins-sexe"); if (v === "f" || v === "g") sx = v; } catch (e) {} choisirSexe(sx, false); }
+function ouvrirCrea() {
+  creaRetour = ["intro", "pauseView"].find(id => !$(id).hidden) || null; if (creaRetour) $(creaRetour).hidden = true;
+  $("creaCodeBox").hidden = $("creaImportBox").hidden = true; dessinerCrea(); $("creaView").hidden = false;
+}
+$("persoBtn").onclick = () => { audioOn(); sfx.click(); ouvrirCrea(); };
+$("creaNomIn").addEventListener("keydown", e => e.stopPropagation());
+$("creaNomIn").addEventListener("input", () => { const v = filtrerSurnom($("creaNomIn").value);
+  $("creaMsg").textContent = v === null ? "Ce surnom ne marche pas : de 2 à 16 lettres, sans gros mot." : "Quand tu joues à plusieurs, les autres voient ce surnom : pas ton vrai prénom.";
+  if (v !== null) { const p = monPerso(); p.nom = v; nommer(v); $("persoNom").textContent = monNom; const b = $("creaListe").children[persoI]; if (b) b.textContent = (p.sexe === "f" ? "👧 " : "👦 ") + (v || "Sans nom"); } });
+$("creaOk").onclick = () => {
+  if (filtrerSurnom($("creaNomIn").value) === null) { sfx.click(); $("creaNomIn").focus(); return; }
+  monPerso().nom = filtrerSurnom($("creaNomIn").value); sauverPersos(); appliquerPerso(); sfx.click(); $("creaView").hidden = true;
+  if (creaRetour) $(creaRetour).hidden = false; else $("intro").hidden = false;
+  if (net) toast("Les autres joueurs verront ton nouveau personnage à la prochaine partie.", 2600);
+};
+$("creaHasard").onclick = () => { const p = monPerso(), n = persoAuHasard(p.sexe); p.look = n.look; sfx.click(); appliquerPerso(); dessinerCrea(); };
+$("creaSuppr").onclick = () => { if (PERSOS.length < 2) return; PERSOS.splice(persoI, 1); persoI = Math.max(0, persoI - 1); sauverPersos(); sfx.click(); appliquerPerso(); dessinerCrea(); };
+$("creaCodeBtn").onclick = () => { sfx.click(); $("creaImportBox").hidden = true; $("creaCode").textContent = persoEnCode(monPerso()); $("creaCodeBox").hidden = !$("creaCodeBox").hidden; };
+$("creaImportBtn").onclick = () => { sfx.click(); $("creaCodeBox").hidden = true; $("creaImportBox").hidden = !$("creaImportBox").hidden; $("creaCodeIn").value = ""; };
+$("creaCodeIn").addEventListener("keydown", e => { e.stopPropagation(); if (e.key === "Enter") $("creaCodeOk").click(); });
+$("creaCodeOk").onclick = () => {
+  const p = codeEnPerso($("creaCodeIn").value);
+  if (!p) { $("creaMsg").textContent = "Ce code ne marche pas : vérifie les lettres."; sfx.click(); return; }
+  if (PERSOS.length >= 6) PERSOS.pop(); PERSOS.push(p); persoI = PERSOS.length - 1; sauverPersos(); sfx.win(); appliquerPerso(); dessinerCrea();
+  $("creaImportBox").hidden = true; $("creaMsg").textContent = "Personnage ajouté : " + (p.nom || "sans nom") + " !";
+};
 function envoyerProfil() {
   if (!net || net.s < 0 || net.ws.readyState !== 1) return;
-  net.ws.send(JSON.stringify({ t: "profil", pseudo: net.pseudo, sexe: net.sexe, tenue: wearing }));
+  net.ws.send(JSON.stringify({ t: "profil", pseudo: net.pseudo, sexe: net.sexe, tenue: wearing, look: monPerso().look }));
 }
 function appliquerProfil(d) {
   const pseudo = filtrerSurnom(d.pseudo);
   if (pseudo === null || !["f", "g"].includes(d.sexe) || (d.tenue !== null && !SUITS.some(su => su.id === d.tenue))) return;
-  net.profils.set(d.s, { pseudo, sexe: d.sexe, tenue: d.tenue });
+  net.profils.set(d.s, { pseudo, sexe: d.sexe, tenue: d.tenue, look: lookValide(d.look) ? d.look : null });
   if (d.s === net.s) monLabel("Toi " + ANIMAUX[d.s][0] + " " + nomJoueur(d.s), ANIMAUX[d.s][3], ANIMAUX[d.s][2]);
   else {
     const o = net.autres.get(d.s) || ajouter(d.s, false);
-    if (o.g.userData.female !== (d.sexe === "f")) {
+    if (o.cle !== JSON.stringify([d.sexe, net.profils.get(d.s).look])) {
       const ancien = o.g, neuf = avatar(d.s);
       neuf.g.position.copy(ancien.position); neuf.g.rotation.copy(ancien.rotation); neuf.g.visible = ancien.visible;
       if (o.bub) { ancien.remove(o.bub); neuf.g.add(o.bub); }
-      o.g = neuf.g; o.lb = neuf.lb; scene.remove(ancien); libererPersonnage(ancien);
+      o.g = neuf.g; o.lb = neuf.lb; o.cle = neuf.cle; scene.remove(ancien); libererPersonnage(ancien);
     } else {
       o.g.remove(o.lb); effacerLabel(o.lb);
       o.lb = label(ANIMAUX[d.s][0] + " " + nomJoueur(d.s), ANIMAUX[d.s][3], "#ffffff", .6); o.lb.position.y = 2.95; o.g.add(o.lb);
@@ -3550,11 +3680,13 @@ function poserBulle(o, g, text) {
 }
 
 function avatar(s) {
-  const a = ANIMAUX[s], profil = net.profils.get(s), g = person({ long: profil?.sexe === "f", shirt: a[2], pants: 0x34495e, shorts: true, cap: a[2], hair: 0x3b2a1a, scale: .6 });
+  // les autres joueurs : avec leur personnage s'il a été envoyé, sinon aux couleurs de leur animal
+  const a = ANIMAUX[s], profil = net.profils.get(s), look = profil?.look, perso = look ? optsDePerso({ sexe: profil.sexe, look }) : null;
+  const g = person(perso ?? { long: profil?.sexe === "f", shirt: a[2], pants: 0x34495e, shorts: true, cap: a[2], hair: 0x3b2a1a, scale: .6 }); if (perso) putGlasses(g, perso.lunettes);
   const lb = label(a[0] + " " + nomJoueur(s), a[3], "#ffffff", .6); lb.position.y = 2.95; g.add(lb);
   setOutfit(g, profil?.tenue ?? null);
   g.visible = false; scene.add(g);
-  return { g, lb, tx: 0, ty: 0, tz: 0, tr: 0, m: 0, walk: 0, bub: null, bubT: 0, seen: false };
+  return { g, lb, cle: JSON.stringify([profil?.sexe, look ?? null]), tx: 0, ty: 0, tz: 0, tr: 0, m: 0, walk: 0, bub: null, bubT: 0, seen: false };
 }
 function ajouter(s, annonce) {
   if (s === net.s) return null;
@@ -3572,7 +3704,6 @@ function retirer(s, annonce) {
 function monLabel(text, bg, shirt) {
   player.remove(myLbl); if (myLbl !== pLbl) effacerLabel(myLbl);
   myLbl = text ? label(text, bg, "#ffffff", .6) : pLbl; myLbl.position.y = 2.95; player.add(myLbl);
-  player.userData.clothes.shirt = shirt ?? 0x2e86de; setOutfit(player, wearing);
 }
 // repère 📍 au-dessus du lieu du rendez-vous (et sur la carte), pendant une minute et demie
 function poserRdv(r) {
@@ -3593,9 +3724,8 @@ function connecter(code, creer) {
   const pseudo = filtrerSurnom($("pseudoIn").value);
   if (pseudo === null) { msg("Choisis un surnom gentil de 2 à 16 caractères : lettres, chiffres, espaces, tirets ou apostrophes."); $("pseudoIn").focus(); return; }
   $("pseudoIn").value = pseudo;
-  const sexe = document.querySelector('input[name="personnage"]:checked').value;
+  const sexe = monPerso().sexe;
   if (net) quitter();
-  choisirPersonnage(sexe); putGlasses(player, glassesI);
   let ws; try { ws = new WebSocket(`${RELAIS}/salle/${code}${creer ? "?creer=1" : ""}`); } catch (e) { msg("Impossible de joindre le serveur."); return; }
   net = { ws, code, pseudo, sexe, profils: new Map(), s: -1, autres: new Map(), moi: { bub: null, bubT: 0 }, sendT: 0, hb: 0, last: null };
   msg("Connexion…");
@@ -3856,8 +3986,7 @@ function afterWalkJump(dt) {
 $("jumpBtn").addEventListener("pointerdown", e => { e.preventDefault(); doJump(); });
 $("runBtn").onclick = () => { runOn = !runOn; $("runBtn").setAttribute("aria-pressed", runOn ? "true" : "false"); sfx.click(); toast(runOn ? "🏃 Tu cours !" : "🚶 Tu marches.", 1200); };
 addEventListener("keydown", e => { if (e.repeat || paused) return; const k = e.key.toLowerCase(); if (k === "j" || (k === " " && !act1 && !act2)) doJump(); });
-const GLASSES = [null, ["Lunettes rouges", 0xd62d20, 0xcfeefa], ["Lunettes bleues", 0x2e6fd8, 0xcfeefa], ["Lunettes de soleil", 0x1b1b1b, 0x1b1b1b], ["Lunettes en or", 0xd4af37, 0xfff2c0]];
-let glassesI = 0; try { const v = +localStorage.getItem("pins-lunettes"); if (v > 0 && v < GLASSES.length) glassesI = v; } catch (e) {}
+const GLASSES = [null, ["Lunettes rouges", 0xd62d20, 0xcfeefa], ["Lunettes bleues", 0x2e6fd8, 0xcfeefa], ["Lunettes de soleil", 0x1b1b1b, 0x1b1b1b], ["Lunettes en or", 0xd4af37, 0xfff2c0], ["Lunettes roses", 0xf2b8c6, 0xf6e9ee]];
 function putGlasses(g, i) {
   const h = g.userData.head; if (g.userData.glasses) { h.remove(g.userData.glasses); g.userData.glasses = null; } if (!i) return;
   const [, fc, lc] = GLASSES[i], gl = new THREE.Group(), fm = mat(fc, .3, { metalness: i === 4 ? .8 : .2 }), lm = new THREE.MeshStandardMaterial({ color: lc, transparent: true, opacity: i === 3 ? .85 : .3, roughness: .05 });
@@ -3866,10 +3995,8 @@ function putGlasses(g, i) {
   const bridge = new THREE.Mesh(new THREE.TorusGeometry(.025, .009, 6, 10, Math.PI), fm); bridge.position.set(0, .035, .222); gl.add(bridge);
   h.add(gl); g.userData.glasses = gl;
 }
-function updateGlassesBtn() { const b = $("glassesBtn"); b.textContent = glassesI ? "👓 " + GLASSES[glassesI][0] : "👓 Sans lunettes"; b.setAttribute("aria-pressed", glassesI ? "true" : "false"); }
-$("glassesBtn").onclick = () => { glassesI = (glassesI + 1) % GLASSES.length; try { localStorage.setItem("pins-lunettes", glassesI); } catch (e) {} putGlasses(player, glassesI); updateGlassesBtn(); sfx.click(); };
-putGlasses(player, glassesI); updateGlassesBtn();
-for (const b of [$("sexeF"), $("sexeG")]) b.onclick = () => { audioOn(); sfx.click(); choisirSexe(b.dataset.s); putGlasses(player, glassesI); };
+// au lancement : le personnage gardé sur l'appareil ; la toute première fois, on commence par le créer
+appliquerPerso(); if (premiereFois) { $("intro").hidden = true; ouvrirCrea(); }
 
 /* ================= Jour et nuit : le soleil se lève à l'est, se couche à l'ouest, puis la lune et les étoiles ================= */
 const DAY_LEN = 480; // une journée entière dure 8 minutes
@@ -4168,6 +4295,13 @@ function loop() {
 
   // le soleil suit le joueur pour des ombres nettes
   sun.position.set(P.x + sunDir.x * 120, sunDir.y * 120, P.z + sunDir.z * 120); sun.target.position.set(P.x, 0, P.z);
+  const creaOn = !$("creaView").hidden;
+  if (creaOn) { // créateur : on se voit en entier, de face, au-dessus (téléphone) ou à gauche (paysage) du panneau
+    const a = player.rotation.y, Q = player.position, H = player.scale.y * 2.2, large = innerWidth > innerHeight, d = H * (large ? 2.4 : 3.1);
+    animPerson(player, "idle", 0); camera.position.set(Q.x + Math.sin(a) * d, Q.y + H * .55, Q.z + Math.cos(a) * d); camera.lookAt(Q.x, Q.y + H * .5, Q.z);
+    const W = innerWidth, Hh = innerHeight; camera.setViewOffset(W, Hh, large ? W * .22 : 0, large ? 0 : Hh * .27, W, Hh); myLbl.visible = false;
+  } else if (camera.view?.enabled) { camera.clearViewOffset(); myLbl.visible = true; }
+  document.body.classList.toggle("crea-on", creaOn);
   trier(dt); if (LOWQ && (imageN++ & 1) === 0) renderer.shadowMap.needsUpdate = true;
   renderer.render(scene, camera);
 }

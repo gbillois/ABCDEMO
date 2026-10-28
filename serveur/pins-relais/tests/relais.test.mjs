@@ -42,7 +42,7 @@ test('10 places compatibles avec les 10 animaux du client', () => {
 test('profil validé diffusé, champs supplémentaires ignorés et identité fixe', async () => {
   const a = joueur(0), b = joueur(9), salle = salleAvec(a, b);
   await envoyer(salle, a, { t: 'profil', pseudo: ' Petit Panda ', sexe: 'f', tenue: 'rouge', secret: 'non transmis' });
-  const profil = { s: 0, pseudo: 'Petit Panda', sexe: 'f', tenue: 'rouge' };
+  const profil = { s: 0, pseudo: 'Petit Panda', sexe: 'f', tenue: 'rouge', look: null };
   assert.deepEqual(a.attachment, profil);
   assert.deepEqual(b.messages.pop(), { t: 'profil', ...profil });
   await envoyer(salle, a, { t: 'profil', pseudo: 'Autre nom', sexe: 'g', tenue: null });
@@ -52,8 +52,17 @@ test('profil validé diffusé, champs supplémentaires ignorés et identité fix
   assert.equal(b.messages.pop().tenue, null);
 });
 
+test('apparence du personnage : numéros bornés transmis, puis fixe pendant la connexion', async () => {
+  const a = joueur(0), b = joueur(1), salle = salleAvec(a, b), look = [1, 5, 8, 2, 1, 1, 8, 0, 12, 2, 1, 4, 3];
+  await envoyer(salle, a, { t: 'profil', pseudo: 'Lou', sexe: 'f', tenue: null, look });
+  assert.deepEqual(b.messages.pop(), { t: 'profil', s: 0, pseudo: 'Lou', sexe: 'f', tenue: null, look });
+  await envoyer(salle, a, { t: 'profil', pseudo: 'Lou', sexe: 'f', tenue: 'rouge', look: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] });
+  assert.deepEqual(a.attachment.look, look);
+  assert.deepEqual(b.messages, []);
+});
+
 test('profil invalide refusé sans diffusion ni stockage', async () => {
-  for (const modifications of [{ pseudo: 'C0NN4RD' }, { sexe: 'autre' }, { tenue: '<script>' }, { pseudo: 'a'.repeat(17) }]) {
+  for (const modifications of [{ pseudo: 'C0NN4RD' }, { sexe: 'autre' }, { tenue: '<script>' }, { pseudo: 'a'.repeat(17) }, { look: [1, 2, 3] }, { look: [99, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }, { look: 'texte' }]) {
     const a = joueur(0), b = joueur(1), salle = salleAvec(a, b);
     await envoyer(salle, a, { t: 'profil', pseudo: 'Panda', sexe: 'g', tenue: null, ...modifications });
     assert.deepEqual(a.messages, [{ t: 'profil_refuse' }]);

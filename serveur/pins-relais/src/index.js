@@ -7,12 +7,15 @@
 
 const MAX_JOUEURS = 10;
 const NB_PHRASES = 64;        // au plus 64 phrases dans la liste PHRASES du jeu (phrases + rendez-vous)
-const TAILLE_MAX = 160;       // octets par message reçu
+const TAILLE_MAX = 220;       // octets par message reçu
 const POS_PAR_SECONDE = 15;   // positions acceptées par joueur et par seconde
 const PHRASE_DELAI_MS = 1500; // délai minimal entre deux phrases d'un même joueur
 const CODE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/;
 const MODES = 5;              // 0 immobile, 1 marche, 2 nage, 3 échelle, 4 toboggan
 const MAILLOTS = ["rouge", "raye", "palmiers", "requin", "arcenciel", "surf", "or"];
+// apparence du personnage : uniquement des numéros dans des listes fermées (mêmes bornes que LOOK_MAX du jeu)
+const LOOK_MAX = [8, 12, 9, 6, 3, 3, 9, 8, 14, 12, 8, 5, 4];
+const lookValide = l => Array.isArray(l) && l.length === LOOK_MAX.length && l.every((v, i) => Number.isInteger(v) && v >= 0 && v < LOOK_MAX[i]);
 
 // Filtre simple, identique dans le jeu et le relais (accents et substitutions courantes).
 function filtrerSurnom(v) {
@@ -72,7 +75,7 @@ export class Salle {
     serveur.send(JSON.stringify({ t: "bienvenue", s, joueurs: [...pris] }));
     for (const ws of presents) {
       const a = ws.deserializeAttachment();
-      if (a.sexe) serveur.send(JSON.stringify({ t: "profil", s: a.s, pseudo: a.pseudo, sexe: a.sexe, tenue: a.tenue }));
+      if (a.sexe) serveur.send(JSON.stringify({ t: "profil", s: a.s, pseudo: a.pseudo, sexe: a.sexe, tenue: a.tenue, look: a.look ?? null }));
     }
     this.diffuser({ t: "arrive", s }, serveur);
     return new Response(null, { status: 101, webSocket: client });
@@ -98,14 +101,15 @@ export class Salle {
 
     if (msg.t === "profil") {
       const pseudo = filtrerSurnom(msg.pseudo);
-      if (pseudo === null || !["f", "g"].includes(msg.sexe) || (msg.tenue !== null && !MAILLOTS.includes(msg.tenue))) {
+      const look = msg.look === undefined || msg.look === null ? null : lookValide(msg.look) ? msg.look.slice() : false;
+      if (pseudo === null || look === false || !["f", "g"].includes(msg.sexe) || (msg.tenue !== null && !MAILLOTS.includes(msg.tenue))) {
         ws.send(JSON.stringify({ t: "profil_refuse" })); return;
       }
       const a = ws.deserializeAttachment();
       // Le choix du surnom et du personnage se fait à la connexion ; la tenue peut changer.
-      if (a.sexe && (a.pseudo !== pseudo || a.sexe !== msg.sexe)) return;
+      if (a.sexe && (a.pseudo !== pseudo || a.sexe !== msg.sexe || JSON.stringify(a.look ?? null) !== JSON.stringify(look))) return;
       if (a.sexe && a.tenue === msg.tenue) return;
-      const profil = { s, pseudo, sexe: msg.sexe, tenue: msg.tenue };
+      const profil = { s, pseudo, sexe: msg.sexe, tenue: msg.tenue, look };
       ws.serializeAttachment(profil);
       this.diffuser({ t: "profil", ...profil }, null);
     } else if (msg.t === "p") {
