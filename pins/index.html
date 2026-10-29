@@ -213,7 +213,16 @@ body.chargement #intro .jouer,body.chargement #intro .amis,body.chargement #pers
 .prog{text-align:left;max-width:560px}.prog h1{text-align:center}.prog h3{margin:12px 0 4px;color:#1d5fa8}.prog ul{margin:0;padding-left:4px;list-style:none;display:grid;gap:6px;font-size:16px;line-height:1.35}.prog .row{justify-content:center}
 body.combat-on #actions,body.golf-on #moveBtns,body.golf-on #actions,body.crea-on #stick,body.crea-on #moveBtns,body.crea-on #actions,body.crea-on #hudR,body.crea-on #hudL,body.crea-on #where{display:none!important}
 .crea{align-items:flex-end;background:transparent;pointer-events:none}.crea .card{pointer-events:auto;margin:auto 0 0;max-height:56vh;overflow:auto;max-width:560px;padding:14px;background:rgba(255,253,244,.96)}
-@media (orientation:landscape){.crea{justify-content:flex-end;align-items:center}.crea .card{margin:auto 0 auto auto;max-height:calc(100vh - 32px);max-width:min(460px,52vw)}}
+.crea{align-items:center;justify-content:center;padding:10px}
+.crea .card.creaCarte{display:grid;grid-template-rows:auto minmax(150px,38%) minmax(0,1fr) auto;grid-template-columns:100%;margin:auto;width:min(94vw,560px);max-width:none;height:calc(100vh - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));max-height:none;overflow:hidden;padding:0;background:transparent;border-radius:26px}
+.crea .creaCarte>h1{margin:0;display:block;max-width:none;border-radius:0;text-align:center;font-size:22px;padding:8px 12px}
+.creaVue{position:relative;pointer-events:none;border-top:4px solid #ffc93c;border-bottom:4px solid #ffc93c;background:radial-gradient(ellipse at 50% 85%,rgba(255,255,255,.18),rgba(255,255,255,0) 60%);box-shadow:inset 0 0 30px rgba(0,0,0,.25)}
+.creaVue span{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);white-space:nowrap;font-weight:800;font-size:12px;color:#fff;background:rgba(0,0,0,.35);border-radius:999px;padding:2px 10px}
+.creaDefil{overflow:auto;min-height:0;background:linear-gradient(180deg,#ffffff,#e6f4ff);padding:6px 14px 10px;-webkit-overflow-scrolling:touch}
+.creaPied{display:flex;gap:10px;justify-content:center;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));background:#e6f4ff;border-top:2px solid #b9d9ee}
+.creaPied .btn{flex:1;max-width:240px}
+@media (orientation:landscape){.crea .card.creaCarte{width:min(96vw,980px);grid-template-columns:40% minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto}
+  .creaCarte>h1{grid-column:2}.creaVue{grid-column:1;grid-row:1/4;border:0;border-right:4px solid #ffc93c}.creaDefil{grid-column:2;grid-row:2}.creaPied{grid-column:2;grid-row:3}}
 .crea h1{font-size:24px}.crea h3{margin:10px 0 4px;font-size:16px;text-align:left;color:var(--leaf)}.crea .opts{display:flex;flex-wrap:wrap;gap:6px}
 .crea .opt{min-width:44px;height:44px;border-radius:12px;border:3px solid transparent;font:inherit;font-size:15px;font-weight:800;padding:0 10px;background:#e8e4d6;color:#1d3b2a;cursor:pointer}
 .crea .opt.coul{width:44px;padding:0;border-color:rgba(0,0,0,.15)}.crea .opt.dessin{width:66px;padding:0;overflow:hidden}.crea .opt.dessin img{display:block;width:100%;height:100%;object-fit:cover}.crea .opt[aria-pressed="true"]{border-color:#ff7a2f;box-shadow:0 0 0 3px #ffc93c}
@@ -670,15 +679,18 @@ html.app .site{display:none!important}
   </div>
 </div>
 <div id="creaView" class="overlay crea" hidden>
-  <div class="card">
+  <div class="card creaCarte">
     <h1>Ton personnage 🎨</h1>
-    <div class="creaNom"><label for="creaNomIn">Ton surnom</label><div class="nomLigne"><input id="creaNomIn" type="text" maxlength="16" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Théo"><button id="creaNomDe" class="de" type="button" aria-label="Tout au hasard : un nouveau look et un nouveau surnom">🎲</button></div></div>
-    <p id="creaMsg" class="small">Un surnom, pas ton vrai prénom 😉</p>
-    <div class="row"><button id="creaOk" class="btn">▶ C'est parti !</button><button id="creaRetourBtn" class="btn" style="background:#9aa0b4">↩️ Retour</button></div>
-    <div id="creaOpts"></div>
-    <div class="row"><button id="creaCodeBtn" class="btn" style="background:#34495e">🔑 Mon code personnage</button><button id="creaImportBtn" class="btn" style="background:#34495e">📥 Entrer mon code personnage</button><button id="creaSuppr" class="btn" style="background:#c0392b">🗑️ Supprimer</button></div>
-    <div id="creaCodeBox" hidden><p class="small">Tape ce code sur un autre téléphone ou ordinateur (bouton « Entrer mon code personnage ») pour y retrouver ton personnage :</p><p id="creaCode" class="code"></p><div class="row"><button id="creaCopier" class="btn" style="background:var(--water)">📋 Copier le code</button></div></div>
-    <div id="creaImportBox" hidden><input id="creaCodeIn" type="text" maxlength="48" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH-…"><button id="creaCodeOk" class="btn">Ajouter</button></div>
+    <div id="creaVue" class="creaVue"><span>Glisse le doigt pour le faire tourner</span></div>
+    <div class="creaDefil">
+      <div class="creaNom"><label for="creaNomIn">Ton surnom</label><div class="nomLigne"><input id="creaNomIn" type="text" maxlength="16" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Théo"><button id="creaNomDe" class="de" type="button" aria-label="Tout au hasard : un nouveau look et un nouveau surnom">🎲</button></div></div>
+      <p id="creaMsg" class="small">Un surnom, pas ton vrai prénom 😉</p>
+      <div id="creaOpts"></div>
+      <div class="row"><button id="creaCodeBtn" class="btn" style="background:#34495e">🔑 Mon code personnage</button><button id="creaImportBtn" class="btn" style="background:#34495e">📥 Entrer mon code personnage</button><button id="creaSuppr" class="btn" style="background:#c0392b">🗑️ Supprimer</button></div>
+      <div id="creaCodeBox" hidden><p class="small">Tape ce code sur un autre téléphone ou ordinateur (bouton « Entrer mon code personnage ») pour y retrouver ton personnage :</p><p id="creaCode" class="code"></p><div class="row"><button id="creaCopier" class="btn" style="background:var(--water)">📋 Copier le code</button></div></div>
+      <div id="creaImportBox" hidden><input id="creaCodeIn" type="text" maxlength="48" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH-…"><button id="creaCodeOk" class="btn">Ajouter</button></div>
+    </div>
+    <div class="creaPied"><button id="creaRetourBtn" class="btn" style="background:#9aa0b4">↩️ Retour</button><button id="creaOk" class="btn">▶ C'est parti !</button></div>
   </div>
 </div>
 <div id="multiView" class="overlay" hidden>
@@ -4010,7 +4022,7 @@ const inManor = (x, z) => x > MANOR.x1 && x < MANOR.x2 && z > MANOR.z1 && z < MA
   const gT = new THREE.CanvasTexture(gtx); gT.colorSpace = THREE.SRGBColorSpace; const graveM = new THREE.MeshStandardMaterial({ map: gT, roughness: .95 });
   [[x1 - 2.8, z1 + 1], [x1 - 3, z1 + 3.4], [x1 - 2.7, z2 - 1.2], [x1 - 3.1, z2 - 3.6], [cx, z2 + 2.2], [cx + 4, z2 + 2.4], [cx - 3, z1 - 2.2]].forEach(([x, z], k) => {
     const gr = new THREE.Group(); gr.position.set(x, 0, z); gr.rotation.set(0, z > z2 ? 0 : z < z1 ? Math.PI : -Math.PI / 2, (k % 3 - 1) * .08); spook.add(gr);
-    const st = new THREE.Mesh(new THREE.BoxGeometry(.8, 1, .16), graveM); st.position.y = .5; gr.add(st); const top = new THREE.Mesh(new THREE.CylinderGeometry(.4, .4, .16, 16, 1, false, 0, Math.PI), stone); top.rotation.set(Math.PI / 2, 0, Math.PI / 2); top.position.y = 1; gr.add(top);
+    const st = new THREE.Mesh(new THREE.BoxGeometry(.8, 1, .16), graveM); st.position.y = .5; gr.add(st); const top = new THREE.Mesh(new THREE.CylinderGeometry(.4, .4, .16, 16, 1, false, 0, Math.PI), stone); top.rotation.order = "ZYX"; top.rotation.set(Math.PI / 2, 0, Math.PI / 2); top.position.y = 1; gr.add(top); // le demi-disque debout, dans le plan de la pierre
     scircle({ x, z, r: .45 }); });
   for (const [x, z] of [[x1 - 3.4, z1 - 2], [x2 + 2.2, z2 + 2], [x2 + 2.5, cz]]) { const t = new THREE.Group(); t.position.set(x, 0, z); spook.add(t); const tm = mat(0x2a2024, .95);
     const tr = new THREE.Mesh(new THREE.CylinderGeometry(.15, .3, 4, 7), tm); tr.position.y = 2; t.add(tr);
@@ -4926,7 +4938,7 @@ const cineCv = document.createElement("canvas"); cineCv.width = 512; cineCv.heig
   const curt = mat(0xb3122a, .8); for (const s of [-1, 1]) { const c = rbox(1.2, h - .4, .3, curt, .05); c.position.set(mx0 + s * 7.9, (h - .4) / 2, z1 + .5); g.add(c); }
   // les fauteuils (4 rangées, tournées vers l'écran)
   const red = mat(0xc0392b, .7); for (let r = 0; r < 4; r++) { const z = z1 + 6 + r * 2.2; for (let k = 0; k < 9; k++) { const x = mx0 - 6.4 + k * 1.6, ch = new THREE.Group(); ch.position.set(x, 0, z); ch.rotation.y = Math.PI; g.add(ch);
-      const seat = rbox(.62, .14, .55, red, .04); seat.position.y = .48; ch.add(seat); const bk = rbox(.62, .75, .12, red, .04); bk.position.set(0, .85, -.26); ch.add(bk); for (const s of [-1, 1]) { const ar = rbox(.08, .3, .5, mat(0x222222, .6), .02); ar.position.set(s * .34, .62, 0); ch.add(ar); }
+      const seat = rbox(.62, .14, .55, red, .04); seat.position.y = .48; ch.add(seat); const bk = rbox(.62, .75, .12, red, .04); bk.position.set(0, .85, -.26); ch.add(bk); for (const s of [-1, 1]) { const ar = rbox(.08, .78, .58, mat(0x222222, .6), .02); ar.position.set(s * .35, .39, -.02); ch.add(ar); } { const pied = rbox(.5, .36, .3, mat(0x222222, .6), .02); pied.position.set(0, .18, -.1); ch.add(pied); } // les côtés et le pied posés au sol
       SHOW_SEATS.push({ x, z, ry: Math.PI, ox: 0, oz: 1.1, cine: true, taken: (r * 9 + k) % 5 === 1 }); }
     boxes.push({ x1: mx0 - 6.8, x2: mx0 + 6.8, z1: z - .35, z2: z + .35 }); }
   // le stand de pop-corn
@@ -5002,7 +5014,7 @@ function drawCartoon(t) { const c = CC; c.textAlign = "center";
 }
 function updateCine(dt, time, P) {
   const inside = inCine(P.x, P.z); if (inside !== CINE.inside) { CINE.inside = inside; CINE.roof.visible = !inside; CINE.wallM.transparent = inside; CINE.wallM.opacity = inside ? .2 : 1; CINE.wallM.depthWrite = !inside; CINE.wallM.needsUpdate = true;
-    if (inside) { cineMake(); CINE.t = 0; CINE.last = -1; toast("🎬 Bienvenue au cinéma U KD ! Le film « Pompon le petit mouton » commence. Assieds-toi dans un fauteuil 🍿", 3600); } for (const p of CINE.crowd) p.visible = inside; }
+    if (inside) { cineMake(); CINE.t = 7; CINE.last = -1; toast("🎬 Bienvenue au cinéma U KD ! Le film « Pompon le petit mouton » commence. Assieds-toi dans un fauteuil 🍿", 3600); } for (const p of CINE.crowd) p.visible = inside; }
   if (!inside) return; const t0 = CINE.t; CINE.t = (CINE.t + dt) % 300;
   for (const [ts, k] of CINE_SFX) if (t0 < ts && CINE.t >= ts) cineSound(k);
   for (const p of CINE.crowd) animPerson(p, "sit", 0);
@@ -8175,7 +8187,7 @@ function endRiver() { state = "walk"; riv = null; myBuoy.visible = false; player
 function riverTick(dt, P) {
   // au retour au ponton, la bouée s'arrête et attend : on sort, ou on refait un tour
   const [ix] = inp(), o = onRiver(riv, riv.stop ? 0 : dt, ix); if (!riv.stop) riv.dist += o.sp * dt;
-  myBuoy.position.set(o.x, o.y, o.z); myBuoy.rotation.y = riv.spin; P.set(o.x, o.y - .3, o.z); player.rotation.y = riv.spin; // assis dans la bouée, le corps hors de l'eau animPerson(player, "buoy", time);
+  myBuoy.position.set(o.x, o.y, o.z); myBuoy.rotation.y = riv.spin; P.set(o.x, o.y - .3, o.z); player.rotation.y = riv.spin; animPerson(player, "buoy", time); // assis dans la bouée, le corps hors de l'eau
   if (o.rap && !riv.rap) { whoosh(1.6, .22, 300, 1500); toast("Les rapides ! 🌊 Accroche-toi !", 1800); } riv.rap = o.rap;
   if (!riv.stop && riv.dist > RIVER_LEN - .3) { riv.stop = true; riv.u = RDOCK.u; riv.lat = 0; toast("Te revoilà au ponton ! Tu sors, ou tu refais un tour ? 🛟", 3000); }
 }
@@ -10394,15 +10406,17 @@ function loop() {
     sun.target.position.copy(_st); sun.position.copy(_st).addScaledVector(_sd, 120); }
   const creaOn = !$("creaView").hidden;
   if (creaOn) { // créateur : on se voit en entier, de face, au-dessus (téléphone) ou à gauche (paysage) du panneau
-    const a = creaCamA, Q = player.position, H = player.scale.y * 2.2, large = innerWidth > innerHeight, d = H * (large ? 2.4 : 3.1);
-    animPerson(player, "idle", 0); camera.position.set(Q.x + Math.sin(a) * d, Q.y + H * .55, Q.z + Math.cos(a) * d); camera.lookAt(Q.x, Q.y + H * .5, Q.z);
-    const W = innerWidth, Hh = innerHeight; camera.setViewOffset(W, Hh, large ? W * .22 : 0, large ? 0 : Hh * .27, W, Hh); myLbl.visible = false;
+    // le personnage se montre dans la fenêtre du créateur (le cadre « creaVue »), en entier, toujours visible
+    const W = innerWidth, Hh = innerHeight, r = $("creaVue").getBoundingClientRect(), vh = Math.max(60, r.height), cxv = r.left + r.width / 2, cyv = r.top + r.height / 2;
+    const a = creaCamA, Q = player.position, H = player.scale.y * 2.2, f = Math.tan(camera.fov * Math.PI / 360), d = Math.max(1.2, H / (.82 * vh / Hh * 2 * f));
+    animPerson(player, "idle", 0); camera.position.set(Q.x + Math.sin(a) * d, Q.y + H * .5, Q.z + Math.cos(a) * d); camera.lookAt(Q.x, Q.y + H * .5, Q.z);
+    camera.setViewOffset(W, Hh, W / 2 - cxv, Hh / 2 - cyv, W, Hh); myLbl.visible = false;
   } else if (camera.view?.enabled) { camera.clearViewOffset(); myLbl.visible = true; }
   document.body.classList.toggle("crea-on", creaOn);
   voituresTick(dt); trier(dt); suivreFeux(dt); majInterieurs(); if (!paused) majObjectif(dt); if (dejaVu) adapterResolution();
   suivreVitres(); gel(); renderer.render(scene, camera); dejaVu = true; majPerf();
 }
-window.__pins = { openBook, lvTourner, toast, MANOR, get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; } };
+window.__pins = { ouvrirCrea, openBook, lvTourner, toast, MANOR, get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; } };
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
 await souffle(97, "Les couleurs se mélangent…");
 const compiler = () => Promise.race([renderer.compileAsync(scene, camera), new Promise(r => setTimeout(r, 6000))]).catch(() => {});
@@ -10435,7 +10449,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.29-6"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.10.29-7"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
