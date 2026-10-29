@@ -9221,7 +9221,7 @@ function afterWalkJump(dt) {
   if (state !== "walk" || swimming) { jumpH = 0; return; }
   const P = player.position, base = P.y; jumpH = Math.max(0, jumpH + (jumpBase - base)); jumpBase = base;
   jumpV -= 18 * dt; jumpH += jumpV * dt;
-  if (jumpH <= 0) { jumpH = 0; tone(120, .08, "sine", .06); } else { P.y = base + jumpH; animPerson(player, "idle", 0); } // le saut : on monte et on redescend, debout, sans changer de pose
+  if (jumpH <= 0) { jumpH = 0; tone(120, .08, "sine", .06); } else { P.y = base + jumpH; animPerson(player, "jump", 0, jumpV); } // le saut : bras en l'air à l'impulsion, genoux repliés en haut, jambes tendues pour atterrir
 }
 $("jumpBtn").addEventListener("pointerdown", e => { e.preventDefault(); doJump(); });
 $("runBtn").onclick = () => { runOn = !runOn; $("runBtn").setAttribute("aria-pressed", runOn ? "true" : "false"); sfx.click(); toast(runOn ? "🏃 Tu cours !" : "🚶 Tu marches.", 1200); };
