@@ -9267,7 +9267,7 @@ function golf3Tick(dt, time, P) {
 const zipT = new THREE.Vector3();
 function rideZip(dt, time, P) {
   const r = riding, Z = acroZip, s = player.scale.x || 1;
-  r.v = r.u < .86 ? Math.min(10, r.v + dt * 3.2) : Math.max(1.2, r.v - dt * 14); r.u = Math.min(1, r.u + r.v * dt / Z.len);
+  r.v = r.u < .86 ? Math.min(7, r.v + dt * 2.6) : Math.max(1.2, r.v - dt * 10); r.u = Math.min(1, r.u + r.v * dt / Z.len);
   const C = Z.cable.getPointAt(Math.min(r.u, .985)); Z.cable.getTangentAt(r.u, zipT);
   // on pend sous la poulie : penché vers l'arrière quand on accélère, vers l'avant quand on freine
   const hang = (HANCHES_ANCIEN + ZIP_MAINS) * s + .26;
@@ -9275,7 +9275,8 @@ function rideZip(dt, time, P) {
   ZIPRIG.position.copy(C); ZIPRIG.rotation.set(0, player.rotation.y, 0); ZIPRIG.userData.longe.scale.y = Math.max(.1, hang - HANCHES_ANCIEN * s - .32);
   if (r.u >= .985) { state = "walk"; riding = null; ZIPRIG.visible = false; P.set(C.x - zipT.x * 1.2, 0, C.z - zipT.z * 1.2); toast(r.msg || "Youpi ! 🌳"); whoosh(.3, .08, 600, 300); return; }
   // la caméra suit, un peu derrière et au-dessus
-  tv.set(P.x - zipT.x * 3.2, P.y + 2.6, P.z - zipT.z * 3.2); camera.position.lerp(tv, Math.min(1, dt * 4)); camera.lookAt(P.x + zipT.x * 2, P.y + .6, P.z + zipT.z * 2);
+  // (de trois quarts, sous le câble : vu de dessus, le câble passerait juste devant l'objectif)
+  tv.set(P.x - zipT.x * 3.4 + zipT.z * 2.2, P.y + 1.1, P.z - zipT.z * 3.4 - zipT.x * 2.2); camera.position.lerp(tv, Math.min(1, dt * 4)); camera.lookAt(P.x + zipT.x * 1.5, P.y + .9, P.z + zipT.z * 1.5);
 }
 
 /* ================= Menu du jeu : sauvegarde, personnage, monde, son ================= */
@@ -10043,7 +10044,7 @@ function loop() {
   voituresTick(dt); trier(dt); suivreFeux(dt); majInterieurs(); if (!paused) majObjectif(dt); if (dejaVu) adapterResolution();
   suivreVitres(); gel(); renderer.render(scene, camera); dejaVu = true; majPerf();
 }
-window.__pins = { bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; } };
+window.__pins = { get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; } };
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
 await souffle(97, "Les couleurs se mélangent…");
 const compiler = () => Promise.race([renderer.compileAsync(scene, camera), new Promise(r => setTimeout(r, 6000))]).catch(() => {});
