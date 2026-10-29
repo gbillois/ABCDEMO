@@ -8537,6 +8537,7 @@ function doAct(a) {
   if (a === "door" && doorNear) { doorNear.want = doorNear.want ? 0 : 1; sfx.door(doorNear.want); }
   if (a === "boat") { state = "boat"; pedalo.v = 0; $("dialog").hidden = true; talking = null; toast("En route ! Ramène le pédalo au ponton pour descendre. 🚤", 2800); }
   if (a === "unboat") { state = "walk"; pedalo.g.position.set(MOOR.x, 0, MOOR.z); pedalo.h = MOOR.h; pedalo.v = 0; P_set(DOCK_END.x, .38, DOCK_END.z); toast("Te revoilà sur le ponton !"); }
+  if (a === "sleep" && net?.invite) { toast("C'est celui qui a lancé la partie qui choisit l'heure.", 2400); return; }
   if (a === "sleep") { const f = $("fade"); paused = true; f.style.opacity = 1; setTimeout(() => { dayT = .27; dayFF = null; wasNight = false; updateDayButton(false); f.style.opacity = 0; paused = false; toast("☀️ Bonjour ! Le soleil se lève sur le domaine.", 2600); sfx.bird(); }, 1600); }
 }
 $("actBtn").onclick = () => doAct(act1); $("act2Btn").onclick = () => doAct(act2);
@@ -9017,7 +9018,8 @@ function recevoir(data) {
 // chacun garde son sac, son téléphone, son argent et ses quêtes. En partant, l'invité retrouve son heure et son thème.
 function recevoirMonde(d) {
   if (!net.invite) { net.invite = { jour: dayT, hallo: HALLO.on }; toast("Tu es chez ton ami : l'heure et le thème sont les siens. Ton sac et ton téléphone restent avec toi !", 3600); }
-  const ecart = Math.abs(((d.h - dayT) % 1 + 1.5) % 1 - .5); if (ecart > .03) { dayT = d.h; dayFF = null; } else if (ecart > .002) dayFF = d.h;
+  if (net.invite.cible === undefined) dayT = d.h; // en arrivant : tout de suite l'heure de l'hôte ; ensuite updateDayNight la suit en douceur
+  net.invite.cible = d.h; dayFF = null;
   const th = d.th === 1; if (th !== HALLO.on) mettreHalloween(th);
 }
 function quitter() {
@@ -9098,7 +9100,7 @@ function netTick(dt) {
   if (net.moi.bub && (net.moi.bubT -= dt) <= 0) { player.remove(net.moi.bub); net.moi.bub = null; }
   if (net.rdv) { const r = net.rdv; r.sp.position.y = r.h + Math.sin(time * 3) * .6; if ((r.t -= dt) <= 0) { scene.remove(r.sp); effacerLabel(r.sp); net.rdv = null; } }
   if (net.s < 0 || net.ws.readyState !== 1) return;
-  if (net.hote && (net.mondeT -= dt) <= 0) { net.mondeT = 2; net.ws.send(JSON.stringify({ t: "monde", h: Math.round(dayT * 1000) / 1000, th: HALLO.on ? 1 : 0 })); }
+  if (net.hote && (net.mondeT -= dt) <= 0) { net.mondeT = 1; net.ws.send(JSON.stringify({ t: "monde", h: Math.round(dayT * 1000) / 1000, th: HALLO.on ? 1 : 0 })); }
   net.hb -= dt; if ((net.sendT -= dt) > 0) return; net.sendT = .1;
   const P = player.position, ry = Math.atan2(Math.sin(player.rotation.y), Math.cos(player.rotation.y));
   const cur = { x: r2(P.x), y: r2(P.y), z: r2(P.z), r: r2(ry) }, L = net.last;
@@ -9386,7 +9388,11 @@ function updateDayButton(night) { const b = $("dayBtn"); if (!b) return; b.inner
 $("dayBtn").onclick = () => { if (!$("intro").hidden) return; if (net && net.invite) { toast("C'est celui qui a lancé la partie qui choisit l'heure.", 2400); return; } const night = realSun.y < -.05; dayFF = night ? .29 : .9; sfx.click(); toast(night ? "☀️ Le soleil va se lever…" : "🌙 La nuit arrive…", 1800); };
 const SM = THREE.MathUtils.smoothstep;
 function updateDayNight(dt) {
-  if (dayFF !== null) { const d = ((dayFF - dayT) % 1 + 1) % 1, step = Math.min(d, dt * .25); dayT = (dayT + step) % 1; if (d < .002) dayFF = null; }
+  if (net?.invite?.cible !== undefined) { // invité : on suit l'heure de l'hôte (entre deux messages, elle avance à l'allure normale)
+    const I = net.invite; I.cible = (I.cible + dt / DAY_LEN) % 1; const e = ((I.cible - dayT) % 1 + 1.5) % 1 - .5; // de -0,5 à 0,5 : en retard ou en avance
+    // en retard (l'hôte est passé au jour ou à la nuit) : on le rattrape comme lui ; un peu en avance : on l'attend ; très en avance : on saute
+    dayT = ((dayT + (e < -.03 ? e : e > 0 ? Math.min(e, Math.max(dt / DAY_LEN, dt * .25 * Math.min(1, e * 40))) : e * Math.min(1, dt)) + 1) % 1 + 1) % 1;
+  } else if (dayFF !== null) { const d = ((dayFF - dayT) % 1 + 1) % 1, step = dt * .25; if (d <= step) { dayT = dayFF; dayFF = null; } else dayT = (dayT + step) % 1; } // arrivé : on se pose pile (sinon un arrondi relance un tour)
   else if (!paused) dayT = (dayT + dt / DAY_LEN) % 1;
   const th = (dayT - .25) * Math.PI * 2; // 0 au lever du soleil, π/2 à midi
   realSun.set(Math.cos(th), Math.sin(th) * .92, -.38).normalize(); moonDir.set(-realSun.x, -realSun.y, -.3).normalize();
@@ -10409,7 +10415,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.29-14"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.10.29-15"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
