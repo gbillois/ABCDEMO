@@ -108,7 +108,7 @@ Accord du propriétaire : le jeu vit dans `pins/` pour avoir sa propre adresse
 Accord du propriétaire (octobre 2026) pour ce seul jeu : `pins/sons/` contient des fichiers MP3.
 - `foret.mp3` et `oiseau-*.mp3` viennent du dépôt TheNewLearners du propriétaire (ambiances, lecture seule) ;
   `piscine.mp3` (ambiance de l'Aquaparc), `magasin.mp3` (musique des magasins), `accueil.mp3` (musique de l'écran de départ et de l'accueil) et `manoir.mp3` (musique d'Halloween du manoir hanté) sont générés avec ElevenLabs.
-- `boum.mp3` (pool party de l'Aquaparc, « Big Bump Dive »), `chanteur.mp3` (chanteur de la salle des fêtes, « Haven by the Hearth ») et `pedalo.mp3` (sur le pédalo, « Paddlewheel Panic »)
+- `boum.mp3` (pool party de l'Aquaparc, « Big Bump Dive »), `chanteur.mp3` (chanteur de la salle des fêtes, « Haven by the Hearth ») , `pedalo.mp3` (sur le pédalo, « Paddlewheel Panic »), `arcade.mp3` (salle de jeux vidéo) et les `j-*.mp3` (enceinte)
   sont fournis par le propriétaire ; `anniversaire.mp3` et `anniv-foule.mp3` (salles d'anniversaire) sont en CC0 ;
   la source et la licence de chaque fichier sont dans `pins/sons/SOURCES.md` (à tenir à jour). Les morceaux longs sont réencodés en mono 32 kHz (moins de mémoire sur iPad). L'enceinte des cottages fait écouter toutes les musiques.
 - Ils sont chargés après le premier toucher, depuis le même site (pas d'autre serveur), et gardés hors ligne

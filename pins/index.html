@@ -1002,7 +1002,7 @@ function resize() { const h = Math.max(innerHeight, $("game").clientHeight); ren
 addEventListener("resize", resize); resize();
 
 // Ciel réaliste + lumière
-const sunDir = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(48), THREE.MathUtils.degToRad(210));
+const sunDir = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(48), THREE.MathUtils.degToRad(210)), ombreDir = sunDir.clone();
 function makeSky(scale) {
   const s = new Sky(); s.scale.setScalar(scale);
   const u = s.material.uniforms;
@@ -1026,7 +1026,7 @@ sun.shadow.mapSize.setScalar(LOWQ ? 1024 : 2048);
 // ombres : une boîte serrée autour du joueur (le soleil est à 120 m) ; seuls les objets de cette boîte sont redessinés pour l'ombre
 const OMB = LOWQ ? 30 : 40;
 Object.assign(sun.shadow.camera, { left: -OMB, right: OMB, top: OMB, bottom: -OMB, near: 60, far: 180 });
-sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.04;
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = LOWQ ? .07 : .04; // iPad : texels d'ombre plus grands, un peu plus de marge contre le moiré
 scene.add(sun, sun.target);
 const lampMats = [], lampGlowPos = [], winMats = []; // éclairés la nuit
 
@@ -4463,7 +4463,12 @@ grassM.onBeforeCompile = sh => { sh.uniforms.uTime = uTime; sh.vertexShader = "u
   #ifdef USE_INSTANCING
     vec3 ip = vec3(instanceMatrix[3][0], instanceMatrix[3][1], instanceMatrix[3][2]); float k = position.y * position.y * 2.5;
     transformed.x += sin(uTime * 1.9 + ip.x * .3 + ip.z * .21) * .12 * k; transformed.z += cos(uTime * 1.5 + ip.x * .17 + ip.z * .33) * .08 * k;
-  #endif`); };
+  #endif`).replace("#include <project_vertex>", "#include <project_vertex>\n  vProche = -mvPosition.z;").replace("void main() {", "varying float vProche;\nvoid main() {");
+  // tout près de la caméra, les brins s'effacent en pointillé (avant, de grandes herbes sombres clignotaient en bas de l'écran)
+  sh.fragmentShader = sh.fragmentShader.replace("void main() {", `varying float vProche;
+void main() {
+  float apProche = clamp((vProche - 1.2) / 1.6, 0., 1.);
+  if (apProche < 1. && fract(sin(dot(floor(gl_FragCoord.xy), vec2(12.9898, 78.233))) * 43758.5453) > apProche) discard;`); };
 for (const tm of instancedParCase(tuftGeo, grassM, tufts, (t, c) => c.setRGB(.75 + t.c * .4, .85 + t.c * .25, .7 + t.c * .25), 20, LOWQ ? 36 : 55)) tm.castShadow = false;
 for (let i = 0; i < 34; i++) { const a = i / 34 * 6.28 + rnd() * .2, r = LAKE.r + 1.4 + rnd() * 1.2; if (onBeach(LAKE.x + Math.cos(a) * r, LAKE.z + Math.sin(a) * r, 1)) continue; rocks.push({ x: LAKE.x + Math.cos(a) * r, z: LAKE.z + Math.sin(a) * r, s: .4 + rnd() * .5, r: rnd() * 6, c: rnd() }); }
 for (let i = 0; i < 1500 && rocks.length < 170; i++) { const x = (rnd() * 2 - 1) * WORLD, z = (rnd() * 2 - 1) * WORLD; if (!blocked(x, z, 1)) rocks.push({ x, z, s: .5 + rnd() * .9, r: rnd() * 6, c: rnd() }); }
@@ -8356,7 +8361,8 @@ function ambTick(dt, outdoor, nightK, time) {
    l'Aquaparc, la musique des magasins. Chargés après le premier toucher ; s'ils manquent (pas de réseau), les sons faits maison restent. ---------- */
 const SONS = { buf: {}, g: {}, veut: {}, bus: null, magasin: false,
   // nom : [volume, début et fin de la boucle (s)]
-  boucles: { accueil: [.45, 0, 47.4], foret: [.9, .5, 30.5], piscine: [.75, .05, 22], magasin: [.32, .4, 44.6], manoir: [.4, 0, 41.6], boum: [.34, 0, 172.9, 1], chanteur: [.36, 0, 66.2, 1], pedalo: [.28, 0, 177.8, 1], anniversaire: [.32, 0, 69.2, 1] },
+  boucles: { accueil: [.45, 0, 47.4], foret: [.9, .5, 30.5], piscine: [.75, .05, 22], magasin: [.32, .4, 44.6], manoir: [.4, 0, 41.6], boum: [.34, 0, 172.9, 1], chanteur: [.36, 0, 66.2, 1], pedalo: [.28, 0, 177.8, 1], anniversaire: [.32, 0, 69.2, 1], arcade: [.26, 0, 166.6, 1],
+    "j-sidewalk": [.27, 0, 62.6, 1], "j-brasswork": [.27, 0, 62.7, 1], "j-carrousel": [.27, 0, 62.4, 1], "j-giza": [.27, 0, 62.4, 1] },
   // (4e nombre : chanson longue, décodée en mono 32 kHz : 3 fois moins de mémoire)
   oiseaux: ["coucou", "pic", "ramier"] };
 // Chaque boucle n'est chargée que quand on arrive à son endroit, et libérée 20 s après qu'elle s'est tue :
@@ -8388,7 +8394,8 @@ function sonsTick(lieu, nightK, menu) {
   SONS.magasin = lieu !== "foret" && lieu !== "piscine" && lieu in SONS.boucles && !!SONS.g[lieu]; // une musique de lieu : celle de la forêt se fait toute petite
 }
 // L'enceinte connectée des cottages : toutes les musiques du jeu, à écouter chez soi (la musique s'arrête en sortant, et reprend en rentrant)
-const ENCEINTE = { piste: null, PISTES: [["accueil", "Bienvenue au Domaine", "maison"], ["boum", "La pool party", "confettis"], ["chanteur", "La chanson de Lino", "musique"], ["pedalo", "Le pédalo", "eau"], ["anniversaire", "Joyeux anniversaire", "cadeau"], ["magasin", "La musique des magasins", "caddie"],
+const ENCEINTE = { piste: null, PISTES: [["accueil", "Bienvenue au Domaine", "maison"], ["boum", "La pool party", "confettis"], ["chanteur", "La chanson de Lino", "musique"], ["pedalo", "Le pédalo", "eau"], ["anniversaire", "Joyeux anniversaire", "cadeau"], ["arcade", "La salle de jeux vidéo", "manette"],
+  ["j-sidewalk", "Sidewalk Capers", "musique"], ["j-brasswork", "The Brasswork Blueprint", "musique"], ["j-carrousel", "The Iron Carousel Waltz", "musique"], ["j-giza", "Little Builders of Giza", "musique"], ["magasin", "La musique des magasins", "caddie"],
   ["manoir", "Le manoir hanté", "citrouille"], ["m-foret", "La harpe de la forêt", "sapin"], ["m-aqua", "Le marimba des îles", "eau"], ["m-ferme", "Le banjo de la ferme", "animal"]] };
 function ouvrirEnceinte() { dessinerEnceinte(); ouvrir("enceinteView"); }
 function dessinerEnceinte() { const L = $("enceinteListe"); L.innerHTML = "";
@@ -10433,12 +10440,15 @@ function loop() {
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $("toast").hidden = true; }
   scheduleMusic();
   ambTick(dt, !inCottage && !inDome && !inBalo && !inGT && !inBF && !inShop && !inAq, nightK, time);
-  sonsTick(!introEl.hidden ? "accueil" : ENCEINTE.piste && inCottage && SONS.boucles[ENCEINTE.piste] ? ENCEINTE.piste : state === "boat" ? "pedalo" : dansAnniversaire(P) ? "anniversaire" : BOUM.loud ? "boum" : FETE.inside && FETE.act === 3 ? "chanteur" : HALLO.on && MANOR.inside ? "manoir" : inShop === ACCUEIL ? "accueil" : inShop ? "magasin" : inDome ? "piscine" : inCottage || inBalo || inGT || inBF || inAq ? "dedans" : "dehors", nightK);
+  sonsTick(!introEl.hidden ? "accueil" : ENCEINTE.piste && inCottage && SONS.boucles[ENCEINTE.piste] ? ENCEINTE.piste : state === "boat" ? "pedalo" : dansAnniversaire(P) ? "anniversaire" : inGT ? "arcade" : BOUM.loud ? "boum" : FETE.inside && FETE.act === 3 ? "chanteur" : HALLO.on && MANOR.inside ? "manoir" : inShop === ACCUEIL ? "accueil" : inShop ? "magasin" : inDome ? "piscine" : inCottage || inBalo || inGT || inBF || inAq ? "dedans" : "dehors", nightK);
   if (mapOpen) drawMap();
   netTick(dt);
 
   // le soleil suit le joueur pour des ombres nettes
-  { _sd.copy(sunDir).normalize(); _sr.set(0, 1, 0).cross(_sd).normalize(); _su.copy(_sd).cross(_sr).normalize(); const px = 2 * OMB / sun.shadow.mapSize.x;
+  // la direction des ombres ne change que par petits pas (0,4°) : en tournant à chaque image avec le soleil, la grille
+  // de l'image des ombres « rampait » et les bords d'ombre (sous les toits) clignotaient
+  if (ombreDir.angleTo(sunDir) > .007) ombreDir.copy(sunDir);
+  { _sd.copy(ombreDir).normalize(); _sr.set(0, 1, 0).cross(_sd).normalize(); _su.copy(_sd).cross(_sr).normalize(); const px = 2 * OMB / sun.shadow.mapSize.x;
     _st.set(P.x, 0, P.z); const a = _st.dot(_sr), b = _st.dot(_su); _st.addScaledVector(_sr, Math.round(a / px) * px - a).addScaledVector(_su, Math.round(b / px) * px - b);
     sun.target.position.copy(_st); sun.position.copy(_st).addScaledVector(_sd, 120); }
   const creaOn = !$("creaView").hidden;
@@ -10484,7 +10494,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.29-9"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.10.29-11"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
