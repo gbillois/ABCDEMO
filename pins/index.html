@@ -963,7 +963,12 @@ const souffle = (p, txt) => { $("chargeBar").style.width = p + "%"; if (txt) $("
 /* ================= Moteur ================= */
 const renderer = new THREE.WebGLRenderer({ antialias: !LOWQ, powerPreference: "high-performance" }); // tablettes : sans anticrénelage (beaucoup moins de mémoire)
 // si la tablette manque de mémoire, l'image 3D peut disparaître (écran tout bleu) : on le dit, et on propose de relancer
-renderer.domElement.addEventListener("webglcontextlost", e => { e.preventDefault(); const d = document.getElementById("lostView"); if (d) d.hidden = false; });
+// (iPadOS coupe aussi l'image 3D quand on passe à une autre appli ou qu'on verrouille l'écran : elle revient toute seule.
+//  On ne prévient donc que si elle n'est pas revenue 4 s après qu'on est de retour dans le jeu.)
+{ let perdu = false, minuteur = 0; const verifier = () => { clearTimeout(minuteur); if (perdu && document.visibilityState === "visible") minuteur = setTimeout(() => { const d = document.getElementById("lostView"); if (perdu && d && document.visibilityState === "visible") d.hidden = false; }, 4000); };
+  renderer.domElement.addEventListener("webglcontextlost", e => { e.preventDefault(); perdu = true; verifier(); });
+  renderer.domElement.addEventListener("webglcontextrestored", () => { perdu = false; clearTimeout(minuteur); const d = document.getElementById("lostView"); if (d) d.hidden = true; });
+  document.addEventListener("visibilitychange", verifier); }
 addEventListener("error", e => { const d = document.getElementById("bugView"); if (!d || !d.hidden) return; document.getElementById("bugMsg").textContent = String(e.message || e.error || "?").slice(0, 160); d.hidden = false; });
 // téléphones et tablettes : un peu moins de pixels (l'écran est petit, la différence ne se voit pas, le jeu reste fluide)
 const PETIT = LOWQ && Math.min(screen.width, screen.height) < 500;
@@ -8319,21 +8324,30 @@ function ambTick(dt, outdoor, nightK, time) {
 const SONS = { buf: {}, g: {}, veut: {}, bus: null, magasin: false,
   // nom : [volume, début et fin de la boucle (s)]
   boucles: { accueil: [.45, 0, 47.4], foret: [.9, .5, 30.5], piscine: [.75, .05, 22], magasin: [.32, .4, 44.6], manoir: [.4, 0, 41.6] }, oiseaux: ["coucou", "pic", "ramier"] };
+// Chaque boucle n'est chargée que quand on arrive à son endroit, et libérée 20 s après qu'elle s'est tue :
+// décodé, un morceau de 45 s pèse ~16 Mo ; tout garder en même temps (~65 Mo) faisait manquer de mémoire aux iPad.
 function sonsInit() {
-  if (SONS.bus || !actx) return; SONS.bus = actx.createGain(); SONS.bus.gain.value = 0; SONS.bus.connect(master);
-  (async () => { for (const n of [...Object.keys(SONS.boucles), ...SONS.oiseaux.map(o => "oiseau-" + o)]) {
-    try { const r = await fetch("sons/" + n + ".mp3"); if (!r.ok) continue; const ab = await r.arrayBuffer();
-      SONS.buf[n] = await new Promise((ok, ko) => actx.decodeAudioData(ab, ok, ko));
-      const B = SONS.boucles[n]; if (!B) continue;
-      const src = actx.createBufferSource(), g = actx.createGain(); src.buffer = SONS.buf[n]; src.loop = true; src.loopStart = B[1]; src.loopEnd = Math.min(B[2], SONS.buf[n].duration);
-      g.gain.value = 0; src.connect(g).connect(SONS.bus); src.start(0, B[1]); SONS.g[n] = g; SONS.veut[n] = 0; } catch (e) {} } })();
+  if (SONS.bus || !actx) return; SONS.bus = actx.createGain(); SONS.bus.gain.value = 0; SONS.bus.connect(master); SONS.charge = {}; SONS.src = {}; SONS.muet = {};
+  (async () => { for (const o of SONS.oiseaux) { const n = "oiseau-" + o; try { SONS.buf[n] = await decoderSon(n); } catch (e) {} } })();
 }
+async function decoderSon(n) { const r = await fetch("sons/" + n + ".mp3"); if (!r.ok) throw new Error(n); const ab = await r.arrayBuffer(); return await new Promise((ok, ko) => actx.decodeAudioData(ab, ok, ko)); }
+function chargerBoucle(n) {
+  if (SONS.charge[n]) return; SONS.charge[n] = true;
+  decoderSon(n).then(b => { if (!SONS.charge[n]) return; const B = SONS.boucles[n], src = actx.createBufferSource(), g = actx.createGain(); src.buffer = b; src.loop = true; src.loopStart = B[1]; src.loopEnd = Math.min(B[2], b.duration);
+    g.gain.value = 0; src.connect(g).connect(SONS.bus); src.start(0, B[1]); SONS.src[n] = src; SONS.g[n] = g; SONS.veut[n] = 0; SONS.muet[n] = 0; })
+    .catch(() => { setTimeout(() => { SONS.charge[n] = false; }, 30000); }); // pas de fichier (sans réseau) : on réessaie plus tard, les sons faits maison restent
+}
+function libererBoucle(n) { try { SONS.src[n].stop(); SONS.src[n].disconnect(); SONS.g[n].disconnect(); } catch (e) {} delete SONS.src[n]; delete SONS.g[n]; delete SONS.veut[n]; SONS.charge[n] = false; }
 // chaque son va doucement vers son volume voulu (on ne prévient la carte son que quand il change)
 function sonsTick(lieu, nightK, menu) {
   if (!SONS.bus) return;
   const bus = muted ? 0 : (paused && !menu ? .3 : 1) * VOL.mus * .6; if (SONS.busV !== bus) { SONS.busV = bus; SONS.bus.gain.setTargetAtTime(bus, actx.currentTime, .5); }
-  for (const n in SONS.g) { const v = (n === "foret" ? (lieu === "dehors" ? 1 - nightK * .85 : lieu === "dedans" ? .12 : 0) : n === lieu ? 1 : 0) * SONS.boucles[n][0];
-    if (Math.abs(SONS.veut[n] - v) > .01) { SONS.veut[n] = v; SONS.g[n].gain.setTargetAtTime(v, actx.currentTime, n === "magasin" ? .5 : .9); } }
+  const now = actx.currentTime;
+  for (const n in SONS.boucles) { const v = (n === "foret" ? (lieu === "dehors" ? 1 - nightK * .85 : lieu === "dedans" ? .12 : 0) : n === lieu ? 1 : 0) * SONS.boucles[n][0];
+    if (v > 0 && !SONS.charge[n] && !muted) chargerBoucle(n);
+    if (!SONS.g[n]) continue;
+    if (Math.abs(SONS.veut[n] - v) > .01) { SONS.veut[n] = v; SONS.g[n].gain.setTargetAtTime(v, now, n === "magasin" ? .5 : .9); }
+    if (v > 0) SONS.muet[n] = 0; else if (!SONS.muet[n]) SONS.muet[n] = now; else if (now - SONS.muet[n] > 20) libererBoucle(n); }
   SONS.magasin = (lieu === "magasin" || lieu === "manoir" || lieu === "accueil") && !!SONS.g[lieu]; // une musique de lieu : celle de la forêt se fait toute petite
 }
 // un vrai chant d'oiseau (coucou, pic, pigeon ramier), placé un peu à gauche ou à droite
@@ -8412,7 +8426,7 @@ $("soundBtn").onclick = () => { muted = !muted; try { localStorage.setItem("pins
 
 /* ================= Interface ================= */
 let toastT = 0; function toast(t, ms = 2200) { try { if (t && (!MSGS.length || MSGS[MSGS.length - 1].t !== t)) { MSGS.push({ t, h: heureJeu() }); if (MSGS.length > 60) { MSGS.shift(); msgLus = Math.max(0, msgLus - 1); } } } catch (e) {} $("toast").textContent = t; $("toast").hidden = false; toastT = ms / 1000; }
-let paused = true;
+let paused = true, pauseSeule = 0;
 $("startBtn").onclick = () => { audioOn(); sfx.click(); if (lancerPartieChoisie("jouer")) return; $("intro").hidden = true; paused = false; if (partieReprise) toast(found ? `On reprend ta partie : ${found} canard${found > 1 ? "s" : ""} trouvé${found > 1 ? "s" : ""} ! 🦆` : "On reprend ta partie là où tu étais ! 🦆", 2600); else toast(HALLO.on ? "🎃 Joyeux Halloween ! Première mission : va visiter le manoir hanté, au nord (regarde la carte 🗺️)" : "Va voir Sophie pour dire bonjour !", HALLO.on ? 4500 : 2200); partieReprise = false; };
 $("pauseBtn").onclick = () => { if (!$("intro").hidden) return; sfx.click(); paused = true; majRegPartie(); ongletReglages("jeu"); $("pauseView").hidden = false; };
 // Réglages : des onglets (Jeu, Personnage, Son, Monde, Plus) au lieu d'une longue liste
@@ -8451,7 +8465,8 @@ $("winClose").onclick = () => { $("win").hidden = true; paused = false; };
 // joystick
 const stick = $("stick"), knob = $("knob"); let jid = null, jx = 0, jy = 0;
 function moveStick(e) { const r = stick.getBoundingClientRect(), visee = document.body.classList.contains("golf-on"); let dx = e.clientX - (r.left + r.width / 2), dy = visee ? 0 : e.clientY - (r.top + r.height / 2); const m = r.width / 2, L = Math.hypot(dx, dy); if (L > m) { dx *= m / L; dy *= m / L; } jx = dx / m; jy = dy / m; knob.style.transform = `translate(${dx}px,${dy}px)`; }
-stick.addEventListener("pointerdown", e => { jid = e.pointerId; stick.setPointerCapture(jid); moveStick(e); });
+stick.addEventListener("pointerdown", e => { jid = e.pointerId; try { stick.setPointerCapture(jid); } catch (er) {} moveStick(e); });
+stick.addEventListener("lostpointercapture", e => { if (e.pointerId === jid) { jid = null; jx = jy = 0; knob.style.transform = ""; } });
 stick.addEventListener("pointermove", e => { if (e.pointerId === jid) moveStick(e); });
 ["pointerup", "pointercancel"].forEach(ev => stick.addEventListener(ev, e => { if (e.pointerId === jid) { jid = null; jx = jy = 0; knob.style.transform = ""; } }));
 // caméra au doigt
@@ -9055,8 +9070,9 @@ function majUI() {
 }
 
 // Fenêtres : le jeu se met en pause pendant qu'elles sont ouvertes
-function ouvrir(id) { if ($(id).hidden) { ovPaused = paused; paused = true; $(id).hidden = false; } }
-function fermer(id) { if (!$(id).hidden) { $(id).hidden = true; paused = ovPaused; } }
+// une fenêtre ouverte par-dessus une autre ne doit pas « retenir » la pause : en fermant, on ne reprend que s'il n'en reste aucune
+function ouvrir(id) { if ($(id).hidden) { if (!document.querySelector(".overlay:not([hidden])")) ovPaused = paused; paused = true; $(id).hidden = false; } }
+function fermer(id) { if (!$(id).hidden) { $(id).hidden = true; if (!document.querySelector(".overlay:not([hidden])")) paused = ovPaused; } }
 $("multiBtn").onclick = () => { if (!$("intro").hidden) return; sfx.click(); msg(""); majUI(); ouvrir("multiView"); };
 $("multiPill").onclick = () => $("multiBtn").onclick();
 $("introMulti").onclick = () => { audioOn(); sfx.click(); if (lancerPartieChoisie("amis")) return; $("intro").hidden = true; paused = false; msg(""); majUI(); ouvrir("multiView"); };
@@ -10120,6 +10136,9 @@ function loop() {
   manette();
   const menu = !introEl.hidden; document.body.classList.toggle("accueil-on", menu);
   if (menu && dejaVu) { clock.getDelta(); prN = prT = 0; sonsTick("accueil", 0, true); return; }
+  // filet de sécurité : le jeu reste en pause alors qu'aucune fenêtre n'est ouverte (deux fenêtres ouvertes l'une sur l'autre,
+  // une fenêtre fermée sans « fermer »…) : le joystick ne répondait plus jusqu'au prochain menu. Au bout d'un instant, on reprend.
+  if (paused && !menu && (animN & 15) === 0) { if (!document.querySelector(".overlay:not([hidden])") && $("fade").style.opacity !== "1") { if (++pauseSeule > 2) { paused = false; pauseSeule = 0; } } else pauseSeule = 0; }
   const dt = Math.min(clock.getDelta(), .05); time += dt; uTime.value = time;
   const P = player.position; prev.x = P.x; prev.z = P.z; prev.y = P.y; animN++; camera.getWorldDirection(animDir);
   let camDist = 9, minPitch = .06, camTarget = null; const camO = new THREE.Vector3(), camDir = new THREE.Vector3();
@@ -10409,7 +10428,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.29-2"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.10.29-3"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
