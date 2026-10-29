@@ -6,6 +6,8 @@ Structure :
 - `index.html` — page d'accueil (étagère de cartouches, un bouton par jeu).
 - `jeux/<nom>.html` — un fichier par jeu.
 - `pins/` — Le Domaine des Pins, en application installable (voir plus bas).
+- `blender/dragonflyer/` — scripts (Blender, numpy) qui fabriquent le dragon, le héros et le relief de DragonFlyer,
+  embarqués en base64 dans `jeux/dragonflyer.html` (voir le README du dossier).
 
 ## Principes
 
