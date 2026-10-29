@@ -387,6 +387,7 @@ html.app .site{display:none!important}
 .partieLigne.on{border-color:#ffc93c;box-shadow:0 0 0 2px #ffc93c}
 .partieLigne .pn{flex:1;display:flex;flex-direction:column;min-width:0}.partieLigne .pn small{opacity:.65;font-weight:700}
 .partieLigne .btn{font-size:16px;padding:6px 12px}.partieLigne .btn:disabled{background:#9aa0b4}
+.svGrille{display:grid;grid-template-columns:1fr 1fr;gap:8px}.svGrille .btn{font-size:16px;padding:10px 6px;margin:0;display:flex;align-items:center;justify-content:center;gap:6px;line-height:1.1}
 .svTitre{margin:14px 0 4px;font-size:18px}.svDetails{text-align:left;margin:4px 0 8px}.svDetails summary{cursor:pointer;font-weight:800;color:#2e86de}
 .partieLigne .poubelle{background:#fff;color:#c0392b;padding:6px 9px}
 .partieLigne{cursor:pointer}.partieLigne img,.partieLigne .sansVisage{width:52px;height:52px;border-radius:50%;background:#fde9c0;flex:none;box-shadow:0 0 0 2px #fff,0 2px 5px rgba(0,0,0,.2)}
@@ -719,7 +720,7 @@ html.app .site{display:none!important}
     <details class="svDetails"><summary>Parties à envoyer</summary>
       <div id="svChoix" class="svChoix"></div>
     </details>
-      <div class="grille">
+      <div class="grille svGrille">
         <button id="svEnvoyer" class="btn" style="background:#2e86de"><i data-ico="envoyer"></i> Transférer une partie</button>
         <button id="svRecevoir" class="btn" style="background:#2e86de"><i data-ico="recevoir"></i> Recevoir une partie</button>
         <button id="svExport" class="btn" style="background:#34495e"><i data-ico="dossier"></i> Exporter un fichier</button>
@@ -10434,7 +10435,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.29-5"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.10.29-6"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
