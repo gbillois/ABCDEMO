@@ -8091,7 +8091,7 @@ function ambTick(dt, outdoor, nightK, time) {
    l'Aquaparc, la musique des magasins. Chargés après le premier toucher ; s'ils manquent (pas de réseau), les sons faits maison restent. ---------- */
 const SONS = { buf: {}, g: {}, veut: {}, bus: null, magasin: false,
   // nom : [volume, début et fin de la boucle (s)]
-  boucles: { foret: [.9, .5, 30.5], piscine: [.75, .05, 22], magasin: [.32, .4, 44.6] }, oiseaux: ["coucou", "pic", "ramier"] };
+  boucles: { foret: [.9, .5, 30.5], piscine: [.75, .05, 22], magasin: [.32, .4, 44.6], manoir: [.4, 0, 41.6] }, oiseaux: ["coucou", "pic", "ramier"] };
 function sonsInit() {
   if (SONS.bus || !actx) return; SONS.bus = actx.createGain(); SONS.bus.gain.value = 0; SONS.bus.connect(master);
   (async () => { for (const n of [...Object.keys(SONS.boucles), ...SONS.oiseaux.map(o => "oiseau-" + o)]) {
@@ -8107,7 +8107,7 @@ function sonsTick(lieu, nightK) {
   const bus = muted ? 0 : (paused ? .3 : 1) * VOL.mus * .6; if (SONS.busV !== bus) { SONS.busV = bus; SONS.bus.gain.setTargetAtTime(bus, actx.currentTime, .5); }
   for (const n in SONS.g) { const v = (n === "foret" ? (lieu === "dehors" ? 1 - nightK * .85 : lieu === "dedans" ? .12 : 0) : n === lieu ? 1 : 0) * SONS.boucles[n][0];
     if (Math.abs(SONS.veut[n] - v) > .01) { SONS.veut[n] = v; SONS.g[n].gain.setTargetAtTime(v, actx.currentTime, n === "magasin" ? .5 : .9); } }
-  SONS.magasin = lieu === "magasin" && !!SONS.g.magasin;
+  SONS.magasin = (lieu === "magasin" || lieu === "manoir") && !!SONS.g[lieu]; // une musique de lieu : celle de la forêt se fait toute petite
 }
 // un vrai chant d'oiseau (coucou, pic, pigeon ramier), placé un peu à gauche ou à droite
 function oiseauEnregistre() {
@@ -10026,7 +10026,7 @@ function loop() {
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $("toast").hidden = true; }
   scheduleMusic();
   ambTick(dt, !inCottage && !inDome && !inBalo && !inGT && !inBF && !inShop && !inAq, nightK, time);
-  sonsTick(inShop ? "magasin" : inDome ? "piscine" : inCottage || inBalo || inGT || inBF || inAq ? "dedans" : "dehors", nightK);
+  sonsTick(HALLO.on && MANOR.inside ? "manoir" : inShop ? "magasin" : inDome ? "piscine" : inCottage || inBalo || inGT || inBF || inAq ? "dedans" : "dehors", nightK);
   if (mapOpen) drawMap();
   netTick(dt);
 
