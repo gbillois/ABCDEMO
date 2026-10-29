@@ -387,6 +387,7 @@ html.app .site{display:none!important}
 .partieLigne.on{border-color:#ffc93c;box-shadow:0 0 0 2px #ffc93c}
 .partieLigne .pn{flex:1;display:flex;flex-direction:column;min-width:0}.partieLigne .pn small{opacity:.65;font-weight:700}
 .partieLigne .btn{font-size:16px;padding:6px 12px}.partieLigne .btn:disabled{background:#9aa0b4}
+.svTitre{margin:14px 0 4px;font-size:18px}.svDetails{text-align:left;margin:4px 0 8px}.svDetails summary{cursor:pointer;font-weight:800;color:#2e86de}
 .partieLigne .poubelle{background:#fff;color:#c0392b;padding:6px 9px}
 .partieLigne{cursor:pointer}.partieLigne img,.partieLigne .sansVisage{width:52px;height:52px;border-radius:50%;background:#fde9c0;flex:none;box-shadow:0 0 0 2px #fff,0 2px 5px rgba(0,0,0,.2)}
 .partieLigne .pn b{font-size:18px}.partieLigne .ordre{display:flex;flex-direction:column;gap:3px}
@@ -504,22 +505,8 @@ html.app .site{display:none!important}
     <section data-onglet="plus" hidden>
       <div class="regVersion"><span>Version du jeu : <b id="versionTxt"></b></span><button id="majBtn2" class="btn" style="background:#27ae60">🔄 Mettre à jour</button></div>
       <p id="majMsg2" class="small"></p>
-      <h3>Mettre mes parties sur un autre appareil</h3>
-      <p class="small">Choisis les parties à envoyer :</p>
-      <div id="svChoix" class="svChoix"></div>
-      <div class="grille">
-        <button id="svEnvoyer" class="btn" style="background:#2e86de"><i data-ico="envoyer"></i> Envoyer</button>
-        <button id="svRecevoir" class="btn" style="background:#2e86de"><i data-ico="recevoir"></i> Recevoir</button>
-        <button id="svExport" class="btn" style="background:#34495e"><i data-ico="dossier"></i> Exporter le fichier</button>
-        <button id="svImport" class="btn" style="background:#34495e"><i data-ico="dossier"></i> Ouvrir un fichier</button>
-      </div>
-      <input id="svFichier" type="file" accept="application/json,.json" hidden>
-      <div id="svBox" hidden>
-        <p id="svInfo" class="small"></p>
-        <p id="svGrand" class="svGrand" hidden></p>
-        <div id="svSaisieL" class="row" hidden><input id="svSaisie" type="text" inputmode="numeric" maxlength="7" autocomplete="off" placeholder="123 456" aria-label="Code à 6 chiffres"><button id="svRecevoirOk" class="btn">OK</button></div>
-        <div class="row"><button id="svCharger" class="btn" style="background:#ff8a2b" hidden>Charger cette partie</button><button id="svAnnuler" class="btn" style="background:#34495e">Fermer</button></div>
-      </div>
+      <h3>Mes parties sur un autre appareil</h3>
+      <p class="small">Transférer, recevoir, exporter ou importer une partie : sur l'écran de départ, touche <b>Gérer</b>.</p>
       <h3>Autres réglages</h3>
       <div class="grille">
         <button id="perfBtn" class="btn" style="background:#34495e"><i data-ico="graphique"></i> Compteur de fluidité</button>
@@ -728,6 +715,23 @@ html.app .site{display:none!important}
     <p class="small">Chaque visage, c'est une partie, avec son sac, ses objets et ses quêtes. Touche un visage pour le choisir ; les flèches changent l'ordre (les 3 premiers sont sur l'écran de départ).</p>
     <div id="partiesListe" class="partiesListe"></div>
     <div class="row"><button id="partieNouvelle" class="btn" style="background:#27ae60">＋ Nouvelle partie</button></div>
+    <h3 class="svTitre">Sur un autre appareil</h3>
+    <details class="svDetails"><summary>Parties à envoyer</summary>
+      <div id="svChoix" class="svChoix"></div>
+    </details>
+      <div class="grille">
+        <button id="svEnvoyer" class="btn" style="background:#2e86de"><i data-ico="envoyer"></i> Transférer une partie</button>
+        <button id="svRecevoir" class="btn" style="background:#2e86de"><i data-ico="recevoir"></i> Recevoir une partie</button>
+        <button id="svExport" class="btn" style="background:#34495e"><i data-ico="dossier"></i> Exporter un fichier</button>
+        <button id="svImport" class="btn" style="background:#34495e"><i data-ico="dossier"></i> Importer un fichier</button>
+      </div>
+      <input id="svFichier" type="file" accept="application/json,.json" hidden>
+      <div id="svBox" hidden>
+        <p id="svInfo" class="small"></p>
+        <p id="svGrand" class="svGrand" hidden></p>
+        <div id="svSaisieL" class="row" hidden><input id="svSaisie" type="text" inputmode="numeric" maxlength="7" autocomplete="off" placeholder="123 456" aria-label="Code à 6 chiffres"><button id="svRecevoirOk" class="btn">OK</button></div>
+        <div class="row"><button id="svCharger" class="btn" style="background:#ff8a2b" hidden>Charger cette partie</button><button id="svAnnuler" class="btn" style="background:#34495e">Fermer</button></div>
+      </div>
     <div class="row"><button id="partiesFermer" class="btn" style="background:#34495e">Fermer</button></div>
   </div>
 </div>
@@ -8433,7 +8437,7 @@ $("pauseBtn").onclick = () => { if (!$("intro").hidden) return; sfx.click(); pau
 // Réglages : des onglets (Jeu, Personnage, Son, Monde, Plus) au lieu d'une longue liste
 function ongletReglages(n) { for (const b of document.querySelectorAll(".regOnglets button")) b.setAttribute("aria-selected", b.dataset.onglet === n ? "true" : "false");
   for (const sct of document.querySelectorAll(".reglages section")) sct.hidden = sct.dataset.onglet !== n; }
-for (const b of document.querySelectorAll(".regOnglets button")) b.onclick = () => { sfx.click(); ongletReglages(b.dataset.onglet); if (b.dataset.onglet === "plus") dessinerSvChoix(); };
+for (const b of document.querySelectorAll(".regOnglets button")) b.onclick = () => { sfx.click(); ongletReglages(b.dataset.onglet); };
 $("regFermer").onclick = () => $("resumeBtn").click();
 // pour fermer un menu : partout la même croix rouge en haut à droite (les gros boutons « Fermer » disparaissent)
 for (const id of ["mapClose", "shopClose", "arcClose", "prizeClose", "bfClose", "buyClose", "golfClose", "lockerClose", "multiClose", "partiesFermer", "sayClose"]) {
@@ -8858,7 +8862,7 @@ function dessinerAccueil() {
   const plus = document.createElement("i"); plus.textContent = "＋";
   rond("nouveau", plus, "Nouveau", "Commencer une nouvelle partie", () => { sauverPartie(false); creerPartie(); });
   const g = document.createElement("i"); g.innerHTML = icone("reglages");
-  rond("gerer", g, "Gérer", "Gérer mes parties", () => { dessinerParties(); $("partiesView").hidden = false; });
+  rond("gerer", g, "Gérer", "Gérer mes parties", () => { dessinerParties(); svCoches.clear(); svCoches.add(PARTIE_CHOISIE); dessinerSvChoix(); svFin(); $("svBox").hidden = true; $("partiesView").hidden = false; });
 }
 // la partie choisie n'est pas celle qui est chargée : on l'ouvre (le jeu redémarre), puis on enchaîne tout seul
 function lancerPartieChoisie(quoi) {
@@ -9674,7 +9678,7 @@ function dessinerSvChoix() { const L = $("svChoix"); L.innerHTML = ""; if (!svCo
   for (const id of [...svCoches]) if (!PARTIES.liste.some(p => p.id === id)) svCoches.delete(id);
   const ligne = (txt, coche, f) => { const b = document.createElement("button"); b.className = "svCase"; b.setAttribute("aria-pressed", coche ? "true" : "false"); b.innerHTML = `<i>${coche ? "✔" : ""}</i><span>${txt}</span>`; b.onclick = () => { sfx.click(); f(); dessinerSvChoix(); }; L.append(b); };
   ligne("<b>Toutes les parties</b>", svCoches.size === PARTIES.liste.length, () => { if (svCoches.size === PARTIES.liste.length) { svCoches.clear(); svCoches.add(PARTIES.id); } else for (const p of PARTIES.liste) svCoches.add(p.id); });
-  for (const pa of PARTIES.liste) ligne(`${String(pa.nom).replace(/[&<>]/g, "")} <small>n° ${joliNumero(pa.id)}</small>`, svCoches.has(pa.id), () => { if (svCoches.has(pa.id)) { if (svCoches.size > 1) svCoches.delete(pa.id); } else svCoches.add(pa.id); }); }
+  for (const pa of PARTIES.liste) ligne(nomDePartie(pa), svCoches.has(pa.id), () => { if (svCoches.has(pa.id)) { if (svCoches.size > 1) svCoches.delete(pa.id); } else svCoches.add(pa.id); }); }
 function donneesDe(id) { const d = {}; try { const pre = `pins@${id}:`; for (let i = 0; i < LS_VRAI.length; i++) { const k = LS_VRAI.key(i); if (k && k.startsWith(pre)) d[k.slice(pre.length)] = LS_VRAI.getItem(k); } } catch (e) {} return d; }
 function svPaquet() { sauverPartie(false); const ids = PARTIES.liste.filter(p => svCoches.has(p.id));
   return { jeu: "domaine-des-pins", version: 2, date: new Date().toISOString(), parties: ids.map(p => ({ id: p.id, nom: p.nom, maj: p.maj, donnees: donneesDe(p.id) })) }; }
@@ -10430,7 +10434,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.29-4"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.10.29-5"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
