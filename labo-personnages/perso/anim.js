@@ -457,7 +457,7 @@ function fondu(a, b, e, p) {
 const MODES = { idle: .3, walk: .22, swim: .5, tread: .45, climb: .25, pedal: .35, ride: .3, bike: .35, kart: .35, saddle: .4, sit: .4, buoy: .45, lie: .5, jump: .2 };
 const NF = NB * 4 + 4, SYNC = NOMS_OS.map(n => /^(bras|avantbras|cuisse|jambe)_/.test(n));
 function etat(g, u, os, t) {
-  const id = (u.animGraine ?? g.id) | 0, r = new Float32Array(8);  // animGraine : graine imposée (labo) for (let i = 0; i < 8; i++) r[i] = hache(id * 7 + 3, i + 1);
+  const id = (u.animGraine ?? g.id) | 0, r = new Float32Array(8); for (let i = 0; i < 8; i++) r[i] = hache(id * 7 + 3, i + 1); // animGraine : graine imposée (labo)
   return { os, b: NOMS_OS.map(n => os[n]), D: donnees(u.type || "garcon"), id, r, tI: -1e9, dt: 0, cur: 0, prev: 1, neuf: true, eau: null,
     out: [new Float32Array(NF), new Float32Array(NF)], src: [new Float32Array(NF), new Float32Array(NF)],
     mode: "", w: 1, dur: .25, is: 0, ph: t || 0, tg: t || 0, om: 0, vs: 0, mode0: "", w0: 1, dur0: .25, is0: 0, ph0: 0, tg0: 0, om0: 0, vs0: 0 };

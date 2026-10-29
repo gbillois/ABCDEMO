@@ -180,7 +180,7 @@ function morpho(type) {
   M.omo = { c: [.088, .1, -.124], r: [.058, .07, .016], rot: .22, k: .035 };
   M.pecto = f ? null : { c: [.07, .095, .072], r: [.09, .06, .036], k: .065 };
   M.seins = f ? { c: [.085, .03, .07], r: [.075, .068, .05], k: .055 } : null;
-  M.pied.p = echelle(M.pied.p, .93, .95); M.pied.h = [.046, -.04]; // le profil est déjà mis à la longueur du pied (sp) : largeur ≈ ×1,1 M.orteils.r = M.orteils.r.map(v => v * 1.12); M.orteils.L = M.orteils.L.map(v => v * 1.05);
+  M.pied.p = echelle(M.pied.p, .93, .95); M.pied.h = [.046, -.04]; M.orteils.r = M.orteils.r.map(v => v * 1.12); M.orteils.L = M.orteils.L.map(v => v * 1.05); // le profil est déjà mis à la longueur du pied (sp) : largeur ≈ ×1,1
   M.orteils.b = M.orteils.b.map(p => p.map(v => v * 1.12)); M.piedC = M.piedC.map(l => l.map(v => v * 1.14)); M.malleole.m[3] *= 1.2; M.malleole.l[3] *= 1.2;
   return M;
 }
