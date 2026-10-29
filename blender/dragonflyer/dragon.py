@@ -619,10 +619,7 @@ def rider():
     obr = manga.objet(scene, "Rider", M, np.zeros(3))
     obh = manga.objet(scene, "RiderHead", H, piv, uv, nface)
     print("cavalier:", len(M.V) + len(H.V), "sommets")
-    obr.parent = rig; obr.parent_type = "BONE"; obr.parent_bone = "Chest"
-    bpy.context.view_layer.update()
-    pb = rig.pose.bones["Chest"]; Mb = rig.matrix_world @ pb.matrix @ Matrix.Translation((0, pb.length, 0))
-    obr.matrix_parent_inverse = Mb.inverted()
+    # pas de parenté à l'os dans le fichier (l'export glTF le retournait) : le jeu l'attache à l'os « Chest »
     obh.parent = obr; obh.matrix_parent_inverse = Matrix.Identity(4)
     return obr
 rider_ob = rider()

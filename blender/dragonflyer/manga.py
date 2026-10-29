@@ -42,7 +42,7 @@ class Maillage:
                 s.V.append(cen + ax * math.sin(th) * math.cos(ph) + ay * math.sin(th) * math.sin(ph) + az * math.cos(th)); s.C.append(col); s.T.append(tag)
         for j in range(nv):
             for i in range(nu):
-                a, b = o + j * nu + i, o + j * nu + (i + 1) % nu; s.F.append([a, b, b + nu, a + nu])
+                a, b = o + j * nu + i, o + j * nu + (i + 1) % nu; s.F.append([a, a + nu, b + nu, b])   # normales vers l'extérieur
     def tube(s, pts, rr, col, nr=8, tag=None):
         v, f = tube(pts, rr, nr); o = len(s.V)
         s.V += [np.array(p) for p in v]; s.F += [[i + o for i in fc] for fc in f]; s.C += [col] * len(v); s.T += [tag] * len(v)
@@ -97,7 +97,7 @@ def tete(piv):
             uv.append((.5 + p[0] / (2.2 * R), .5 + p[2] / (2.2 * R)))
     for j in range(nv):
         for i in range(nu):
-            a, b = j * (nu + 1) + i, j * (nu + 1) + i + 1; H.F.append([a, b, b + nu + 1, a + nu + 1])
+            a, b = j * (nu + 1) + i, j * (nu + 1) + i + 1; H.F.append([a, a + nu + 1, b + nu + 1, b])
     nface = len(H.F)
     def sur(d, lift=0.0):
         d = nrm(d); return hc + d * (R * .97 + lift), d
@@ -114,7 +114,7 @@ def tete(piv):
     for j in range(nv2):
         for i in range(nu2):
             a, b = j * nu2 + i, j * nu2 + (i + 1) % nu2
-            if all(keep[k] for k in (a, b, b + nu2, a + nu2)): H.F.append([o + a, o + b, o + b + nu2, o + a + nu2])
+            if all(keep[k] for k in (a, b, b + nu2, a + nu2)): H.F.append([o + a, o + a + nu2, o + b + nu2, o + b])
     SPIKES = [((0, .2, 1), (0, .3, 1), .36, .1), ((.42, .2, .88), (.72, .35, .62), .36, .1), ((.75, .25, .5), (1, .3, .2), .34, .095),
               ((.3, .7, .6), (.45, 1, .35), .34, .1), ((0, .8, .55), (0, 1, .3), .34, .105), ((.6, .7, .1), (.75, .85, -.3), .3, .095),
               ((.2, .97, -.15), (.2, 1, -.55), .26, .09), ((.88, .25, -.05), (1, .25, -.55), .22, .08), ((.25, -.2, .95), (.25, -.05, 1), .3, .095),
