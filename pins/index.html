@@ -8965,10 +8965,10 @@ function netTick(dt) {
       b.position.set(g.position.x - Math.cos(h) * sx, Math.sin(time * 1.6 + 1) * .035, g.position.z + Math.sin(h) * sx);
       b.rotation.set(Math.sin(time * 1.3 + 1) * .015, h, Math.sin(time * 1.1 + 1) * .02);
       b.userData.wheel.rotation.x -= dt * o.vit * 2.2; b.userData.crank.rotation.x -= dt * o.vit * 2.2;
-      animPerson(g, "pedal", time * (1 + o.vit * 1.6));
+      animPerson(g, "pedal", b.userData.crank.rotation.x);
     } else {
       if (o.boat) o.boat.visible = false;
-      o.walk += dt * 9; animPerson(g, MODES[o.m], o.m === 2 ? time * 4 : o.m === 3 ? time * 9 : o.walk);
+      o.walk += dt * 9; animPerson(g, MODES[o.m], o.m === 2 ? time * 4 : o.m === 3 ? time * 9 : o.walk, o.m === 1 ? o.vit : undefined);
     }
   }
   if (net.moi.bub && (net.moi.bubT -= dt) <= 0) { player.remove(net.moi.bub); net.moi.bub = null; }
@@ -9201,7 +9201,7 @@ function updateVacationers(dt, time, P) {
     if (p.kind === "tramp") { if (!nearB) continue; const s = Math.abs(Math.sin(p.t * 2.5 + p.ph)); g.position.set(p.x, .5 + s * 2, p.z); g.rotation.y += dt * .8; animPerson(g, "jump", 0, 5 * Math.cos(p.t * 2.5 + p.ph) * Math.sign(Math.sin(p.t * 2.5 + p.ph))); }
     else if (p.kind === "pit") { if (!nearB) continue; const dx = p.tx - p.x, dz = p.tz - p.z, d = Math.hypot(dx, dz);
       if (d < .2 || !p.tx) { p.tx = BALO.x + BPIT.x1 + .8 + Math.random() * (BPIT.x2 - BPIT.x1 - 1.6); p.tz = BALO.z + BPIT.z1 + .8 + Math.random() * (BPIT.z2 - BPIT.z1 - 1.6); }
-      else { p.x += dx / d * dt * .9; p.z += dz / d * dt * .9; g.rotation.y = Math.atan2(dx, dz); p.wt += dt * 4; animPerson(g, "walk", p.wt); }
+      else { p.x += dx / d * dt * .9; p.z += dz / d * dt * .9; g.rotation.y = Math.atan2(dx, dz); p.wt += dt * 4; animPerson(g, "walk", p.wt, .9); }
       g.position.set(p.x, -.35, p.z); }
     else if (p.kind === "slide") { if (!nearB) continue;
       if (p.u < 0) { g.visible = false; p.wait -= dt; if (p.wait <= 0) { p.u = 0; g.visible = true; } }
@@ -10016,7 +10016,7 @@ function loop() {
     const B = pedalo.g.position, ox = B.x, oz = B.z; B.x += Math.sin(pedalo.h) * pedalo.v * dt; B.z += Math.cos(pedalo.h) * pedalo.v * dt;
     const dl = Math.hypot(B.x - LAKE.x, B.z - LAKE.z); if (dl > LAKE.r - 2.2) { B.x = LAKE.x + (B.x - LAKE.x) / dl * (LAKE.r - 2.2); B.z = LAKE.z + (B.z - LAKE.z) / dl * (LAKE.r - 2.2); pedalo.v *= .5; }
     const du = (B.x - LAKE.x) * DOCK.ux + (B.z - LAKE.z) * DOCK.uz, dv = -(B.x - LAKE.x) * DOCK.uz + (B.z - LAKE.z) * DOCK.ux; if (du > DOCK.u0 - 1.4 && Math.abs(dv) < DOCK.hw + 1.3) { B.x = ox; B.z = oz; pedalo.v *= .3; }
-    const sx = -.48; P.set(B.x + Math.cos(pedalo.h) * sx, B.y + .18, B.z - Math.sin(pedalo.h) * sx); player.rotation.y = pedalo.h; animPerson(player, "pedal", time * (1 + pedalo.v * 1.6));
+    const sx = -.48; P.set(B.x + Math.cos(pedalo.h) * sx, B.y + .18, B.z - Math.sin(pedalo.h) * sx); player.rotation.y = pedalo.h; animPerson(player, "pedal", pedalo.g.userData.crank.rotation.x); // les pieds suivent les pédales
     walkT += 0; stepAcc += dt * Math.abs(pedalo.v); if (stepAcc > 1.2) { stepAcc = 0; tone(160, .08, "sine", .04); }
   }
   pedalo.g.position.y = Math.sin(time * 1.6) * .035; pedalo.g.rotation.set(Math.sin(time * 1.3) * .015, pedalo.h, Math.sin(time * 1.1) * .02);
@@ -10109,7 +10109,7 @@ function loop() {
   npcs.forEach((n, i) => { const g = n.g, dd = Math.hypot(P.x - g.position.x, P.z - g.position.z);
     if (dd < best && state === "walk") { best = dd; nearNpc = n; }
     if (dd < 7) { const t = Math.atan2(P.x - g.position.x, P.z - g.position.z); let df = t - g.rotation.y; df = Math.atan2(Math.sin(df), Math.cos(df)); g.rotation.y += df * Math.min(1, dt * 5); }
-    const { arms } = g.userData; arms[0].rotation.z = Math.sin(time * 1.5 + i) * .05; g.position.y = Math.abs(Math.sin(time * 1.8 + i)) * .03; });
+    if (dd < 60) animPerson(g, "idle", time); }); // les animateurs : la vraie pose au repos (respiration, poids d'une jambe à l'autre, regard)
   if (talking && talking !== nearNpc) { talking.idx = -1; talking = null; $("dialog").hidden = true; }
   setBtn($("talkBtn"), nearNpc && !paused ? "💬 Parler à " + nearNpc.name.split(",")[0] : "");
   const sa = time * .35; swimmer.position.set(PCX + Math.cos(sa) * 10, -.55, PCZ + Math.sin(sa) * 5); swimmer.rotation.y = -sa; animPerson(swimmer, "swim", time * 4);
