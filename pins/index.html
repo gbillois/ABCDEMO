@@ -214,6 +214,7 @@ body.chargement #intro .jouer,body.chargement #intro .amis,body.chargement #pers
 body.combat-on #actions,body.golf-on #moveBtns,body.golf-on #actions,body.crea-on #stick,body.crea-on #moveBtns,body.crea-on #actions,body.crea-on #hudR,body.crea-on #hudL,body.crea-on #where{display:none!important}
 .crea{align-items:flex-end;background:transparent;pointer-events:none}.crea .card{pointer-events:auto;margin:auto 0 0;max-height:56vh;overflow:auto;max-width:560px;padding:14px;background:rgba(255,253,244,.96)}
 .crea{align-items:center;justify-content:center;padding:10px}
+body.crea-on #toast{display:none!important}
 .crea .card.creaCarte{display:grid;grid-template-rows:auto minmax(150px,38%) minmax(0,1fr) auto;grid-template-columns:100%;margin:auto;width:min(94vw,560px);max-width:none;height:calc(100vh - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));max-height:none;overflow:hidden;padding:0;background:transparent;border-radius:26px}
 .crea .creaCarte>h1{margin:0;display:block;max-width:none;border-radius:0;text-align:center;font-size:22px;padding:8px 12px}
 .creaVue{position:relative;pointer-events:none;border-top:4px solid #ffc93c;border-bottom:4px solid #ffc93c;background:radial-gradient(ellipse at 50% 85%,rgba(255,255,255,.18),rgba(255,255,255,0) 60%);box-shadow:inset 0 0 30px rgba(0,0,0,.25)}
@@ -10449,7 +10450,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.29-7"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.10.29-8"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
