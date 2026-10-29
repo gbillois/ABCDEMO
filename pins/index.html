@@ -161,8 +161,12 @@ body.golf-on #stick .visee b{position:absolute;left:0;right:0;bottom:-24px;text-
 #dialog b{display:block;color:var(--violet);font-size:16px}
 #dialog p{margin:2px 0 0;font-size:19px;line-height:1.3}
 #dialog small{display:block;text-align:right;opacity:.6;font-size:13px}
-#accueil{position:fixed;inset:0;height:100vh;height:100lvh;z-index:1;opacity:0;pointer-events:none;transition:opacity .6s;background:#9fc7e0}
+#accueil{position:fixed;inset:-60px 0;z-index:1;opacity:0;pointer-events:none;transition:opacity .6s;background:#9fc7e0}
+#accueil picture{display:block;width:100%;height:100%}
 #accueil img{width:100%;height:100%;object-fit:cover;object-position:50% 70%;display:block}
+/* sur iPhone, le haut (sous l'heure) et le bas (sous la barre d'accueil) laissaient voir le fond de la page : on y met le ciel et l'herbe */
+html:has(body.accueil-on),html:has(body.chargement){background:linear-gradient(#5aaee3 50%,#1b3626 50%)}
+#intro::before{content:"";position:absolute;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:#5aaee3;z-index:1;pointer-events:none}
 body.accueil-on #accueil{opacity:1}
 #accueil img{animation:survol 38s ease-in-out infinite alternate;will-change:transform}
 body:not(.accueil-on) #accueil img{animation-play-state:paused}
@@ -8251,15 +8255,10 @@ const sfx = {
   click() { tone(1046, .06, "sine", .07); tone(1568, .05, "sine", .03, 0, .02); },
 };
 /* ---------- L'ambiance de la nature : le vent dans les pins, les feuilles, et des oiseaux variés (le soir, les grillons et les grenouilles) ---------- */
-let ambBus = null, ambWind = null, ambLeaves = null;
-function ambInit() {
-  if (ambBus || !actx) return;
-  ambBus = actx.createGain(); ambBus.gain.value = 0; ambBus.connect(master);
-  const n = actx.sampleRate * 4, b = actx.createBuffer(1, n, actx.sampleRate), d = b.getChannelData(0); let last = 0;
-  for (let i = 0; i < n; i++) { const w = Math.random() * 2 - 1; last = (last + .02 * w) / 1.02; d[i] = last * 3.5; } // bruit « brun » : un souffle doux
-  const loop = (fType, freq, q, vol) => { const s = actx.createBufferSource(); s.buffer = b; s.loop = true; const f = actx.createBiquadFilter(); f.type = fType; f.frequency.value = freq; f.Q.value = q; const g = actx.createGain(); g.gain.value = vol; s.connect(f).connect(g).connect(ambBus); s.start(); return { f, g, vol }; };
-  ambWind = loop("lowpass", 420, .7, .55); ambLeaves = loop("bandpass", 2600, .6, .05);
-}
+// les petits bruits du dehors faits maison : oiseaux, grillons, grenouilles (le souffle du vent, du bruit filtré, est enlevé :
+// il sonnait comme un vent de mauvaise qualité ; la forêt enregistrée suffit)
+let ambBus = null;
+function ambInit() { if (ambBus || !actx) return; ambBus = actx.createGain(); ambBus.gain.value = 0; ambBus.connect(master); }
 const BIRDS = [
   t => { const f = 2400 + Math.random() * 600; for (let i = 0; i < 3; i++) tone(f + i * 120, .1, "sine", .035, 500, t + i * .14); }, // petit sifflement qui monte
   t => { const f = 3000 + Math.random() * 400; for (let i = 0; i < 7; i++) tone(f, .04, "sine", .025, -200, t + i * .055); }, // trille
@@ -8272,11 +8271,6 @@ function ambTick(dt, outdoor, nightK, time) {
   if (!ambBus) return;
   const want = muted ? 0 : (paused ? .25 : outdoor ? 1 : .25) * VOL.mus * .5;
   ambBus.gain.setTargetAtTime(want, actx.currentTime, .6);
-  // le vent souffle plus ou moins fort, doucement
-  const gust = .6 + .4 * Math.sin(time * .13) * Math.sin(time * .07 + 1);
-  const enr = SONS.g.foret ? .45 : 1; // avec la forêt enregistrée, le vent fait maison se fait plus discret
-  ambWind.g.gain.setTargetAtTime(ambWind.vol * gust * enr, actx.currentTime, .8); ambLeaves.g.gain.setTargetAtTime(ambLeaves.vol * (gust * gust) * (1 - nightK * .6), actx.currentTime, .8);
-  ambWind.f.frequency.setTargetAtTime(330 + gust * 220, actx.currentTime, 1);
   if (paused || !outdoor || muted) return;
   ambBirdT -= dt; if (ambBirdT < 0) { if (nightK > .5) { ambBirdT = .8 + Math.random() * 1.8; cricket(); } else { ambBirdT = 1.8 + Math.random() * 4.5; if (Math.random() > .35 || !oiseauEnregistre()) BIRDS[Math.floor(Math.random() * BIRDS.length)](0); } }
   if (nightK > .5) { ambFrogT -= dt; if (ambFrogT < 0) { ambFrogT = 2 + Math.random() * 4; for (let i = 0; i < 2; i++) tone(150 + Math.random() * 30, .12, "triangle", .05, -40, i * .18); } } // les grenouilles, la nuit
@@ -8285,7 +8279,7 @@ function ambTick(dt, outdoor, nightK, time) {
    l'Aquaparc, la musique des magasins. Chargés après le premier toucher ; s'ils manquent (pas de réseau), les sons faits maison restent. ---------- */
 const SONS = { buf: {}, g: {}, veut: {}, bus: null, magasin: false,
   // nom : [volume, début et fin de la boucle (s)]
-  boucles: { accueil: [.45, 0, 47.4], foret: [.9, .5, 30.5], piscine: [.75, .05, 22], magasin: [.32, .4, 44.6], manoir: [.4, 0, 41.6], boum: [.34, 0, 172.9, 1], chanteur: [.36, 0, 66.2, 1], pedalo: [.28, 0, 177.8, 1], anniversaire: [.32, 0, 69.2, 1], arcade: [.26, 0, 166.6, 1],
+  boucles: { depart: [.4, 0, 104.2, 1], multiparc: [.3, 0, 105.6, 1], accueil: [.45, 0, 47.4], foret: [.9, .5, 30.5], piscine: [.75, .05, 22], magasin: [.32, .4, 44.6], manoir: [.4, 0, 41.6], boum: [.34, 0, 172.9, 1], chanteur: [.36, 0, 66.2, 1], pedalo: [.28, 0, 177.8, 1], anniversaire: [.32, 0, 69.2, 1], arcade: [.26, 0, 166.6, 1],
     "j-sidewalk": [.27, 0, 62.6, 1], "j-brasswork": [.27, 0, 62.7, 1], "j-carrousel": [.27, 0, 62.4, 1], "j-giza": [.27, 0, 62.4, 1] },
   // (4e nombre : chanson longue, décodée en mono 32 kHz : 3 fois moins de mémoire)
   oiseaux: ["coucou", "pic", "ramier"] };
@@ -8321,9 +8315,9 @@ function sonsTick(lieu, nightK, menu) {
 // rangées par type de musique
 const ENCEINTE = { piste: null, TYPES: [
   ["🎉 Pour faire la fête", [["boum", "La pool party", "confettis"], ["chanteur", "La chanson de Lino", "musique"], ["anniversaire", "Joyeux anniversaire", "cadeau"]]],
-  ["🎺 Pour bouger", [["pedalo", "Le pédalo", "eau"], ["arcade", "La salle de jeux vidéo", "manette"], ["j-sidewalk", "Sidewalk Capers", "musique"], ["j-brasswork", "The Brasswork Blueprint", "musique"],
+  ["🎺 Pour bouger", [["pedalo", "Le pédalo", "eau"], ["arcade", "La salle de jeux vidéo", "manette"], ["multiparc", "Le Multi Parcs", "confettis"], ["j-sidewalk", "Sidewalk Capers", "musique"], ["j-brasswork", "The Brasswork Blueprint", "musique"],
     ["j-carrousel", "The Iron Carousel Waltz", "musique"], ["j-giza", "Little Builders of Giza", "musique"]]],
-  ["🌿 Musiques douces", [["accueil", "Bienvenue au Domaine", "maison"], ["magasin", "La musique des magasins", "caddie"], ["m-foret", "La harpe de la forêt", "sapin"], ["m-aqua", "Le marimba des îles", "eau"], ["m-ferme", "Le banjo de la ferme", "animal"]]],
+  ["🌿 Musiques douces", [["depart", "Le chemin de mousse", "sapin"], ["accueil", "Bienvenue au Domaine", "maison"], ["magasin", "La musique des magasins", "caddie"], ["m-foret", "La harpe de la forêt", "sapin"], ["m-aqua", "Le marimba des îles", "eau"], ["m-ferme", "Le banjo de la ferme", "animal"]]],
   ["🎃 Pour avoir un peu peur", [["manoir", "Le manoir hanté", "citrouille"]]]] };
 function ouvrirEnceinte() { dessinerEnceinte(); ouvrir("enceinteView"); }
 function dessinerEnceinte() { const L = $("enceinteListe"); L.innerHTML = "";
@@ -8991,7 +8985,7 @@ function connecter(code, creer) {
   const sexe = monPerso().sexe;
   if (net) quitter();
   let ws; try { ws = new WebSocket(`${RELAIS}/salle/${code}${creer ? "?creer=1" : ""}`); } catch (e) { msg("Impossible de joindre le serveur."); return; }
-  net = { ws, code, pseudo, sexe, profils: new Map(), s: -1, autres: new Map(), dons: [], moi: { bub: null, bubT: 0 }, sendT: 0, hb: 0, last: null, hote: !!creer, mondeT: 0, invite: null };
+  net = { ws, code, pseudo, sexe, profils: new Map(), s: -1, autres: new Map(), dons: [], rendus: [], moi: { bub: null, bubT: 0 }, sendT: 0, hb: 0, last: null, hote: !!creer, mondeT: 0, invite: null };
   msg("Connexion…");
   net.attente = setTimeout(() => { if (net && net.ws === ws && net.s < 0) fin(0); }, 8000);
   ws.onmessage = e => { if (net && net.ws === ws) recevoir(e.data); };
@@ -9087,30 +9081,43 @@ $("phraseList").innerHTML = PHRASES.slice(0, RDV0).map((_, i) => phraseBtn(i)).j
 $("phraseList").onclick = e => { const b = e.target.closest("[data-i]"); if (!b || !net || net.s < 0) return; net.ws.send(JSON.stringify({ t: "m", i: +b.dataset.i })); fermer("sayView"); };
 $("sayBtn").onclick = () => { sfx.click(); ouvrir("sayView"); };
 $("sayClose").onclick = () => { sfx.click(); fermer("sayView"); };
-// Se donner des choses : un objet du sac ou un cadeau de l'arcade, pris dans une liste fermée (on n'envoie que son numéro).
-// L'objet quitte le sac tout de suite ; l'ami répond « merci » en le recevant ; sans réponse (il est parti…), l'objet revient.
+// Se donner des choses : un objet du sac, un cadeau de l'arcade, un livre ou un maillot, pris dans une liste fermée (on n'envoie
+// que son numéro). L'objet part tout de suite ; l'ami répond « merci » en le recevant ; sans réponse (il est parti…), il revient.
 const DONS_ARCADE = [...GT_PRIZES, ...GT_SMALL.filter(p => !["eat", "bubbles", "confetti"].includes(p[3]))].map(([e, n]) => e + " " + n).concat("🧸 Peluche de la pince");
-const DONS = [...new Set([...BUY.boul.items, ...BUY.market.items, ...PHONE_BF.items].map(([e, n]) => e + " " + n).concat(DONS_ARCADE))].slice(0, 64); // le relais accepte 64 numéros (NB_DONS)
+// (on ajoute à la fin : les numéros déjà utilisés ne changent pas)
+const DONS = [...new Set([...BUY.boul.items, ...BUY.market.items, ...PHONE_BF.items].map(([e, n]) => e + " " + n).concat(DONS_ARCADE,
+  BOOKS.map(b => "livre:" + b.id), SUITS.map(su => "maillot:" + su.id)))].slice(0, 64); // le relais accepte 64 numéros (NB_DONS)
 const sacDe = o => DONS_ARCADE.includes(o) ? gtData.owned : bag;
-function sauverSacs() { try { localStorage.setItem("pins-sac", JSON.stringify(bag.slice(-60))); } catch (e) {} gtSave(); if (!$("invView").hidden) remplirSac(); }
+const livreDe = o => o.startsWith("livre:") ? BOOKS.find(b => b.id === o.slice(6)) : null, maillotDe = o => o.startsWith("maillot:") ? SUITS.find(su => su.id === o.slice(8)) : null;
+function nomDon(o) { const b = livreDe(o), su = maillotDe(o); return b ? `📚 « ${b.t} »` : su ? "🩱 " + nomMaillot(su) : o; }
+function sauverSacs() { try { localStorage.setItem("pins-sac", JSON.stringify(bag.slice(-60))); localStorage.setItem("pins-livres", JSON.stringify(ownBooks)); } catch (e) {} saveShop(); gtSave(); if (!$("invView").hidden) remplirSac(); }
+const aDon = o => { const b = livreDe(o), su = maillotDe(o); return b ? ownBooks.includes(b.id) : su ? owned.includes(su.id) : sacDe(o).includes(o); };
+function oterDon(o) { const b = livreDe(o), su = maillotDe(o);
+  if (b) { ownBooks.splice(ownBooks.indexOf(b.id), 1); const k = bag.indexOf(b.e + " " + b.t); if (k >= 0) bag.splice(k, 1); } // le livre acheté à la librairie était aussi dans le sac
+  else if (su) { owned.splice(owned.indexOf(su.id), 1); if (wearing === su.id) { wearing = null; setOutfit(player, null); envoyerProfil(); } }
+  else { const sac = sacDe(o); sac.splice(sac.indexOf(o), 1); } sauverSacs(); }
+function ajouterDon(o) { const b = livreDe(o), su = maillotDe(o); if (b) ownBook(b.id); else if (su) { if (!owned.includes(su.id)) owned.push(su.id); } else sacDe(o).push(o); sauverSacs(); }
 const peutDonner = o => !!net && net.s >= 0 && net.autres.size > 0 && DONS.includes(o);
-function ouvrirDon(o) { $("donTitre").textContent = `À qui veux-tu donner ${o} ?`; const L = $("donListe"); L.textContent = "";
+function ouvrirDon(o) { $("donTitre").textContent = `À qui veux-tu donner ${nomDon(o)} ?`; const L = $("donListe"); L.textContent = "";
   for (const s of [...net.autres.keys()].sort((a, b) => a - b)) { const b = document.createElement("button"); b.className = "btn"; b.style.background = ANIMAUX[s][3]; b.textContent = `${ANIMAUX[s][0]} ${nomJoueur(s)}`;
     b.onclick = () => { sfx.click(); fermer("donView"); donner(s, o); }; L.append(b); }
   ouvrir("donView"); }
 $("donFermer").onclick = () => { sfx.click(); fermer("donView"); };
 function donner(s, o) {
-  const i = DONS.indexOf(o), sac = sacDe(o), k = sac.indexOf(o); if (!net || net.s < 0 || i < 0 || k < 0 || !net.autres.has(s) || net.ws.readyState !== 1) return;
-  sac.splice(k, 1); sauverSacs();
-  const d = { s, i, t: 0 }; d.t = setTimeout(() => rendreDon(d, true), 6000); net.dons.push(d);
-  net.ws.send(JSON.stringify({ t: "don", a: s, o: i })); toast(`🎁 Tu donnes ${o} à ${nomJoueur(s)}…`, 2000);
+  const i = DONS.indexOf(o); if (!net || net.s < 0 || i < 0 || !aDon(o) || !net.autres.has(s) || net.ws.readyState !== 1) return;
+  oterDon(o);
+  const d = { s, i, t: 0 }; d.t = setTimeout(() => rendreDon(d, true), 10000); net.dons.push(d);
+  net.ws.send(JSON.stringify({ t: "don", a: s, o: i })); toast(`🎁 Tu donnes ${nomDon(o)} à ${nomJoueur(s)}…`, 2000);
 }
-function rendreDon(d, dire) { if (net) { const k = net.dons.indexOf(d); if (k < 0) return; net.dons.splice(k, 1); } clearTimeout(d.t);
-  const o = DONS[d.i]; sacDe(o).push(o); sauverSacs(); if (dire) toast(`Le cadeau n'est pas arrivé : ${o} revient dans ton sac.`, 2600); }
+function rendreDon(d, dire) { if (net) { const k = net.dons.indexOf(d); if (k < 0) return; net.dons.splice(k, 1); net.rendus.push(d); } clearTimeout(d.t);
+  const o = DONS[d.i]; ajouterDon(o); if (dire) toast(`Le cadeau n'est pas arrivé : ${nomDon(o)} revient chez toi.`, 2600); }
 function recevoirDon(d) { // on range le cadeau et on dit merci (l'ami sait alors qu'il est arrivé)
-  const o = DONS[d.o]; sacDe(o).push(o); sauverSacs(); net.ws.send(JSON.stringify({ t: "merci", a: d.s, o: d.o }));
-  sfx.win(); toast(`🎁 ${ANIMAUX[d.s][0]} ${nomJoueur(d.s)} t'a donné ${o} ! Regarde dans ton sac.`, 3200); }
-function merciDon(d) { const k = net.dons.findIndex(x => x.s === d.s && x.i === d.o); if (k < 0) return; const [x] = net.dons.splice(k, 1); clearTimeout(x.t); toast(`✅ ${nomJoueur(d.s)} a bien reçu ${DONS[d.o]} !`, 2200); }
+  const o = DONS[d.o], deja = (livreDe(o) || maillotDe(o)) && aDon(o); ajouterDon(o); net.ws.send(JSON.stringify({ t: "merci", a: d.s, o: d.o }));
+  sfx.win(); toast(`🎁 ${ANIMAUX[d.s][0]} ${nomJoueur(d.s)} t'a donné ${nomDon(o)} !` + (deja ? " Tu l'avais déjà 😉" : livreDe(o) ? " Il est dans ton téléphone." : maillotDe(o) ? " Tu peux le mettre aux vestiaires." : " Regarde dans ton sac."), 3400); }
+function merciDon(d) { const k = net.dons.findIndex(x => x.s === d.s && x.i === d.o);
+  if (k < 0) { // le « merci » arrive après le retour de l'objet (réseau très lent) : l'ami l'a bien reçu, on le lui laisse
+    const r = net.rendus.findIndex(x => x.s === d.s && x.i === d.o); if (r < 0) return; net.rendus.splice(r, 1); const o = DONS[d.o];
+    if (aDon(o)) oterDon(o); toast(`✅ ${nomJoueur(d.s)} a bien reçu ${nomDon(o)} !`, 2200); return; } const [x] = net.dons.splice(k, 1); clearTimeout(x.t); toast(`✅ ${nomJoueur(d.s)} a bien reçu ${nomDon(DONS[d.o])} !`, 2200); }
 
 // À chaque image : on déplace les amis en douceur et on envoie sa position 10 fois par seconde
 function netTick(dt) {
@@ -9676,12 +9683,13 @@ function remplirSac() {
     const d = document.createElement("div"); d.className = "cases"; const n = new Map(); for (const o of objets) { const k = o.cle ?? o; const e = n.get(k); if (e) e.k++; else n.set(k, { o, k: 1 }); }
     for (const { o, k } of n.values()) { const c = document.createElement("div"); c.className = "case" + (o.porte ? " porte" : ""); const [img, nom] = o.img ? [o.img, o.nom] : dessin(o);
       c.innerHTML = img + `<span>${nom.replace(/[&<>]/g, "")}</span>` + (k > 1 ? `<b>×${k}</b>` : ""); const f = agir && agir(o); if (f) { c.classList.add("mange"); c.setAttribute("role", "button"); c.onclick = f; }
-      if (peutDonner(o)) { const g = document.createElement("button"); g.className = "donner"; g.textContent = "🎁"; g.setAttribute("aria-label", "Donner " + nom + " à un ami"); g.onclick = e => { e.stopPropagation(); sfx.click(); ouvrirDon(o); }; c.append(g); }
+      if (peutDonner(o.don ?? o)) { const g = document.createElement("button"); g.className = "donner"; g.textContent = "🎁"; g.setAttribute("aria-label", "Donner " + nom + " à un ami"); g.onclick = e => { e.stopPropagation(); sfx.click(); ouvrirDon(o.don ?? o); }; c.append(g); }
       d.append(c); } L.append(d); };
-  groupe("maillot", "Mes maillots", owned.map(id => { const su = SUITS.find(x => x.id === id); return { cle: id, porte: wearing === id, nom: su ? nomMaillot(su) : id, img: icone("maillot").replace("<svg ", `<svg style="--maillot:${su ? su.a : "#2e86de"}" `) }; }), "Pas encore de maillot.");
+  groupe("maillot", "Mes maillots", owned.map(id => { const su = SUITS.find(x => x.id === id); return { cle: id, don: "maillot:" + id, porte: wearing === id, nom: su ? nomMaillot(su) : id, img: icone("maillot").replace("<svg ", `<svg style="--maillot:${su ? su.a : "#2e86de"}" `) }; }), "Pas encore de maillot.");
   groupe("caddie", "Mes courses", bag, "Rien pour l'instant : va à la boulangerie ou au Market Speed !", o => mangeable(o) ? () => manger(o) : null);
   if (bag.some(mangeable)) { const p = document.createElement("p"); p.className = "sacAide"; p.innerHTML = "Touche un aliment pour le <b>manger</b> : tu marches et tu nages 10 % plus vite pendant 2 minutes !"; L.append(p); }
-  if (net && net.s >= 0 && net.autres.size && [...bag, ...gtData.owned].some(peutDonner)) { const p = document.createElement("p"); p.className = "sacAide"; p.innerHTML = "Touche <b>🎁</b> sur un objet pour le <b>donner</b> à un ami de la partie !"; L.append(p); }
+  groupe("livre", "Mes livres", ownBooks.map(id => { const b = BOOKS.find(x => x.id === id); return { cle: id, don: "livre:" + id, nom: b.t, img: icone("livre") }; }), "Pas encore de livre : va à la librairie !", o => () => { fermer("invView"); openBook(o.cle); });
+  if (net && net.s >= 0 && net.autres.size) { const p = document.createElement("p"); p.className = "sacAide"; p.innerHTML = "Touche <b>🎁</b> sur un objet, un livre ou un maillot pour le <b>donner</b> à un ami de la partie !"; L.append(p); }
   groupe("cadeau", "Mes cadeaux", gtData.owned, "Gagne des tickets dans la salle d'arcade du Multi Parcs pour avoir des cadeaux !");
 }
 $("invBtn").onclick = () => { if (!$("intro").hidden) return; sfx.click(); remplirSac(); ouvrir("invView"); };
@@ -10205,7 +10213,7 @@ function loop() {
   requestAnimationFrame(loop);
   manette();
   const menu = !introEl.hidden; document.body.classList.toggle("accueil-on", menu);
-  if (menu && dejaVu) { clock.getDelta(); prN = prT = 0; sonsTick("accueil", 0, true); return; }
+  if (menu && dejaVu) { clock.getDelta(); prN = prT = 0; sonsTick("depart", 0, true); return; }
   // filet de sécurité : le jeu reste en pause alors qu'aucune fenêtre n'est ouverte (deux fenêtres ouvertes l'une sur l'autre,
   // une fenêtre fermée sans « fermer »…) : le joystick ne répondait plus jusqu'au prochain menu. Au bout d'un instant, on reprend.
   if (paused && !menu && (animN & 15) === 0) { if (!document.querySelector(".overlay:not([hidden])") && $("fade").style.opacity !== "1") { if (++pauseSeule > 2) { paused = false; pauseSeule = 0; } } else pauseSeule = 0; }
@@ -10448,7 +10456,7 @@ function loop() {
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $("toast").hidden = true; }
   scheduleMusic();
   ambTick(dt, !inCottage && !inDome && !inBalo && !inGT && !inBF && !inShop && !inAq, nightK, time);
-  sonsTick(!introEl.hidden ? "accueil" : ENCEINTE.piste && inCottage && SONS.boucles[ENCEINTE.piste] ? ENCEINTE.piste : state === "boat" ? "pedalo" : dansAnniversaire(P) ? "anniversaire" : inGT ? "arcade" : BOUM.loud ? "boum" : FETE.inside && FETE.act === 3 ? "chanteur" : HALLO.on && MANOR.inside ? "manoir" : inShop === ACCUEIL ? "accueil" : inShop ? "magasin" : inDome ? "piscine" : inCottage || inBalo || inGT || inBF || inAq ? "dedans" : "dehors", nightK);
+  sonsTick(!introEl.hidden ? "depart" : ENCEINTE.piste && inCottage && SONS.boucles[ENCEINTE.piste] ? ENCEINTE.piste : state === "boat" ? "pedalo" : dansAnniversaire(P) ? "anniversaire" : inGT ? "arcade" : BOUM.loud ? "boum" : FETE.inside && FETE.act === 3 ? "chanteur" : HALLO.on && MANOR.inside ? "manoir" : inShop === ACCUEIL ? "accueil" : inShop ? "magasin" : inDome ? "piscine" : inBalo ? "multiparc" : inCottage || inBalo || inGT || inBF || inAq ? "dedans" : "dehors", nightK);
   if (mapOpen) drawMap();
   netTick(dt);
 
@@ -10473,9 +10481,12 @@ function loop() {
 }
 window.__pins = { ouvrirCrea, openBook, lvTourner, toast, MANOR, get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; } };
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
-await souffle(97, "Les couleurs se mélangent…");
+// (jusqu'à 6 s sur iPad) : la barre continue d'avancer doucement et les messages changent, pour qu'on voie que ça avance
+await souffle(96, "Les maîtres-nageurs arrivent…");
 const compiler = () => Promise.race([renderer.compileAsync(scene, camera), new Promise(r => setTimeout(r, 6000))]).catch(() => {});
-await compiler();
+{ let pc = 96, n = 0; const MOTS = ["Les maîtres-nageurs arrivent…", "On gonfle les ballons…", "Le soleil se lève sur le domaine…", "On ouvre les portes…"];
+  const avance = setInterval(() => { pc += (99.5 - pc) * .12; $("chargeBar").style.width = pc.toFixed(1) + "%"; if (++n % 8 === 0) $("chargeTxt").textContent = MOTS[(n / 8) % MOTS.length]; }, 250);
+  await compiler(); clearInterval(avance); }
 chargerPartie(); dessinerPersos();
 majPartieBar(); { let nv = null; try { nv = LS_VRAI.getItem("pins-nouvelle"); LS_VRAI.removeItem("pins-nouvelle"); } catch (e) {} if (nv) { sauverPersos(); setTimeout(() => ouvrirCrea(false), 300); } }
 { let q = null; try { q = LS_VRAI.getItem("pins-demarrer"); LS_VRAI.removeItem("pins-demarrer"); } catch (e) {} if (q === "jouer" || q === "amis") setTimeout(() => $(q === "jouer" ? "startBtn" : "introMulti").click(), 80); }
@@ -10504,7 +10515,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.29-17"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.10.29-21"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.

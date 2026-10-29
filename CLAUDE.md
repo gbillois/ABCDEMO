@@ -49,7 +49,7 @@ Accord du propriétaire pour ce seul jeu : `pins/index.html` peut se connecter
 - Messages en liste fermée uniquement (numéros de `PHRASES`) : jamais de texte libre.
   La liste compte les phrases, puis les rendez-vous (lieux et numéros de cottages) : `NB_PHRASES`
   du relais (64) doit rester supérieur ou égal au nombre total de phrases.
-- Se donner des objets : message `don` (numéro dans la liste fermée `DONS` du jeu, objets du sac et cadeaux de l'arcade)
+- Se donner des objets : message `don` (numéro dans la liste fermée `DONS` du jeu : objets du sac, cadeaux de l'arcade, livres, maillots ; on ajoute à la fin de la liste)
   envoyé à un seul joueur de la salle, qui répond `merci` ; sans réponse, l'objet revient dans le sac. `NB_DONS` du relais (64)
   doit rester supérieur ou égal à la longueur de `DONS`.
 - Seule exception au texte libre : le champ `pseudo` du message `profil`, court et filtré.
@@ -110,8 +110,8 @@ Accord du propriétaire : le jeu vit dans `pins/` pour avoir sa propre adresse
 
 Accord du propriétaire (octobre 2026) pour ce seul jeu : `pins/sons/` contient des fichiers MP3.
 - `foret.mp3` et `oiseau-*.mp3` viennent du dépôt TheNewLearners du propriétaire (ambiances, lecture seule) ;
-  `piscine.mp3` (ambiance de l'Aquaparc), `magasin.mp3` (musique des magasins), `accueil.mp3` (musique de l'écran de départ et de l'accueil) et `manoir.mp3` (musique d'Halloween du manoir hanté) sont générés avec ElevenLabs.
-- `boum.mp3` (pool party de l'Aquaparc, « Big Bump Dive »), `chanteur.mp3` (chanteur de la salle des fêtes, « Haven by the Hearth ») , `pedalo.mp3` (sur le pédalo, « Paddlewheel Panic »), `arcade.mp3` (salle de jeux vidéo) et les `j-*.mp3` (enceinte)
+  `piscine.mp3` (ambiance de l'Aquaparc), `magasin.mp3` (musique des magasins), `accueil.mp3` (musique de l'accueil) et `manoir.mp3` (musique d'Halloween du manoir hanté) sont générés avec ElevenLabs.
+- `boum.mp3` (pool party de l'Aquaparc, « Big Bump Dive »), `chanteur.mp3` (chanteur de la salle des fêtes, « Haven by the Hearth ») , `pedalo.mp3` (sur le pédalo, « Paddlewheel Panic »), `arcade.mp3` (salle de jeux vidéo), `depart.mp3` (écran de départ, « Steps Along the Mossy Trail »), `multiparc.mp3` (salle de jeux du Multi Parcs, « Midday at the Cove ») et les `j-*.mp3` (enceinte)
   sont fournis par le propriétaire ; `anniversaire.mp3` et `anniv-foule.mp3` (salles d'anniversaire) sont en CC0 ;
   la source et la licence de chaque fichier sont dans `pins/sons/SOURCES.md` (à tenir à jour). Les morceaux longs sont réencodés en mono 32 kHz (moins de mémoire sur iPad). L'enceinte des cottages fait écouter toutes les musiques.
 - Ils sont chargés après le premier toucher, depuis le même site (pas d'autre serveur), et gardés hors ligne

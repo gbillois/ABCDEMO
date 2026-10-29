@@ -16,6 +16,8 @@ Tous les fichiers sont réencodés pour le jeu (MP3 ; les morceaux longs en mono
 | `anniversaire.mp3` | salles d'anniversaire du Multi Parcs | « Happy Birthday » par The Mountain (fichier d'origine `the_mountain-happy-birthday-508020.mp3`) | CC0 (indiqué par le propriétaire) |
 | `anniv-foule.mp3` | la foule chante quand on souffle les bougies | « Happy Birthday Crowd » par theuned, chosic.com (fichier d'origine `theuned_happy-birthday-crowdchosic.com.mp3`, étiquette « PD music ») | CC0 (indiqué par le propriétaire) |
 | `arcade.mp3` | salle de jeux vidéo | « Quarter in the Slot », fourni par le propriétaire | fourni par le propriétaire |
+| `depart.mp3` | écran de départ (et enceinte) | « Steps Along the Mossy Trail », fourni par le propriétaire | fourni par le propriétaire |
+| `multiparc.mp3` | salle de jeux du Multi Parcs (château gonflable, piscine à balles) | « Midday at the Cove », fourni par le propriétaire | fourni par le propriétaire |
 | `j-sidewalk.mp3` | enceinte des cottages | « Sidewalk Capers », fourni par le propriétaire | fourni par le propriétaire |
 | `j-brasswork.mp3` | enceinte des cottages | « The Brasswork Blueprint », fourni par le propriétaire | fourni par le propriétaire |
 | `j-carrousel.mp3` | enceinte des cottages | « The Iron Carousel Waltz », fourni par le propriétaire | fourni par le propriétaire |
