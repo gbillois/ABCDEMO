@@ -3869,6 +3869,9 @@ const inManor = (x, z) => x > MANOR.x1 && x < MANOR.x2 && z > MANOR.z1 && z < MA
     for (const z of [door - 2.6, door + 2.6]) { const pot = new THREE.Mesh(new THREE.CylinderGeometry(.3, .25, .5, 12), mat(0xd35400, .7)); pot.position.set(x1 - 1.6, .25, z); calm.add(pot); const ball = new THREE.Mesh(new THREE.SphereGeometry(.55, 14, 10), mat(0x2d8a4f, .8)); ball.position.set(x1 - 1.6, 1, z); calm.add(ball); }
     for (const [ax, bz] of [[x1 - .6, z1 - .6], [x1 - .6, z2 + .6]]) for (let k = 0; k < 6; k++) { const f = new THREE.Mesh(new THREE.SphereGeometry(.18, 8, 6), mat([0xff5a4e, 0xffc93c, 0xe84393, 0xffffff][k % 4], .6)); f.position.set(x1 + 1 + k * 2.4, .25, bz); calm.add(f); const lf = new THREE.Mesh(new THREE.SphereGeometry(.28, 8, 6), mat(0x3a7d44, .8)); lf.scale.y = .5; lf.position.set(x1 + 1 + k * 2.4, .1, bz); calm.add(lf); }
     const bench = rbox(1.8, .1, .5, mat(0x8a5a35, .7), .02); bench.position.set(x1 - 3.6, .45, door + 3.8); calm.add(bench); }
+  // ce qui est à l'étage (plancher, lit, armoire, rambarde…) : caché quand on est en bas, pour bien voir le rez-de-chaussée
+  MANOR.upObjs = []; for (const par of [g, spook, calm]) for (const o of par.children) { if (o.isLight) continue; const q = o.position;
+    if (q.y >= UF.y - .25 && q.y < UF.y + 2.6 && q.x >= UF.x1 - .3 && q.x <= UF.x2 && q.z >= UF.z1 - .1 && q.z <= UF.z2 + .3) MANOR.upObjs.push(o); }
   shadowAll(g); light.castShadow = false;
 }
 function setManorOn(on) { // le même bâtiment : manoir hanté pour Halloween, grande maison le reste du temps
@@ -3882,6 +3885,7 @@ function setManorOn(on) { // le même bâtiment : manoir hanté pour Halloween, 
 function updateManor(dt, time, P) {
   const inside = inManor(P.x, P.z); if (inside !== MANOR.inside) { MANOR.inside = inside; if (inside) { if (HALLO.on) { toast("🏚️ Bienvenue au manoir hanté… Hou hou ! 👻 Monte l'escalier !", 2600); tone(110, 1.2, "sine", .14, -40); tone(165, 1.2, "sine", .08, -60, .2); } else toast("🏡 Bienvenue dans le grand cottage ! Il y a un étage.", 2400); } }
   MANOR.roof.visible = !inside; MANOR.winG.visible = !inside;
+  { const upV = !(inside && P.y < 1.6); if (MANOR.upV !== upV) { MANOR.upV = upV; for (const o of MANOR.upObjs) o.visible = upV; } }
   MANOR.fade += ((inside ? .25 : 1) - MANOR.fade) * Math.min(1, dt * 6); const wm = MANOR.wallM, tr = MANOR.fade < .98; if (wm.transparent !== tr) { wm.transparent = tr; wm.depthWrite = !tr; wm.needsUpdate = true; } wm.opacity = MANOR.fade;
   const far = Math.hypot(P.x - 16, P.z - 93); MANOR.g.visible = far < 150; if (far > 70) return;
   for (const f of MANOR.flames) f.scale.setScalar(.8 + Math.random() * .4);
@@ -10044,7 +10048,7 @@ function loop() {
   voituresTick(dt); trier(dt); suivreFeux(dt); majInterieurs(); if (!paused) majObjectif(dt); if (dejaVu) adapterResolution();
   suivreVitres(); gel(); renderer.render(scene, camera); dejaVu = true; majPerf();
 }
-window.__pins = { get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; } };
+window.__pins = { MANOR, get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; } };
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
 await souffle(97, "Les couleurs se mélangent…");
 const compiler = () => Promise.race([renderer.compileAsync(scene, camera), new Promise(r => setTimeout(r, 6000))]).catch(() => {});
