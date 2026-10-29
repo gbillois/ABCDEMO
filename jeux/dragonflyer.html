@@ -94,7 +94,8 @@ input,textarea,select{font-size:max(16px,1em)}
   button:active, a.bouton:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--encre); }
   button.grand { font-family: var(--titre); font-size: 34px; letter-spacing: 1px; padding: 8px 40px 10px; border-radius: 16px;
     background: radial-gradient(circle at 50% 30%, #e85a3c, var(--rouge) 55%, #6e120c); box-shadow: 5px 5px 0 var(--encre), inset 0 0 0 3px #f2c14e, inset 0 3px 0 rgba(255,220,180,.4); }
-  button.choix { font: 900 13.5px var(--chiffres); padding: 6px 11px; border-radius: 7px; box-shadow: 3px 3px 0 var(--encre); text-shadow: 1px 1px 0 var(--encre); }
+  button.choix { font: 900 13.5px var(--chiffres); padding: 6px 11px; border-radius: 7px; box-shadow: 3px 3px 0 var(--encre); text-shadow: 1px 1px 0 var(--encre);
+    background: repeating-linear-gradient(93deg, rgba(0,0,0,.1) 0 2px, transparent 2px 7px), linear-gradient(180deg, #a86a37, var(--bois) 55%, var(--bois2)); }
   button.choix[aria-pressed="true"] { background: linear-gradient(180deg, #ffe27a, #d79a1c); color: var(--encre); text-shadow: none; }
   .ligne { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; margin: 14px 0 2px; font-family: var(--tete); font-size: 16px; }
   .record { text-align: center; font-family: var(--tete); font-size: 16px; color: var(--rouge); min-height: 20px; margin-top: 8px; }
@@ -152,6 +153,21 @@ input,textarea,select{font-size:max(16px,1em)}
   #indice { position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 6; pointer-events: none; font: 400 17px var(--tete); }
   .bt.appui { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--encre); filter: brightness(1.2); }
 
+  @media (max-height: 520px) {
+    #titre { justify-content: center; }
+    #titre .carte { max-width: 760px; padding: 12px 22px 10px; }
+    #titre .blason { display: none; }
+    #titre h1 { font-size: 44px; }
+    #titre .ruban { font-size: 14px; margin: 4px auto 6px; padding: 4px 26px 5px; }
+    #titre ul.regles { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; font-size: 13px; margin-bottom: 6px; }
+    #titre ul.regles li { border-top: 0; padding: 3px 0; }
+    #titre .ico { width: 26px; height: 26px; font-size: 15px; }
+    #titre .commandes { display: none; }
+    #titre button.grand { font-size: 26px; padding: 4px 30px 6px; }
+    #titre .bouton { font-size: 16px; padding: 7px 18px; }
+    #titre .ligne { margin-top: 6px; }
+    .ecran .carte h2 { font-size: 30px; }
+  }
   @media (max-width: 640px), (max-height: 560px) {
     .carte { padding: 18px 18px 16px; }
     ul.regles { font-size: 15px; }
@@ -2111,6 +2127,50 @@ function majPeche(dt) {
   }
 }
 
+// ------------------------------------------------------------------ mouettes : vols qui tournent au-dessus des côtes (tout calculé par la carte graphique)
+let mouettes, VOLEES = [];
+function creerMouettes() {
+  const r = alea(909), n = 70;
+  for (const s of sitesCotiers().slice(0, 400)) { if (VOLEES.length >= 7) break; if (VOLEES.every(v => Math.hypot(v.x - s.x, v.z - s.z) > 800)) VOLEES.push({ x: s.x + s.mx * 60, z: s.z + s.mz * 60 }); }
+  if (!VOLEES.length) return;
+  const g = new THREE.InstancedBufferGeometry();
+  // corps + deux ailes coudées ; aAile = 0 (corps), 1 (coude), 2 (bout d'aile), signe = côté
+  const P = [], A = [];
+  const tri = (a, b, c, wa, wb, wc) => { P.push(...a, ...b, ...c); A.push(wa, wb, wc); };
+  tri([0, 0, .35], [-.06, 0, -.25], [.06, 0, -.25], 0, 0, 0);
+  for (const sx of [1, -1]) { tri([0, 0, .1], [sx * .45, 0, .05], [0, 0, -.12], 0, sx, 0); tri([sx * .45, 0, .05], [sx * .95, 0, -.12], [0, 0, -.12], sx, sx * 2, 0); tri([sx * .45, 0, .05], [sx * .95, 0, -.12], [sx * .4, 0, -.1], sx, sx * 2, sx); }
+  g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3)); g.setAttribute("aAile", new THREE.Float32BufferAttribute(A, 1));
+  const I = new Float32Array(n * 4), C = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { const v = VOLEES[i % VOLEES.length]; I.set([v.x, 25 + r() * 70, v.z, r() * 6.28], i * 4); C.set([40 + r() * 90, (r() < .5 ? 1 : -1) * (5 + r() * 4), r() * 6.28], i * 3); }
+  g.setAttribute("iCentre", new THREE.InstancedBufferAttribute(I, 4)); g.setAttribute("iVol", new THREE.InstancedBufferAttribute(C, 3)); g.instanceCount = n;
+  mouettes = new THREE.Mesh(g, new THREE.ShaderMaterial({
+    side: THREE.DoubleSide, uniforms: { uTemps: U_TEMPS },
+    vertexShader: `uniform float uTemps; attribute float aAile; attribute vec4 iCentre; attribute vec3 iVol; varying vec3 vW; varying float vL;
+      void main() {
+        float a = iCentre.w + uTemps * iVol.y / iVol.x;
+        vec3 c = iCentre.xyz + vec3(cos(a) * iVol.x, sin(uTemps * 0.3 + iVol.z) * 6.0, sin(a) * iVol.x);
+        vec3 f = normalize(vec3(-sin(a), 0.0, cos(a)) * sign(iVol.y)), d = normalize(cross(vec3(0.0, 1.0, 0.0), f));
+        float bat = sin(uTemps * 5.0 + iVol.z * 3.0) * (0.5 + 0.5 * step(0.0, sin(uTemps * 0.7 + iVol.z)));
+        vec3 p = position * 1.6; float s = abs(aAile);
+        p.y += (s >= 1.0 ? bat * 0.35 : 0.0) + (s >= 2.0 ? bat * 0.45 - 0.08 : 0.0);
+        vW = c + d * p.x + vec3(0.0, p.y, 0.0) + f * p.z; vL = s >= 2.0 ? 0.55 : 1.0;
+        gl_Position = projectionMatrix * viewMatrix * vec4(vW, 1.0);
+      }`,
+    fragmentShader: `varying vec3 vW; varying float vL;
+      ${GLSL_ATMO}
+      void main() { vec3 col = vec3(0.92, 0.93, 0.95) * vL * (SUN_COL * 1.3 + SKY_ZEN); gl_FragColor = vec4(atmo(col, vW), 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+  }));
+  mouettes.frustumCulled = false; scene.add(mouettes);
+}
+function majMouettes() {
+  if (!VOLEES.length || etat.mode !== "vol") return;
+  const p = etat.sol === "pied" ? marche.pos : etat.pos;
+  for (const v of VOLEES) if (Math.hypot(p.x - v.x, p.z - v.z) < 160 && Math.random() < .006) son.mouette();
+}
+
 // ------------------------------------------------------------------ caméra
 const VUES = [{ d: 27, h: 7.5, regard: 12 }, { d: 46, h: 13, regard: 18 }, { d: 15, h: 4.2, regard: 9 }];
 const camCible = new THREE.Vector3(), camRegard = new THREE.Vector3();
@@ -2269,6 +2329,7 @@ const son = (() => {
     rugissement() { if (!AC) return; const o = AC.createOscillator(), o2 = AC.createOscillator(), g = AC.createGain(), f = AC.createBiquadFilter(); o.type = "sawtooth"; o2.type = "sawtooth"; o.frequency.setValueAtTime(130, t0()); o.frequency.exponentialRampToValueAtTime(70, t0() + 1.6); o2.frequency.setValueAtTime(97, t0()); o2.frequency.exponentialRampToValueAtTime(55, t0() + 1.6);
       f.type = "bandpass"; f.frequency.value = 700; f.Q.value = 1.2; o.connect(f); o2.connect(f); f.connect(g); g.connect(maitre); env(g, .15, 1.5, .5); o.start(); o2.start(); o.stop(t0() + 1.8); o2.stop(t0() + 1.8); souffle(900, .7, .1, 1.4, .4); },
     clic() { if (!AC) return; osc("triangle", 660, .003, .12, .12); },
+    mouette() { if (!AC) return; const f = 1200 + Math.random() * 500; for (let k = 0; k < 2 + (Math.random() * 3 | 0); k++) setTimeout(() => osc("sawtooth", f, .01, .22, .025, maitre, f * .6), k * 260); },
   };
 })();
 let eauNiveau = 0;
@@ -2382,7 +2443,7 @@ function image(now, dtForce) {
   animerDragon(dt);
   if (etat.sol === "pied" || etat.sol === "appel") majCameraPied(dt); else majCamera(dt, auto);
   if (!auto) { if (!etat.sol) verifierAnneaux(); majHud(dt); }
-  majAnneaux(); majFeuxAllumes(dt); majPeche(dt); majHutte(dt); animerBebes(dt);
+  majAnneaux(); majFeuxAllumes(dt); majPeche(dt); majHutte(dt); animerBebes(dt); majMouettes();
   if (!auto) { const ok = !etat.sol && peutSePoser(); $("btPoser").hidden = !TACTILE || !ok; $("indice").hidden = TACTILE || !ok; }
   flammes.maj(dt, 2.2, 6, 2.2); fumee.maj(dt, .4, 2, 2.5); gouttes.maj(dt, .5, -14, .5);
   for (const b of BATEAUX) { if (!BATEAUX.mesh) break; }
@@ -2425,7 +2486,7 @@ async function demarrer() {
     await progression(.7, "On plante les forêts…");
     creerArbres();
     await progression(.78, "On construit les villages…");
-    creerVillages(); creerFeux(); creerAnneaux(); creerNid(); creerHutte(); creerPeche(); await creerBebes();
+    creerVillages(); creerFeux(); creerAnneaux(); creerNid(); creerHutte(); creerPeche(); creerMouettes(); await creerBebes();
     $("totAnneaux").textContent = ANNEAUX.length; $("totFeux").textContent = FEUX.length;
     if (Q.bloom) {
       const { EffectComposer } = await import("three/addons/postprocessing/EffectComposer.js");
