@@ -103,7 +103,7 @@ Accord du propriétaire : le jeu vit dans `pins/` pour avoir sa propre adresse
 
 Accord du propriétaire (octobre 2026) pour ce seul jeu : `pins/sons/` contient des fichiers MP3.
 - `foret.mp3` et `oiseau-*.mp3` viennent du dépôt TheNewLearners du propriétaire (ambiances, lecture seule) ;
-  `piscine.mp3` (ambiance de l'Aquaparc), `magasin.mp3` (musique des magasins) et `manoir.mp3` (musique d'Halloween du manoir hanté) sont générés avec ElevenLabs.
+  `piscine.mp3` (ambiance de l'Aquaparc), `magasin.mp3` (musique des magasins), `accueil.mp3` (musique de l'écran de départ et de l'accueil) et `manoir.mp3` (musique d'Halloween du manoir hanté) sont générés avec ElevenLabs.
 - Ils sont chargés après le premier toucher, depuis le même site (pas d'autre serveur), et gardés hors ligne
   par `pins/sw.js` (liste `FICHIERS`). Sans eux, le jeu garde ses sons faits maison.
 - Les autres jeux restent entièrement synthétisés (Web Audio API).
