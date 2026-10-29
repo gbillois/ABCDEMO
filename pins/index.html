@@ -393,6 +393,7 @@ html.app .site{display:none!important}
 .svTitre{margin:14px 0 4px;font-size:18px}.svDetails{text-align:left;margin:4px 0 8px}.svDetails summary{cursor:pointer;font-weight:800;color:#2e86de}
 .enceinteListe{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0;max-height:52vh;overflow:auto}
 .enceinteListe .piste{display:flex;align-items:center;gap:8px;text-align:left;border:2px solid #b9d9ee;background:#fff;border-radius:14px;padding:8px 10px;font:800 15px var(--ui);color:#1d3b2a;cursor:pointer}
+.enceinteListe h3{grid-column:1/-1;margin:6px 0 0;font-size:16px;text-align:left}
 .enceinteListe .piste .ic{width:30px;height:30px;flex:none}.enceinteListe .piste span{flex:1}
 .enceinteListe .piste.on{border-color:#2fb4ff;box-shadow:0 0 0 2px #2fb4ff;background:#eaf7ff}
 .partieLigne .poubelle{background:#fff;color:#c0392b;padding:6px 9px}
@@ -8195,7 +8196,19 @@ let actx = null, master = null, fxBus = null, muted = false;
 const VOL = { gen: 1, mus: 1, fx: 1 }; try { Object.assign(VOL, JSON.parse(localStorage.getItem("pins-volumes") || "{}")); } catch (e) {}
 function appliquerVolumes() { if (!actx) return; const t = actx.currentTime; master.gain.setTargetAtTime(.45 * VOL.gen, t, .05); fxBus.gain.setTargetAtTime(VOL.fx, t, .05); }
 try { muted = localStorage.getItem("pins-muet") === "1"; } catch (e) {}
-function audioOn() { try { if (!actx) { actx = new (window.AudioContext || window.webkitAudioContext)(); master = actx.createGain(); master.gain.value = .45 * VOL.gen; master.connect(actx.destination); fxBus = actx.createGain(); fxBus.gain.value = VOL.fx; { const lp = actx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 5200; lp.Q.value = .5; fxBus.connect(lp).connect(master); // des bruits plus doux, avec un peu d'écho
+// iPhone / iPad : le son du jeu joue même en mode silencieux, comme une vidéo ou une appli de musique (il s'arrête quand on quitte le jeu)
+function sonMemeEnSilencieux() {
+  try { if (navigator.audioSession) { navigator.audioSession.type = "playback"; return; } } catch (e) {}
+  // anciens iPad : une petite boucle de silence, jouée par le lecteur audio du navigateur, fait passer tout le son du jeu en « lecture »
+  if (!(/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1))) return;
+  if (!sonMemeEnSilencieux.a) { const n = 800, b = new Uint8Array(44 + n).fill(128), v = new DataView(b.buffer), ec = (o, t) => [...t].forEach((c, i) => { b[o + i] = c.charCodeAt(0); });
+    ec(0, "RIFF"); v.setUint32(4, 36 + n, true); ec(8, "WAVEfmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, 8000, true); v.setUint32(28, 8000, true);
+    v.setUint16(32, 1, true); v.setUint16(34, 8, true); ec(36, "data"); v.setUint32(40, n, true); // 0,1 s de silence (WAV 8 bits)
+    const a = sonMemeEnSilencieux.a = new Audio(URL.createObjectURL(new Blob([b], { type: "audio/wav" }))); a.loop = true; a.setAttribute("playsinline", ""); }
+  if (sonMemeEnSilencieux.a.paused && !document.hidden) sonMemeEnSilencieux.a.play().catch(() => {});
+}
+document.addEventListener("visibilitychange", () => { if (!actx) return; if (document.hidden) { actx.suspend().catch(() => {}); sonMemeEnSilencieux.a?.pause(); } else { actx.resume().catch(() => {}); sonMemeEnSilencieux.a?.play().catch(() => {}); } });
+function audioOn() { sonMemeEnSilencieux(); try { if (!actx) { actx = new (window.AudioContext || window.webkitAudioContext)(); master = actx.createGain(); master.gain.value = .45 * VOL.gen; master.connect(actx.destination); fxBus = actx.createGain(); fxBus.gain.value = VOL.fx; { const lp = actx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 5200; lp.Q.value = .5; fxBus.connect(lp).connect(master); // des bruits plus doux, avec un peu d'écho
       const len = actx.sampleRate * 1.2, ir = actx.createBuffer(2, len, actx.sampleRate); for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 4); }
       const rv = actx.createConvolver(), wet = actx.createGain(); rv.buffer = ir; wet.gain.value = .16; lp.connect(wet).connect(rv).connect(master); }
       musicInit(); ambInit(); sonsInit(); } if (actx.state === "suspended") actx.resume(); } catch (e) {} }
@@ -8294,13 +8307,18 @@ function sonsTick(lieu, nightK, menu) {
   SONS.magasin = lieu !== "foret" && lieu !== "piscine" && lieu in SONS.boucles && !!SONS.g[lieu]; // une musique de lieu : celle de la forêt se fait toute petite
 }
 // L'enceinte connectée des cottages : toutes les musiques du jeu, à écouter chez soi (la musique s'arrête en sortant, et reprend en rentrant)
-const ENCEINTE = { piste: null, PISTES: [["accueil", "Bienvenue au Domaine", "maison"], ["boum", "La pool party", "confettis"], ["chanteur", "La chanson de Lino", "musique"], ["pedalo", "Le pédalo", "eau"], ["anniversaire", "Joyeux anniversaire", "cadeau"], ["arcade", "La salle de jeux vidéo", "manette"],
-  ["j-sidewalk", "Sidewalk Capers", "musique"], ["j-brasswork", "The Brasswork Blueprint", "musique"], ["j-carrousel", "The Iron Carousel Waltz", "musique"], ["j-giza", "Little Builders of Giza", "musique"], ["magasin", "La musique des magasins", "caddie"],
-  ["manoir", "Le manoir hanté", "citrouille"], ["m-foret", "La harpe de la forêt", "sapin"], ["m-aqua", "Le marimba des îles", "eau"], ["m-ferme", "Le banjo de la ferme", "animal"]] };
+// rangées par type de musique
+const ENCEINTE = { piste: null, TYPES: [
+  ["🎉 Pour faire la fête", [["boum", "La pool party", "confettis"], ["chanteur", "La chanson de Lino", "musique"], ["anniversaire", "Joyeux anniversaire", "cadeau"]]],
+  ["🎺 Pour bouger", [["pedalo", "Le pédalo", "eau"], ["arcade", "La salle de jeux vidéo", "manette"], ["j-sidewalk", "Sidewalk Capers", "musique"], ["j-brasswork", "The Brasswork Blueprint", "musique"],
+    ["j-carrousel", "The Iron Carousel Waltz", "musique"], ["j-giza", "Little Builders of Giza", "musique"]]],
+  ["🌿 Musiques douces", [["accueil", "Bienvenue au Domaine", "maison"], ["magasin", "La musique des magasins", "caddie"], ["m-foret", "La harpe de la forêt", "sapin"], ["m-aqua", "Le marimba des îles", "eau"], ["m-ferme", "Le banjo de la ferme", "animal"]]],
+  ["🎃 Pour avoir un peu peur", [["manoir", "Le manoir hanté", "citrouille"]]]] };
 function ouvrirEnceinte() { dessinerEnceinte(); ouvrir("enceinteView"); }
 function dessinerEnceinte() { const L = $("enceinteListe"); L.innerHTML = "";
-  for (const [id, nom, ico] of ENCEINTE.PISTES) { const b = document.createElement("button"), on = ENCEINTE.piste === id; b.className = "piste" + (on ? " on" : ""); b.innerHTML = `${icone(ico)}<span>${nom}</span>${on ? icone("son") : ""}`;
-    b.onclick = () => { audioOn(); sfx.click(); ENCEINTE.piste = on ? null : id; dessinerEnceinte(); }; L.append(b); }
+  for (const [titre, pistes] of ENCEINTE.TYPES) { const h = document.createElement("h3"); h.textContent = titre; L.append(h);
+    for (const [id, nom, ico] of pistes) { const b = document.createElement("button"), on = ENCEINTE.piste === id; b.className = "piste" + (on ? " on" : ""); b.innerHTML = `${icone(ico)}<span>${nom}</span>${on ? icone("son") : ""}`;
+      b.onclick = () => { audioOn(); sfx.click(); ENCEINTE.piste = on ? null : id; dessinerEnceinte(); }; L.append(b); } }
   $("enceinteStop").disabled = !ENCEINTE.piste; }
 // dans une salle d'anniversaire du Multi Parcs (on prépare aussi le bruitage de la foule, pour les bougies)
 function dansAnniversaire(P) { const dedans = BDAY.some(r => r.table && Math.hypot(P.x - r.table[0], P.z - r.table[1]) < 3); if (dedans && SONS.bus && !SONS.buf["anniv-foule"] && !SONS.chargeB) { SONS.chargeB = true; decoderSon("anniv-foule", true).then(b => SONS.buf["anniv-foule"] = b).catch(() => { SONS.chargeB = false; }); } return dedans; }
@@ -10391,7 +10409,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.29-13"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.10.29-14"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
