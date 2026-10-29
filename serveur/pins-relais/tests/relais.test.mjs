@@ -32,6 +32,11 @@ test('filtre identique côté client et relais, variantes et texte non autorisé
   for (const nom of ['a', '--', 'a'.repeat(17), '<img src=x>', 'c0nn4rd', 'C O N N A R D', 'sàlope', 'p.d', 'P D', 'ta gueule', 'merde', 'FDP', null, 42]) assert.equal(filtrer(nom), null, String(nom));
 });
 
+test("bornes de l'apparence (LOOK_MAX) identiques dans le jeu et le relais", () => {
+  const bornes = texte => texte.match(/const LOOK_MAX = (\[[^\]]*\])/)[1];
+  assert.equal(bornes(jeu), bornes(source));
+});
+
 test('10 places compatibles avec les 10 animaux du client', () => {
   const animaux = vm.runInNewContext(jeu.match(/const ANIMAUX = ([\s\S]*?);/)[1]);
   assert.equal(animaux.length, 10);

@@ -2,7 +2,7 @@
 //
 // Une partie = un code (8 caractères) = une « salle » en mémoire (Durable Object).
 // Le relais ne fait que transmettre des positions et des numéros de phrases entre les
-// joueurs d'une même salle. Il n'écrit rien sur disque, ne connaît aucun prénom, et
+// joueurs d'une même salle. Il n'écrit rien sur disque et ne connaît aucun prénom.
 // Les phrases sont une liste fermée ; seul le surnom court et filtré est du texte.
 
 const MAX_JOUEURS = 10;
