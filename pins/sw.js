@@ -2,12 +2,12 @@
 // Le jeu est gardé sur l'appareil et marche sans réseau (en solo). Il ne change que
 // lorsqu'on appuie sur « Mettre à jour » sur l'écran d'accueil du jeu.
 // Le relais du jeu à plusieurs passe par WebSocket : il n'est jamais intercepté ici.
-const CACHE = "pins-v8";
+const CACHE = "pins-v9";
 const BASE = "https://cdn.jsdelivr.net/npm/three@0.170.0/";
 const FICHIERS = [
   "./", "./manifest.webmanifest", "./icone-192.png", "./icone-512.png", "./apple-touch-icon.png",
   // les sons enregistrés (forêt et oiseaux, piscine, musique des magasins)
-  "./sons/foret.mp3", "./sons/piscine.mp3", "./sons/magasin.mp3", "./sons/accueil.mp3", "./sons/manoir.mp3", "./sons/oiseau-coucou.mp3", "./sons/oiseau-pic.mp3", "./sons/oiseau-ramier.mp3",
+  "./sons/foret.mp3", "./sons/piscine.mp3", "./sons/magasin.mp3", "./sons/accueil.mp3", "./sons/manoir.mp3", "./sons/boum.mp3", "./sons/chanteur.mp3", "./sons/pedalo.mp3", "./sons/oiseau-coucou.mp3", "./sons/oiseau-pic.mp3", "./sons/oiseau-ramier.mp3",
   BASE + "build/three.module.js",
   BASE + "examples/jsm/objects/Sky.js",
   BASE + "examples/jsm/objects/Water.js",
