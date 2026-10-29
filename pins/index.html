@@ -315,6 +315,48 @@ html.app .site{display:none!important}
 .xRouge::after{transform:rotate(-45deg)}
 .xRouge:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.3)}
 .xRouge.statique{position:relative;top:auto;right:auto;flex:none}
+.livreOv{flex-direction:column}
+.livreZone{display:flex;flex-direction:column;align-items:center;gap:10px;margin:auto}
+.livre{--pw:min(45vw,calc((100vh - 110px) * .72),430px);position:relative;width:calc(var(--pw) * 2);height:calc(var(--pw) * 1.36);perspective:2200px;cursor:pointer;touch-action:pan-y;transition:transform .5s}
+.livre.simple{--pw:min(86vw,calc((100vh - 120px) * .72),460px);width:var(--pw)}
+@media (orientation:landscape) and (max-height:560px){.livre{--pw:min(45vw,calc((100vh - 96px) * 1.02),430px);height:calc(var(--pw) * .98)}.lv-texte{font-size:calc(var(--pw) * .055)}.lv-papier{padding:calc(var(--pw) * .08) calc(var(--pw) * .09) calc(var(--pw) * .1)}}
+.livre:not(.simple).ferme{transform:translateX(calc(var(--pw) * -.5))}.livre:not(.simple).fermeDos{transform:translateX(calc(var(--pw) * .5))}
+.lv-page,.lv-feuille{position:absolute;top:0;width:var(--pw);height:100%}
+.lv-g{left:0}.lv-d{left:var(--pw)}
+.livre.simple .lv-d,.livre.simple .lv-feuille{left:0}.livre.simple .lv-g{display:none}
+.lv-feuille{left:var(--pw);transform-origin:left center;transform-style:preserve-3d;transition:transform .75s cubic-bezier(.45,.05,.3,1);z-index:3}
+.lv-feuille[hidden]{display:none}
+.lv-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.lv-dos{transform:rotateY(180deg)}
+.lv-feuille.vide .lv-dos{display:none}
+.livre.simple .lv-feuille .lv-avant{box-shadow:0 0 30px rgba(0,0,0,.35)}
+.lv-papier{position:absolute;inset:0;padding:calc(var(--pw) * .1) calc(var(--pw) * .1) calc(var(--pw) * .12);display:flex;flex-direction:column;justify-content:center;color:#3b2a1e;
+  background:radial-gradient(120% 90% at 50% 40%,#fffdf6 0%,#fbf3e1 70%,#f0e2c2 100%);box-shadow:0 10px 26px rgba(0,0,0,.35)}
+.lv-papier.lv-g{border-radius:10px 2px 2px 10px;background:linear-gradient(to left,rgba(120,85,40,.28) 0%,rgba(120,85,40,0) 9%),radial-gradient(120% 90% at 50% 40%,#fffdf6 0%,#fbf3e1 70%,#f0e2c2 100%)}
+.lv-papier.lv-d{border-radius:2px 10px 10px 2px;background:linear-gradient(to right,rgba(120,85,40,.3) 0%,rgba(120,85,40,0) 9%),radial-gradient(120% 90% at 50% 40%,#fffdf6 0%,#fbf3e1 70%,#f0e2c2 100%)}
+.livre.simple .lv-papier.lv-d{border-radius:4px 12px 12px 4px}
+.lv-papier::after{content:"";position:absolute;inset:6px;border:1px solid rgba(160,120,60,.25);border-radius:inherit;pointer-events:none}
+.lv-gardeF{background:repeating-linear-gradient(45deg,var(--c1) 0 14px,var(--c2) 14px 28px)!important;opacity:.95}
+.lv-gardeF::after{border:3px solid rgba(255,255,255,.5)}
+.lv-texte{margin:0;font-size:calc(var(--pw) * .052);line-height:1.6;text-align:justify;hyphens:auto;-webkit-hyphens:auto}
+.lv-texte.lettrine::first-letter{float:left;font-size:3.1em;line-height:.85;margin:.06em .1em 0 0;font-weight:800;color:#b5532a}
+.lv-num{position:absolute;bottom:calc(var(--pw) * .05);left:0;right:0;text-align:center;font-weight:800;font-size:calc(var(--pw) * .04);color:#a0855a}
+.lv-titre{text-align:center;display:flex;flex-direction:column;align-items:center;gap:calc(var(--pw) * .03)}
+.lv-titre h2{margin:0;font-size:calc(var(--pw) * .08);line-height:1.15;color:#5a3a22}
+.lv-titre i{display:block;width:40%;height:3px;border-radius:2px;background:linear-gradient(90deg,transparent,#c9a25a,transparent)}
+.lv-titre p{margin:0;font-size:calc(var(--pw) * .045);color:#7a5c3c}
+.lv-ico{width:calc(var(--pw) * .32);height:calc(var(--pw) * .32);display:grid;place-items:center}.lv-ico .ic{width:100%;height:100%}.lv-emo{font-size:calc(var(--pw) * .24)}
+.lv-couv{position:absolute;inset:0;border-radius:4px 14px 14px 4px;box-shadow:inset 10px 0 0 rgba(0,0,0,.18),inset 13px 0 0 rgba(255,255,255,.15),0 14px 30px rgba(0,0,0,.45);padding:calc(var(--pw) * .07);color:#fff}
+.lv-dos4{border-radius:14px 4px 4px 14px;box-shadow:inset -10px 0 0 rgba(0,0,0,.18),0 14px 30px rgba(0,0,0,.45)}
+.lv-cadre{height:100%;border:3px solid rgba(255,236,170,.85);border-radius:10px;box-shadow:inset 0 0 0 5px rgba(0,0,0,.08);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--pw) * .04);text-align:center;padding:8%}
+.lv-cadre .lv-ico{background:rgba(255,255,255,.9);border-radius:50%;padding:6%;box-shadow:0 4px 0 rgba(0,0,0,.2)}
+.lv-cadre h2{margin:0;font-size:calc(var(--pw) * .085);line-height:1.15;text-shadow:0 3px 0 rgba(0,0,0,.25),0 0 12px rgba(0,0,0,.2)}
+.lv-cadre small{font-weight:800;font-size:calc(var(--pw) * .035);opacity:.9;letter-spacing:.04em}
+.lv-cadre p{font-size:calc(var(--pw) * .048);font-style:italic;margin:0}
+.lv-bas{display:flex;align-items:center;gap:16px;color:#fff;font-weight:800;font-size:17px;text-shadow:0 2px 4px rgba(0,0,0,.5)}
+.lv-fl{width:52px;height:52px;border-radius:50%;border:3px solid #fff;background:linear-gradient(#ffa24a,#e8590c);color:#fff;font:900 34px/1 var(--ui);padding:0 0 5px;box-shadow:0 4px 0 #a8420a;cursor:pointer}
+.lv-fl:disabled{opacity:.35}
+#bookView>.xRouge{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));right:calc(12px + env(safe-area-inset-right,0px))}
 .book{max-width:min(92vw,460px)}.bk-page{min-height:260px;display:flex;align-items:center;justify-content:center;background:#fffaf0;border-radius:14px;padding:18px;box-shadow:inset 0 0 0 2px #f0e2c4}
 .bk-text{font-size:20px;line-height:1.55;color:#2b2420;margin:0}.bk-cover{width:200px;height:260px;border-radius:8px 14px 14px 8px;box-shadow:inset 8px 0 0 rgba(0,0,0,.18),0 6px 14px rgba(0,0,0,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;text-align:center;color:#fff}
 .bk-emoji{font-size:64px}.bk-title{font-weight:800;font-size:19px;text-shadow:0 2px 4px rgba(0,0,0,.3);margin-top:10px}
@@ -534,9 +576,15 @@ html.app .site{display:none!important}
     <div class="row"><button id="bfGo" class="btn" style="background:#ff7a2f">✅ Commander</button><button id="bfClose" class="btn" style="background:#34495e">Fermer</button></div>
   </div>
 </div>
-<div id="bookView" class="overlay" hidden>
-  <div class="card book"><div id="bookPage" class="bk-page"></div><p id="bookNum" class="small" style="text-align:center"></p>
-    <div class="row"><button id="bookPrev" class="btn" style="background:#8e44ad">◀</button><button id="bookNext" class="btn" style="background:#27ae60">Page suivante ▶</button><button id="bookClose" class="btn" style="background:#34495e">Fermer</button></div></div>
+<div id="bookView" class="overlay livreOv" hidden>
+  <div class="livreZone">
+    <div id="livre" class="livre">
+      <div id="lvG" class="lv-page lv-g"></div><div id="lvD" class="lv-page lv-d"></div>
+      <div id="lvF" class="lv-feuille"><div id="lvFA" class="lv-face lv-avant"></div><div id="lvFD" class="lv-face lv-dos"></div></div>
+    </div>
+    <div class="lv-bas"><button id="bookPrev" class="lv-fl" aria-label="Page précédente">‹</button><span id="bookNum"></span><button id="bookNext" class="lv-fl" aria-label="Page suivante">›</button></div>
+  </div>
+  <button id="bookClose" class="xRouge" aria-label="Fermer le livre"></button>
 </div>
 <div id="phoneView" class="overlay" hidden>
   <div class="phone"><button id="phoneClose" class="xRouge" aria-label="Ranger le téléphone"></button><div class="ph-notch"></div><div id="phoneScreen" class="ph-screen"></div></div>
@@ -3237,16 +3285,63 @@ const BOOKS = [
 let ownBooks = []; try { ownBooks = JSON.parse(localStorage.getItem("pins-livres") || "[]").filter(id => BOOKS.some(b => b.id === id)); } catch (e) {}
 function ownBook(id) { if (!ownBooks.includes(id)) { ownBooks.push(id); try { localStorage.setItem("pins-livres", JSON.stringify(ownBooks)); } catch (e) {} } }
 BUY.livres = { title: "La librairie 📚", items: BOOKS.map(b => [b.e, b.t, b.p]) };
-// la liseuse : une page à la fois, avec une couverture dessinée
+// la liseuse : un vrai livre ouvert (deux pages sur un écran large, une page sur un téléphone en hauteur),
+// avec une couverture rigide, des pages en papier et des feuilles qui tournent en 3D
 let reading = null;
-function bookCover(b) { return `<div class="bk-cover" style="background:linear-gradient(160deg,${b.c[0]},${b.c[1]})"><div class="bk-emoji">${b.e}</div><div class="bk-title">${b.t}</div></div>`; }
-function renderBook() { const b = BOOKS.find(x => x.id === reading.id), i = reading.page;
-  $("bookPage").innerHTML = i < 0 ? bookCover(b) : `<p class="bk-text">${b.pages[i]}</p>`;
-  $("bookNum").textContent = i < 0 ? "Couverture" : `Page ${i + 1} / ${b.pages.length}`; $("bookPrev").disabled = i < 0; $("bookNext").textContent = i >= b.pages.length - 1 ? "Fin ✓" : "Page suivante ▶"; }
-function openBook(id) { reading = { id, page: -1 }; renderBook(); ouvrir("bookView"); whoosh(.3, .04, 900, 2200); }
-$("bookPrev").onclick = () => { if (reading.page > -1) { reading.page--; renderBook(); whoosh(.25, .03, 1400, 2400); } };
-$("bookNext").onclick = () => { const b = BOOKS.find(x => x.id === reading.id); if (reading.page >= b.pages.length - 1) { fermer("bookView"); return; } reading.page++; renderBook(); whoosh(.25, .03, 1400, 2400); };
-$("bookClose").onclick = () => fermer("bookView");
+const escL = t => String(t).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+function lvIcone(b) { const k = EMO[b.e] || EMO[(b.e || "").replace(/[️‍]/g, "")]; return icone(k || ({ hamster: "animal", verte: "sapin", cabane: "maison", cantine: "pizza", domaine: "toboggan", dragon: "feu", canards: "canard" })[b.id] || "livre"); }
+// toutes les faces du livre, dans l'ordre : [rien, couverture, garde, titre, pages…, fin, (blanc), garde, dos, rien]
+function lvFaces(b) {
+  const A = [null, { t: "couv" }, { t: "garde" }, { t: "titre" }];
+  b.pages.forEach((x, i) => A.push({ t: "texte", x, n: i + 1 }));
+  A.push({ t: "fin" }); if (A.length % 2 === 0) A.push({ t: "blanc" }); A.push({ t: "garde" }, { t: "dos" }, null); return A; }
+function lvHtml(b, f, cote) {
+  if (!f) return "";
+  const c = `background:linear-gradient(150deg,${b.c[0]},${b.c[1]})`;
+  if (f.t === "couv") return `<div class="lv-couv" style="${c}"><div class="lv-cadre"><div class="lv-ico">${lvIcone(b)}</div><h2>${escL(b.t)}</h2><small>Librairie du Domaine des Pins</small></div></div>`;
+  if (f.t === "dos") return `<div class="lv-couv lv-dos4" style="${c}"><div class="lv-cadre"><p>« ${escL(b.pages[0].slice(0, 110))}… »</p><small>Librairie du Domaine des Pins</small></div></div>`;
+  if (f.t === "garde") return `<div class="lv-papier lv-${cote} lv-gardeF" style="--c1:${b.c[0]};--c2:${b.c[1]}"></div>`;
+  let h = "";
+  if (f.t === "titre") h = `<div class="lv-titre"><div class="lv-ico">${lvIcone(b)}</div><h2>${escL(b.t)}</h2><i></i><p>Ce livre appartient à<br><b>${escL(monNom)}</b></p></div>`;
+  else if (f.t === "texte") h = `<p class="lv-texte${f.n === 1 ? " lettrine" : ""}">${escL(f.x)}</p><span class="lv-num">${f.n}</span>`;
+  else if (f.t === "fin") h = `<div class="lv-titre"><h2>Fin</h2><i></i><p>Merci d'avoir lu !<br>Un autre livre t'attend à la librairie 📚</p></div>`;
+  return `<div class="lv-papier lv-${cote}">${h}</div>`;
+}
+const lvDouble = () => innerWidth >= 560 && innerWidth > innerHeight * 1.05;
+function lvMontrer() { const b = BOOKS.find(x => x.id === reading.id), A = reading.A, L = $("livre"), d = lvDouble();
+  L.classList.toggle("simple", !d); $("lvF").style.transition = "none"; $("lvF").style.transform = ""; $("lvF").hidden = true;
+  if (d) { const k = reading.k; $("lvG").innerHTML = lvHtml(b, A[2 * k], "g"); $("lvD").innerHTML = lvHtml(b, A[2 * k + 1], "d");
+    L.classList.toggle("ferme", !A[2 * k]); L.classList.toggle("fermeDos", !A[2 * k + 1]);
+    $("bookPrev").disabled = k <= 0; $("bookNext").disabled = 2 * k + 1 >= A.length - 1 || !A[2 * k + 1];
+    const f = A[2 * k + 1] || A[2 * k]; $("bookNum").textContent = !A[2 * k] ? "Touche le livre pour l'ouvrir" : !A[2 * k + 1] ? "Fin du livre" : f.t === "texte" ? `Page ${f.n} sur ${b.pages.length}` : A[2 * k].t === "texte" ? `Page ${A[2 * k].n} sur ${b.pages.length}` : ""; }
+  else { const S = reading.S, i = reading.i; $("lvG").innerHTML = ""; $("lvD").innerHTML = lvHtml(b, S[i], "d"); L.classList.remove("ferme", "fermeDos");
+    $("bookPrev").disabled = i <= 0; $("bookNext").disabled = i >= S.length - 1; $("bookNum").textContent = S[i].t === "texte" ? `Page ${S[i].n} sur ${b.pages.length}` : S[i].t === "couv" ? "Touche le livre pour l'ouvrir" : ""; } }
+function lvSon() { whoosh(.32, .05, 2600, 900); whoosh(.18, .03, 4000, 2500, .18); }
+// tourner : la feuille tourne autour de la reliure (180°), le recto d'un côté, le verso de l'autre
+function lvTourner(sens) { if (!reading || reading.anim) return; const b = BOOKS.find(x => x.id === reading.id), A = reading.A, F = $("lvF"), d = lvDouble();
+  let avant, dos, fin;
+  if (d) { const k = reading.k;
+    if (sens > 0) { if (2 * k + 2 >= A.length || !A[2 * k + 1]) return; $("livre").classList.remove("ferme"); avant = A[2 * k + 1]; dos = A[2 * k + 2]; $("lvD").innerHTML = lvHtml(b, A[2 * k + 3], "d"); $("livre").classList.toggle("fermeDos", !A[2 * k + 3]); fin = () => { reading.k++; }; }
+    else { if (k <= 0) return; avant = A[2 * k - 1]; dos = A[2 * k]; $("lvG").innerHTML = lvHtml(b, A[2 * k - 2], "g"); $("livre").classList.toggle("ferme", !A[2 * k - 2]); fin = () => { reading.k--; }; } }
+  else { const S = reading.S, i = reading.i;
+    if (sens > 0) { if (i >= S.length - 1) return; avant = S[i]; dos = null; $("lvD").innerHTML = lvHtml(b, S[i + 1], "d"); fin = () => { reading.i++; }; }
+    else { if (i <= 0) return; avant = S[i - 1]; dos = null; fin = () => { reading.i--; }; } }
+  $("lvFA").innerHTML = lvHtml(b, avant, "d"); $("lvFD").innerHTML = lvHtml(b, dos, "g"); F.hidden = false; F.classList.toggle("vide", !dos);
+  F.style.transition = "none"; F.style.transform = sens > 0 ? "rotateY(0deg)" : "rotateY(-180deg)"; void F.offsetWidth;
+  reading.anim = true; F.style.transition = ""; F.style.transform = sens > 0 ? "rotateY(-180deg)" : "rotateY(0deg)"; lvSon();
+  setTimeout(() => { reading.anim = false; fin(); lvMontrer(); }, 760); }
+function openBook(id) { const b = BOOKS.find(x => x.id === id), A = lvFaces(b); reading = { id, A, S: A.filter(Boolean), k: 0, i: 0 }; lvMontrer(); ouvrir("bookView"); whoosh(.3, .04, 900, 2200); }
+$("bookPrev").onclick = () => lvTourner(-1);
+$("bookNext").onclick = () => lvTourner(1);
+// toucher la page de droite : on avance ; la page de gauche : on recule ; ou glisser le doigt
+{ let x0 = null; const L = $("livre");
+  L.addEventListener("pointerdown", e => { x0 = e.clientX; });
+  L.addEventListener("pointerup", e => { if (x0 === null) return; const dx = e.clientX - x0; x0 = null;
+    if (Math.abs(dx) > 30) { lvTourner(dx < 0 ? 1 : -1); return; }
+    const r = L.getBoundingClientRect(); lvTourner(lvDouble() && e.clientX < r.left + r.width / 2 ? -1 : 1); }); }
+addEventListener("keydown", e => { if ($("bookView").hidden) return; if (e.key === "ArrowRight") { e.stopPropagation(); lvTourner(1); } if (e.key === "ArrowLeft") { e.stopPropagation(); lvTourner(-1); } }, true);
+addEventListener("resize", () => { if (reading && !$("bookView").hidden && !reading.anim) { if (lvDouble()) { const f = reading.S[reading.i]; reading.k = Math.max(0, Math.floor(reading.A.indexOf(f) / 2)); } else { const f = reading.A[2 * reading.k + 1] || reading.A[2 * reading.k]; reading.i = Math.max(0, reading.S.indexOf(f)); } lvMontrer(); } });
+$("bookClose").onclick = () => { sfx.click(); fermer("bookView"); };
 /* ---------- Le téléphone 📱 : commander à distance (livré au cottage) et appeler l'accueil ---------- */
 const PHONE_BF = { title: "Burger Fast 🍔", items: [["🍔", "Burger", 4], ["🍟", "Frites", 2], ["🍗", "Nuggets", 3], ["🥤", "Milkshake", 3], ["🍦", "Glace", 2], ["🥗", "Salade", 3]] };
 const PHONE_APPS = [["quetes", "quetes", "Quêtes", "linear-gradient(#ffd27a,#e8902a)"], ["boul", "croissant", "Boulangerie", "linear-gradient(#f6c27a,#c47a3a)"], ["market", "caddie", "Market Speed", "linear-gradient(#7cdc6b,#27ae60)"], ["bf", "burger", "Burger Fast", "linear-gradient(#ff8a7a,#e74c3c)"], ["livres", "livre", "Librairie", "linear-gradient(#c49ae8,#8e44ad)"]];
@@ -8326,7 +8421,7 @@ function ongletReglages(n) { for (const b of document.querySelectorAll(".regOngl
 for (const b of document.querySelectorAll(".regOnglets button")) b.onclick = () => { sfx.click(); ongletReglages(b.dataset.onglet); if (b.dataset.onglet === "plus") dessinerSvChoix(); };
 $("regFermer").onclick = () => $("resumeBtn").click();
 // pour fermer un menu : partout la même croix rouge en haut à droite (les gros boutons « Fermer » disparaissent)
-for (const id of ["mapClose", "shopClose", "arcClose", "prizeClose", "bfClose", "bookClose", "buyClose", "golfClose", "lockerClose", "multiClose", "partiesFermer", "sayClose"]) {
+for (const id of ["mapClose", "shopClose", "arcClose", "prizeClose", "bfClose", "buyClose", "golfClose", "lockerClose", "multiClose", "partiesFermer", "sayClose"]) {
   const b = $(id); if (!b) continue; const boite = b.closest(".card"); if (!boite) continue;
   const x = document.createElement("button"); x.className = "xRouge"; x.setAttribute("aria-label", "Fermer"); x.onclick = e => { e.stopPropagation(); b.click(); }; boite.append(x);
   b.hidden = true; b.style.display = "none"; const r = b.parentElement; if (r && r.classList.contains("row") && ![...r.children].some(c => c !== b && !c.hidden && c.style.display !== "none")) r.style.display = "none"; }
@@ -10281,7 +10376,7 @@ function loop() {
   voituresTick(dt); trier(dt); suivreFeux(dt); majInterieurs(); if (!paused) majObjectif(dt); if (dejaVu) adapterResolution();
   suivreVitres(); gel(); renderer.render(scene, camera); dejaVu = true; majPerf();
 }
-window.__pins = { toast, MANOR, get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; } };
+window.__pins = { openBook, lvTourner, toast, MANOR, get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; } };
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
 await souffle(97, "Les couleurs se mélangent…");
 const compiler = () => Promise.race([renderer.compileAsync(scene, camera), new Promise(r => setTimeout(r, 6000))]).catch(() => {});
@@ -10314,7 +10409,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.29-1"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.10.29-2"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
