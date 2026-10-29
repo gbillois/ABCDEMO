@@ -8095,7 +8095,7 @@ function ambTick(dt, outdoor, nightK, time) {
    l'Aquaparc, la musique des magasins. Chargés après le premier toucher ; s'ils manquent (pas de réseau), les sons faits maison restent. ---------- */
 const SONS = { buf: {}, g: {}, veut: {}, bus: null, magasin: false,
   // nom : [volume, début et fin de la boucle (s)]
-  boucles: { foret: [.9, .5, 30.5], piscine: [.75, .05, 22], magasin: [.32, .4, 44.6], manoir: [.4, 0, 41.6] }, oiseaux: ["coucou", "pic", "ramier"] };
+  boucles: { accueil: [.45, 0, 47.4], foret: [.9, .5, 30.5], piscine: [.75, .05, 22], magasin: [.32, .4, 44.6], manoir: [.4, 0, 41.6] }, oiseaux: ["coucou", "pic", "ramier"] };
 function sonsInit() {
   if (SONS.bus || !actx) return; SONS.bus = actx.createGain(); SONS.bus.gain.value = 0; SONS.bus.connect(master);
   (async () => { for (const n of [...Object.keys(SONS.boucles), ...SONS.oiseaux.map(o => "oiseau-" + o)]) {
@@ -8106,12 +8106,12 @@ function sonsInit() {
       g.gain.value = 0; src.connect(g).connect(SONS.bus); src.start(0, B[1]); SONS.g[n] = g; SONS.veut[n] = 0; } catch (e) {} } })();
 }
 // chaque son va doucement vers son volume voulu (on ne prévient la carte son que quand il change)
-function sonsTick(lieu, nightK) {
+function sonsTick(lieu, nightK, menu) {
   if (!SONS.bus) return;
-  const bus = muted ? 0 : (paused ? .3 : 1) * VOL.mus * .6; if (SONS.busV !== bus) { SONS.busV = bus; SONS.bus.gain.setTargetAtTime(bus, actx.currentTime, .5); }
+  const bus = muted ? 0 : (paused && !menu ? .3 : 1) * VOL.mus * .6; if (SONS.busV !== bus) { SONS.busV = bus; SONS.bus.gain.setTargetAtTime(bus, actx.currentTime, .5); }
   for (const n in SONS.g) { const v = (n === "foret" ? (lieu === "dehors" ? 1 - nightK * .85 : lieu === "dedans" ? .12 : 0) : n === lieu ? 1 : 0) * SONS.boucles[n][0];
     if (Math.abs(SONS.veut[n] - v) > .01) { SONS.veut[n] = v; SONS.g[n].gain.setTargetAtTime(v, actx.currentTime, n === "magasin" ? .5 : .9); } }
-  SONS.magasin = (lieu === "magasin" || lieu === "manoir") && !!SONS.g[lieu]; // une musique de lieu : celle de la forêt se fait toute petite
+  SONS.magasin = (lieu === "magasin" || lieu === "manoir" || lieu === "accueil") && !!SONS.g[lieu]; // une musique de lieu : celle de la forêt se fait toute petite
 }
 // un vrai chant d'oiseau (coucou, pic, pigeon ramier), placé un peu à gauche ou à droite
 function oiseauEnregistre() {
@@ -9720,6 +9720,8 @@ function trier(dt) {
 // (les ombres sont recalculées à chaque image : une image sur deux faisait sauter l'ombre des personnages qui bougent)
 // Menu d'accueil : l'image fixe du domaine remplace la 3D (une première image est dessinée derrière, pour être prête)
 const introEl = $("intro"); let dejaVu = false;
+// la musique d'accueil démarre au premier toucher sur l'écran de départ (le navigateur l'interdit avant)
+introEl.addEventListener("pointerdown", () => audioOn(), { once: true });
 // Résolution qui s'adapte : si les images ralentissent, on dessine un peu moins de pixels, et on remonte quand tout va bien.
 // Changer la taille de l'image fait lui-même un petit à-coup : on ne fait pas le yoyo. On baisse après 2 mesures lentes de suite (4 s),
 // on remonte après 5 bonnes (10 s), et après 3 baisses on ne remonte plus. Une très longue image (pause, autre appli) ne compte pas.
@@ -9792,7 +9794,7 @@ function loop() {
   requestAnimationFrame(loop);
   manette();
   const menu = !introEl.hidden; document.body.classList.toggle("accueil-on", menu);
-  if (menu && dejaVu) { clock.getDelta(); prN = prT = 0; return; }
+  if (menu && dejaVu) { clock.getDelta(); prN = prT = 0; sonsTick("accueil", 0, true); return; }
   const dt = Math.min(clock.getDelta(), .05); time += dt; uTime.value = time;
   const P = player.position; prev.x = P.x; prev.z = P.z; prev.y = P.y; animN++; camera.getWorldDirection(animDir);
   let camDist = 9, minPitch = .06, camTarget = null; const camO = new THREE.Vector3(), camDir = new THREE.Vector3();
@@ -10030,7 +10032,7 @@ function loop() {
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $("toast").hidden = true; }
   scheduleMusic();
   ambTick(dt, !inCottage && !inDome && !inBalo && !inGT && !inBF && !inShop && !inAq, nightK, time);
-  sonsTick(HALLO.on && MANOR.inside ? "manoir" : inShop ? "magasin" : inDome ? "piscine" : inCottage || inBalo || inGT || inBF || inAq ? "dedans" : "dehors", nightK);
+  sonsTick(!introEl.hidden ? "accueil" : HALLO.on && MANOR.inside ? "manoir" : inShop === ACCUEIL ? "accueil" : inShop ? "magasin" : inDome ? "piscine" : inCottage || inBalo || inGT || inBF || inAq ? "dedans" : "dehors", nightK);
   if (mapOpen) drawMap();
   netTick(dt);
 
