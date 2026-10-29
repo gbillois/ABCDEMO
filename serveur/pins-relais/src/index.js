@@ -10,6 +10,8 @@ const NB_PHRASES = 64;        // au plus 64 phrases dans la liste PHRASES du jeu
 const TAILLE_MAX = 220;       // octets par message reçu
 const POS_PAR_SECONDE = 15;   // positions acceptées par joueur et par seconde
 const PHRASE_DELAI_MS = 1500; // délai minimal entre deux phrases d'un même joueur
+const NB_DONS = 64;           // objets qu'on peut se donner : numéros de la liste DONS du jeu
+const DON_DELAI_MS = { don: 700, merci: 150 }; // délai minimal entre deux cadeaux (ou deux « merci ») d'un même joueur
 const CODE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/;
 const MODES = 5;              // 0 immobile, 1 marche, 2 nage, 3 échelle, 4 toboggan
 // Transfert d'une partie d'un appareil à l'autre (comme Millepoques) : un code de 6 chiffres = une petite salle à deux.
@@ -168,6 +170,14 @@ export class Salle {
       if (now - d.phrase < PHRASE_DELAI_MS) return;
       d.phrase = now;
       this.diffuser({ t: "m", s, i: msg.i }, null);
+    } else if (msg.t === "don" || msg.t === "merci") {
+      // se donner un objet : seulement son numéro dans la liste fermée, et seulement à un autre joueur de la salle ;
+      // celui qui reçoit répond « merci » (même message), sinon l'objet revient chez celui qui donne
+      if (!Number.isInteger(msg.o) || msg.o < 0 || msg.o >= NB_DONS || !Number.isInteger(msg.a) || msg.a === s) return;
+      if (now - (d[msg.t] || 0) < DON_DELAI_MS[msg.t]) return;
+      d[msg.t] = now;
+      const vers = this.ctx.getWebSockets().find(o => this.place(o) === msg.a);
+      if (vers) { try { vers.send(JSON.stringify({ t: msg.t, s, o: msg.o })); } catch (e) {} }
     } else if (msg.t === "monde") {
       // le monde de l'hôte : l'heure du jour (0 à 1) et le thème (0 normal, 1 Halloween) ; rien d'autre
       if (!ws.deserializeAttachment()?.hote || now - (d.monde || 0) < 900) return;

@@ -49,6 +49,9 @@ Accord du propriétaire pour ce seul jeu : `pins/index.html` peut se connecter
 - Messages en liste fermée uniquement (numéros de `PHRASES`) : jamais de texte libre.
   La liste compte les phrases, puis les rendez-vous (lieux et numéros de cottages) : `NB_PHRASES`
   du relais (64) doit rester supérieur ou égal au nombre total de phrases.
+- Se donner des objets : message `don` (numéro dans la liste fermée `DONS` du jeu, objets du sac et cadeaux de l'arcade)
+  envoyé à un seul joueur de la salle, qui répond `merci` ; sans réponse, l'objet revient dans le sac. `NB_DONS` du relais (64)
+  doit rester supérieur ou égal à la longueur de `DONS`.
 - Seule exception au texte libre : le champ `pseudo` du message `profil`, court et filtré.
   Le sexe, la tenue et l'apparence (`look` : numéros dans les listes fermées du créateur de
   personnage, traits du visage compris ; bornes `LOOK_MAX` identiques dans le jeu et le relais) utilisent des listes fermées.

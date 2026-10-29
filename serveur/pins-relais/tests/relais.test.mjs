@@ -160,3 +160,19 @@ test("monde de l'hôte : seul l'hôte l'envoie, bornes vérifiées, gardé pour 
   assert.equal(hote.deserializeAttachment().hote, true);
   assert.equal(invite.messages.at(-1).hote, undefined, "la marque d'hôte n'est pas diffusée");
 });
+
+test('se donner un objet : un numéro de la liste, seulement à celui qui le reçoit, merci en retour', async () => {
+  const a = joueur(0), b = joueur(1), c = joueur(2), salle = salleAvec(a, b, c);
+  await envoyer(salle, a, { t: 'don', a: 1, o: 3, texte: 'non transmis' });
+  assert.deepEqual(b.messages.pop(), { t: 'don', s: 0, o: 3 });
+  assert.equal(c.messages.length, 0, 'les autres ne voient rien');
+  await envoyer(salle, b, { t: 'merci', a: 0, o: 3 });
+  assert.deepEqual(a.messages.pop(), { t: 'merci', s: 1, o: 3 });
+  await envoyer(salle, a, { t: 'don', a: 1, o: 4 });
+  assert.equal(b.messages.length, 0, 'un cadeau à la fois (délai)');
+  for (const m of [{ a: 1, o: 64 }, { a: 1, o: -1 }, { a: 1, o: 'pain' }, { a: 0, o: 1 }, { a: 'tous', o: 1 }]) {
+    const x = joueur(0), y = joueur(1), s2 = salleAvec(x, y);
+    await envoyer(s2, x, { t: 'don', ...m });
+    assert.equal(y.messages.length + x.messages.length, 0, JSON.stringify(m));
+  }
+});

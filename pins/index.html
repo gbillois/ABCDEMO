@@ -56,6 +56,8 @@
 #invListe .case span{font-size:12px;font-weight:800;line-height:1.05;text-align:center;color:#1d3b2a}
 #invListe .case b{position:absolute;top:-6px;right:-6px;background:#2f8f5b;color:#fff;border:3px solid #fff3d6;border-radius:999px;font-size:13px;min-width:26px;height:26px;display:grid;place-items:center}
 #invListe .case.porte{border-color:#2f8f5b;box-shadow:0 0 0 3px #7cdc6b}
+#invListe .case .donner{position:absolute;bottom:-8px;left:-8px;width:34px;height:34px;border-radius:999px;border:3px solid #fff3d6;background:#e84393;color:#fff;font-size:17px;padding:0;cursor:pointer;display:grid;place-items:center}
+.donListe{display:flex;flex-direction:column;gap:8px;margin:10px 0}.donListe .btn{margin:0;color:#fff}
 #invListe .vide{color:#fff;opacity:.9;text-align:left;margin:0 6px;font-weight:700}
 .sacAide{color:#fff;font-weight:700;font-size:13px;margin:12px 4px 0;text-align:center}
 
@@ -720,6 +722,14 @@ html.app .site{display:none!important}
   </div>
 </div>
 
+<div id="donView" class="overlay" hidden>
+  <div class="card">
+    <h1>Donner 🎁</h1>
+    <p id="donTitre" class="small"></p>
+    <div id="donListe" class="donListe"></div>
+    <div class="row"><button id="donFermer" class="btn" style="background:#34495e">Fermer</button></div>
+  </div>
+</div>
 <div id="enceinteView" class="overlay" hidden>
   <div class="card">
     <h1>Enceinte 🔊</h1>
@@ -3386,7 +3396,8 @@ function phoneRender(msg) {
     const liste = OBJECTIFS.filter(o => !o.si || o.si() || OBJ_FAITS.has(o.id)), cur = objectifCourant(), n = liste.filter(o => OBJ_FAITS.has(o.id)).length;
     corps += `<div class="ph-prog"><span>${n} / ${liste.length} quêtes réussies</span><i style="width:${Math.round(n / liste.length * 100)}%"></i></div>`;
     for (const o of liste) { const fait = OBJ_FAITS.has(o.id), enCours = o === cur, c = !fait && enCours ? o.cible() : null, P = player.position, d = c ? Math.round(Math.hypot(c[0] - P.x, c[1] - P.z)) : null;
-      corps += `<div class="ph-quete${fait ? " faite" : enCours ? " encours" : ""}">${icone(o.ico)}<span><b>${esc(o.titre())}</b><small>${fait ? "✔ Réussie !" : enCours ? "En cours" + (d !== null ? ` · à ${d} m` : "") : "À venir"}</small></span></div>`; }
+      const prix = o.prix ? ` · 💶 ${o.prix} €` : "", etape = o.etapes && enCours && !fait ? `<small>${esc(o.titre())}</small>` : "";
+      corps += `<div class="ph-quete${fait ? " faite" : enCours ? " encours" : ""}">${icone(o.ico)}<span><b>${esc(o.nom || o.titre())}</b>${etape}<small>${fait ? "✔ Réussie !" : enCours ? "En cours" + (d !== null ? ` · à ${d} m` : "") : "À venir"}${prix}</small></span></div>`; }
     if (cur.id === "libre") corps += `<p class="ph-note">Bravo ! Toutes les quêtes sont réussies. Profite des vacances ! 🎉</p>`;
   } else if (phoneApp === "messages") {
     titre = [icone("message"), "Messages"]; msgLus = MSGS.length;
@@ -8498,6 +8509,7 @@ function doAct(a) {
   if (a === "golf") { golfStart(); return; }
   if (a === "golf3") { golf3Start(); return; }
   if (a === "enceinte") { ouvrirEnceinte(); return; }
+  if (a === "quete") { faireEtape(); return; }
   if (a === "clap") { feteClap(); return; }
   if (a === "showsit" && showSeatT) { sitShow(showSeatT); return; }
   if (a === "bowl") { bowlStart(); return; }
@@ -8979,7 +8991,7 @@ function connecter(code, creer) {
   const sexe = monPerso().sexe;
   if (net) quitter();
   let ws; try { ws = new WebSocket(`${RELAIS}/salle/${code}${creer ? "?creer=1" : ""}`); } catch (e) { msg("Impossible de joindre le serveur."); return; }
-  net = { ws, code, pseudo, sexe, profils: new Map(), s: -1, autres: new Map(), moi: { bub: null, bubT: 0 }, sendT: 0, hb: 0, last: null, hote: !!creer, mondeT: 0, invite: null };
+  net = { ws, code, pseudo, sexe, profils: new Map(), s: -1, autres: new Map(), dons: [], moi: { bub: null, bubT: 0 }, sendT: 0, hb: 0, last: null, hote: !!creer, mondeT: 0, invite: null };
   msg("Connexion…");
   net.attente = setTimeout(() => { if (net && net.ws === ws && net.s < 0) fin(0); }, 8000);
   ws.onmessage = e => { if (net && net.ws === ws) recevoir(e.data); };
@@ -9012,6 +9024,8 @@ function recevoir(data) {
     o.tx = d.x; o.ty = d.y; o.tz = d.z; o.tr = d.r; o.m = Number.isInteger(d.m) && d.m >= 0 && d.m < MODES.length ? d.m : 0;
     if (!o.seen) { o.seen = true; o.g.position.set(d.x, d.y, d.z); o.g.rotation.y = d.r; o.g.visible = true; }
   } else if (d.t === "m" && Number.isInteger(d.i) && d.i >= 0 && d.i < PHRASES.length) dire(d.s, d.i);
+  else if (d.t === "don" && Number.isInteger(d.o) && d.o >= 0 && d.o < DONS.length && net.autres.has(d.s)) recevoirDon(d);
+  else if (d.t === "merci" && Number.isInteger(d.o)) merciDon(d);
   else if (d.t === "monde" && !net.hote && d.s !== net.s && Number.isFinite(d.h) && d.h >= 0 && d.h <= 1) recevoirMonde(d);
 }
 // Jouer à plusieurs : celui qui a lancé la partie (l'hôte) garde son monde (l'heure du jour, le thème) et les invités le voient ;
@@ -9029,6 +9043,7 @@ function quitter() {
   for (const o of n.autres.values()) { scene.remove(o.g); if (o.boat) scene.remove(o.boat); libererPersonnage(o.g); }
   if (n.moi.bub) { player.remove(n.moi.bub); effacerLabel(n.moi.bub); }
   if (n.rdv) { scene.remove(n.rdv.sp); effacerLabel(n.rdv.sp); }
+  for (const d of n.dons) rendreDon(d, false); // un cadeau pas encore arrivé revient dans le sac
   if (n.invite) { dayT = n.invite.jour; dayFF = null; if (n.invite.hallo !== HALLO.on) mettreHalloween(n.invite.hallo); } // l'invité retrouve son monde
   monLabel(null); majUI();
 }
@@ -9072,6 +9087,30 @@ $("phraseList").innerHTML = PHRASES.slice(0, RDV0).map((_, i) => phraseBtn(i)).j
 $("phraseList").onclick = e => { const b = e.target.closest("[data-i]"); if (!b || !net || net.s < 0) return; net.ws.send(JSON.stringify({ t: "m", i: +b.dataset.i })); fermer("sayView"); };
 $("sayBtn").onclick = () => { sfx.click(); ouvrir("sayView"); };
 $("sayClose").onclick = () => { sfx.click(); fermer("sayView"); };
+// Se donner des choses : un objet du sac ou un cadeau de l'arcade, pris dans une liste fermée (on n'envoie que son numéro).
+// L'objet quitte le sac tout de suite ; l'ami répond « merci » en le recevant ; sans réponse (il est parti…), l'objet revient.
+const DONS_ARCADE = [...GT_PRIZES, ...GT_SMALL.filter(p => !["eat", "bubbles", "confetti"].includes(p[3]))].map(([e, n]) => e + " " + n).concat("🧸 Peluche de la pince");
+const DONS = [...new Set([...BUY.boul.items, ...BUY.market.items, ...PHONE_BF.items].map(([e, n]) => e + " " + n).concat(DONS_ARCADE))].slice(0, 64); // le relais accepte 64 numéros (NB_DONS)
+const sacDe = o => DONS_ARCADE.includes(o) ? gtData.owned : bag;
+function sauverSacs() { try { localStorage.setItem("pins-sac", JSON.stringify(bag.slice(-60))); } catch (e) {} gtSave(); if (!$("invView").hidden) remplirSac(); }
+const peutDonner = o => !!net && net.s >= 0 && net.autres.size > 0 && DONS.includes(o);
+function ouvrirDon(o) { $("donTitre").textContent = `À qui veux-tu donner ${o} ?`; const L = $("donListe"); L.textContent = "";
+  for (const s of [...net.autres.keys()].sort((a, b) => a - b)) { const b = document.createElement("button"); b.className = "btn"; b.style.background = ANIMAUX[s][3]; b.textContent = `${ANIMAUX[s][0]} ${nomJoueur(s)}`;
+    b.onclick = () => { sfx.click(); fermer("donView"); donner(s, o); }; L.append(b); }
+  ouvrir("donView"); }
+$("donFermer").onclick = () => { sfx.click(); fermer("donView"); };
+function donner(s, o) {
+  const i = DONS.indexOf(o), sac = sacDe(o), k = sac.indexOf(o); if (!net || net.s < 0 || i < 0 || k < 0 || !net.autres.has(s) || net.ws.readyState !== 1) return;
+  sac.splice(k, 1); sauverSacs();
+  const d = { s, i, t: 0 }; d.t = setTimeout(() => rendreDon(d, true), 6000); net.dons.push(d);
+  net.ws.send(JSON.stringify({ t: "don", a: s, o: i })); toast(`🎁 Tu donnes ${o} à ${nomJoueur(s)}…`, 2000);
+}
+function rendreDon(d, dire) { if (net) { const k = net.dons.indexOf(d); if (k < 0) return; net.dons.splice(k, 1); } clearTimeout(d.t);
+  const o = DONS[d.i]; sacDe(o).push(o); sauverSacs(); if (dire) toast(`Le cadeau n'est pas arrivé : ${o} revient dans ton sac.`, 2600); }
+function recevoirDon(d) { // on range le cadeau et on dit merci (l'ami sait alors qu'il est arrivé)
+  const o = DONS[d.o]; sacDe(o).push(o); sauverSacs(); net.ws.send(JSON.stringify({ t: "merci", a: d.s, o: d.o }));
+  sfx.win(); toast(`🎁 ${ANIMAUX[d.s][0]} ${nomJoueur(d.s)} t'a donné ${o} ! Regarde dans ton sac.`, 3200); }
+function merciDon(d) { const k = net.dons.findIndex(x => x.s === d.s && x.i === d.o); if (k < 0) return; const [x] = net.dons.splice(k, 1); clearTimeout(x.t); toast(`✅ ${nomJoueur(d.s)} a bien reçu ${DONS[d.o]} !`, 2200); }
 
 // À chaque image : on déplace les amis en douceur et on envoie sa position 10 fois par seconde
 function netTick(dt) {
@@ -9636,10 +9675,13 @@ function remplirSac() {
     if (!objets.length) { const p = document.createElement("p"); p.className = "vide"; p.textContent = vide; L.append(p); return; }
     const d = document.createElement("div"); d.className = "cases"; const n = new Map(); for (const o of objets) { const k = o.cle ?? o; const e = n.get(k); if (e) e.k++; else n.set(k, { o, k: 1 }); }
     for (const { o, k } of n.values()) { const c = document.createElement("div"); c.className = "case" + (o.porte ? " porte" : ""); const [img, nom] = o.img ? [o.img, o.nom] : dessin(o);
-      c.innerHTML = img + `<span>${nom.replace(/[&<>]/g, "")}</span>` + (k > 1 ? `<b>×${k}</b>` : ""); const f = agir && agir(o); if (f) { c.classList.add("mange"); c.setAttribute("role", "button"); c.onclick = f; } d.append(c); } L.append(d); };
+      c.innerHTML = img + `<span>${nom.replace(/[&<>]/g, "")}</span>` + (k > 1 ? `<b>×${k}</b>` : ""); const f = agir && agir(o); if (f) { c.classList.add("mange"); c.setAttribute("role", "button"); c.onclick = f; }
+      if (peutDonner(o)) { const g = document.createElement("button"); g.className = "donner"; g.textContent = "🎁"; g.setAttribute("aria-label", "Donner " + nom + " à un ami"); g.onclick = e => { e.stopPropagation(); sfx.click(); ouvrirDon(o); }; c.append(g); }
+      d.append(c); } L.append(d); };
   groupe("maillot", "Mes maillots", owned.map(id => { const su = SUITS.find(x => x.id === id); return { cle: id, porte: wearing === id, nom: su ? nomMaillot(su) : id, img: icone("maillot").replace("<svg ", `<svg style="--maillot:${su ? su.a : "#2e86de"}" `) }; }), "Pas encore de maillot.");
   groupe("caddie", "Mes courses", bag, "Rien pour l'instant : va à la boulangerie ou au Market Speed !", o => mangeable(o) ? () => manger(o) : null);
   if (bag.some(mangeable)) { const p = document.createElement("p"); p.className = "sacAide"; p.innerHTML = "Touche un aliment pour le <b>manger</b> : tu marches et tu nages 10 % plus vite pendant 2 minutes !"; L.append(p); }
+  if (net && net.s >= 0 && net.autres.size && [...bag, ...gtData.owned].some(peutDonner)) { const p = document.createElement("p"); p.className = "sacAide"; p.innerHTML = "Touche <b>🎁</b> sur un objet pour le <b>donner</b> à un ami de la partie !"; L.append(p); }
   groupe("cadeau", "Mes cadeaux", gtData.owned, "Gagne des tickets dans la salle d'arcade du Multi Parcs pour avoir des cadeaux !");
 }
 $("invBtn").onclick = () => { if (!$("intro").hidden) return; sfx.click(); remplirSac(); ouvrir("invView"); };
@@ -10064,12 +10106,52 @@ function adapterResolution() {
 const OBJ_FAITS = new Set(); try { for (const id of JSON.parse(localStorage.getItem("pins-objectifs") || "[]")) OBJ_FAITS.add(id); } catch (e) {}
 function sauverObjectifs() { try { localStorage.setItem("pins-objectifs", JSON.stringify([...OBJ_FAITS])); } catch (e) {} }
 const canardProche = () => { const P = player.position; let b = null, bd = 1e9; for (const d of ducks) if (!d.got) { const k = Math.hypot(P.x - d.x, P.z - d.z); if (k < bd) { bd = k; b = d; } } return b; };
+// Les quêtes qui rapportent de l'argent : une suite d'étapes ; à chaque étape on va à la cible et on touche le bouton d'action.
+// L'étape où l'on en est est gardée sur l'appareil (« pins-etapes »), l'argent est donné à la fin.
+const ETAPES = {}; try { const v = JSON.parse(localStorage.getItem("pins-etapes") || "{}"); if (v && typeof v === "object") Object.assign(ETAPES, v); } catch (e) {}
+function sauverEtapes() { try { localStorage.setItem("pins-etapes", JSON.stringify(ETAPES)); } catch (e) {} }
+const etapeDe = id => Math.max(0, ETAPES[id] | 0);
+function mission(id, ico, nom, prix, etapes, si) { const e = () => etapes[Math.min(etapes.length - 1, etapeDe(id))];
+  return { id, ico, nom, prix, si, etapes, titre: () => typeof e().t === "function" ? e().t() : e().t, cible: () => e().c(), fait: () => etapeDe(id) >= etapes.length }; }
+const DESK = () => [ACCUEIL.x, ACCUEIL.z - 1], COMPTOIR_B = () => [BOULANGERIE.x, BOULANGERIE.z - .4], COMPTOIR_M = () => [MARKET.x + 5.6, MARKET.z + .6];
+const voisin = () => [...cottages].sort((a, b) => a.num - b.num).find(c => !c.mine) || cottages[0];
+// ce qu'on vient chercher : le doudou perdu, et les trois bébés fantômes de la maman fantôme (faits au chargement, cachés)
+const DOUDOU = new THREE.Group(); { const brun = mat(0x9c6b3f, .9), clair = mat(0xe8c9a0, .9), noir = mat(0x111111, .4), boule = (r, m, x, y, z) => { const b = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 10), m); b.position.set(x, y, z); DOUDOU.add(b); return b; };
+  boule(.2, brun, 0, .2, 0).scale.y = 1.1; boule(.15, brun, 0, .5, 0); boule(.08, clair, 0, .47, .12); for (const s of [-1, 1]) { boule(.06, brun, s * .12, .63, 0); boule(.07, brun, s * .17, .26, .08); boule(.025, noir, s * .05, .54, .13); }
+  DOUDOU.position.set(16, 0, 22.6); DOUDOU.visible = false; scene.add(DOUDOU); }
+const FANTOME = (x, z, k) => { const g = new THREE.Group(); g.add(new THREE.Mesh(HALLO.ghostGeo, HALLO.gm)); const yeux = mat(0x111111, .4);
+  for (const s of [-1, 1]) { const ey = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), yeux); ey.position.set(s * .15, .85, .4); ey.scale.set(1, 1.4, .6); g.add(ey); }
+  g.scale.setScalar(k); g.position.set(x, 1, z); g.visible = false; scene.add(g); return g; };
+const BEBES = [[-48, 29.4], [24, 29.4], [3.6, 15]].map(([x, z]) => FANTOME(x, z, .5)), MAMAN_F = FANTOME(5.2, 95.5, 1.25); MAMAN_F.rotation.y = -Math.PI / 2;
+const MISSIONS = [
+  mission("bebes", "citrouille", "Les bébés fantômes", 30, [
+    { t: "Parle à la maman fantôme, devant le manoir", c: () => [MANOR.x1 - 1.5, MANOR.door + 1.5], a: "👻 Parler à la maman fantôme", ok: "👻 « Mes trois bébés fantômes se sont perdus dans le domaine ! Tu veux bien les retrouver ? »" },
+    ...BEBES.map((b, i) => ({ t: `Retrouve les bébés fantômes (${i} / 3)`, c: () => [b.position.x, b.position.z], a: "👻 Attraper le bébé fantôme", ok: `👻 Bouh ! Tu as trouvé un bébé fantôme (${i + 1} / 3) !` })),
+    { t: "Ramène les bébés à la maman fantôme", c: () => [MANOR.x1 - 1.5, MANOR.door + 1.5], a: "👻 Rendre les bébés", ok: "👻 « Merci, merci ! Les voilà tous les trois ! »" }], () => HALLO.on),
+  mission("reparer", "cloche", "Les réparations de l'accueil", 20, [
+    { t: "Demande du travail à l'accueil", c: DESK, a: "🧰 Prendre la caisse à outils", ok: "🧰 « Merci de nous aider ! Il faut réparer un lampadaire, une barrière et vérifier un toboggan. »" },
+    { t: "Répare le lampadaire près de la crêperie", c: () => [12, 28.6], a: "🔧 Réparer le lampadaire", ok: "💡 Clic ! Le lampadaire marche de nouveau." },
+    { t: "Répare la barrière du poney club", c: () => [-43, -58], a: "🔨 Réparer la barrière", ok: "🔨 Toc toc toc ! La barrière est solide." },
+    { t: "Vérifie l'échelle du toboggan de l'Aquaparc", c: () => [slides[0].base.x, slides[0].base.z], a: "🔧 Vérifier l'échelle", ok: "🔧 L'échelle est bien serrée !" },
+    { t: "Rapporte la caisse à outils à l'accueil", c: DESK, a: "🧰 Rendre la caisse à outils", ok: "🧰 « Bravo, tout est réparé ! »" }]),
+  mission("oeufs", "croissant", "Des œufs pour la boulangerie", 12, [
+    { t: "Demande à la boulangerie s'il faut de l'aide", c: COMPTOIR_B, a: "🥐 Proposer mon aide", ok: "🥐 « Je n'ai plus d'œufs pour mes gâteaux ! Va en chercher au poulailler de la ferme. »" },
+    { t: "Ramasse les œufs au poulailler de la ferme", c: () => [-90, 8.8], a: "🥚 Ramasser les œufs", ok: "🥚 Six beaux œufs, tout doucement dans le panier !" },
+    { t: "Apporte les œufs à la boulangerie", c: COMPTOIR_B, a: "🥚 Donner les œufs", ok: "🥐 « Super ! Je vais faire des gâteaux. »" }]),
+  mission("doudou", "personnage", "Le doudou perdu", 10, [
+    { t: "Un enfant a perdu son doudou près de la crêperie : cherche-le", c: () => [DOUDOU.position.x, DOUDOU.position.z], a: "🧸 Ramasser le doudou", ok: "🧸 Le voilà ! Il était caché près de la crêperie." },
+    { t: "Rapporte le doudou à l'accueil", c: DESK, a: "🧸 Rendre le doudou", ok: "🧸 « Oh merci ! Il va être tellement content ! »" }]),
+  mission("livraison", "caddie", "La livraison du Market", 10, [
+    { t: "Va aider le Market Speed", c: COMPTOIR_M, a: "📦 Prendre la commande", ok: () => `📦 « Peux-tu livrer ces courses au cottage n°${voisin().num} ? »` },
+    { t: () => `Livre les courses au cottage n°${voisin().num}`, c: () => voisin().toWorld(0, 5), a: "📦 Livrer les courses", ok: "📦 « Merci, c'est gentil ! »" }]),
+];
 const OBJECTIFS = [
   { id: "manoir", ico: "citrouille", si: () => HALLO.on, titre: () => "Visite le manoir hanté", cible: () => [MANOR.x1 - 1.5, MANOR.door], fait: () => MANOR.inside },
   { id: "cottage", ico: "maison", titre: () => "Pose tes valises dans ton cottage", cible: () => myCottage.toWorld(0, 5), fait: () => inCottage === myCottage },
   { id: "accueil", ico: "cloche", titre: () => "Dis bonjour à l'accueil", cible: () => [ACCUEIL.x, ACCUEIL.z - 1], fait: () => ACCUEIL.in(player.position.x, player.position.z) },
   { id: "maillot", ico: "personnage", titre: () => "Mets ton maillot aux vestiaires", cible: () => [(LOCK.ent[0] + LOCK.ent[1]) / 2, LOCK.z2 + 1], fait: () => !!wearing },
   { id: "toboggan", ico: "jouer", titre: () => "Descends un toboggan", cible: () => [slides[0].base.x, slides[0].base.z], fait: () => state === "ride" && riding && !riding.dry },
+  ...MISSIONS,
   { id: "canards", ico: "canard", titre: () => `Retrouve les canards (${found} / 10)`, cible: () => { const d = canardProche(); return d ? [d.x, d.z] : null; }, fait: () => found >= 10 },
 ];
 const OBJ_LIBRE = { id: "libre", ico: "etoile", titre: () => "Profite des vacances !", cible: () => null, fait: () => false };
@@ -10087,7 +10169,10 @@ function majObjectif(dt) {
   const o = objectifCourant(), P = player.position;
   if (o.id !== objId) { objId = o.id; $("objCarte").querySelector(".objIco").innerHTML = icone(o.ico); }
   const t = o.titre(); if ($("objTitre").textContent !== t) $("objTitre").textContent = t;
-  if (o.id !== "libre" && o.fait()) { OBJ_FAITS.add(o.id); sauverObjectifs(); toast("Objectif réussi : " + t.replace(/ \(.*\)$/, "") + " !", 2800); sfx.duck();
+  for (const [g, on] of [[DOUDOU, o.id === "doudou" && etapeDe("doudou") === 0], [MAMAN_F, HALLO.on && !OBJ_FAITS.has("bebes")], ...BEBES.map((b, i) => [b, o.id === "bebes" && etapeDe("bebes") <= i + 1])]) {
+    if (g.visible !== on) g.visible = on; if (on && g !== DOUDOU) { g.position.y = 1 + Math.sin(time * 2 + g.position.x) * .15; g.rotation.y += dt * .6; } }
+  if (o.id !== "libre" && o.fait()) { OBJ_FAITS.add(o.id); sauverObjectifs(); sfx.duck();
+    if (o.prix) { money += o.prix; saveShop(); updMoney(); sfx.win(); toast(`🏆 Quête réussie : ${o.nom} ! Tu gagnes ${o.prix} € 💶`, 3400); } else toast("Objectif réussi : " + t.replace(/ \(.*\)$/, "") + " !", 2800);
     const c = $("objCarte"); c.classList.remove("reussi"); void c.offsetWidth; c.classList.add("reussi"); return; }
   objT += dt; const c = o.cible(), fl = $("objFleche");
   if (!c || state === "ride") { CIBLE.visible = false; fl.hidden = true; $("objDist").textContent = ""; return; }
@@ -10099,7 +10184,10 @@ function majObjectif(dt) {
   fl.hidden = d < 3; const fx = animDir.x, fz = animDir.z, n = Math.hypot(fx, fz) || 1, ang = Math.atan2((dx * -fz + dz * fx) / n, (dx * fx + dz * fz) / n);
   fl.style.transform = `rotate(${(ang * 180 / Math.PI).toFixed(1)}deg)`;
 }
-function oublierObjectifs() { OBJ_FAITS.clear(); sauverObjectifs(); objId = null; }
+function oublierObjectifs() { OBJ_FAITS.clear(); sauverObjectifs(); for (const k in ETAPES) delete ETAPES[k]; sauverEtapes(); objId = null; }
+// le bouton d'action de l'étape en cours : on avance d'une étape
+function faireEtape() { const o = objectifCourant(), k = etapeDe(o.id), e = o.etapes?.[k]; if (!e) return;
+  ETAPES[o.id] = k + 1; sauverEtapes(); toast(typeof e.ok === "function" ? e.ok() : e.ok, 3200); [784, 1046].forEach((f, i) => tone(f, .1, "triangle", .07, 0, i * .09)); }
 // Compteur de fluidité (menu ⚙️) : images par seconde, pire image, à-coups, objets dessinés. Pour voir, sur l'iPad, où ça ralentit.
 let perfOn = false; try { perfOn = localStorage.getItem("pins-perf") === "1"; } catch (e) {}
 const perfEl = $("perf"), perfT = []; let perfAff = 0, perfAvant = 0;
@@ -10268,6 +10356,7 @@ function loop() {
     if (state === "boat" && Math.hypot(pedalo.g.position.x - DOCK_END.x, pedalo.g.position.z - DOCK_END.z) < 4.5) { act1 = "unboat"; t1 = "🧍 Descendre sur le ponton"; }
     // nouveautés : véhicules, animaux, terrasse, rivière, maison dans les arbres
     const offer = (a, t) => { if (!act1) { act1 = a; t1 = t; } else if (!act2) { act2 = a; t2 = t; } };
+    if (state === "walk") { const o = objectifCourant(), e = o.etapes?.[etapeDe(o.id)], c = e && e.c(); if (c && Math.hypot(P.x - c[0], P.z - c[1]) < 2.2) offer("quete", e.a); } // l'étape de la quête en cours
     if (state === "walk" && P.y < 1 && interiorHost && inCottage === interiorHost) { const [lx, lz] = inCottage.toLocal(P.x, P.z); if (Math.hypot(lx + 2.75, lz + 1.65) < 1.7) offer("enceinte", "🔊 Enceinte"); }
     if (state === "walk" && inCottage && inCottage.mine) offer("locker", "👕 Me changer");
     mountT = petT = seatOffer = null;
@@ -10415,7 +10504,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.29-15"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.10.29-17"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
