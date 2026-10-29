@@ -93,6 +93,11 @@ Accord du propriétaire : le jeu vit dans `pins/` pour avoir sa propre adresse
 - Icônes : fichiers PNG (obligatoires pour une application), générés à partir de
   `pins/icone.svg`, lui-même dessiné en code. Pas d'image téléchargée.
 - Dans l'application installée, les liens vers le site des jeux (classe `site`) sont cachés.
+- Version affichée dans Réglages → Plus : `window.PINS_VERSION` (en bas de `pins/index.html`), à changer à chaque modification.
+- Parties : chaque partie a un numéro unique à 6 chiffres et un surnom (liste `pins-parties`, partie choisie `pins-active`).
+  Dans le module du jeu, `localStorage` est remplacé par une version qui range les clés de la partie sous
+  `pins@<numéro>:<clé>` ; seuls les réglages de l'appareil (`CLES_APPAREIL`) restent communs. L'export et le transfert
+  envoient les parties cochées (format version 2 : `parties: [{ id, nom, donnees }]`).
 
 ## Exception : sons enregistrés du Domaine des Pins
 

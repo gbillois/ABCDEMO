@@ -47,6 +47,7 @@
 .sacBoucle{position:absolute;left:50%;bottom:-18px;transform:translateX(-50%);width:44px;height:30px;border-radius:8px;background:#ffd23f;border:4px solid #a8501a;z-index:2}
 .sacCorps{position:relative;margin-top:-10px;background:linear-gradient(#f58a2c,#e36d14);border:4px solid #a8501a;border-top:0;border-radius:0 0 46px 46px;padding:26px 14px 18px;overflow:auto;min-height:0}
 .sacCorps::before{content:"";position:absolute;inset:8px;border:2.5px dashed rgba(255,255,255,.5);border-radius:6px 6px 38px 38px;pointer-events:none}
+#invListe .case.mange{cursor:pointer;border-color:#2fbf6a;background:#eafbe9}
 .sacPoche{display:flex;gap:10px;justify-content:center;margin-bottom:10px}
 .sacPoche span{display:flex;align-items:center;gap:6px;background:#fff3d6;border:3px solid #a8501a;border-radius:16px;padding:4px 12px;font-weight:800;font-size:18px;color:#1d3b2a}
 .sacPoche .ic{width:30px;height:30px}
@@ -203,7 +204,7 @@ body:not(.accueil-on) #accueil img{animation-play-state:paused}
 #charge .barre{height:12px;margin-bottom:8px;border-radius:999px;background:rgba(255,255,255,.3);overflow:hidden;box-shadow:0 0 0 2px rgba(255,255,255,.85)}
 #charge i{display:block;height:100%;width:3%;border-radius:999px;background:linear-gradient(90deg,var(--sun),#ffe28a);transition:width .25s}
 body.chargement #charge{display:block}
-body.chargement #intro .jouer,body.chargement #intro .amis,body.chargement #persos{display:none}
+body.chargement #intro .jouer,body.chargement #intro .amis,body.chargement #persos,body.chargement #partieBar{display:none}
 .overlay{z-index:2;position:fixed;inset:0;background:rgba(10,40,30,.55);display:flex;align-items:center;justify-content:center;padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px));padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));overflow:auto}
 .card{background:var(--panel);border-radius:24px;padding:20px;max-width:460px;width:100%;text-align:center;box-shadow:0 6px 0 rgba(0,0,0,.2);margin:auto}
 .card h1{margin:0 0 6px;font-size:30px;line-height:1.1;text-wrap:balance;color:var(--leaf)}
@@ -257,41 +258,100 @@ html.app .site{display:none!important}
 .phrases .rdv{background:#e67e22}
 .phrases .nums{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
 .phrases .nums .btn{background:#8a5a30;font-size:26px;padding:8px 0}
-.phone{width:min(86vw,340px);height:min(80vh,660px);background:linear-gradient(145deg,#3a3f47,#15181c);border-radius:48px;padding:10px;position:relative;box-shadow:0 18px 50px rgba(0,0,0,.55),inset 0 0 0 2px #5b616b,inset 0 0 0 5px #0b0c0e}
-.ph-notch{position:absolute;top:20px;left:50%;transform:translateX(-50%);width:96px;height:26px;background:#000;border-radius:16px;z-index:2}
-.ph-screen{height:100%;border-radius:39px;background:radial-gradient(120% 70% at 20% 0%,#ffe2a8 0%,rgba(255,226,168,0) 55%),linear-gradient(170deg,#59c3f0 0%,#3fae6e 62%,#2f8f5b 100%);overflow:auto;padding:14px 14px 70px;color:#1d2340;font-family:inherit;position:relative}
-.ph-top{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:14px;padding:2px 14px 10px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.3)}
+.phone{width:min(88vw,360px);height:min(84vh,680px);background:linear-gradient(145deg,#3a3f47,#15181c);border-radius:46px;padding:10px;position:relative;box-shadow:0 18px 50px rgba(0,0,0,.55),inset 0 0 0 2px #5b616b,inset 0 0 0 5px #0b0c0e}
+.phone>.xRouge{top:-12px;right:-12px}
+.ph-notch{position:absolute;top:18px;left:50%;transform:translateX(-50%);width:90px;height:24px;background:#000;border-radius:14px;z-index:2;pointer-events:none}
+.ph-screen{height:100%;border-radius:37px;background:radial-gradient(120% 70% at 20% 0%,#ffe2a8 0%,rgba(255,226,168,0) 55%),linear-gradient(170deg,#59c3f0 0%,#3fae6e 62%,#2f8f5b 100%);overflow:hidden;color:#1d2340;font-family:inherit;position:relative;display:flex;flex-direction:column}
+.ph-top{flex:none;display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:14px;padding:12px 26px 6px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.3);font-variant-numeric:tabular-nums}
 .ph-top svg{height:12px;width:auto;margin-left:4px}
-.ph-heure{text-align:center;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.25);margin:14px 0 10px}
-.ph-heure b{display:block;font-size:56px;line-height:1;font-weight:800}.ph-heure span{font-weight:700;font-size:15px;opacity:.95}
-.ph-title{font-weight:800;font-size:22px;text-align:center;margin:10px 0 12px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;gap:8px}
-.ph-title .ic{width:34px;height:34px}
-.ph-rubrique{color:#fff;font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase;opacity:.9;margin:14px 8px 6px;text-shadow:0 1px 3px rgba(0,0,0,.3)}
-.ph-apps{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 8px;padding:4px 2px}
-.ph-app{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:5px;font:700 11.5px var(--ui);color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.45);cursor:pointer;line-height:1.05}
-.ph-app span{width:60px;height:60px;border-radius:16px;display:grid;place-items:center;box-shadow:0 4px 10px rgba(0,0,0,.25),inset 0 2px 0 rgba(255,255,255,.35)}
-.ph-app span .ic{width:40px;height:40px}
-.ph-app em{position:absolute;margin:-6px 0 0 44px;background:#ff3b30;color:#fff;font-style:normal;border-radius:999px;min-width:22px;height:22px;display:grid;place-items:center;font-size:12px;border:2px solid #fff}
-.ph-dock{position:absolute;left:12px;right:12px;bottom:12px;display:grid;grid-template-columns:repeat(4,1fr);background:rgba(255,255,255,.28);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:26px;padding:8px 4px}
+.ph-head{flex:none;display:flex;align-items:center;gap:6px;padding:6px 12px 8px;background:rgba(255,255,255,.22);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,.35)}
+.ph-head b{flex:1;min-width:0;display:flex;align-items:center;gap:8px;font-size:19px;color:#fff;text-shadow:0 2px 5px rgba(0,0,0,.3);white-space:nowrap;overflow:hidden}
+.ph-head b span{overflow:hidden;text-overflow:ellipsis}
+.ph-head .ic{width:30px;height:30px;flex:none}
+.ph-back{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#1d2340;font:900 30px/1 var(--ui);padding:0 0 4px;cursor:pointer;box-shadow:0 2px 0 rgba(0,0,0,.15)}
+.ph-body{flex:1;min-height:0;overflow:auto;padding:10px 14px 12px;-webkit-overflow-scrolling:touch}
+.ph-heure{text-align:center;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.25);margin:6px 0 14px}
+.ph-heure b{display:block;font-size:54px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums}.ph-heure span{font-weight:700;font-size:14px;opacity:.95}
+.ph-apps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 6px;padding:4px 0}
+.ph-app{background:none;border:0;padding:0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:5px;font:700 11px var(--ui);color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.45);cursor:pointer;line-height:1.05;position:relative}
+.ph-app>span{width:min(58px,100%);aspect-ratio:1;border-radius:26%;display:grid;place-items:center;box-shadow:0 4px 10px rgba(0,0,0,.25),inset 0 2px 0 rgba(255,255,255,.35)}
+.ph-app>span .ic{width:66%;height:66%}
+.ph-app>i{font-style:normal;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ph-app em{position:absolute;top:-6px;right:calc(50% - 34px);background:#ff3b30;color:#fff;font-style:normal;border-radius:999px;min-width:22px;height:22px;display:grid;place-items:center;font-size:12px;border:2px solid #fff;padding:0 4px}
+.ph-dock{flex:none;margin:0 10px 6px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:rgba(255,255,255,.28);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-radius:24px;padding:8px 4px}
+.ph-barre{flex:none;align-self:center;width:120px;height:5px;border-radius:3px;background:rgba(255,255,255,.85);margin:4px 0 10px;cursor:pointer;position:relative}
+.ph-barre::before{content:"";position:absolute;inset:-12px -10px}
 .ph-list{display:flex;flex-direction:column;gap:8px}
-.ph-item{background:rgba(255,255,255,.93);border:0;border-radius:16px;padding:8px 12px;font:700 16px var(--ui);display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer;color:#1d2340;box-shadow:0 2px 0 rgba(0,0,0,.08)}
-.ph-item .ic{width:40px;height:40px}
-.ph-item .nm{flex:1}
+.ph-item{background:rgba(255,255,255,.95);border:0;border-radius:16px;padding:8px 12px;font:700 16px var(--ui);display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer;color:#1d2340;box-shadow:0 2px 0 rgba(0,0,0,.08);min-height:52px}
+.ph-item .ic{width:36px;height:36px;flex:none}
+.ph-item .nm{flex:1;min-width:0}
 .ph-item b{background:#2f8f5b;color:#fff;border-radius:999px;padding:3px 12px;font-size:15px;white-space:nowrap}
 .ph-item.cher b{background:#9aa0b4}
-.ph-msg{background:#fff;border-radius:18px 18px 18px 6px;padding:10px 14px;font-weight:700;margin:8px 30px 8px 0;box-shadow:0 2px 0 rgba(0,0,0,.08)}
-.ph-msg.moi{border-radius:18px 18px 6px 18px;margin:8px 0 8px 30px;background:#2fbf6a;color:#fff}
+.ph-msg{background:#fff;border-radius:18px 18px 18px 6px;padding:9px 13px;font-weight:700;margin:8px 24px 8px 0;box-shadow:0 2px 0 rgba(0,0,0,.08);font-size:15px;line-height:1.3}
+.ph-msg.moi{border-radius:18px 18px 6px 18px;margin:8px 0 8px 24px;background:#2fbf6a;color:#fff}
+.ph-msg.ph-info{margin:0 0 10px;border-radius:14px;background:#fffbe6}
 .ph-msg small{display:block;font-size:11px;opacity:.6;font-weight:800;text-transform:uppercase}
-.ph-note{text-align:center;color:#fff;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.3)}
+.ph-note{text-align:center;color:#fff;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.3);margin:4px 0 10px}
 .ph-carte{border-radius:20px;padding:16px;color:#fff;margin:10px 0;box-shadow:0 6px 16px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:6px}
 .ph-carte .ic{width:44px;height:44px}.ph-carte b{font-size:34px;line-height:1}.ph-carte span{font-weight:700;opacity:.9}
-.ph-home{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;align-items:center;gap:6px;background:rgba(29,35,64,.85);color:#fff;border:0;border-radius:999px;padding:8px 18px;font:800 15px var(--ui);cursor:pointer}
-.ph-home .ic{width:22px;height:22px}
-.ph-btn{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);width:120px;height:5px;border-radius:3px;border:0;background:rgba(255,255,255,.85);cursor:pointer;z-index:3}
-.ph-btn::before{content:"";position:absolute;inset:-14px -10px}
+.ph-prog{background:rgba(255,255,255,.95);border-radius:16px;padding:10px 12px;font-weight:800;margin-bottom:10px;position:relative;overflow:hidden}
+.ph-prog i{display:block;height:8px;border-radius:4px;background:linear-gradient(90deg,#2fbf6a,#7cdc6b);margin-top:6px}
+.ph-quete{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.75);border-radius:16px;padding:8px 12px;margin:0 0 8px;opacity:.75}
+.ph-quete .ic{width:36px;height:36px;flex:none}
+.ph-quete span{display:flex;flex-direction:column;min-width:0}.ph-quete b{font-size:15px}.ph-quete small{font-weight:800;font-size:12px;opacity:.75}
+.ph-quete.faite{background:#dff7e6;opacity:1}.ph-quete.faite small{color:#1f8a46;opacity:1}
+.ph-quete.encours{background:#fff;opacity:1;box-shadow:0 0 0 3px #ffc93c,0 4px 10px rgba(0,0,0,.2)}.ph-quete.encours small{color:#d9480f;opacity:1}
+@media (orientation:landscape) and (max-height:540px){
+  .phone{width:min(94vw,720px);height:min(92vh,380px);border-radius:34px;padding:8px}
+  .ph-notch{display:none}.ph-screen{border-radius:28px}
+  .ph-top{padding:8px 22px 4px}.ph-heure{display:flex;align-items:baseline;justify-content:center;gap:12px;margin:0 0 8px}.ph-heure b{display:inline;font-size:30px}
+  .ph-apps{grid-template-columns:repeat(6,minmax(0,1fr));gap:10px 6px}.ph-app>span{width:min(50px,100%)}
+  .ph-dock{padding:5px 4px;margin:0 10px 4px}.ph-dock .ph-app>span{width:40px}
+  .ph-barre{margin:2px 0 6px}
+}
+/* la croix rouge : la même partout pour fermer */
+.xRouge{position:absolute;top:10px;right:10px;width:46px;height:46px;border-radius:50%;border:3px solid #fff;background:radial-gradient(circle at 35% 30%,#ff8a7e,#e5463b 58%,#b9271d);box-shadow:0 4px 0 rgba(0,0,0,.3),0 0 0 2px rgba(0,0,0,.15);cursor:pointer;z-index:6;padding:0;touch-action:manipulation}
+.xRouge::before,.xRouge::after{content:"";position:absolute;left:50%;top:50%;width:22px;height:5px;margin:-2.5px 0 0 -11px;border-radius:3px;background:#fff;transform:rotate(45deg)}
+.xRouge::after{transform:rotate(-45deg)}
+.xRouge:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.3)}
+.xRouge.statique{position:relative;top:auto;right:auto;flex:none}
 .book{max-width:min(92vw,460px)}.bk-page{min-height:260px;display:flex;align-items:center;justify-content:center;background:#fffaf0;border-radius:14px;padding:18px;box-shadow:inset 0 0 0 2px #f0e2c4}
 .bk-text{font-size:20px;line-height:1.55;color:#2b2420;margin:0}.bk-cover{width:200px;height:260px;border-radius:8px 14px 14px 8px;box-shadow:inset 8px 0 0 rgba(0,0,0,.18),0 6px 14px rgba(0,0,0,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;text-align:center;color:#fff}
 .bk-emoji{font-size:64px}.bk-title{font-weight:800;font-size:19px;text-shadow:0 2px 4px rgba(0,0,0,.3);margin-top:10px}
+
+/* ===== menus façon jeu vidéo : cadre doré, titre en bandeau, boutons bombés ===== */
+.overlay{background:radial-gradient(ellipse at center,rgba(8,30,40,.45),rgba(4,16,22,.78))}
+.card{position:relative;background:linear-gradient(180deg,#ffffff 0%,#e6f4ff 100%);border:4px solid #ffc93c;border-radius:26px;box-shadow:0 0 0 4px #1d3b2a,0 12px 0 rgba(0,0,0,.35),0 18px 40px rgba(0,0,0,.4),inset 0 -8px 0 rgba(29,59,42,.07)}
+.card h1{display:inline-block;max-width:calc(100% - 96px);background:linear-gradient(#ffa24a,#e8590c);color:#fff!important;padding:4px 20px 7px;border-radius:16px;box-shadow:0 4px 0 #a8420a,inset 0 2px 0 rgba(255,255,255,.35);text-shadow:0 2px 0 rgba(0,0,0,.25);font-size:26px;margin:0 0 12px}
+.card h3{color:#1f6fa8}
+.btn{box-shadow:inset 0 3px 0 rgba(255,255,255,.3),inset 0 -4px 0 rgba(0,0,0,.18),0 4px 0 rgba(0,0,0,.3);border:2px solid rgba(0,0,0,.12);text-shadow:0 1px 0 rgba(0,0,0,.25)}
+.btn:active{box-shadow:inset 0 3px 0 rgba(255,255,255,.3),0 1px 0 rgba(0,0,0,.3)}
+.reglages .regTete h1{background:none;box-shadow:none;padding:0;margin:0;max-width:none}
+.reglages .regTete{background:linear-gradient(#ffa24a,#e8590c)}
+.reglages .regOnglets{background:#cfe8f8}
+.reglages .regOnglets button[aria-selected="true"]{background:#fff;box-shadow:0 3px 0 #ffc93c,0 0 0 2px #ffc93c}
+.reglages .regInfo{background:#dff0fb}
+.reglages .regListe{display:flex;flex-direction:column;gap:10px}
+.reglages .regListe .btn{display:flex;align-items:center;gap:10px;justify-content:flex-start;font-size:19px;padding:11px 16px;text-align:left}
+.regVersion{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#dff0fb;border-radius:14px;padding:8px 12px;font-weight:700;text-align:left}
+.regVersion .btn{font-size:16px;padding:7px 12px}
+.svChoix{display:flex;flex-direction:column;gap:6px}
+.svCase{display:flex;align-items:center;gap:10px;border:2px solid #b9d9ee;background:#fff;border-radius:12px;padding:7px 10px;font:700 16px var(--ui);color:var(--ink);cursor:pointer;text-align:left}
+.svCase i{width:26px;height:26px;border-radius:7px;border:3px solid #2f8f5b;display:grid;place-items:center;font-style:normal;color:#fff;font-size:15px;flex:none}
+.svCase[aria-pressed=true] i{background:#2f8f5b}
+.svCase small{opacity:.65;margin-left:4px}
+.partieBar{display:flex;align-items:center;gap:10px;font:800 16px var(--ui);color:#1d3b2a;background:rgba(255,253,244,.94);border:3px solid #ffc93c;border-radius:999px;padding:4px 8px 4px 6px;box-shadow:0 4px 0 rgba(0,0,0,.25);cursor:pointer}
+.partieBar .ic{width:30px;height:30px}
+.partieBar>span{display:flex;align-items:center;gap:6px}.partieBar>span>span{display:flex;flex-direction:column;align-items:flex-start;line-height:1.05}
+.partieBar small{font-size:12px;opacity:.7}
+.partieBar b{background:#2e86de;color:#fff;border-radius:999px;padding:3px 10px;font-size:13px}
+.partiesListe{display:flex;flex-direction:column;gap:8px;margin:10px 0;max-height:46vh;overflow:auto}
+.partieLigne{display:flex;align-items:center;gap:8px;background:#fff;border:2px solid #b9d9ee;border-radius:16px;padding:8px 10px;text-align:left}
+.partieLigne.on{border-color:#ffc93c;box-shadow:0 0 0 2px #ffc93c}
+.partieLigne .pn{flex:1;display:flex;flex-direction:column;min-width:0}.partieLigne .pn small{opacity:.65;font-weight:700}
+.partieLigne .btn{font-size:16px;padding:6px 12px}.partieLigne .btn:disabled{background:#9aa0b4}
+.partieLigne .poubelle{background:#fff;color:#c0392b;padding:6px 9px}
+#mapBtn{display:none!important}
 </style>
 </head>
 <body class="chargement accueil-on">
@@ -309,6 +369,7 @@ html.app .site{display:none!important}
   </div>
   <div id="ducks" class="pill" hidden>0 / 10</div>
   <div id="money" class="pill" hidden>4000 €</div>
+  <div id="boostPill" class="pill" hidden style="background:#ffe066;font-size:16px"></div>
   <button id="multiPill" class="pill" hidden aria-label="Partie à plusieurs"></button>
 </div>
 <div id="hudR">
@@ -347,6 +408,7 @@ html.app .site{display:none!important}
   </div>
   <div class="bas">
     <div id="charge"><div class="barre"><i id="chargeBar"></i></div><span id="chargeTxt">Le domaine se prépare…</span></div>
+    <button id="partieBar" class="partieBar" aria-label="Changer de partie"><span id="partieNom"></span><b>Changer ▸</b></button>
     <div id="persos" role="group" aria-label="Ton personnage"></div>
     <button id="startBtn" class="jouer">▶ JOUER</button>
     <button id="introMulti" class="amis">👫 Avec des amis</button>
@@ -365,26 +427,32 @@ html.app .site{display:none!important}
 
 <div id="pauseView" class="overlay" hidden>
   <div class="card menuJeu reglages">
-    <div class="regTete"><h1>Réglages</h1><button id="regFermer" class="regX" aria-label="Fermer et reprendre"><i data-ico="fermer"></i></button></div>
+    <div class="regTete"><h1>Réglages</h1><button id="regFermer" class="xRouge statique" aria-label="Fermer et continuer"></button></div>
     <div class="regOnglets" role="tablist">
       <button role="tab" data-onglet="jeu" aria-selected="true"><i data-ico="jouer"></i><span>Jeu</span></button>
       <button role="tab" data-onglet="perso"><i data-ico="personnage"></i><span>Personnage</span></button>
-      <button role="tab" data-onglet="son"><i data-ico="son"></i><span>Son</span></button>
       <button role="tab" data-onglet="monde"><i data-ico="soleil"></i><span>Monde</span></button>
+      <button role="tab" data-onglet="son"><i data-ico="son"></i><span>Son</span></button>
       <button role="tab" data-onglet="plus"><i data-ico="reglages"></i><span>Plus</span></button>
     </div>
     <section data-onglet="jeu">
-      <button id="resumeBtn" class="btn grand"><i data-ico="jouer"></i> Reprendre</button>
-      <div class="regInfo"><i data-ico="canard"></i><span><b id="pauseCount">0</b> canard(s) trouvé(s) sur 10</span></div>
-      <div class="regInfo"><i data-ico="piece"></i><span>Dans ton porte-monnaie : <b id="pauseArgent">0 €</b></span></div>
-      <div class="grille">
+      <button id="resumeBtn" class="btn grand"><i data-ico="jouer"></i> Continuer</button>
+      <div class="regInfo"><i data-ico="etoile"></i><span id="regPartie"></span></div>
+      <div class="regListe">
+        <button id="multiBtn" class="btn" style="background:var(--violet)"><i data-ico="amis"></i> Jouer à plusieurs</button>
         <button id="saveBtn" class="btn" style="background:#2e86de"><i data-ico="sauver"></i> Sauvegarder</button>
-        <button id="menuAccueil" class="btn" style="background:#ff8a2b"><i data-ico="depart"></i> Écran de départ</button>
+        <button id="replayBtn" class="btn" style="background:var(--slide)"><i data-ico="nouvelle"></i> Nouvelle partie</button>
+        <button id="menuAccueil" class="btn" style="background:#ff8a2b"><i data-ico="depart"></i> Retour à l'écran de départ</button>
       </div>
     </section>
     <section data-onglet="perso" hidden>
       <p class="small">Touche un visage pour jouer avec lui, encore une fois pour le changer.</p>
       <div id="menuPersos" class="persos" role="group" aria-label="Ton personnage"></div>
+    </section>
+    <section data-onglet="monde" hidden>
+      <button id="dayBtn" class="btn" style="background:#34495e">Passer à la nuit</button>
+      <div class="themes" role="group" aria-label="Thème"><span>Thème :</span><button class="btn" data-theme="normal"><i data-ico="sapin"></i> Normal</button><button class="btn" data-theme="halloween"><i data-ico="citrouille"></i> Halloween</button></div>
+      <button id="halloBtn" hidden aria-hidden="true"></button>
     </section>
     <section data-onglet="son" hidden>
       <label class="vol"><i data-ico="son"></i><span>Général</span><input id="volGen" type="range" min="0" max="100" step="5"></label>
@@ -392,14 +460,12 @@ html.app .site{display:none!important}
       <label class="vol"><i data-ico="oiseau"></i><span>Effets</span><input id="volFx" type="range" min="0" max="100" step="5"></label>
       <button id="soundBtn" class="btn" style="background:#34495e">Couper le son</button>
     </section>
-    <section data-onglet="monde" hidden>
-      <button id="dayBtn" class="btn" style="background:#34495e">Passer à la nuit</button>
-      <div class="themes" role="group" aria-label="Thème"><span>Thème :</span><button class="btn" data-theme="normal"><i data-ico="sapin"></i> Normal</button><button class="btn" data-theme="halloween"><i data-ico="citrouille"></i> Halloween</button></div>
-      <button id="halloBtn" hidden aria-hidden="true"></button>
-      <button id="multiBtn" class="btn" style="background:var(--violet)"><i data-ico="amis"></i> Jouer à plusieurs</button>
-    </section>
     <section data-onglet="plus" hidden>
-      <h3>Mettre ma partie sur un autre appareil</h3>
+      <div class="regVersion"><span>Version du jeu : <b id="versionTxt"></b></span><button id="majBtn2" class="btn" style="background:#27ae60">🔄 Mettre à jour</button></div>
+      <p id="majMsg2" class="small"></p>
+      <h3>Mettre mes parties sur un autre appareil</h3>
+      <p class="small">Choisis les parties à envoyer :</p>
+      <div id="svChoix" class="svChoix"></div>
       <div class="grille">
         <button id="svEnvoyer" class="btn" style="background:#2e86de"><i data-ico="envoyer"></i> Envoyer</button>
         <button id="svRecevoir" class="btn" style="background:#2e86de"><i data-ico="recevoir"></i> Recevoir</button>
@@ -416,7 +482,6 @@ html.app .site{display:none!important}
       <h3>Autres réglages</h3>
       <div class="grille">
         <button id="perfBtn" class="btn" style="background:#34495e"><i data-ico="graphique"></i> Compteur de fluidité</button>
-        <button id="replayBtn" class="btn" style="background:var(--slide)"><i data-ico="nouvelle"></i> Nouvelle partie</button>
       </div>
       <div class="regInfo"><i data-ico="manette"></i><span id="gpEtat">Pas de manette</span></div>
       <a class="btn site" style="background:#34495e" href="../index.html"><i data-ico="maison"></i> Les autres jeux</a>
@@ -475,7 +540,7 @@ html.app .site{display:none!important}
     <div class="row"><button id="bookPrev" class="btn" style="background:#8e44ad">◀</button><button id="bookNext" class="btn" style="background:#27ae60">Page suivante ▶</button><button id="bookClose" class="btn" style="background:#34495e">Fermer</button></div></div>
 </div>
 <div id="phoneView" class="overlay" hidden>
-  <div class="phone"><div class="ph-notch"></div><div id="phoneScreen" class="ph-screen"></div><button id="phoneClose" class="ph-btn" aria-label="Ranger le téléphone"></button></div>
+  <div class="phone"><button id="phoneClose" class="xRouge" aria-label="Ranger le téléphone"></button><div class="ph-notch"></div><div id="phoneScreen" class="ph-screen"></div></div>
 </div>
 <div id="buyView" class="overlay" hidden>
   <div class="card">
@@ -547,11 +612,10 @@ html.app .site{display:none!important}
     <div class="sacAnse"></div>
     <div class="sacRabat"><span class="sacBoucle"></span><h1>Mon sac à dos</h1></div>
     <div class="sacCorps">
-      <div class="sacPoche"><span id="invArgent"></span><span id="invTickets"></span></div>
       <div id="invListe"></div>
       <p class="sacAide">Pour te changer, va dans ton cottage ou aux vestiaires de l'Aquaparc.</p>
     </div>
-    <button id="invClose" class="sacFermer" aria-label="Fermer le sac"><i data-ico="fermer"></i></button>
+    <button id="invClose" class="xRouge" style="top:24px;right:6px" aria-label="Fermer le sac"></button>
   </div>
 </div>
 <div id="lockerView" class="overlay" hidden>
@@ -610,6 +674,15 @@ html.app .site{display:none!important}
   </div>
 </div>
 
+<div id="partiesView" class="overlay" hidden>
+  <div class="card">
+    <h1>Mes parties</h1>
+    <p class="small">Chaque partie a son numéro, son surnom, ses objets et ses quêtes.</p>
+    <div id="partiesListe" class="partiesListe"></div>
+    <div class="row"><button id="partieNouvelle" class="btn" style="background:#27ae60">＋ Nouvelle partie</button></div>
+    <div class="row"><button id="partiesFermer" class="btn" style="background:#34495e">Fermer</button></div>
+  </div>
+</div>
 <div id="sayView" class="overlay" hidden>
   <div class="card">
     <h1>Dire quelque chose 🗨️</h1>
@@ -621,6 +694,13 @@ html.app .site{display:none!important}
 <div id="vig" aria-hidden="true"></div>
 <div id="fade"></div>
 
+<div id="confirmView" class="overlay" hidden style="z-index:40">
+  <div class="card">
+    <h1 id="cfTitre"></h1>
+    <p id="cfTexte"></p>
+    <div class="row"><button id="cfOui" class="btn" style="background:#e5463b"></button><button id="cfNon" class="btn" style="background:#9aa0b4">Annuler</button></div>
+  </div>
+</div>
 <script>
 // Icônes du jeu, dessinées en SVG (pas d'émoticônes) : couleurs vives, contour vert sapin, formes rondes.
 // icone("sac") renvoie le SVG ; dans le HTML : <i data-ico="sac"></i> est remplacé au chargement.
@@ -704,6 +784,8 @@ html.app .site{display:none!important}
     frites: `<path d="M12 22h24l-3 22H15z" fill="#ff5a4e" stroke="${T}" stroke-width="3" stroke-linejoin="round"/>${g('<path d="M16 22V9M21 22V6M26 22V8M31 22V10" stroke="#ffd23f" stroke-width="4"/>')}<path d="M12 22h24l-3 22H15z" fill="none" stroke="${T}" stroke-width="3" stroke-linejoin="round"/>`,
     milkshake: `<path d="M13 16h22l-3 28H16z" fill="#ff8fc8" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M11 16c0-5 6-8 13-8s13 3 13 8z" fill="#fff" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M28 8l5-6" stroke="${T}" stroke-width="3" stroke-linecap="round"/>`,
     salade: `<path d="M6 24h36c0 10-8 18-18 18S6 34 6 24z" fill="#fff3d6" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><circle cx="15" cy="21" r="6" fill="#7cdc6b" stroke="${T}" stroke-width="2.4"/><circle cx="25" cy="18" r="6" fill="#2fbf6a" stroke="${T}" stroke-width="2.4"/><circle cx="33" cy="22" r="4" fill="#ff4f5e" stroke="${T}" stroke-width="2.4"/>`,
+    quetes: `<rect x="8" y="5" width="32" height="38" rx="5" fill="#b0642c" stroke="${T}" stroke-width="3"/><rect x="13" y="5" width="4" height="38" fill="#8a4a1c"/><path d="M28 13l2.6 5.4 5.9.8-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z" fill="#ffd23f" stroke="${T}" stroke-width="2" stroke-linejoin="round"/><path d="M21 35h14" stroke="#ffd23f" stroke-width="3" stroke-linecap="round"/>`,
+    chouquette: `<circle cx="15" cy="30" r="10" fill="#e3a24f" stroke="${T}" stroke-width="3"/><circle cx="33" cy="30" r="10" fill="#e3a24f" stroke="${T}" stroke-width="3"/><circle cx="24" cy="18" r="10" fill="#efb565" stroke="${T}" stroke-width="3"/><g fill="#fff"><circle cx="20" cy="15" r="1.6"/><circle cx="25" cy="13" r="1.6"/><circle cx="28" cy="18" r="1.6"/><circle cx="22" cy="20" r="1.4"/><circle cx="12" cy="27" r="1.6"/><circle cx="17" cy="31" r="1.4"/><circle cx="31" cy="27" r="1.6"/><circle cx="36" cy="31" r="1.4"/></g>`,
     livre: `<path d="M6 9c7-3 13-2 18 2 5-4 11-5 18-2v31c-7-3-13-2-18 2-5-4-11-5-18-2z" fill="#fff" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M24 11v31" stroke="${T}" stroke-width="3"/><path d="M6 9c7-3 13-2 18 2v31c-5-4-11-5-18-2z" fill="#8e44ad" opacity=".85"/>`,
     cadeau: `<rect x="7" y="18" width="34" height="24" rx="3" fill="#ff5a4e" stroke="${T}" stroke-width="3"/><rect x="5" y="12" width="38" height="8" rx="2" fill="#ff7a6e" stroke="${T}" stroke-width="3"/><path d="M24 12v30" stroke="#ffc93c" stroke-width="5"/><path d="M24 12c-6-8-14-4-9 0zM24 12c6-8 14-4 9 0z" fill="#ffc93c" stroke="${T}" stroke-width="2.4" stroke-linejoin="round"/>`,
     maillot: `<path d="M14 6l4 10c3 3 9 3 12 0l4-10 4 2-3 16 3 18c-6 4-24 4-30 0l3-18-3-16z" fill="var(--maillot,#2e86de)" stroke="${T}" stroke-width="3" stroke-linejoin="round"/><path d="M14 34c6 3 14 3 20 0" fill="none" stroke="#fff" stroke-width="2.4" opacity=".7"/>`,
@@ -736,7 +818,7 @@ html.app .site{display:none!important}
   window.ICO = ICO;
 
   // Les émoticônes de l'interface deviennent de vraies icônes (ou disparaissent s'il n'y a pas d'icône) : boutons, messages, menus.
-  const EMO = { "🦆":"canard","👕":"maillot","🩱":"maillot","🌊":"eau","💦":"eau","🍔":"burger","🎟":"ticket","⛳":"golf","🎉":"confettis","🎈":"baudruche","🎳":"quille","🛝":"toboggan","🎂":"cadeau",
+  const EMO = { "🧆":"chouquette","🦆":"canard","👕":"maillot","🩱":"maillot","🌊":"eau","💦":"eau","🍔":"burger","🎟":"ticket","⛳":"golf","🎉":"confettis","🎈":"baudruche","🎳":"quille","🛝":"toboggan","🎂":"cadeau",
     "🏠":"maison","🏡":"maison","🏚":"maison","🛖":"maison","🍬":"bonbon","🎮":"manette","🕹":"manette","🎃":"citrouille","🌲":"sapin","🌳":"sapin","🏆":"medaille","🏅":"medaille","🥇":"medaille","⭐":"etoile","🌟":"etoile","✨":"etoile","★":"etoile",
     "🚲":"velo","🦁":"animal","🐑":"animal","🦒":"animal","🐱":"animal","🐠":"animal","🐟":"animal","🐧":"animal","🐄":"animal","🐔":"animal","🦓":"animal","🐘":"animal","🦛":"animal","🐒":"animal","🐶":"animal","🐴":"poney",
     "👏":"applaudir","🏊":"nager","🛟":"nager","🛒":"caddie","🛍":"caddie","📚":"livre","📖":"livre","📕":"livre","📗":"livre","📘":"livre","📙":"livre","✅":"ok","✓":"ok","🎁":"cadeau","🥖":"baguette","🥐":"croissant","🔄":"nouvelle",
@@ -800,6 +882,32 @@ import { Water } from "three/addons/objects/Water.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
 const $ = id => document.getElementById(id);
+/* ================= Les parties : chaque partie a un numéro unique (6 chiffres) et un surnom =================
+   Tout ce qui fait une partie (personnages, argent, objets, quêtes, canards…) est rangé sous « pins@<numéro>:<clé> ».
+   Les réglages de l'appareil (volumes, compteur, son coupé) restent communs. Le jeu lit et écrit par « localStorage »,
+   qui est ici remplacé par une version qui range tout dans la partie choisie. */
+const LS_VRAI = (() => { try { return window.localStorage; } catch (e) { return null; } })();
+const CLES_APPAREIL = new Set(["pins-volumes", "pins-perf", "pins-muet", "pins-parties", "pins-active", "pins-nouvelle"]);
+const nouveauNumero = (deja = []) => { let n; do n = String(100000 + Math.floor(Math.random() * 900000)); while (deja.includes(n)); return n; };
+const PARTIES = (() => { let liste = [], id = null;
+  try { liste = JSON.parse(LS_VRAI.getItem("pins-parties") || "null"); } catch (e) { liste = null; }
+  if (!Array.isArray(liste) || !liste.length) { // première fois : on range l'ancienne partie (s'il y en a une) dans la partie n° 1
+    liste = []; id = nouveauNumero(); let nom = "Théo";
+    try { const pe = JSON.parse(LS_VRAI.getItem("pins-persos") || "[]"); nom = (pe[+LS_VRAI.getItem("pins-perso") || 0] || pe[0] || {}).nom || nom;
+      const cles = []; for (let i = 0; i < LS_VRAI.length; i++) { const k = LS_VRAI.key(i); if (k && k.startsWith("pins-") && !CLES_APPAREIL.has(k)) cles.push(k); }
+      for (const k of cles) LS_VRAI.setItem(`pins@${id}:${k}`, LS_VRAI.getItem(k)); } catch (e) {}
+    liste.push({ id, nom, maj: Date.now() }); try { LS_VRAI.setItem("pins-parties", JSON.stringify(liste)); LS_VRAI.setItem("pins-active", id); } catch (e) {} }
+  try { id = LS_VRAI.getItem("pins-active"); } catch (e) {} if (!liste.some(p => p.id === id)) id = liste[0].id;
+  return { liste, id }; })();
+const partieActive = () => PARTIES.liste.find(p => p.id === PARTIES.id);
+function sauverParties() { try { LS_VRAI.setItem("pins-parties", JSON.stringify(PARTIES.liste)); LS_VRAI.setItem("pins-active", PARTIES.id); } catch (e) {} }
+const cleDe = (id, k) => CLES_APPAREIL.has(k) ? k : `pins@${id}:${k}`;
+const localStorage = { getItem: k => LS_VRAI.getItem(cleDe(PARTIES.id, k)), setItem: (k, v) => LS_VRAI.setItem(cleDe(PARTIES.id, k), String(v)), removeItem: k => LS_VRAI.removeItem(cleDe(PARTIES.id, k)) };
+const MSGS = []; // les derniers messages du jeu (les bulles jaunes), à relire dans l'appli Messages du téléphone
+const joliNumero = n => n.slice(0, 3) + " " + n.slice(3);
+function changerDePartie(id) { PARTIES.id = id; sauverParties(); chargementEnCours = true; location.reload(); }
+function creerPartie() { const id = nouveauNumero(PARTIES.liste.map(p => p.id)); PARTIES.liste.push({ id, nom: "Nouvelle partie", maj: Date.now() }); PARTIES.id = id; sauverParties(); try { LS_VRAI.setItem("pins-nouvelle", "1"); } catch (e) {} chargementEnCours = true; location.reload(); }
+function oublierPartie(id) { try { const cles = []; for (let i = 0; i < LS_VRAI.length; i++) { const k = LS_VRAI.key(i); if (k && k.startsWith(`pins@${id}:`)) cles.push(k); } for (const k of cles) LS_VRAI.removeItem(k); } catch (e) {} }
 const LOWQ = matchMedia("(pointer: coarse)").matches; // tablettes et téléphones : un peu moins de détails
 // Chargement par étapes : entre deux étapes, on laisse l'écran se redessiner (la barre avance, rien ne semble bloqué)
 const souffle = (p, txt) => { $("chargeBar").style.width = p + "%"; if (txt) $("chargeTxt").textContent = txt;
@@ -1150,7 +1258,7 @@ try { BOUM.nights = parseInt(localStorage.getItem("pins-nuits") ?? "-1"); if (!N
 {
   // des lampadaires autour du bassin et une guirlande lumineuse : ils s'allument la nuit
   const pm = mat(0x2f4f3f, .5, { metalness: .4 });
-  for (const [x, z] of [[POOL.x1 - 2.6, -31], [POOL.x1 - 2.6, -42], [POOL.x2 + 2.6, -31], [POOL.x2 + 2.6, -42], [-6, POOL.z2 + 2.8], [6, POOL.z2 + 2.8], [16, POOL.z2 + 2.8]]) {
+  for (const [x, z] of [[POOL.x1 - 2.6, POOL.z2 + 1], [POOL.x1 - 5.5, POOL.z1 - 1], [POOL.x2 + 2.6, -31], [POOL.x2 + 2.6, -42], [-10, POOL.z2 + 2.8], [18, POOL.z2 + 2.8]]) { // aux coins, pas au milieu des transats
     const p = new THREE.Mesh(new THREE.CylinderGeometry(.07, .09, 3.6, 10), pm); p.position.set(x, 1.8, z); scene.add(p);
     const l = new THREE.Mesh(new THREE.SphereGeometry(.26, 14, 10), new THREE.MeshStandardMaterial({ color: 0xfff1c8, emissive: 0xffd27a, emissiveIntensity: .6 })); l.position.set(x, 3.7, z); scene.add(l); lampMats.push(l.material); lampGlowPos.push([x, z]); circles.push({ x, z, r: .15 }); }
   const bulbG = new THREE.SphereGeometry(.12, 8, 6), cols = [0xff5a4e, 0xffc93c, 0x2fd3ff, 0x7cff6b, 0xff4fd8];
@@ -1379,7 +1487,9 @@ function makeSlide(cx, cz, a0, dir, turns, color, target, name, HR = 3.6) {
   const dansBassin = (x, z) => x > POOL.x1 - .7 && x < POOL.x2 + .7 && z > POOL.z1 - .7 && z < POOL.z2 + .7;
   let ue = -1; for (let k = 0; k <= 100; k++) { const u = k / 100, x = THREE.MathUtils.lerp(last.x, target[0], u), z = THREE.MathUtils.lerp(last.z, target[1], u); if (dansBassin(x, z)) { ue = u; break; } }
   const at = (u, y) => new THREE.Vector3(THREE.MathUtils.lerp(last.x, target[0], u), y, THREE.MathUtils.lerp(last.z, target[1], u));
-  if (ue > .2 && ue < .9) pts.push(at(ue * .5, 1.45), at(ue, 1.2), at(Math.min(.95, ue + .5 * (1 - ue)), .55), new THREE.Vector3(target[0], -0.05, target[1]));
+  // ui : là où l'on a passé la margelle (on est au-dessus de l'eau) ; jusque-là, le fond de la glissière reste au-dessus du bord
+  let ui = ue; for (let k = Math.round(ue * 100); k <= 100; k++) { const u = k / 100, x = THREE.MathUtils.lerp(last.x, target[0], u), z = THREE.MathUtils.lerp(last.z, target[1], u); if (x > POOL.x1 + .5 && x < POOL.x2 - .5 && z > POOL.z1 + .5 && z < POOL.z2 - .5) { ui = u; break; } }
+  if (ue > .2 && ue < .9) pts.push(at(ue * .5, 1.65), at(ue, 1.5), at(Math.min(.92, ui), 1.35), at(Math.min(.96, ui + .45 * (1 - ui)), .5), new THREE.Vector3(target[0], -0.05, target[1]));
   else pts.push(at(.5, 1.0), new THREE.Vector3(target[0], -0.05, target[1]));
   const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
   const water = new THREE.Mesh(halfPipe(curve, .8, 320, 8, .28, .72), streamMat); water.renderOrder = 3; scene.add(water);
@@ -3057,7 +3167,7 @@ for (let r = 0; r < 3; r++) boxes.push({ x1: -84 - 5 + r * 3.4 - .45, x2: -84 - 
 boxes.push({ x1: -84 - 7.4, x2: -84 - .5, z1: 48.5 - 4.5, z2: 48.5 - 3.7 }, { x1: -84 + 5.1, x2: -84 + 7.5, z1: 48.5 - 3.2, z2: 48.5 - 2 }, { x1: -84 + 4.4, x2: -84 + 6.8, z1: 48.5 + 1.2, z2: 48.5 + 2 });
 // acheter : boulangerie et Market partagent la même fenêtre
 const BUY = {
-  boul: { title: "La boulangerie 🥖", items: [["🥐", "Croissant", 1], ["🍫", "Pain au chocolat", 1], ["🥖", "Baguette", 1], ["🍬", "Chouquettes", 2], ["🧁", "Éclair au chocolat", 3], ["🍓", "Tarte aux fraises", 4]] },
+  boul: { title: "La boulangerie 🥖", items: [["🥐", "Croissant", 1], ["🍫", "Pain au chocolat", 1], ["🥖", "Baguette", 1], ["🧆", "Chouquettes", 2], ["🧁", "Éclair au chocolat", 3], ["🍓", "Tarte aux fraises", 4]] },
   market: { title: "Le Market Speed 🛒⚡", items: [["🍎", "Pommes", 2], ["🥛", "Lait", 1], ["🥣", "Céréales", 3], ["🍕", "Pizza", 5], ["🍬", "Bonbons", 2], ["🧃", "Jus de fruits", 2], ["🧴", "Crème solaire", 6], ["⚽", "Ballon", 8], ["🍦", "Glaces", 4], ["🦆", "Petit canard en plastique", 3]] },
 };
 let bag = []; try { const b = JSON.parse(localStorage.getItem("pins-sac") || "[]"); if (Array.isArray(b)) bag = b.filter(x => typeof x === "string").slice(-60); } catch (e) {}
@@ -3140,56 +3250,73 @@ $("bookNext").onclick = () => { const b = BOOKS.find(x => x.id === reading.id); 
 $("bookClose").onclick = () => fermer("bookView");
 /* ---------- Le téléphone 📱 : commander à distance (livré au cottage) et appeler l'accueil ---------- */
 const PHONE_BF = { title: "Burger Fast 🍔", items: [["🍔", "Burger", 4], ["🍟", "Frites", 2], ["🍗", "Nuggets", 3], ["🥤", "Milkshake", 3], ["🍦", "Glace", 2], ["🥗", "Salade", 3]] };
-const PHONE_APPS = [["boul", "croissant", "Boulangerie", "linear-gradient(#f6c27a,#c47a3a)"], ["market", "caddie", "Market Speed", "linear-gradient(#7cdc6b,#27ae60)"], ["bf", "burger", "Burger Fast", "linear-gradient(#ff8a7a,#e74c3c)"], ["livres", "livre", "Librairie", "linear-gradient(#c49ae8,#8e44ad)"]];
+const PHONE_APPS = [["quetes", "quetes", "Quêtes", "linear-gradient(#ffd27a,#e8902a)"], ["boul", "croissant", "Boulangerie", "linear-gradient(#f6c27a,#c47a3a)"], ["market", "caddie", "Market Speed", "linear-gradient(#7cdc6b,#27ae60)"], ["bf", "burger", "Burger Fast", "linear-gradient(#ff8a7a,#e74c3c)"], ["livres", "livre", "Librairie", "linear-gradient(#c49ae8,#8e44ad)"]];
 const PHONE_SYS = [["accueil", "appel", "Téléphone", "linear-gradient(#fff,#e8f6ec)"], ["messages", "message", "Messages", "linear-gradient(#fff,#e8f6ec)"], ["plans", "carte", "Plans", "linear-gradient(#fff,#e8f2fb)"], ["wallet", "portefeuille", "Portefeuille", "linear-gradient(#2c3e50,#1d2340)"]];
 const PH_RESEAU = '<svg viewBox="0 0 34 12"><rect x="0" y="8" width="5" height="4" rx="1" fill="#fff"/><rect x="7" y="5" width="5" height="7" rx="1" fill="#fff"/><rect x="14" y="2" width="5" height="10" rx="1" fill="#fff"/><rect x="22" y="1" width="11" height="10" rx="2.5" fill="none" stroke="#fff" stroke-width="1.6"/><rect x="24" y="3" width="7" height="6" rx="1" fill="#fff"/></svg>';
 const deliveries = [];
 let phoneApp = null;
 function phoneShop(k) { return k === "bf" ? PHONE_BF : BUY[k]; }
+// l'heure du téléphone, c'est l'heure du jeu (le soleil se lève à 6 h, midi quand il est au plus haut)
+const heureJeu = () => { const h = ((dayT * 24) % 24 + 24) % 24; return `${String(Math.floor(h)).padStart(2, "0")}:${String(Math.floor((h % 1) * 60)).padStart(2, "0")}`; };
+let msgLus = 0;
 function phoneRender(msg) {
-  const S = $("phoneScreen"), hh = new Date(), clock = `${String(hh.getHours()).padStart(2, "0")}:${String(hh.getMinutes()).padStart(2, "0")}`;
+  const S = $("phoneScreen"), clock = heureJeu();
   const ligne = (ico, nom, prix, attr, cher) => `<button class="ph-item${cher ? " cher" : ""}" ${attr}>${ico}<span class="nm">${nom}</span>${prix ? `<b>${prix}</b>` : ""}</button>`;
   const icObjet = e => icone(EMO[e] || EMO[(e || "").replace(/[️‍]/g, "")] || "cadeau");
-  let h = `<div class="ph-top"><span>${clock}</span><span>${PH_RESEAU}</span></div>`;
+  const esc = t => String(t).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+  let h = `<div class="ph-top"><span>${clock}</span><span>${PH_RESEAU}</span></div>`, corps = "", titre = null;
+  const nonLus = Math.max(0, MSGS.length - msgLus) + deliveries.length;
   if (!phoneApp) {
-    const jours = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
-    h += `<div class="ph-heure"><b>${clock}</b><span>${jours[hh.getDay()]} · Domaine des Pins</span></div>`;
-    h += `<div class="ph-rubrique">Boutiques du domaine</div><div class="ph-apps">` + PHONE_APPS.map(([k, ic, n, c]) => `<button class="ph-app" data-app="${k}"><span style="background:${c}">${icone(ic)}</span>${n}</button>`).join("") + `</div>`;
-    if (deliveries.length) h += `<p class="ph-note">${deliveries.length} livraison${deliveries.length > 1 ? "s" : ""} en route vers ton cottage…</p>`;
-    h += `<div class="ph-dock">` + PHONE_SYS.map(([k, ic, n, c]) => `<button class="ph-app" data-app="${k}"><span style="background:${c}">${icone(ic)}</span>${n}${k === "messages" && deliveries.length ? `<em>${deliveries.length}</em>` : ""}</button>`).join("") + `</div>`;
+    const hh = Math.floor(((dayT * 24) % 24 + 24) % 24), moment = hh < 6 || hh >= 21 ? "Bonne nuit" : hh < 12 ? "Bonjour" : hh < 18 ? "Bon après-midi" : "Bonne soirée";
+    corps += `<div class="ph-heure"><b>${clock}</b><span>${moment} ${esc(monNom)} · Domaine des Pins</span></div>`;
+    corps += `<div class="ph-apps">` + PHONE_APPS.map(([k, ic, n, c]) => `<button class="ph-app" data-app="${k}"><span style="background:${c}">${icone(ic)}</span><i>${n}</i></button>`).join("") + `</div>`;
+    if (deliveries.length) corps += `<p class="ph-note">${deliveries.length} livraison${deliveries.length > 1 ? "s" : ""} en route vers ton cottage…</p>`;
+    S.innerHTML = h + `<div class="ph-body">${corps}</div><div class="ph-dock">` + PHONE_SYS.map(([k, ic, n, c]) => `<button class="ph-app" data-app="${k}"><span style="background:${c}">${icone(ic)}</span><i>${n}</i>${k === "messages" && nonLus ? `<em>${Math.min(99, nonLus)}</em>` : ""}</button>`).join("") + `</div><div class="ph-barre"></div>`;
+    return;
+  }
+  if (phoneApp === "quetes") {
+    titre = [icone("quetes"), "Livre de quêtes"];
+    const liste = OBJECTIFS.filter(o => !o.si || o.si() || OBJ_FAITS.has(o.id)), cur = objectifCourant(), n = liste.filter(o => OBJ_FAITS.has(o.id)).length;
+    corps += `<div class="ph-prog"><span>${n} / ${liste.length} quêtes réussies</span><i style="width:${Math.round(n / liste.length * 100)}%"></i></div>`;
+    for (const o of liste) { const fait = OBJ_FAITS.has(o.id), enCours = o === cur, c = !fait && enCours ? o.cible() : null, P = player.position, d = c ? Math.round(Math.hypot(c[0] - P.x, c[1] - P.z)) : null;
+      corps += `<div class="ph-quete${fait ? " faite" : enCours ? " encours" : ""}">${icone(o.ico)}<span><b>${esc(o.titre())}</b><small>${fait ? "✔ Réussie !" : enCours ? "En cours" + (d !== null ? ` · à ${d} m` : "") : "À venir"}</small></span></div>`; }
+    if (cur.id === "libre") corps += `<p class="ph-note">Bravo ! Toutes les quêtes sont réussies. Profite des vacances ! 🎉</p>`;
   } else if (phoneApp === "messages") {
-    const o = objectifCourant();
-    h += `<div class="ph-title">${icone("message")} Messages</div>`;
-    h += `<div class="ph-msg"><small>Accueil du Domaine</small>Bienvenue au Domaine des Pins ! Bonnes vacances !</div>`;
-    h += `<div class="ph-msg"><small>Accueil du Domaine</small>Ton prochain objectif : ${o.titre()}.</div>`;
-    h += `<div class="ph-msg"><small>Accueil du Domaine</small>Il reste ${10 - found} canard${10 - found > 1 ? "s" : ""} à retrouver dans le domaine.</div>`;
-    for (const d of deliveries) h += `<div class="ph-msg moi"><small>Commande</small>${d.item.replace(/^\S+\s+/, "")} : le livreur arrive dans ${Math.max(1, Math.ceil(d.t))} s.</div>`;
+    titre = [icone("message"), "Messages"]; msgLus = MSGS.length;
+    corps += `<div class="ph-msg"><small>Accueil du Domaine</small>Bienvenue au Domaine des Pins ! Bonnes vacances !</div>`;
+    for (const m of MSGS) corps += `<div class="ph-msg"><small>${m.h}</small>${esc(m.t)}</div>`;
+    for (const d of deliveries) corps += `<div class="ph-msg moi"><small>Commande</small>${esc(d.item.replace(/^\S+\s+/, ""))} : le livreur arrive dans ${Math.max(1, Math.ceil(d.t))} s.</div>`;
   } else if (phoneApp === "wallet") {
-    h += `<div class="ph-title">${icone("portefeuille")} Portefeuille</div>`;
-    h += `<div class="ph-carte" style="background:linear-gradient(135deg,#2f8f5b,#1d5a3a)">${icone("piece")}<span>Argent de vacances</span><b>${money} €</b></div>`;
-    h += `<div class="ph-carte" style="background:linear-gradient(135deg,#ff4fd8,#8e44ad)">${icone("ticket")}<span>Tickets de la salle d'arcade</span><b>${gtData.tickets}</b></div>`;
-    h += `<div class="ph-carte" style="background:linear-gradient(135deg,#ffc93c,#e8a020);color:#1d3b2a">${icone("canard")}<span>Canards trouvés</span><b>${found} / 10</b></div>`;
+    titre = [icone("portefeuille"), "Portefeuille"];
+    corps += `<div class="ph-carte" style="background:linear-gradient(135deg,#2f8f5b,#1d5a3a)">${icone("piece")}<span>Argent de vacances</span><b>${money} €</b></div>`;
+    corps += `<div class="ph-carte" style="background:linear-gradient(135deg,#ff4fd8,#8e44ad)">${icone("ticket")}<span>Tickets de la salle d'arcade</span><b>${gtData.tickets}</b></div>`;
+    corps += `<div class="ph-carte" style="background:linear-gradient(135deg,#ffc93c,#e8a020);color:#1d3b2a">${icone("canard")}<span>Canards trouvés</span><b>${found} / 10</b></div>`;
   } else if (phoneApp === "livres") {
-    h += `<div class="ph-title">${icone("livre")} Librairie</div><p class="ph-note">Tu as <b>${money} €</b>. Un livre acheté ici se lit tout de suite sur le téléphone !</p><div class="ph-list">`
+    titre = [icone("livre"), "Librairie"];
+    corps += `<p class="ph-note">Tu as <b>${money} €</b>. Un livre acheté ici se lit tout de suite sur le téléphone !</p><div class="ph-list">`
       + BOOKS.map(b => ownBooks.includes(b.id) ? ligne(icone("livre"), b.t, "Lire", `data-read="${b.id}"`) : ligne(icone("livre"), b.t, b.p + " €", `data-book="${b.id}"`, money < b.p)).join("") + `</div>`;
-    if (msg) h += `<p class="ph-msg">${msg}</p>`;
+    if (msg) corps = `<p class="ph-msg ph-info">${msg}</p>` + corps;
   } else if (phoneApp === "accueil") {
-    h += `<div class="ph-title">${icone("appel")} Accueil du Domaine</div><p class="ph-msg">${msg || "Bonjour, ici l'accueil du Domaine des Pins ! Comment je peux t'aider ?"}</p><div class="ph-list">`
+    titre = [icone("appel"), "Accueil du Domaine"];
+    corps += `<p class="ph-msg">${msg || "Bonjour, ici l'accueil du Domaine des Pins ! Comment je peux t'aider ?"}</p><div class="ph-list">`
       + [["perdu", "carte", "Je suis perdu"], ["canard", "canard", "Où est un canard ?"], ["anniv", "cadeau", "Pour un anniversaire"], ["bloque", "voiture", "Je suis bloqué, ramenez-moi"], ["merci", "fermer", "Raccrocher"]].map(([k, ic, t]) => ligne(icone(ic), t, "", `data-call="${k}"`)).join("") + `</div>`;
   } else {
     const sh = phoneShop(phoneApp), app = PHONE_APPS.find(a => a[0] === phoneApp);
-    h += `<div class="ph-title">${icone(app ? app[1] : "caddie")} ${app ? app[2] : ""}</div><p class="ph-note">Tu as <b>${money} €</b>. On livre à ton cottage !</p><div class="ph-list">`
-      + sh.items.map(([e, n, p], i) => ligne(icObjet(e), n, p + " €", `data-buy="${i}"`, money < p)).join("") + `</div>`;
-    if (msg) h += `<p class="ph-msg">${msg}</p>`;
+    titre = [icone(app ? app[1] : "caddie"), app ? app[2] : ""];
+    corps += `<p class="ph-note">Tu as <b>${money} €</b>. On livre à ton cottage !</p><div class="ph-list">` + sh.items.map(([e, n, p], i) => ligne(icObjet(e), n, p + " €", `data-buy="${i}"`, money < p)).join("") + `</div>`;
+    if (msg) corps = `<p class="ph-msg ph-info">${msg}</p>` + corps;
   }
-  if (phoneApp) h += `<button class="ph-home" data-home="1">${icone("retour")} Accueil</button>`;
-  S.innerHTML = h;
+  S.innerHTML = h + `<div class="ph-head"><button class="ph-back" data-home="1" aria-label="Revenir à l'accueil du téléphone">‹</button><b>${titre[0]}<span>${titre[1]}</span></b></div><div class="ph-body">${corps}</div><div class="ph-barre" data-home="1"></div>`;
+  if (phoneApp === "messages") { const b = S.querySelector(".ph-body"); b.scrollTop = b.scrollHeight; }
 }
 function phoneOpen() { phoneApp = null; phoneRender(); ouvrir("phoneView"); tone(1318, .06, "sine", .06); tone(1760, .08, "sine", .05, 0, .07); }
 $("phoneBtn").onclick = phoneOpen;
-$("phoneClose").onclick = () => fermer("phoneView");
+$("phoneClose").onclick = () => { sfx.click(); fermer("phoneView"); };
+setInterval(() => { if ($("phoneView").hidden) return; try { const c = heureJeu(), a = $("phoneScreen").querySelector(".ph-top span"), b = $("phoneScreen").querySelector(".ph-heure b"); if (a) a.textContent = c; if (b) b.textContent = c; } catch (e) {} }, 1000);
+$("phoneView").addEventListener("click", e => { if (e.target === $("phoneView")) fermer("phoneView"); }); // toucher à côté du téléphone le range
+$("phoneScreen").addEventListener("click", e => { if (e.target.closest(".ph-barre") && !phoneApp) fermer("phoneView"); });
 $("phoneScreen").addEventListener("click", e => {
-  const b = e.target.closest("button"); if (!b) return; tone(1046, .04, "sine", .05);
+  const b = e.target.closest("button, .ph-barre[data-home]"); if (!b) return; tone(1046, .04, "sine", .05);
   if (b.dataset.home) { phoneApp = null; phoneRender(); return; }
   if (b.dataset.app === "plans") { fermer("phoneView"); $("mapBtn").click(); return; }
   if (b.dataset.app) { phoneApp = b.dataset.app; if (phoneApp === "accueil") { phoneRender("📞 Ça sonne… dring… dring…"); [0, .5, 1.4, 1.9].forEach(d => tone(440, .35, "sine", .05, 0, d)); setTimeout(() => { if (phoneApp === "accueil" && !$("phoneView").hidden) phoneRender(); }, 2600); } else phoneRender(); return; }
@@ -8188,15 +8315,20 @@ setMuteIcon();
 $("soundBtn").onclick = () => { muted = !muted; try { localStorage.setItem("pins-muet", muted ? "1" : "0"); } catch (e) {} setMuteIcon(); audioOn(); sfx.click(); };
 
 /* ================= Interface ================= */
-let toastT = 0; function toast(t, ms = 2200) { $("toast").textContent = t; $("toast").hidden = false; toastT = ms / 1000; }
+let toastT = 0; function toast(t, ms = 2200) { try { if (t && (!MSGS.length || MSGS[MSGS.length - 1].t !== t)) { MSGS.push({ t, h: heureJeu() }); if (MSGS.length > 60) { MSGS.shift(); msgLus = Math.max(0, msgLus - 1); } } } catch (e) {} $("toast").textContent = t; $("toast").hidden = false; toastT = ms / 1000; }
 let paused = true;
 $("startBtn").onclick = () => { audioOn(); sfx.click(); $("intro").hidden = true; paused = false; if (partieReprise) toast(found ? `On reprend ta partie : ${found} canard${found > 1 ? "s" : ""} trouvé${found > 1 ? "s" : ""} ! 🦆` : "On reprend ta partie là où tu étais ! 🦆", 2600); else toast(HALLO.on ? "🎃 Joyeux Halloween ! Première mission : va visiter le manoir hanté, au nord (regarde la carte 🗺️)" : "Va voir Sophie pour dire bonjour !", HALLO.on ? 4500 : 2200); partieReprise = false; };
-$("pauseBtn").onclick = () => { if (!$("intro").hidden) return; sfx.click(); paused = true; $("pauseCount").textContent = found; $("pauseArgent").textContent = money + " €"; ongletReglages("jeu"); $("pauseView").hidden = false; };
+$("pauseBtn").onclick = () => { if (!$("intro").hidden) return; sfx.click(); paused = true; majRegPartie(); ongletReglages("jeu"); $("pauseView").hidden = false; };
 // Réglages : des onglets (Jeu, Personnage, Son, Monde, Plus) au lieu d'une longue liste
 function ongletReglages(n) { for (const b of document.querySelectorAll(".regOnglets button")) b.setAttribute("aria-selected", b.dataset.onglet === n ? "true" : "false");
   for (const sct of document.querySelectorAll(".reglages section")) sct.hidden = sct.dataset.onglet !== n; }
-for (const b of document.querySelectorAll(".regOnglets button")) b.onclick = () => { sfx.click(); ongletReglages(b.dataset.onglet); };
+for (const b of document.querySelectorAll(".regOnglets button")) b.onclick = () => { sfx.click(); ongletReglages(b.dataset.onglet); if (b.dataset.onglet === "plus") dessinerSvChoix(); };
 $("regFermer").onclick = () => $("resumeBtn").click();
+// pour fermer un menu : partout la même croix rouge en haut à droite (les gros boutons « Fermer » disparaissent)
+for (const id of ["mapClose", "shopClose", "arcClose", "prizeClose", "bfClose", "bookClose", "buyClose", "golfClose", "lockerClose", "multiClose", "partiesFermer", "sayClose"]) {
+  const b = $(id); if (!b) continue; const boite = b.closest(".card"); if (!boite) continue;
+  const x = document.createElement("button"); x.className = "xRouge"; x.setAttribute("aria-label", "Fermer"); x.onclick = e => { e.stopPropagation(); b.click(); }; boite.append(x);
+  b.hidden = true; b.style.display = "none"; const r = b.parentElement; if (r && r.classList.contains("row") && ![...r.children].some(c => c !== b && !c.hidden && c.style.display !== "none")) r.style.display = "none"; }
 $("resumeBtn").onclick = () => { sfx.click(); $("pauseView").hidden = true; paused = false; };
 function replay() {
   oublierObjectifs();
@@ -8206,7 +8338,18 @@ function replay() {
   $("pauseView").hidden = true; $("win").hidden = true; $("dialog").hidden = true; talking = null; paused = false; toast("C'est reparti ! 🦆");
   if (wearing) { wearing = null; setOutfit(player, null); } sauverPartie(false);
 }
-$("replayBtn").onclick = replay; $("winReplay").onclick = replay;
+$("winReplay").onclick = replay;
+// une fenêtre « Es-tu sûr ? » (alert et confirm ne marchent pas partout) : on la ferme avec Annuler
+let cfOk = null;
+function demander(titre, texte, oui, faire) { $("cfTitre").textContent = titre; $("cfTexte").textContent = texte; $("cfOui").textContent = oui; cfOk = faire; $("confirmView").hidden = false; }
+$("cfNon").onclick = () => { sfx.click(); $("confirmView").hidden = true; cfOk = null; };
+$("cfOui").onclick = () => { sfx.click(); $("confirmView").hidden = true; const f = cfOk; cfOk = null; if (f) f(); };
+function majRegPartie() { const pa = partieActive(); $("regPartie").innerHTML = `Partie n° <b>${joliNumero(pa.id)}</b> · ${String(pa.nom).replace(/[&<>]/g, "")}`; }
+// Nouvelle partie : on repart de zéro dans cette partie (on garde son numéro et ses personnages)
+$("replayBtn").onclick = () => { sfx.click(); demander("Nouvelle partie ?", "Attention : tu vas perdre tous tes objets, ton argent, tes canards et tes quêtes. Ton personnage, lui, reste.", "Oui, tout recommencer", () => {
+  chargementEnCours = true; const id = PARTIES.id, garder = new Set(["pins-persos", "pins-perso", "pins-halloween"]);
+  try { const cles = []; for (let i = 0; i < LS_VRAI.length; i++) { const k = LS_VRAI.key(i); if (k && k.startsWith(`pins@${id}:`) && !garder.has(k.slice(id.length + 6))) cles.push(k); } for (const k of cles) LS_VRAI.removeItem(k); } catch (e) {}
+  toast("C'est reparti pour de nouvelles vacances ! 🦆", 1500); setTimeout(() => location.reload(), 700); }); };
 $("winClose").onclick = () => { $("win").hidden = true; paused = false; };
 
 // joystick
@@ -8522,7 +8665,7 @@ if (premiereFois) { // on reprend les anciens choix (fille/garçon, nom, lunette
   let sx = "g", nom = "", lu = 0, ancien = false; try { ancien = localStorage.getItem("pins-sexe") !== null; sx = localStorage.getItem("pins-sexe") === "f" ? "f" : "g"; nom = filtrerSurnom(localStorage.getItem("pins-nom") || "") || ""; lu = Math.min(4, Math.max(0, +localStorage.getItem("pins-lunettes") || 0)); } catch (e) {}
   const p = { nom, sexe: sx, look: [1, sx === "f" ? 3 : 2, sx === "f" ? 1 : 0, 0, 1, 1, lu || (sx === "f" ? 0 : 5), 0, sx === "f" ? 11 : 5, sx === "f" ? 6 : 0, 0, 0, 0, sx === "f" ? 4 : 0, sx === "f" ? 1 : 3, 0, 0] }; PERSOS = [ancien ? p : { ...persoAuHasard(Math.random() < .5 ? "f" : "g"), ...(nom ? { nom } : {}) }]; persoI = 0; }
 const monPerso = () => PERSOS[persoI];
-function sauverPersos() { try { localStorage.setItem("pins-persos", JSON.stringify(PERSOS)); localStorage.setItem("pins-perso", persoI); } catch (e) {} }
+function sauverPersos() { try { localStorage.setItem("pins-persos", JSON.stringify(PERSOS)); localStorage.setItem("pins-perso", persoI); } catch (e) {} const pa = partieActive(); if (pa && PERSOS[0]) { pa.nom = PERSOS[0].nom || "Théo"; pa.maj = Date.now(); sauverParties(); try { majPartieBar(); } catch (e) {} } }
 // le joueur prend l'apparence du personnage choisi
 function appliquerPerso() {
   const p = monPerso(), o = optsDePerso(p), ancien = player;
@@ -9291,6 +9434,7 @@ function sauverPartie(montrer) {
   saveShop(); gtSave(); try { localStorage.setItem("pins-sac", JSON.stringify(bag.slice(-60))); } catch (e) {} // argent, maillots, cadeaux, courses
   const P = player.position; if (state === "walk" && P.y < .4) dernierEndroit = [r2(P.x), r2(P.z), r2(player.rotation.y)];
   try { localStorage.setItem("pins-partie", JSON.stringify({ canards: ducks.map(d => d.got ? 1 : 0), endroit: dernierEndroit, maillot: wearing, jour: r2(dayT), t: Date.now() }));
+    const pa = partieActive(); if (pa) { pa.maj = Date.now(); sauverParties(); }
     if (montrer) toast("💾 Partie sauvegardée !", 1800); } catch (e) { if (montrer) toast("Impossible de sauvegarder sur cet appareil.", 2400); }
 }
 function chargerPartie() {
@@ -9305,7 +9449,23 @@ function chargerPartie() {
 setInterval(() => { if (!paused && $("intro").hidden) sauverPartie(false); }, 30000);
 addEventListener("pagehide", () => sauverPartie(false)); document.addEventListener("visibilitychange", () => { if (document.hidden) sauverPartie(false); });
 $("saveBtn").onclick = () => { sfx.click(); sauverPartie(true); };
-$("menuAccueil").onclick = () => { sfx.click(); sauverPartie(false); $("pauseView").hidden = true; paused = true; $("intro").hidden = false; dessinerPersos(); };
+$("menuAccueil").onclick = () => { sfx.click(); sauverPartie(false); $("pauseView").hidden = true; paused = true; $("intro").hidden = false; dessinerPersos(); majPartieBar(); };
+// l'écran de départ : la partie en cours, et la liste des parties (en choisir une, en créer, en effacer)
+function majPartieBar() { const pa = partieActive(); $("partieNom").innerHTML = `${icone("etoile")}<span>${String(pa.nom).replace(/[&<>]/g, "")}<small>Partie n° ${joliNumero(pa.id)}</small></span>`; }
+function dessinerParties() { const L = $("partiesListe"); L.innerHTML = "";
+  for (const pa of [...PARTIES.liste].sort((a, b) => (b.maj || 0) - (a.maj || 0))) { const on = pa.id === PARTIES.id, d = document.createElement("div"); d.className = "partieLigne" + (on ? " on" : "");
+    const quand = pa.maj ? new Date(pa.maj).toLocaleDateString("fr-FR", { day: "numeric", month: "long" }) : "";
+    d.innerHTML = `<span class="pn"><b>${String(pa.nom).replace(/[&<>]/g, "")}</b><small>n° ${joliNumero(pa.id)}${quand ? " · " + quand : ""}</small></span>`;
+    const j = document.createElement("button"); j.className = "btn"; j.textContent = on ? "En cours" : "▶ Jouer"; j.disabled = on; j.onclick = () => { sfx.click(); sauverPartie(false); changerDePartie(pa.id); }; d.append(j);
+    if (!on) { const x = document.createElement("button"); x.className = "btn poubelle"; x.setAttribute("aria-label", "Effacer cette partie"); x.textContent = "🗑️";
+      x.onclick = () => { sfx.click(); demander("Effacer cette partie ?", `La partie de ${pa.nom} (n° ${joliNumero(pa.id)}) va disparaître de cet appareil, avec tous ses objets.`, "Oui, l'effacer", () => { oublierPartie(pa.id); PARTIES.liste = PARTIES.liste.filter(q => q.id !== pa.id); sauverParties(); dessinerParties(); }); }; d.append(x); }
+    L.append(d); } }
+$("partieBar").onclick = () => { audioOn(); sfx.click(); dessinerParties(); $("partiesView").hidden = false; };
+$("partiesFermer").onclick = () => { sfx.click(); $("partiesView").hidden = true; };
+$("partieNouvelle").onclick = () => { sfx.click(); sauverPartie(false); creerPartie(); };
+// la version du jeu et la mise à jour (dans Réglages → Plus)
+$("versionTxt").textContent = window.PINS_VERSION || "?";
+$("majBtn2").onclick = () => { sfx.click(); if (window.pinsMaj) window.pinsMaj(); else $("majMsg2").textContent = "La mise à jour se fait depuis l'application installée sur l'écran d'accueil."; };
 // les volumes
 for (const [id, k] of [["volGen", "gen"], ["volMus", "mus"], ["volFx", "fx"]]) { const r = $(id); r.value = Math.round(VOL[k] * 100);
   r.addEventListener("input", () => { VOL[k] = r.value / 100; try { localStorage.setItem("pins-volumes", JSON.stringify(VOL)); } catch (e) {} audioOn(); appliquerVolumes(); });
@@ -9323,18 +9483,26 @@ function temoinManette(g) { const n = g ? g.id.replace(/\s*\(.*?\)\s*/g, " ").tr
   $("gpPill").hidden = !g; $("gpEtat").textContent = g ? "Manette reconnue : " + n : "Pas de manette"; }
 temoinManette(null);
 // le sac à dos : tout ce qu'on a acheté ou gagné (déjà gardé sur l'appareil : argent, maillots, courses, cadeaux)
+// manger : un aliment du sac donne 10 % de vitesse en plus pendant 2 minutes (marche et nage)
+let boostT = 0;
+const PAS_MANGEABLE = /Crème solaire|Ballon|canard/i;
+const mangeable = o => typeof o === "string" && !PAS_MANGEABLE.test(o);
+function majBoost() { const el = $("boostPill"), on = boostT > 0; if (el.hidden === on) el.hidden = !on; if (!on) return; const t = Math.ceil(boostT), txt = `⚡ +10 % · ${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`; if (el.textContent !== txt) el.textContent = txt; }
+function manger(o) { const i = bag.indexOf(o); if (i < 0) return; bag.splice(i, 1); try { localStorage.setItem("pins-sac", JSON.stringify(bag.slice(-60))); } catch (e) {}
+  boostT = 120; majBoost(); [523, 659, 784].forEach((f, k) => tone(f, .09, "triangle", .07, 0, k * .08)); whoosh(.12, .05, 2200, 700);
+  toast(`Miam ! ${o.replace(/^\S+\s+/, "")} 😋 Tu vas 10 % plus vite pendant 2 minutes ⚡`, 2600); remplirSac(); }
 function remplirSac() {
-  $("invArgent").innerHTML = icone("piece") + money + " €"; $("invTickets").innerHTML = icone("ticket") + gtData.tickets + " ticket" + (gtData.tickets > 1 ? "s" : "");
   const L = $("invListe"); L.textContent = "";
   // un objet = son dessin (l'émoticône de la boutique devient l'icône), son nom, et combien on en a
   const dessin = t => { const m = t.match(/^(\S+)\s+(.*)$/), e = m && (EMO[m[1]] || EMO[m[1].replace(/[️‍]/g, "")]); return e ? [icone(e), m[2]] : [icone("cadeau"), m ? m[2] : t]; };
-  const groupe = (ico, titre, objets, vide) => { const h = document.createElement("h3"); h.innerHTML = icone(ico) + titre; L.append(h);
+  const groupe = (ico, titre, objets, vide, agir) => { const h = document.createElement("h3"); h.innerHTML = icone(ico) + titre; L.append(h);
     if (!objets.length) { const p = document.createElement("p"); p.className = "vide"; p.textContent = vide; L.append(p); return; }
     const d = document.createElement("div"); d.className = "cases"; const n = new Map(); for (const o of objets) { const k = o.cle ?? o; const e = n.get(k); if (e) e.k++; else n.set(k, { o, k: 1 }); }
     for (const { o, k } of n.values()) { const c = document.createElement("div"); c.className = "case" + (o.porte ? " porte" : ""); const [img, nom] = o.img ? [o.img, o.nom] : dessin(o);
-      c.innerHTML = img + `<span>${nom.replace(/[&<>]/g, "")}</span>` + (k > 1 ? `<b>×${k}</b>` : ""); d.append(c); } L.append(d); };
+      c.innerHTML = img + `<span>${nom.replace(/[&<>]/g, "")}</span>` + (k > 1 ? `<b>×${k}</b>` : ""); const f = agir && agir(o); if (f) { c.classList.add("mange"); c.setAttribute("role", "button"); c.onclick = f; } d.append(c); } L.append(d); };
   groupe("maillot", "Mes maillots", owned.map(id => { const su = SUITS.find(x => x.id === id); return { cle: id, porte: wearing === id, nom: su ? nomMaillot(su) : id, img: icone("maillot").replace("<svg ", `<svg style="--maillot:${su ? su.a : "#2e86de"}" `) }; }), "Pas encore de maillot.");
-  groupe("caddie", "Mes courses", bag, "Rien pour l'instant : va à la boulangerie ou au Market Speed !");
+  groupe("caddie", "Mes courses", bag, "Rien pour l'instant : va à la boulangerie ou au Market Speed !", o => mangeable(o) ? () => manger(o) : null);
+  if (bag.some(mangeable)) { const p = document.createElement("p"); p.className = "sacAide"; p.innerHTML = "Touche un aliment pour le <b>manger</b> : tu marches et tu nages 10 % plus vite pendant 2 minutes !"; L.append(p); }
   groupe("cadeau", "Mes cadeaux", gtData.owned, "Gagne des tickets dans la salle d'arcade du Multi Parcs pour avoir des cadeaux !");
 }
 $("invBtn").onclick = () => { if (!$("intro").hidden) return; sfx.click(); remplirSac(); ouvrir("invView"); };
@@ -9344,13 +9512,29 @@ $("lockerHabits").onclick = () => { sfx.click(); ouvrirCrea(); };
 // Mettre sa partie sur un autre appareil : un fichier JSON, ou un code de partage (la sauvegarde elle-même, compressée :
 // rien n'est gardé sur un serveur). On garde tout ce qui fait la partie, pas les réglages de l'appareil (volumes, permis…).
 const SV_CLES = ["pins-persos", "pins-perso", "pins-partie", "pins-argent", "pins-maillots", "pins-sac", "pins-coffre", "pins-gametown", "pins-arcade", "pins-objectifs", "pins-golf", "pins-golf3", "pins-kart", "pins-halloween"];
-function svPaquet() { sauverPartie(false); const d = {}; for (const k of SV_CLES) { try { const v = localStorage.getItem(k); if (v !== null) d[k] = v; } catch (e) {} } return { jeu: "domaine-des-pins", version: 1, date: new Date().toISOString(), donnees: d }; }
-function svValide(o) { return o && o.jeu === "domaine-des-pins" && o.donnees && typeof o.donnees === "object" && Object.entries(o.donnees).every(([k, v]) => SV_CLES.includes(k) && typeof v === "string" && v.length < 60000); }
-let svAttente = null; // la partie reçue ou lue, en attente du « Charger »
-function svResume(o) { const d = o.donnees; let canards = 0, argent = "?", noms = [];
+// on choisit les parties à envoyer (une, plusieurs ou toutes) : cases à cocher dans Réglages → Plus
+const svCoches = new Set();
+function dessinerSvChoix() { const L = $("svChoix"); L.innerHTML = ""; if (!svCoches.size) svCoches.add(PARTIES.id);
+  for (const id of [...svCoches]) if (!PARTIES.liste.some(p => p.id === id)) svCoches.delete(id);
+  const ligne = (txt, coche, f) => { const b = document.createElement("button"); b.className = "svCase"; b.setAttribute("aria-pressed", coche ? "true" : "false"); b.innerHTML = `<i>${coche ? "✔" : ""}</i><span>${txt}</span>`; b.onclick = () => { sfx.click(); f(); dessinerSvChoix(); }; L.append(b); };
+  ligne("<b>Toutes les parties</b>", svCoches.size === PARTIES.liste.length, () => { if (svCoches.size === PARTIES.liste.length) { svCoches.clear(); svCoches.add(PARTIES.id); } else for (const p of PARTIES.liste) svCoches.add(p.id); });
+  for (const pa of PARTIES.liste) ligne(`${String(pa.nom).replace(/[&<>]/g, "")} <small>n° ${joliNumero(pa.id)}</small>`, svCoches.has(pa.id), () => { if (svCoches.has(pa.id)) { if (svCoches.size > 1) svCoches.delete(pa.id); } else svCoches.add(pa.id); }); }
+function donneesDe(id) { const d = {}; try { const pre = `pins@${id}:`; for (let i = 0; i < LS_VRAI.length; i++) { const k = LS_VRAI.key(i); if (k && k.startsWith(pre)) d[k.slice(pre.length)] = LS_VRAI.getItem(k); } } catch (e) {} return d; }
+function svPaquet() { sauverPartie(false); const ids = PARTIES.liste.filter(p => svCoches.has(p.id));
+  return { jeu: "domaine-des-pins", version: 2, date: new Date().toISOString(), parties: ids.map(p => ({ id: p.id, nom: p.nom, maj: p.maj, donnees: donneesDe(p.id) })) }; }
+const cleOk = (k, v) => typeof k === "string" && k.startsWith("pins-") && !CLES_APPAREIL.has(k) && typeof v === "string" && v.length < 60000;
+// les anciens fichiers (une seule partie, version 1) deviennent une partie avec un nouveau numéro
+function svNormal(o) { if (!o || o.jeu !== "domaine-des-pins") return null;
+  if (o.version !== 2 && o.donnees && typeof o.donnees === "object") { let nom = "Théo"; try { nom = JSON.parse(o.donnees["pins-persos"] || "[]")[0]?.nom || nom; } catch (e) {} o = { jeu: o.jeu, version: 2, parties: [{ id: nouveauNumero(PARTIES.liste.map(p => p.id)), nom, donnees: o.donnees }] }; }
+  if (!Array.isArray(o.parties) || !o.parties.length || o.parties.length > 30) return null;
+  for (const pa of o.parties) if (!pa || !/^\d{6}$/.test(pa.id) || !pa.donnees || typeof pa.donnees !== "object" || !Object.entries(pa.donnees).every(([k, v]) => cleOk(k, v))) return null;
+  for (const pa of o.parties) pa.nom = (typeof pa.nom === "string" && filtrerSurnom(pa.nom)) || "Théo";
+  return o; }
+const svValide = o => !!svNormal(o);
+let svAttente = null; // les parties reçues ou lues, en attente du « Charger »
+function svResume(o) { o = svNormal(o); return o.parties.map(pa => { const d = pa.donnees; let canards = 0, argent = "?";
   try { canards = (JSON.parse(d["pins-partie"] || "{}").canards || []).filter(Boolean).length; } catch (e) {} try { argent = JSON.parse(d["pins-argent"] ?? "null") ?? "?"; } catch (e) {}
-  try { noms = JSON.parse(d["pins-persos"] || "[]").map(p => p.nom || "Théo"); } catch (e) {}
-  return `🦆 ${canards} canard${canards > 1 ? "s" : ""} · 💶 ${argent} €${noms.length ? " · 🎨 " + noms.join(", ") : ""}`; }
+  return `${pa.nom} (n° ${joliNumero(pa.id)}) : 🦆 ${canards} · 💶 ${argent} €`; }).join(" — "); }
 // En direct, comme dans Millepoques : l'appareil qui a la partie montre un code de 6 chiffres, l'autre le tape. Les deux se
 // rejoignent sur le relais (serveur/pins-relais : /transfert/<code>), qui passe les messages sans rien écrire et coupe au
 // bout de 10 minutes. La partie est chiffrée de bout en bout avec le chiffrement du navigateur (clés ECDH P-256 tirées
@@ -9404,13 +9588,16 @@ $("svRecevoirOk").onclick = async () => { sfx.click(); const code = $("svSaisie"
     if (m.relay === "peer") bonjour();
     else if (m.t === "hello" && typeof m.pub === "string" && !cle) { bonjour(); try { cle = await cleCommune(k, m.pub, code); } catch (e) {} svMontrer("Réception de la partie…"); }
     else if (m.t === "data" && cle) { let o = null; try { o = await deballer(m.d, cle); } catch (e) {} const ok = svValide(o); svLien?.send(JSON.stringify({ t: "done", ok })); svFin();
-      if (!ok) { svMontrer("La partie reçue est illisible. Recommence."); return; } svAttente = o; sfx.duck(); svMontrer("Partie reçue : " + svResume(o) + ". Elle remplacera ta partie sur cet appareil.", { charger: true }); }
+      if (!ok) { svMontrer("La partie reçue est illisible. Recommence."); return; } svAttente = svNormal(o); sfx.duck(); svMontrer("Reçu : " + svResume(o) + ". Ces parties seront ajoutées sur cet appareil (une partie avec le même numéro est remplacée).", { charger: true }); }
     else if (m.relay === "gone") { svMontrer("L'autre appareil est parti. Recommence."); svFin(); }
   }, raison => svMontrer(raison)); };
 $("svAnnuler").onclick = () => { sfx.click(); svFin(); $("svBox").hidden = true; };
 $("svCharger").onclick = () => { sfx.click(); if (!svAttente) return;
-  try { for (const k of SV_CLES) localStorage.removeItem(k); for (const [k, v] of Object.entries(svAttente.donnees)) localStorage.setItem(k, v); } catch (e) { $("svInfo").textContent = "Impossible d'écrire la partie sur cet appareil."; return; }
-  chargementEnCours = true; toast("✅ Partie chargée ! Le jeu redémarre…", 2000); setTimeout(() => location.reload(), 900); };
+  const o = svNormal(svAttente); if (!o) return;
+  try { for (const pa of o.parties) { oublierPartie(pa.id); for (const [k, v] of Object.entries(pa.donnees)) LS_VRAI.setItem(`pins@${pa.id}:${k}`, v);
+      const deja = PARTIES.liste.find(q => q.id === pa.id); if (deja) { deja.nom = pa.nom; deja.maj = Date.now(); } else PARTIES.liste.push({ id: pa.id, nom: pa.nom, maj: Date.now() }); }
+  } catch (e) { $("svInfo").textContent = "Impossible d'écrire les parties sur cet appareil."; return; }
+  PARTIES.id = o.parties[0].id; sauverParties(); chargementEnCours = true; toast("✅ Parties chargées ! Le jeu redémarre…", 2000); setTimeout(() => location.reload(), 900); };
 $("svExport").onclick = async () => { sfx.click(); const txt = JSON.stringify(svPaquet(), null, 1), nom = "domaine-des-pins-" + new Date().toISOString().slice(0, 10) + ".json";
   const f = new File([txt], nom, { type: "application/json" });
   if (LOWQ && navigator.canShare?.({ files: [f] })) { try { await navigator.share({ files: [f], title: "Ma partie du Domaine des Pins" }); return; } catch (e) { if (e.name === "AbortError") return; } }
@@ -9418,7 +9605,7 @@ $("svExport").onclick = async () => { sfx.click(); const txt = JSON.stringify(sv
 $("svImport").onclick = () => { sfx.click(); $("svFichier").value = ""; $("svFichier").click(); };
 $("svFichier").onchange = async () => { const f = $("svFichier").files[0]; if (!f) return; let o = null; try { o = JSON.parse(await f.text()); } catch (e) {}
   svFin(); if (!svValide(o)) { svAttente = null; svMontrer("Ce fichier n'est pas une partie du Domaine des Pins."); return; }
-  svAttente = o; svMontrer("Partie trouvée dans « " + f.name + " » : " + svResume(o) + ". Elle remplacera ta partie sur cet appareil.", { charger: true }); };
+  svAttente = svNormal(o); svMontrer("Dans « " + f.name + " » : " + svResume(o) + ". Ces parties seront ajoutées sur cet appareil (une partie avec le même numéro est remplacée).", { charger: true }); };
 /* ================= Manette de jeu (Bluetooth) =================
    Manette « standard » (Xbox, PlayStation, Switch…). En jeu : stick gauche ou croix pour marcher, stick droit pour la caméra,
    A pour agir (ou sauter s'il n'y a rien à faire), B sauter, X parler, Y deuxième action, gâchettes pour courir,
@@ -9850,7 +10037,8 @@ function loop() {
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
     let mvx = fx * -iy + rx * ix, mvz = fz * -iy + rz * ix; const L = Math.hypot(mvx, mvz);
     swimming = state === "walk" && inPoolRect(P.x, P.z);
-    if (!swimming) swimFast = false; const sp = swimming ? (swimFast ? 4.4 : 1.8) : inKids(P.x, P.z) ? 3 : (runOn || keys["shift"] ? 7.5 : 4.2); // marcher 4,2 m/s (avant 6,5 : on aurait dit qu'il courait), courir 7,5
+    if (boostT > 0) { boostT -= dt; majBoost(); }
+    if (!swimming) swimFast = false; const sp = (swimming ? (swimFast ? 4.4 : 1.8) : inKids(P.x, P.z) ? 3 : (runOn || keys["shift"] ? 7.5 : 4.2)) * (boostT > 0 ? 1.1 : 1); // marcher 4,2 m/s (avant 6,5 : on aurait dit qu'il courait), courir 7,5
     if (L > .08) { const s = Math.min(L, 1); mvx /= L; mvz /= L; P.x += mvx * sp * s * dt; P.z += mvz * sp * s * dt;
       const target = Math.atan2(mvx, mvz); let d = target - player.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); player.rotation.y += d * Math.min(1, dt * 12); walkT += dt * 9 * s * (!swimming && (runOn || keys["shift"]) ? 1.5 : 1);
       if (!swimming && state === "walk") { stepAcc += dt * s; if (stepAcc > .32) { stepAcc = 0; if (inCottage || inDome) sfx.step(); } }
@@ -10048,12 +10236,13 @@ function loop() {
   voituresTick(dt); trier(dt); suivreFeux(dt); majInterieurs(); if (!paused) majObjectif(dt); if (dejaVu) adapterResolution();
   suivreVitres(); gel(); renderer.render(scene, camera); dejaVu = true; majPerf();
 }
-window.__pins = { MANOR, get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; } };
+window.__pins = { toast, MANOR, get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, get state() { return state; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; } };
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
 await souffle(97, "Les couleurs se mélangent…");
 const compiler = () => Promise.race([renderer.compileAsync(scene, camera), new Promise(r => setTimeout(r, 6000))]).catch(() => {});
 await compiler();
 chargerPartie(); dessinerPersos();
+majPartieBar(); { let nv = null; try { nv = LS_VRAI.getItem("pins-nouvelle"); LS_VRAI.removeItem("pins-nouvelle"); } catch (e) {} if (nv) { sauverPersos(); setTimeout(() => ouvrirCrea(false), 300); } }
 document.body.classList.remove("chargement"); // le bouton JOUER apparaît : le reste se prépare pendant qu'on choisit son personnage
 loop();
 // Finitions, par petits morceaux entre deux images (le menu reste fluide) : rien de tout ça n'est nécessaire pour commencer,
@@ -10079,6 +10268,9 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
+window.PINS_VERSION = "2026.10.29-1"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+</script>
+<script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
 // « Mettre à jour » compare la page gardée avec celle du site et installe la nouvelle version.
 (() => {
@@ -10086,8 +10278,10 @@ loop();
   // les règles sont derrière le bouton ❓ de l'écran de lancement
   document.getElementById("aideBtn").onclick = () => { document.getElementById("aideView").hidden = false; };
   document.getElementById("aideOk").onclick = () => { document.getElementById("aideView").hidden = true; };
-  const btn = document.getElementById("majBtn"), info = document.getElementById("majMsg");
+  const btn = document.getElementById("majBtn"), info0 = document.getElementById("majMsg");
+  const info = { set textContent(t) { info0.textContent = t; const m = document.getElementById("majMsg2"); if (m) m.textContent = t; } };
   if (!("serviceWorker" in navigator) || !("caches" in window)) return;
+  window.pinsMaj = () => { info.textContent = "Recherche d'une mise à jour…"; verifier(true); };
   navigator.serviceWorker.register("sw.js").then(() => { btn.hidden = false; verifier(false); }).catch(() => {});
   async function verifier(installer) {
     try {
