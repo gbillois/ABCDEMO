@@ -2358,9 +2358,9 @@ const partyTex = tex(256, (x, s) => { x.fillStyle = "#fde6ef"; x.fillRect(0, 0, 
 }
 function blowCandles(r) {
   if (r.out > 0) return; r.out = 8; r.flames.forEach(f => f.visible = false); whoosh(.6, .08, 1200, 400);
-  // « Joyeux anniversaire », joué à la flûte
-  const N = [[392, .3], [392, .15], [440, .45], [392, .45], [523, .45], [494, .9], [392, .3], [392, .15], [440, .45], [392, .45], [587, .45], [523, .9]];
-  let t = .4; for (const [f, d] of N) { tone(f, d * .95, "triangle", .1, 0, t); t += d * .85; }
+  // la foule chante « Joyeux anniversaire » (bruitage enregistré) ; sans lui, la flûte faite maison
+  if (!jouerBruitage("anniv-foule", .9)) { const N = [[392, .3], [392, .15], [440, .45], [392, .45], [523, .45], [494, .9], [392, .3], [392, .15], [440, .45], [392, .45], [587, .45], [523, .9]];
+    let t = .4; for (const [f, d] of N) { tone(f, d * .95, "triangle", .1, 0, t); t += d * .85; } }
   setTimeout(() => petitEffet("confetti"), 400); toast(partyOK ? "Joyeux anniversaire ! 🎂🎉" : "Joyeux anniversaire ! 🎂🎉 La piscine des anniversaires est ouverte pour toi, à côté du Multi Parcs ! 🏊", 4200);
   partyOK = true; PPGATE.off = true; try { localStorage.setItem("pins-fete", "1"); } catch (e) {}
 }
@@ -8356,7 +8356,7 @@ function ambTick(dt, outdoor, nightK, time) {
    l'Aquaparc, la musique des magasins. Chargés après le premier toucher ; s'ils manquent (pas de réseau), les sons faits maison restent. ---------- */
 const SONS = { buf: {}, g: {}, veut: {}, bus: null, magasin: false,
   // nom : [volume, début et fin de la boucle (s)]
-  boucles: { accueil: [.45, 0, 47.4], foret: [.9, .5, 30.5], piscine: [.75, .05, 22], magasin: [.32, .4, 44.6], manoir: [.4, 0, 41.6], boum: [.34, 0, 172.9, 1], chanteur: [.36, 0, 66.2, 1], pedalo: [.28, 0, 177.8, 1] },
+  boucles: { accueil: [.45, 0, 47.4], foret: [.9, .5, 30.5], piscine: [.75, .05, 22], magasin: [.32, .4, 44.6], manoir: [.4, 0, 41.6], boum: [.34, 0, 172.9, 1], chanteur: [.36, 0, 66.2, 1], pedalo: [.28, 0, 177.8, 1], anniversaire: [.32, 0, 69.2, 1] },
   // (4e nombre : chanson longue, décodée en mono 32 kHz : 3 fois moins de mémoire)
   oiseaux: ["coucou", "pic", "ramier"] };
 // Chaque boucle n'est chargée que quand on arrive à son endroit, et libérée 20 s après qu'elle s'est tue :
@@ -8388,13 +8388,16 @@ function sonsTick(lieu, nightK, menu) {
   SONS.magasin = lieu !== "foret" && lieu !== "piscine" && lieu in SONS.boucles && !!SONS.g[lieu]; // une musique de lieu : celle de la forêt se fait toute petite
 }
 // L'enceinte connectée des cottages : toutes les musiques du jeu, à écouter chez soi (la musique s'arrête en sortant, et reprend en rentrant)
-const ENCEINTE = { piste: null, PISTES: [["accueil", "Bienvenue au Domaine", "maison"], ["boum", "La pool party", "confettis"], ["chanteur", "La chanson de Lino", "musique"], ["pedalo", "Le pédalo", "eau"], ["magasin", "La musique des magasins", "caddie"],
+const ENCEINTE = { piste: null, PISTES: [["accueil", "Bienvenue au Domaine", "maison"], ["boum", "La pool party", "confettis"], ["chanteur", "La chanson de Lino", "musique"], ["pedalo", "Le pédalo", "eau"], ["anniversaire", "Joyeux anniversaire", "cadeau"], ["magasin", "La musique des magasins", "caddie"],
   ["manoir", "Le manoir hanté", "citrouille"], ["m-foret", "La harpe de la forêt", "sapin"], ["m-aqua", "Le marimba des îles", "eau"], ["m-ferme", "Le banjo de la ferme", "animal"]] };
 function ouvrirEnceinte() { dessinerEnceinte(); ouvrir("enceinteView"); }
 function dessinerEnceinte() { const L = $("enceinteListe"); L.innerHTML = "";
   for (const [id, nom, ico] of ENCEINTE.PISTES) { const b = document.createElement("button"), on = ENCEINTE.piste === id; b.className = "piste" + (on ? " on" : ""); b.innerHTML = `${icone(ico)}<span>${nom}</span>${on ? icone("son") : ""}`;
     b.onclick = () => { audioOn(); sfx.click(); ENCEINTE.piste = on ? null : id; dessinerEnceinte(); }; L.append(b); }
   $("enceinteStop").disabled = !ENCEINTE.piste; }
+// dans une salle d'anniversaire du Multi Parcs (on prépare aussi le bruitage de la foule, pour les bougies)
+function dansAnniversaire(P) { const dedans = BDAY.some(r => r.table && Math.hypot(P.x - r.table[0], P.z - r.table[1]) < 3); if (dedans && SONS.bus && !SONS.buf["anniv-foule"] && !SONS.chargeB) { SONS.chargeB = true; decoderSon("anniv-foule", true).then(b => SONS.buf["anniv-foule"] = b).catch(() => { SONS.chargeB = false; }); } return dedans; }
+function jouerBruitage(n, vol) { const b = SONS.buf[n]; if (!b || !actx || muted) return false; const s = actx.createBufferSource(), g = actx.createGain(); s.buffer = b; g.gain.value = vol * VOL.fx; s.connect(g).connect(master); s.start(); return true; }
 // un vrai chant d'oiseau (coucou, pic, pigeon ramier), placé un peu à gauche ou à droite
 function oiseauEnregistre() {
   const n = "oiseau-" + SONS.oiseaux[Math.floor(Math.random() * SONS.oiseaux.length)], b = SONS.buf[n]; if (!b) return false;
@@ -10430,7 +10433,7 @@ function loop() {
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $("toast").hidden = true; }
   scheduleMusic();
   ambTick(dt, !inCottage && !inDome && !inBalo && !inGT && !inBF && !inShop && !inAq, nightK, time);
-  sonsTick(!introEl.hidden ? "accueil" : ENCEINTE.piste && inCottage && SONS.boucles[ENCEINTE.piste] ? ENCEINTE.piste : state === "boat" ? "pedalo" : BOUM.loud ? "boum" : FETE.inside && FETE.act === 3 ? "chanteur" : HALLO.on && MANOR.inside ? "manoir" : inShop === ACCUEIL ? "accueil" : inShop ? "magasin" : inDome ? "piscine" : inCottage || inBalo || inGT || inBF || inAq ? "dedans" : "dehors", nightK);
+  sonsTick(!introEl.hidden ? "accueil" : ENCEINTE.piste && inCottage && SONS.boucles[ENCEINTE.piste] ? ENCEINTE.piste : state === "boat" ? "pedalo" : dansAnniversaire(P) ? "anniversaire" : BOUM.loud ? "boum" : FETE.inside && FETE.act === 3 ? "chanteur" : HALLO.on && MANOR.inside ? "manoir" : inShop === ACCUEIL ? "accueil" : inShop ? "magasin" : inDome ? "piscine" : inCottage || inBalo || inGT || inBF || inAq ? "dedans" : "dehors", nightK);
   if (mapOpen) drawMap();
   netTick(dt);
 
@@ -10481,7 +10484,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.29-8"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.10.29-9"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
