@@ -204,7 +204,7 @@ body:not(.accueil-on) #accueil img{animation-play-state:paused}
 #charge .barre{height:12px;margin-bottom:8px;border-radius:999px;background:rgba(255,255,255,.3);overflow:hidden;box-shadow:0 0 0 2px rgba(255,255,255,.85)}
 #charge i{display:block;height:100%;width:3%;border-radius:999px;background:linear-gradient(90deg,var(--sun),#ffe28a);transition:width .25s}
 body.chargement #charge{display:block}
-body.chargement #intro .jouer,body.chargement #intro .amis,body.chargement #persos,body.chargement #partieBar{display:none}
+body.chargement #intro .jouer,body.chargement #intro .amis,body.chargement #persos{display:none}
 .overlay{z-index:2;position:fixed;inset:0;background:rgba(10,40,30,.55);display:flex;align-items:center;justify-content:center;padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px));padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));overflow:auto}
 .card{background:var(--panel);border-radius:24px;padding:20px;max-width:460px;width:100%;text-align:center;box-shadow:0 6px 0 rgba(0,0,0,.2);margin:auto}
 .card h1{margin:0 0 6px;font-size:30px;line-height:1.1;text-wrap:balance;color:var(--leaf)}
@@ -340,17 +340,17 @@ html.app .site{display:none!important}
 .svCase i{width:26px;height:26px;border-radius:7px;border:3px solid #2f8f5b;display:grid;place-items:center;font-style:normal;color:#fff;font-size:15px;flex:none}
 .svCase[aria-pressed=true] i{background:#2f8f5b}
 .svCase small{opacity:.65;margin-left:4px}
-.partieBar{display:flex;align-items:center;gap:10px;font:800 16px var(--ui);color:#1d3b2a;background:rgba(255,253,244,.94);border:3px solid #ffc93c;border-radius:999px;padding:4px 8px 4px 6px;box-shadow:0 4px 0 rgba(0,0,0,.25);cursor:pointer}
-.partieBar .ic{width:30px;height:30px}
-.partieBar>span{display:flex;align-items:center;gap:6px}.partieBar>span>span{display:flex;flex-direction:column;align-items:flex-start;line-height:1.05}
-.partieBar small{font-size:12px;opacity:.7}
-.partieBar b{background:#2e86de;color:#fff;border-radius:999px;padding:3px 10px;font-size:13px}
 .partiesListe{display:flex;flex-direction:column;gap:8px;margin:10px 0;max-height:46vh;overflow:auto}
 .partieLigne{display:flex;align-items:center;gap:8px;background:#fff;border:2px solid #b9d9ee;border-radius:16px;padding:8px 10px;text-align:left}
 .partieLigne.on{border-color:#ffc93c;box-shadow:0 0 0 2px #ffc93c}
 .partieLigne .pn{flex:1;display:flex;flex-direction:column;min-width:0}.partieLigne .pn small{opacity:.65;font-weight:700}
 .partieLigne .btn{font-size:16px;padding:6px 12px}.partieLigne .btn:disabled{background:#9aa0b4}
 .partieLigne .poubelle{background:#fff;color:#c0392b;padding:6px 9px}
+.partieLigne{cursor:pointer}.partieLigne img,.partieLigne .sansVisage{width:52px;height:52px;border-radius:50%;background:#fde9c0;flex:none;box-shadow:0 0 0 2px #fff,0 2px 5px rgba(0,0,0,.2)}
+.partieLigne .pn b{font-size:18px}.partieLigne .ordre{display:flex;flex-direction:column;gap:3px}
+.partieLigne .ordre button{width:34px;height:26px;border:0;border-radius:8px;background:#e8f2fa;color:#2e86de;font:900 15px var(--ui);cursor:pointer}.partieLigne .ordre button:disabled{opacity:.3}
+.vign.sansCrayon::after{display:none}
+.vign.gerer i{background:rgba(255,253,244,.8)}.vign.gerer i svg,.vign.gerer i .ic{width:58%;height:58%}
 #mapBtn{display:none!important}
 </style>
 </head>
@@ -408,8 +408,7 @@ html.app .site{display:none!important}
   </div>
   <div class="bas">
     <div id="charge"><div class="barre"><i id="chargeBar"></i></div><span id="chargeTxt">Le domaine se prépare…</span></div>
-    <button id="partieBar" class="partieBar" aria-label="Changer de partie"><span id="partieNom"></span><b>Changer ▸</b></button>
-    <div id="persos" role="group" aria-label="Ton personnage"></div>
+    <div id="persos" role="group" aria-label="Choisis ta partie"></div>
     <button id="startBtn" class="jouer">▶ JOUER</button>
     <button id="introMulti" class="amis">👫 Avec des amis</button>
     <p id="majMsg"></p>
@@ -677,7 +676,7 @@ html.app .site{display:none!important}
 <div id="partiesView" class="overlay" hidden>
   <div class="card">
     <h1>Mes parties</h1>
-    <p class="small">Chaque partie a son numéro, son surnom, ses objets et ses quêtes.</p>
+    <p class="small">Chaque visage, c'est une partie, avec son sac, ses objets et ses quêtes. Touche un visage pour le choisir ; les flèches changent l'ordre (les 3 premiers sont sur l'écran de départ).</p>
     <div id="partiesListe" class="partiesListe"></div>
     <div class="row"><button id="partieNouvelle" class="btn" style="background:#27ae60">＋ Nouvelle partie</button></div>
     <div class="row"><button id="partiesFermer" class="btn" style="background:#34495e">Fermer</button></div>
@@ -887,7 +886,7 @@ const $ = id => document.getElementById(id);
    Les réglages de l'appareil (volumes, compteur, son coupé) restent communs. Le jeu lit et écrit par « localStorage »,
    qui est ici remplacé par une version qui range tout dans la partie choisie. */
 const LS_VRAI = (() => { try { return window.localStorage; } catch (e) { return null; } })();
-const CLES_APPAREIL = new Set(["pins-volumes", "pins-perf", "pins-muet", "pins-parties", "pins-active", "pins-nouvelle"]);
+const CLES_APPAREIL = new Set(["pins-volumes", "pins-perf", "pins-muet", "pins-parties", "pins-active", "pins-nouvelle", "pins-demarrer"]);
 const nouveauNumero = (deja = []) => { let n; do n = String(100000 + Math.floor(Math.random() * 900000)); while (deja.includes(n)); return n; };
 const PARTIES = (() => { let liste = [], id = null;
   try { liste = JSON.parse(LS_VRAI.getItem("pins-parties") || "null"); } catch (e) { liste = null; }
@@ -906,7 +905,7 @@ const localStorage = { getItem: k => LS_VRAI.getItem(cleDe(PARTIES.id, k)), setI
 const MSGS = []; // les derniers messages du jeu (les bulles jaunes), à relire dans l'appli Messages du téléphone
 const joliNumero = n => n.slice(0, 3) + " " + n.slice(3);
 function changerDePartie(id) { PARTIES.id = id; sauverParties(); chargementEnCours = true; location.reload(); }
-function creerPartie() { const id = nouveauNumero(PARTIES.liste.map(p => p.id)); PARTIES.liste.push({ id, nom: "Nouvelle partie", maj: Date.now() }); PARTIES.id = id; sauverParties(); try { LS_VRAI.setItem("pins-nouvelle", "1"); } catch (e) {} chargementEnCours = true; location.reload(); }
+function creerPartie() { const id = nouveauNumero(PARTIES.liste.map(p => p.id)); PARTIES.liste.unshift({ id, nom: "Nouvelle partie", maj: Date.now() }); PARTIES.id = id; sauverParties(); try { LS_VRAI.setItem("pins-nouvelle", "1"); } catch (e) {} chargementEnCours = true; location.reload(); }
 function oublierPartie(id) { try { const cles = []; for (let i = 0; i < LS_VRAI.length; i++) { const k = LS_VRAI.key(i); if (k && k.startsWith(`pins@${id}:`)) cles.push(k); } for (const k of cles) LS_VRAI.removeItem(k); } catch (e) {} }
 const LOWQ = matchMedia("(pointer: coarse)").matches; // tablettes et téléphones : un peu moins de détails
 // Chargement par étapes : entre deux étapes, on laisse l'écran se redessiner (la barre avance, rien ne semble bloqué)
@@ -3852,7 +3851,9 @@ function updateHalloween(dt, time, P, night) {
 function setHalloBtn() { const b = $("halloBtn"); if (!b) return; const tb = $("halloTop"); if (tb) tb.style.opacity = HALLO.on ? "1" : ".5"; document.querySelectorAll(".themes [data-theme]").forEach(t => t.setAttribute("aria-pressed", (t.dataset.theme === "halloween") === HALLO.on ? "true" : "false")); b.setAttribute("aria-label", HALLO.on ? "Enlever Halloween" : "Mettre Halloween"); }
 setHalloBtn();
 $("halloTop").onclick = () => $("halloBtn").click();
-$("halloBtn").onclick = () => { HALLO.on = !HALLO.on; try { localStorage.setItem("pins-halloween", HALLO.on ? "1" : "0"); } catch (e) {} setHalloBtn(); sfx.click(); for (const c of HALLO.costumes || []) c.visible = HALLO.on; setManorOn(HALLO.on);
+function mettreHalloween(on) { HALLO.on = on; setHalloBtn(); for (const c of HALLO.costumes || []) c.visible = on; setManorOn(on); }
+$("halloBtn").onclick = () => { if (net && net.invite) { sfx.click(); toast("C'est celui qui a lancé la partie qui choisit le thème.", 2400); return; }
+  HALLO.on = !HALLO.on; try { localStorage.setItem("pins-halloween", HALLO.on ? "1" : "0"); } catch (e) {} setHalloBtn(); sfx.click(); for (const c of HALLO.costumes || []) c.visible = HALLO.on; setManorOn(HALLO.on); if (net) net.mondeT = 0;
   if (HALLO.on) { toast("🎃 Joyeux Halloween ! Cherche les fantômes 👻", 2400); [196, 233, 277, 330].forEach((f, i) => tone(f, .5, "triangle", .1, 0, i * .18)); } else toast("Halloween est rangé jusqu'à l'an prochain !", 2000); };
 
 /* ---------- Le manoir hanté 🏚️ (seulement en mode Halloween) : au nord, le long du chemin du milieu ---------- */
@@ -8317,7 +8318,7 @@ $("soundBtn").onclick = () => { muted = !muted; try { localStorage.setItem("pins
 /* ================= Interface ================= */
 let toastT = 0; function toast(t, ms = 2200) { try { if (t && (!MSGS.length || MSGS[MSGS.length - 1].t !== t)) { MSGS.push({ t, h: heureJeu() }); if (MSGS.length > 60) { MSGS.shift(); msgLus = Math.max(0, msgLus - 1); } } } catch (e) {} $("toast").textContent = t; $("toast").hidden = false; toastT = ms / 1000; }
 let paused = true;
-$("startBtn").onclick = () => { audioOn(); sfx.click(); $("intro").hidden = true; paused = false; if (partieReprise) toast(found ? `On reprend ta partie : ${found} canard${found > 1 ? "s" : ""} trouvé${found > 1 ? "s" : ""} ! 🦆` : "On reprend ta partie là où tu étais ! 🦆", 2600); else toast(HALLO.on ? "🎃 Joyeux Halloween ! Première mission : va visiter le manoir hanté, au nord (regarde la carte 🗺️)" : "Va voir Sophie pour dire bonjour !", HALLO.on ? 4500 : 2200); partieReprise = false; };
+$("startBtn").onclick = () => { audioOn(); sfx.click(); if (lancerPartieChoisie("jouer")) return; $("intro").hidden = true; paused = false; if (partieReprise) toast(found ? `On reprend ta partie : ${found} canard${found > 1 ? "s" : ""} trouvé${found > 1 ? "s" : ""} ! 🦆` : "On reprend ta partie là où tu étais ! 🦆", 2600); else toast(HALLO.on ? "🎃 Joyeux Halloween ! Première mission : va visiter le manoir hanté, au nord (regarde la carte 🗺️)" : "Va voir Sophie pour dire bonjour !", HALLO.on ? 4500 : 2200); partieReprise = false; };
 $("pauseBtn").onclick = () => { if (!$("intro").hidden) return; sfx.click(); paused = true; majRegPartie(); ongletReglages("jeu"); $("pauseView").hidden = false; };
 // Réglages : des onglets (Jeu, Personnage, Son, Monde, Plus) au lieu d'une longue liste
 function ongletReglages(n) { for (const b of document.querySelectorAll(".regOnglets button")) b.setAttribute("aria-selected", b.dataset.onglet === n ? "true" : "false");
@@ -8725,7 +8726,34 @@ function vignette(p) {
   } catch (e) { renderer.setScissorTest(false); }
   VIGN.set(cle, url); return url;
 }
-function dessinerPersos() { for (const L of [$("persos"), $("menuPersos")]) dessinerPersosDans(L); }
+function dessinerPersos() { dessinerPersosDans($("menuPersos")); dessinerAccueil(); }
+// L'écran de départ : un visage = une partie (les 3 premières de « Mes parties »), un rond Nouveau et un rond Gérer.
+// Toucher un visage le choisit (sans recharger) ; JOUER ou « Avec des amis » ouvrent alors cette partie.
+let PARTIE_CHOISIE = PARTIES.id;
+function persoDePartie(id) {
+  if (id === PARTIES.id) return monPerso();
+  try { const pe = JSON.parse(LS_VRAI.getItem(`pins@${id}:pins-persos`) || "[]"); return pe[+LS_VRAI.getItem(`pins@${id}:pins-perso`) || 0] || pe[0] || null; } catch (e) { return null; }
+}
+const nomDePartie = pa => String(persoDePartie(pa.id)?.nom || (pa.nom !== "Nouvelle partie" && pa.nom) || "Nouveau").replace(/[&<>]/g, "");
+function visageDe(p) { const u = p && p.look ? vignette(p) : ""; if (u) { const im = new Image(); im.alt = ""; im.src = u; return im; } const e = document.createElement("i"); e.innerHTML = icone("personnage"); return e; }
+function partiesAccueil() { const L = PARTIES.liste.slice(0, 3), c = PARTIES.liste.find(p => p.id === PARTIE_CHOISIE); if (c && !L.includes(c)) L[Math.min(2, L.length)] = c; return L; }
+function rond(cls, contenu, nom, aria, clic) { const b = document.createElement("button"), n = document.createElement("span"); b.className = "vign " + cls; b.append(contenu); n.textContent = nom; b.append(n); b.setAttribute("aria-label", aria);
+  b.onclick = () => { audioOn(); sfx.click(); clic(); }; $("persos").append(b); }
+function dessinerAccueil() {
+  $("persos").innerHTML = "";
+  for (const pa of partiesAccueil()) { const on = pa.id === PARTIE_CHOISIE, ici = pa.id === PARTIES.id, nom = nomDePartie(pa);
+    rond((on ? "on" : "") + (on && !ici ? " sansCrayon" : ""), visageDe(persoDePartie(pa.id)), nom, on && ici ? nom + " : changer son look" : "Choisir " + nom,
+      () => { if (!on) { PARTIE_CHOISIE = pa.id; dessinerAccueil(); } else if (ici) ouvrirCrea(); }); }
+  const plus = document.createElement("i"); plus.textContent = "＋";
+  rond("nouveau", plus, "Nouveau", "Commencer une nouvelle partie", () => { sauverPartie(false); creerPartie(); });
+  const g = document.createElement("i"); g.innerHTML = icone("reglages");
+  rond("gerer", g, "Gérer", "Gérer mes parties", () => { dessinerParties(); $("partiesView").hidden = false; });
+}
+// la partie choisie n'est pas celle qui est chargée : on l'ouvre (le jeu redémarre), puis on enchaîne tout seul
+function lancerPartieChoisie(quoi) {
+  if (PARTIE_CHOISIE === PARTIES.id || !PARTIES.liste.some(p => p.id === PARTIE_CHOISIE)) return false;
+  sauverPartie(false); try { LS_VRAI.setItem("pins-demarrer", quoi); } catch (e) {} changerDePartie(PARTIE_CHOISIE); return true;
+}
 function dessinerPersosDans(L) {
   L.innerHTML = "";
   PERSOS.forEach((q, i) => { const b = document.createElement("button"), nom = q.nom || (i ? "Perso " + (i + 1) : "Théo"); b.className = "vign" + (i === persoI ? " on" : "");
@@ -8867,7 +8895,7 @@ function connecter(code, creer) {
   const sexe = monPerso().sexe;
   if (net) quitter();
   let ws; try { ws = new WebSocket(`${RELAIS}/salle/${code}${creer ? "?creer=1" : ""}`); } catch (e) { msg("Impossible de joindre le serveur."); return; }
-  net = { ws, code, pseudo, sexe, profils: new Map(), s: -1, autres: new Map(), moi: { bub: null, bubT: 0 }, sendT: 0, hb: 0, last: null };
+  net = { ws, code, pseudo, sexe, profils: new Map(), s: -1, autres: new Map(), moi: { bub: null, bubT: 0 }, sendT: 0, hb: 0, last: null, hote: !!creer, mondeT: 0, invite: null };
   msg("Connexion…");
   net.attente = setTimeout(() => { if (net && net.ws === ws && net.s < 0) fin(0); }, 8000);
   ws.onmessage = e => { if (net && net.ws === ws) recevoir(e.data); };
@@ -8900,6 +8928,14 @@ function recevoir(data) {
     o.tx = d.x; o.ty = d.y; o.tz = d.z; o.tr = d.r; o.m = Number.isInteger(d.m) && d.m >= 0 && d.m < MODES.length ? d.m : 0;
     if (!o.seen) { o.seen = true; o.g.position.set(d.x, d.y, d.z); o.g.rotation.y = d.r; o.g.visible = true; }
   } else if (d.t === "m" && Number.isInteger(d.i) && d.i >= 0 && d.i < PHRASES.length) dire(d.s, d.i);
+  else if (d.t === "monde" && !net.hote && d.s !== net.s && Number.isFinite(d.h) && d.h >= 0 && d.h <= 1) recevoirMonde(d);
+}
+// Jouer à plusieurs : celui qui a lancé la partie (l'hôte) garde son monde (l'heure du jour, le thème) et les invités le voient ;
+// chacun garde son sac, son téléphone, son argent et ses quêtes. En partant, l'invité retrouve son heure et son thème.
+function recevoirMonde(d) {
+  if (!net.invite) { net.invite = { jour: dayT, hallo: HALLO.on }; toast("Tu es chez ton ami : l'heure et le thème sont les siens. Ton sac et ton téléphone restent avec toi !", 3600); }
+  const ecart = Math.abs(((d.h - dayT) % 1 + 1.5) % 1 - .5); if (ecart > .03) { dayT = d.h; dayFF = null; } else if (ecart > .002) dayFF = d.h;
+  const th = d.th === 1; if (th !== HALLO.on) mettreHalloween(th);
 }
 function quitter() {
   if (!net) return;
@@ -8908,6 +8944,7 @@ function quitter() {
   for (const o of n.autres.values()) { scene.remove(o.g); if (o.boat) scene.remove(o.boat); libererPersonnage(o.g); }
   if (n.moi.bub) { player.remove(n.moi.bub); effacerLabel(n.moi.bub); }
   if (n.rdv) { scene.remove(n.rdv.sp); effacerLabel(n.rdv.sp); }
+  if (n.invite) { dayT = n.invite.jour; dayFF = null; if (n.invite.hallo !== HALLO.on) mettreHalloween(n.invite.hallo); } // l'invité retrouve son monde
   monLabel(null); majUI();
 }
 function majUI() {
@@ -8927,7 +8964,7 @@ function ouvrir(id) { if ($(id).hidden) { ovPaused = paused; paused = true; $(id
 function fermer(id) { if (!$(id).hidden) { $(id).hidden = true; paused = ovPaused; } }
 $("multiBtn").onclick = () => { if (!$("intro").hidden) return; sfx.click(); msg(""); majUI(); ouvrir("multiView"); };
 $("multiPill").onclick = () => $("multiBtn").onclick();
-$("introMulti").onclick = () => { audioOn(); sfx.click(); $("intro").hidden = true; paused = false; msg(""); majUI(); ouvrir("multiView"); };
+$("introMulti").onclick = () => { audioOn(); sfx.click(); if (lancerPartieChoisie("amis")) return; $("intro").hidden = true; paused = false; msg(""); majUI(); ouvrir("multiView"); };
 $("multiClose").onclick = () => { sfx.click(); fermer("multiView"); };
 $("createBtn").onclick = () => { sfx.click(); connecter(nouveauCode(), true); };
 $("codeIn").addEventListener("input", e => { const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8); e.target.value = v.length > 4 ? v.slice(0, 4) + "-" + v.slice(4) : v; });
@@ -8974,6 +9011,7 @@ function netTick(dt) {
   if (net.moi.bub && (net.moi.bubT -= dt) <= 0) { player.remove(net.moi.bub); net.moi.bub = null; }
   if (net.rdv) { const r = net.rdv; r.sp.position.y = r.h + Math.sin(time * 3) * .6; if ((r.t -= dt) <= 0) { scene.remove(r.sp); effacerLabel(r.sp); net.rdv = null; } }
   if (net.s < 0 || net.ws.readyState !== 1) return;
+  if (net.hote && (net.mondeT -= dt) <= 0) { net.mondeT = 2; net.ws.send(JSON.stringify({ t: "monde", h: Math.round(dayT * 1000) / 1000, th: HALLO.on ? 1 : 0 })); }
   net.hb -= dt; if ((net.sendT -= dt) > 0) return; net.sendT = .1;
   const P = player.position, ry = Math.atan2(Math.sin(player.rotation.y), Math.cos(player.rotation.y));
   const cur = { x: r2(P.x), y: r2(P.y), z: r2(P.z), r: r2(ry) }, L = net.last;
@@ -9257,7 +9295,7 @@ const lampGlowM = new THREE.SpriteMaterial({ map: glowTex, color: 0xffcf7a, tran
 for (const [x, z] of lampGlowPos) { const g = new THREE.Sprite(lampGlowM); g.position.set(x, 3.9, z); g.scale.setScalar(3.2); scene.add(g); }
 function cricket() { const f = 4000 + Math.random() * 600; for (let i = 0; i < 3; i++) tone(f, .035, "sine", .025, 0, i * .07); }
 function updateDayButton(night) { const b = $("dayBtn"); if (!b) return; b.innerHTML = night ? icone("soleil") + " Passer au jour" : icone("lune") + " Passer à la nuit"; b.setAttribute("aria-label", night ? "Passer au jour" : "Passer à la nuit"); }
-$("dayBtn").onclick = () => { if (!$("intro").hidden) return; const night = realSun.y < -.05; dayFF = night ? .29 : .9; sfx.click(); toast(night ? "☀️ Le soleil va se lever…" : "🌙 La nuit arrive…", 1800); };
+$("dayBtn").onclick = () => { if (!$("intro").hidden) return; if (net && net.invite) { toast("C'est celui qui a lancé la partie qui choisit l'heure.", 2400); return; } const night = realSun.y < -.05; dayFF = night ? .29 : .9; sfx.click(); toast(night ? "☀️ Le soleil va se lever…" : "🌙 La nuit arrive…", 1800); };
 const SM = THREE.MathUtils.smoothstep;
 function updateDayNight(dt) {
   if (dayFF !== null) { const d = ((dayFF - dayT) % 1 + 1) % 1, step = Math.min(d, dt * .25); dayT = (dayT + step) % 1; if (d < .002) dayFF = null; }
@@ -9433,7 +9471,7 @@ function sauverPartie(montrer) {
   if (chargementEnCours) return;
   saveShop(); gtSave(); try { localStorage.setItem("pins-sac", JSON.stringify(bag.slice(-60))); } catch (e) {} // argent, maillots, cadeaux, courses
   const P = player.position; if (state === "walk" && P.y < .4) dernierEndroit = [r2(P.x), r2(P.z), r2(player.rotation.y)];
-  try { localStorage.setItem("pins-partie", JSON.stringify({ canards: ducks.map(d => d.got ? 1 : 0), endroit: dernierEndroit, maillot: wearing, jour: r2(dayT), t: Date.now() }));
+  try { localStorage.setItem("pins-partie", JSON.stringify({ canards: ducks.map(d => d.got ? 1 : 0), endroit: dernierEndroit, maillot: wearing, jour: r2(net && net.invite ? net.invite.jour : dayT), t: Date.now() }));
     const pa = partieActive(); if (pa) { pa.maj = Date.now(); sauverParties(); }
     if (montrer) toast("💾 Partie sauvegardée !", 1800); } catch (e) { if (montrer) toast("Impossible de sauvegarder sur cet appareil.", 2400); }
 }
@@ -9451,16 +9489,21 @@ addEventListener("pagehide", () => sauverPartie(false)); document.addEventListen
 $("saveBtn").onclick = () => { sfx.click(); sauverPartie(true); };
 $("menuAccueil").onclick = () => { sfx.click(); sauverPartie(false); $("pauseView").hidden = true; paused = true; $("intro").hidden = false; dessinerPersos(); majPartieBar(); };
 // l'écran de départ : la partie en cours, et la liste des parties (en choisir une, en créer, en effacer)
-function majPartieBar() { const pa = partieActive(); $("partieNom").innerHTML = `${icone("etoile")}<span>${String(pa.nom).replace(/[&<>]/g, "")}<small>Partie n° ${joliNumero(pa.id)}</small></span>`; }
+function majPartieBar() { if (!$("intro").hidden) dessinerAccueil(); }
 function dessinerParties() { const L = $("partiesListe"); L.innerHTML = "";
-  for (const pa of [...PARTIES.liste].sort((a, b) => (b.maj || 0) - (a.maj || 0))) { const on = pa.id === PARTIES.id, d = document.createElement("div"); d.className = "partieLigne" + (on ? " on" : "");
+  PARTIES.liste.forEach((pa, k) => { const on = pa.id === PARTIE_CHOISIE, ici = pa.id === PARTIES.id, d = document.createElement("div"), nom = nomDePartie(pa); d.className = "partieLigne" + (on ? " on" : "");
     const quand = pa.maj ? new Date(pa.maj).toLocaleDateString("fr-FR", { day: "numeric", month: "long" }) : "";
-    d.innerHTML = `<span class="pn"><b>${String(pa.nom).replace(/[&<>]/g, "")}</b><small>n° ${joliNumero(pa.id)}${quand ? " · " + quand : ""}</small></span>`;
-    const j = document.createElement("button"); j.className = "btn"; j.textContent = on ? "En cours" : "▶ Jouer"; j.disabled = on; j.onclick = () => { sfx.click(); sauverPartie(false); changerDePartie(pa.id); }; d.append(j);
-    if (!on) { const x = document.createElement("button"); x.className = "btn poubelle"; x.setAttribute("aria-label", "Effacer cette partie"); x.textContent = "🗑️";
-      x.onclick = () => { sfx.click(); demander("Effacer cette partie ?", `La partie de ${pa.nom} (n° ${joliNumero(pa.id)}) va disparaître de cet appareil, avec tous ses objets.`, "Oui, l'effacer", () => { oublierPartie(pa.id); PARTIES.liste = PARTIES.liste.filter(q => q.id !== pa.id); sauverParties(); dessinerParties(); }); }; d.append(x); }
-    L.append(d); } }
-$("partieBar").onclick = () => { audioOn(); sfx.click(); dessinerParties(); $("partiesView").hidden = false; };
+    const v = visageDe(persoDePartie(pa.id)); if (v.tagName === "I") v.className = "sansVisage"; d.append(v);
+    const t = document.createElement("span"); t.className = "pn"; t.innerHTML = `<b>${nom}</b><small>${on ? "Choisie" : quand ? "Jouée le " + quand : ""}</small>`; d.append(t);
+    d.onclick = () => { sfx.click(); PARTIE_CHOISIE = pa.id; $("partiesView").hidden = true; dessinerAccueil(); };
+    const o = document.createElement("span"); o.className = "ordre";
+    for (const [txt, dk, aria] of [["▲", -1, "Monter"], ["▼", 1, "Descendre"]]) { const b = document.createElement("button"); b.textContent = txt; b.setAttribute("aria-label", aria + " " + nom); b.disabled = !PARTIES.liste[k + dk];
+      b.onclick = e => { e.stopPropagation(); sfx.click(); const Lp = PARTIES.liste; [Lp[k], Lp[k + dk]] = [Lp[k + dk], Lp[k]]; sauverParties(); dessinerParties(); dessinerAccueil(); }; o.append(b); }
+    d.append(o);
+    if (!ici) { const x = document.createElement("button"); x.className = "btn poubelle"; x.setAttribute("aria-label", "Effacer la partie de " + nom); x.innerHTML = icone("poubelle");
+      x.onclick = e => { e.stopPropagation(); sfx.click(); demander("Effacer cette partie ?", `La partie de ${nom} va disparaître de cet appareil, avec son sac, ses objets et ses quêtes.`, "Oui, l'effacer", () => {
+        oublierPartie(pa.id); PARTIES.liste = PARTIES.liste.filter(q => q.id !== pa.id); if (PARTIE_CHOISIE === pa.id) PARTIE_CHOISIE = PARTIES.id; sauverParties(); dessinerParties(); dessinerAccueil(); }); }; d.append(x); }
+    L.append(d); }); }
 $("partiesFermer").onclick = () => { sfx.click(); $("partiesView").hidden = true; };
 $("partieNouvelle").onclick = () => { sfx.click(); sauverPartie(false); creerPartie(); };
 // la version du jeu et la mise à jour (dans Réglages → Plus)
@@ -9908,7 +9951,7 @@ function trier(dt) {
 // Menu d'accueil : l'image fixe du domaine remplace la 3D (une première image est dessinée derrière, pour être prête)
 const introEl = $("intro"); let dejaVu = false;
 // la musique d'accueil démarre au premier toucher sur l'écran de départ (le navigateur l'interdit avant)
-introEl.addEventListener("pointerdown", () => audioOn(), { once: true });
+addEventListener("pointerdown", () => audioOn(), { once: true, capture: true });
 // Résolution qui s'adapte : si les images ralentissent, on dessine un peu moins de pixels, et on remonte quand tout va bien.
 // Changer la taille de l'image fait lui-même un petit à-coup : on ne fait pas le yoyo. On baisse après 2 mesures lentes de suite (4 s),
 // on remonte après 5 bonnes (10 s), et après 3 baisses on ne remonte plus. Une très longue image (pause, autre appli) ne compte pas.
@@ -10245,6 +10288,7 @@ const compiler = () => Promise.race([renderer.compileAsync(scene, camera), new P
 await compiler();
 chargerPartie(); dessinerPersos();
 majPartieBar(); { let nv = null; try { nv = LS_VRAI.getItem("pins-nouvelle"); LS_VRAI.removeItem("pins-nouvelle"); } catch (e) {} if (nv) { sauverPersos(); setTimeout(() => ouvrirCrea(false), 300); } }
+{ let q = null; try { q = LS_VRAI.getItem("pins-demarrer"); LS_VRAI.removeItem("pins-demarrer"); } catch (e) {} if (q === "jouer" || q === "amis") setTimeout(() => $(q === "jouer" ? "startBtn" : "introMulti").click(), 80); }
 document.body.classList.remove("chargement"); // le bouton JOUER apparaît : le reste se prépare pendant qu'on choisit son personnage
 loop();
 // Finitions, par petits morceaux entre deux images (le menu reste fluide) : rien de tout ça n'est nécessaire pour commencer,

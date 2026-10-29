@@ -87,12 +87,13 @@ export class Salle {
 
     const pris = new Set(presents.map(ws => this.place(ws)));
     let s = 0; while (pris.has(s)) s++;
-    serveur.serializeAttachment({ s });
+    serveur.serializeAttachment({ s, hote: creer && !presents.length }); // celui qui crée la salle est l'hôte : son monde (heure, thème) est celui de tous
     serveur.send(JSON.stringify({ t: "bienvenue", s, joueurs: [...pris] }));
     for (const ws of presents) {
       const a = ws.deserializeAttachment();
       if (a.sexe) serveur.send(JSON.stringify({ t: "profil", s: a.s, pseudo: a.pseudo, sexe: a.sexe, tenue: a.tenue, look: a.look ?? null }));
     }
+    if (this.monde) serveur.send(JSON.stringify(this.monde));
     this.diffuser({ t: "arrive", s }, serveur);
     return new Response(null, { status: 101, webSocket: client });
   }
@@ -152,7 +153,7 @@ export class Salle {
       if (a.sexe && (a.pseudo !== pseudo || a.sexe !== msg.sexe || JSON.stringify(a.look ?? null) !== JSON.stringify(look))) return;
       if (a.sexe && a.tenue === msg.tenue) return;
       const profil = { s, pseudo, sexe: msg.sexe, tenue: msg.tenue, look };
-      ws.serializeAttachment(profil);
+      ws.serializeAttachment(a.hote ? { ...profil, hote: true } : profil);
       this.diffuser({ t: "profil", ...profil }, null);
     } else if (msg.t === "p") {
       if (now - d.t0 > 1000) { d.t0 = now; d.n = 0; }
@@ -167,6 +168,13 @@ export class Salle {
       if (now - d.phrase < PHRASE_DELAI_MS) return;
       d.phrase = now;
       this.diffuser({ t: "m", s, i: msg.i }, null);
+    } else if (msg.t === "monde") {
+      // le monde de l'hôte : l'heure du jour (0 à 1) et le thème (0 normal, 1 Halloween) ; rien d'autre
+      if (!ws.deserializeAttachment()?.hote || now - (d.monde || 0) < 900) return;
+      if (typeof msg.h !== "number" || !Number.isFinite(msg.h) || msg.h < 0 || msg.h > 1 || (msg.th !== 0 && msg.th !== 1)) return;
+      d.monde = now;
+      this.monde = { t: "monde", s, h: Math.round(msg.h * 1000) / 1000, th: msg.th };
+      this.diffuser(this.monde, ws);
     }
   }
 
@@ -185,5 +193,6 @@ export class Salle {
     this.debit.delete(ws);
     ws.serializeAttachment(null);
     if (s >= 0) this.diffuser({ t: "part", s }, ws);
+    if (!this.ctx.getWebSockets().some(o => o !== ws && this.place(o) >= 0)) this.monde = null; // salle vide : on oublie tout
   }
 }

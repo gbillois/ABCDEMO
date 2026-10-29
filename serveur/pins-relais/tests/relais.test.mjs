@@ -138,3 +138,20 @@ test('transfert d\'une partie : 6 chiffres, un envoi et une réception, messages
     await salle.webSocketMessage(rec, 'x'.repeat(5000)); assert.equal(env.closed, true); // la réception n'envoie que de petits messages
   } finally { globalThis.Response = OriginalResponse; globalThis.WebSocketPair = OriginalPair; }
 });
+
+test("monde de l'hôte : seul l'hôte l'envoie, bornes vérifiées, gardé pour les arrivants", async () => {
+  const hote = new Socket(); hote.serializeAttachment({ s: 0, hote: true }); const invite = joueur(1);
+  const salle = salleAvec(hote, invite);
+  await envoyer(salle, invite, { t: 'monde', h: .5, th: 1 });
+  assert.equal(hote.messages.length, 0, "un invité ne change pas le monde");
+  await envoyer(salle, hote, { t: 'monde', h: 1.5, th: 1 }); await envoyer(salle, hote, { t: 'monde', h: .4, th: 'oui' });
+  assert.equal(invite.messages.length, 0, 'valeurs hors liste refusées');
+  await envoyer(salle, hote, { t: 'monde', h: .123456, th: 1, extra: 'texte' });
+  assert.deepEqual(invite.messages.at(-1), { t: 'monde', s: 0, h: .123, th: 1 });
+  await envoyer(salle, hote, { t: 'monde', h: .2, th: 0 });
+  assert.equal(invite.messages.length, 1, 'une fois par seconde au plus');
+  // le profil garde la marque d'hôte
+  await envoyer(salle, hote, { t: 'profil', pseudo: 'Petit Panda', sexe: 'g', tenue: null });
+  assert.equal(hote.deserializeAttachment().hote, true);
+  assert.equal(invite.messages.at(-1).hote, undefined, "la marque d'hôte n'est pas diffusée");
+});

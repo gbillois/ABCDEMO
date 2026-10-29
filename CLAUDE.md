@@ -59,6 +59,10 @@ Accord du propriétaire pour ce seul jeu : `pins/index.html` peut se connecter
   L'appareil qui envoie montre un code à 6 chiffres, l'autre le tape ; le relais passe les messages de l'un à l'autre
   sans rien écrire et coupe au bout de 10 minutes. La partie est chiffrée de bout en bout par le navigateur (ECDH P-256,
   HKDF salé par le code, AES-GCM) : le relais ne voit que des octets illisibles. Sans réseau, on passe par un fichier JSON.
+- Le monde de la partie est celui de l'hôte (celui qui crée la salle) : message `monde` envoyé par lui seul,
+  au plus une fois par seconde, avec seulement l'heure du jour (`h`, nombre de 0 à 1) et le thème (`th`, 0 ou 1).
+  Le relais garde le dernier en mémoire pour les arrivants et l'oublie quand la salle se vide. Chaque invité garde
+  son sac, son téléphone, son argent et ses quêtes, et retrouve son heure et son thème en partant.
 - L'adresse du relais se règle dans `RELAIS_PROD` du jeu ; déploiement : `serveur/pins-relais/DEPLOIEMENT.md`.
 - Aucun autre jeu ne doit utiliser le réseau (sauf l'Oracle du Grand Arbre, ci-dessous).
 

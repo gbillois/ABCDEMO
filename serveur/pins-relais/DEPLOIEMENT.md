@@ -1,8 +1,8 @@
 # Relais multijoueur du Domaine des Pins : déploiement
 
 Le relais est un Cloudflare Worker avec un Durable Object (`Salle`). Une partie = un code
-de 8 caractères = une salle en mémoire. Il transmet seulement des positions et des numéros
-de phrases et les profils entre 10 joueurs au maximum, n'écrit rien sur disque et n'a
+de 8 caractères = une salle en mémoire. Il transmet seulement des positions, des numéros
+de phrases, les profils et le monde de l'hôte (heure du jour, thème) entre 10 joueurs au maximum, n'écrit rien sur disque et n'a
 pas de journaux. À la connexion, chaque joueur choisit fille/garçon et, s'il le veut,
 un surnom court filtré. Aucun vrai prénom n'est demandé.
 
