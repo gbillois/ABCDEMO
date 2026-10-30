@@ -28,19 +28,7 @@ scene = bpy.context.scene
 A = np.array
 
 # ---------------------------------------------------------------- os (tête, queue, parent) ; personnage tourné vers -Y, les pieds en z = 0
-BONES = {
-    "Hips": (A([0, 0, .5]), A([0, 0, .7]), None),
-    "Spine": (A([0, 0, .7]), A([0, 0, .88]), "Hips"),
-    "Chest": (A([0, 0, .88]), A([0, 0, 1.03]), "Spine"),
-    "Head": (A([0, 0, 1.03]), A([0, 0, 1.4]), "Chest"),
-}
-for s, sx in (("L", 1), ("R", -1)):
-    BONES[f"Thigh.{s}"] = (A([sx * .1, 0, .56]), A([sx * .115, -.02, .31]), "Hips")
-    BONES[f"Shin.{s}"] = (A([sx * .115, -.02, .31]), A([sx * .12, 0, .09]), f"Thigh.{s}")
-    BONES[f"Foot.{s}"] = (A([sx * .12, 0, .09]), A([sx * .12, -.16, .03]), f"Shin.{s}")
-    BONES[f"UpperArm.{s}"] = (A([sx * .2, 0, .95]), A([sx * .29, 0, .75]), "Chest")
-    BONES[f"LowerArm.{s}"] = (A([sx * .29, 0, .75]), A([sx * .31, -.03, .55]), f"UpperArm.{s}")
-    BONES[f"Hand.{s}"] = (A([sx * .31, -.03, .55]), A([sx * .31, -.05, .44]), f"LowerArm.{s}")
+from squelette import BONES, EPAULE, HANCHE   # même squelette que animations.py
 
 def poids(p, noms, sharp=4):
     ws = []
@@ -119,6 +107,25 @@ def habiller(ob, Mx, tete=False):
         w = {"Head": 1.0} if tete else poids(np.array(p), GROUPES[Mx.T[i]])
         for n, x in w.items(): gr[n].add([i], x, "REPLACE")
     ob.parent = rig; m = ob.modifiers.new("rig", "ARMATURE"); m.object = rig
+# proportions inspirées de KayKit : buste et hanches plus larges, bras et jambes plus épais et écartés, tête plus grosse
+def _axe(p, pts):   # point le plus proche sur une ligne brisée
+    best = None
+    for a_, b_ in zip(pts, pts[1:]):
+        d = b_ - a_; u = min(1, max(0, (p - a_) @ d / (d @ d))); q = a_ + d * u
+        if best is None or np.linalg.norm(p - q) < np.linalg.norm(p - best): best = q
+    return best
+BRAS0 = {sx: [A([sx * .2, 0, .95]), A([sx * .29, 0, .75]), A([sx * .31, -.03, .55]), A([sx * .31, -.05, .44])] for sx in (1, -1)}
+JAMBE0 = {sx: [A([sx * .1, 0, .56]), A([sx * .115, -.02, .31]), A([sx * .12, 0, .09]), A([sx * .12, -.16, .03])] for sx in (1, -1)}
+for i, (p, t) in enumerate(zip(M.V, M.T)):
+    p = np.array(p, float)
+    if t == "corps":
+        k = 1.28 if p[2] > .62 else 1.2; p[0] *= k; p[1] *= 1.18
+    elif t and t.startswith("bras"):
+        sx = 1 if t.endswith("L") else -1; q = _axe(p, BRAS0[sx]); p = q + (p - q) * 1.28; p[0] += sx * EPAULE
+    elif t and t.startswith("jambe"):
+        sx = 1 if t.endswith("L") else -1; q = _axe(p, JAMBE0[sx]); p = q + (p - q) * 1.2; p[0] += sx * HANCHE
+    M.V[i] = p
+H.V = [piv + (np.array(v, float) - piv) * 1.18 for v in H.V]
 # grain du tissu et du cuir : de petites variations de couleur (rien n'est parfaitement uni)
 from mathutils import noise as _bruit
 M.C = [tuple(min(1, c * (1 + .07 * _bruit.noise(Vector(p) * 40) + .04 * _bruit.noise(Vector(p) * 140))) for c in col) for p, col in zip(M.V, M.C)]
