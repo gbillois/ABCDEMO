@@ -10,6 +10,8 @@ dans `dragonflyer/index.html`, qui reste un seul fichier.
 | `pieton.py` | Blender 4.2 : le héros debout, avec squelette (marche, course, saut animés dans le jeu) → `pieton.glb` |
 | `relief.py` | numpy : îles, modèle « stream power » (FastScape) pour les vallées, érosion par gouttes et thermique → `relief.webp` (hauteur 16 bits + humidité) |
 | `integrer.py` | met les trois fichiers en base64 dans le jeu |
+| `maisons.py` | Blender : kit de village (7 maisons, accessoires, 2 intérieurs meublés), occlusion cuite dans les couleurs → `village.glb` (puis meshopt → `dragonflyer/assets/village.glb`) |
+| `grimoire_icones.py` | les icônes gravées des menus (SVG) |
 | `grimoire_gravure.py` | Blender : le dragon en vol, ailes levées, en blanc avec traits Freestyle (pour les menus) |
 | `grimoire_encre.py` | transforme ce rendu en gravure à l'encre brune (traits, hachures, lavis) → `ui-gravure.webp` (estompée à 30 %) |
 | `grimoire_textures.py` | numpy : parchemin et cuir grainé raccordables → `ui-parchemin.webp`, `ui-cuir.webp` |
@@ -20,6 +22,11 @@ blender -b -P dragon.py -- sortie/          # puis : gltf-transform meshopt sort
 blender -b -P pieton.py -- sortie/          # puis : gltf-transform meshopt sortie/pieton.glb sortie/pieton_opt.glb
 python3 relief.py sortie/ 2048              # quelques minutes
 python3 integrer.py sortie/dragon_opt.glb sortie/pieton_opt.glb sortie/relief.webp
+```
+Village (fichier à côté du jeu, chargé au démarrage) :
+```
+blender -b -P maisons.py -- sortie/          # quelques minutes (cuisson de l'occlusion)
+gltf-transform meshopt sortie/village.glb ../../dragonflyer/assets/village.glb
 ```
 Menus (fichiers à côté du jeu, dans `dragonflyer/`) :
 ```

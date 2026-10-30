@@ -8,7 +8,7 @@ Structure :
 - `pins/` — Le Domaine des Pins, en application installable (voir plus bas).
 - `dragonflyer/` — DragonFlyer, en application installable (voir plus bas).
 - `blender/dragonflyer/` — scripts (Blender, numpy) qui fabriquent le dragon, le héros et le relief de DragonFlyer,
-  embarqués en base64 dans `dragonflyer/index.html` (voir le README du dossier).
+  embarqués en base64 dans `dragonflyer/index.html`, et le kit de village (`dragonflyer/assets/village.glb`) (voir le README du dossier).
 
 ## Principes
 
@@ -114,6 +114,8 @@ Accord du propriétaire : le jeu vit dans `pins/` pour avoir sa propre adresse
 Accord du propriétaire (octobre 2026) : DragonFlyer vit dans `dragonflyer/` (https://gbillois.github.io/ABCDEMO/dragonflyer/),
 comme le Domaine des Pins (`manifest.webmanifest`, `sw.js`, bouton « Update » sur l'écran titre et dans les réglages).
 - `jeux/dragonflyer.html` ne fait que rediriger vers `../dragonflyer/`.
+- Les nouveaux modèles (kit de village…) sont des fichiers de `dragonflyer/assets/` faits par les scripts Blender,
+  lus depuis le même site et gardés hors ligne par `sw.js` (`FICHIERS`). Conception du jeu : `dragonflyer/CONCEPTION.md`.
 - Le jeu est en anglais (demande du propriétaire).
 - L'icône et le blason (`icone-*.png`, `apple-touch-icon.png`, `blason.webp`) viennent d'une image fournie par le propriétaire.
 - Nom affiché : « The Dragon Apprentice Chronicles » (sur l'écran d'accueil : « Dragon Apprentice ») ; le dossier reste `dragonflyer/`. Menus en grimoire : `ui-cuir.webp`, `ui-parchemin.webp`, `ui-gravure.webp`
