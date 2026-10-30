@@ -127,8 +127,9 @@ comme le Domaine des Pins (`manifest.webmanifest`, `sw.js`, bouton « Update » 
 ## Exception : animations des personnages de DragonFlyer
 
 Accord du propriétaire (octobre 2026) : les mouvements du héros et des villageois (`dragonflyer/assets/animations.glb`)
-viennent de la « Universal Animation Library » de Quaternius (CC0, usage commercial libre), transférés sur notre squelette
-par `blender/dragonflyer/animations.py`. Seulement des mouvements calmes ; aucun personnage de la bibliothèque.
+viennent de « KayKit : Character Animations » de Kay Lousberg (CC0, usage commercial libre), transférés sur notre squelette
+(commun : `blender/dragonflyer/squelette.py`) par `blender/dragonflyer/animations.py`. Seulement des mouvements calmes ;
+aucun personnage de la bibliothèque. Nos personnages gardent leur style, avec des proportions inspirées de KayKit.
 Source et licence dans `dragonflyer/assets/SOURCES.md` (à tenir à jour). Tout le reste reste fait maison.
 
 ## Exception : DragonFlyer à plusieurs et transfert de partie
