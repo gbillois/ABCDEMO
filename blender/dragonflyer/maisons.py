@@ -73,7 +73,7 @@ class Piece:
 # ------------------------------------------------------------------ éléments réutilisés
 def socle_pierres(P, x0, x1, y0, y1, h, z0=-2.8, taille=.55, c=PIERRE):
     """Soubassement en pierres irrégulières tout autour d'un rectangle (descend sous le sol pour les pentes)."""
-    P.boite(((x0 + x1) / 2, (y0 + y1) / 2, (z0 + h) / 2 - .05), (x1 - x0 - .3, y1 - y0 - .3, h - z0 - .1), PIERRE_S, bev=0)
+    P.boite(((x0 + x1) / 2, (y0 + y1) / 2, (z0 + h) / 2 + .05), (x1 - x0 - .3, y1 - y0 - .3, h - z0 + .1), PIERRE_S, bev=0)   # cœur plein jusqu'au-dessus du soubassement : pas de fente sous les murs
     for (ax, ay, bx, by) in ((x0, y0, x1, y0), (x1, y0, x1, y1), (x1, y1, x0, y1), (x0, y1, x0, y0)):
         L = math.hypot(bx - ax, by - ay); n = max(2, int(L / taille)); rz = math.atan2(by - ay, bx - ax)
         for rang, z in enumerate(np.arange(z0 + taille * .5, h, taille * .8)):
@@ -84,6 +84,10 @@ def socle_pierres(P, x0, x1, y0, y1, h, z0=-2.8, taille=.55, c=PIERRE):
                 cx, cy = ax + (bx - ax) * t, ay + (by - ay) * t
                 l = L / n * R.uniform(.85, 1.05)
                 P.boite((cx, cy, z), (l, taille * R.uniform(.7, 1), taille * .78 * R.uniform(.85, 1.1)), varie(R.choice([c, PIERRE2, c]), .1), rz=rz + R.uniform(-.04, .04), bev=.07, jit=.03)
+        # assise de couronnement : des pierres plates qui finissent le soubassement juste sous les murs
+        for i in range(n):
+            t = (i + .5) / n; cx, cy = ax + (bx - ax) * t, ay + (by - ay) * t
+            P.boite((cx, cy, h - .09), (L / n * 1.02, taille * .95, .2), varie(PIERRE2, .08), rz=rz, bev=.04)
 
 def mur_planches(P, a, b, z0, z1, c=BOIS, ep=.18, larg=.32):
     a, b = Vector(a), Vector(b); d = b - a; L = d.length; rz = math.atan2(d.y, d.x); n = max(1, int(L / larg))
