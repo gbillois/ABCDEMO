@@ -85,6 +85,14 @@ for s_, sx in (("L", 1), ("R", -1)):
 # bas de tunique évasé sous la ceinture
 if OPT.get("robe"): M.tube([A([0, -.005, .67]), A([0, -.01, .45]), A([0, -.015, .2])], [.138, .19, .24], TUNIC, 24, "corps")   # robe longue
 else: M.tube([A([0, -.005, .67]), A([0, -.01, .58]), A([0, -.015, .48])], [.138, .155, .17], TUNIC, 20, "corps")
+# galon au bas de la tunique (ou de la robe), bordures du gilet, bourse de cuir à la ceinture
+GALON = tuple(min(1, c * 1.25) for c in TUNIC2) if not OPT else heros.srgb(OPT["tunic2"])
+if OPT.get("robe"): M.tube([A([.24 * math.cos(a), -.015 + .24 * math.sin(a), .215]) for a in np.linspace(0, 2 * math.pi, 33)], [.012] * 33, GALON, 6, "corps")
+else: M.tube([A([.17 * math.cos(a), -.015 + .17 * math.sin(a), .49]) for a in np.linspace(0, 2 * math.pi, 29)], [.011] * 29, GALON, 6, "corps")
+for sx in (1, -1): M.tube([A([sx * .052, -.122, .74]), A([sx * .056, -.128, .86]), A([sx * .05, -.122, .97])], [.009, .009, .009], tuple(c * .6 for c in VEST), 6, "corps")
+M.ellipsoid(A([.15, -.06, .63]), A([.035, 0, 0]), A([0, .03, 0]), A([0, 0, .05]), tuple(c * 1.1 for c in BELT), 10, 8, "corps")         # bourse
+M.ellipsoid(A([.155, -.075, .66]), A([.037, 0, 0]), A([0, .022, 0]), A([0, 0, .022]), tuple(c * .8 for c in BELT), 10, 6, "corps")     # rabat
+M.ellipsoid(A([.157, -.096, .655]), A([.007, 0, 0]), A([0, .004, 0]), A([0, 0, .007]), IRON, 6, 4, "corps")                            # bouton
 if OPT.get("tablier"): M.ellipsoid(A([0, -.15, .55]), A([.12, 0, 0]), A([0, .03, 0]), A([0, 0, .32]), heros.srgb(OPT["tablier"]), 12, 8, "corps")   # tablier
 # ouverture du gilet : la tunique se voit devant ; col de fourrure ; boucle de ceinture
 M.ellipsoid(A([0, -.105, .86]), A([.045, 0, 0]), A([0, .03, 0]), A([0, 0, .13]), TUNIC2, 12, 8, "corps")
@@ -111,9 +119,29 @@ def habiller(ob, Mx, tete=False):
         w = {"Head": 1.0} if tete else poids(np.array(p), GROUPES[Mx.T[i]])
         for n, x in w.items(): gr[n].add([i], x, "REPLACE")
     ob.parent = rig; m = ob.modifiers.new("rig", "ARMATURE"); m.object = rig
+# grain du tissu et du cuir : de petites variations de couleur (rien n'est parfaitement uni)
+from mathutils import noise as _bruit
+M.C = [tuple(min(1, c * (1 + .07 * _bruit.noise(Vector(p) * 40) + .04 * _bruit.noise(Vector(p) * 140))) for c in col) for p, col in zip(M.V, M.C)]
 corps = heros.objet(scene, "Pieton", M, np.zeros(3)); habiller(corps, M)
 tete_ob = heros.objet(scene, "PietonTete", H, np.zeros(3), uv, nface); habiller(tete_ob, H, True)
 print("pieton:", len(M.V) + len(H.V), "sommets")
+# ombre de contact cuite dans les couleurs (Cycles) : sous les bras, le col, la ceinture, entre les jambes, au sol
+scene.render.engine = "CYCLES"; scene.cycles.device = "CPU"; scene.cycles.samples = 64
+_w = bpy.data.worlds.new("AO"); scene.world = _w; _w.light_settings.distance = .25
+_sol = bpy.data.objects.new("SolAO", bpy.data.meshes.new("SolAO")); scene.collection.objects.link(_sol)
+import bmesh as _bmesh
+_bm = _bmesh.new(); _bmesh.ops.create_grid(_bm, x_segments=1, y_segments=1, size=3); _bm.to_mesh(_sol.data); _bm.free()
+for ob in (corps, tete_ob):
+    ao = ob.data.color_attributes.new("AO", "FLOAT_COLOR", "POINT"); ob.data.color_attributes.active_color = ao
+    for o in scene.objects: o.select_set(False)
+    ob.select_set(True); bpy.context.view_layer.objects.active = ob
+    bpy.ops.object.bake(type="AO", target="VERTEX_COLORS")
+    a = np.zeros(len(ob.data.vertices) * 4, np.float32); ao.data.foreach_get("color", a)
+    c = np.zeros_like(a); ob.data.color_attributes["Col"].data.foreach_get("color", c)
+    a = a.reshape(-1, 4); c = c.reshape(-1, 4); c[:, :3] *= (.5 + .5 * a[:, :1] ** .9)
+    ob.data.color_attributes["Col"].data.foreach_set("color", c.ravel())
+    ob.data.color_attributes.remove(ob.data.color_attributes["AO"]); ob.data.color_attributes.active_color = ob.data.color_attributes["Col"]
+bpy.data.objects.remove(_sol)
 
 bpy.ops.object.select_all(action="SELECT")
 bpy.ops.export_scene.gltf(filepath=os.path.join(OUT, f"villageois_{VAR}.glb" if VAR else "pieton.glb"), export_format="GLB", use_selection=True, export_skins=True,

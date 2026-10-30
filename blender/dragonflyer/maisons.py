@@ -113,17 +113,33 @@ def porte(P, centre, rz, l=1.2, h=2.1, c=BOIS_C, arrondie=True):
     P.boite((x, y, z + h + .1), (l + .6, .3, .22), BOIS_F, rz=rz)
     P.boite((x, y - .5, z - .1), (l + .5, .9, .2), PIERRE2, bev=.05, jit=.02)   # marche
 
-def toit_chaume(P, x0, x1, y0, y1, z0, z1, deb=.6, ep=.45, c=CHAUME, couches=3):
-    """Toit à deux pans de chaume épais (le faîte suit l'axe X), bords arrondis, couches en escalier."""
+MOUSSE_T = lin("#7a8a4a")
+def melange_c(a, b, t): return tuple(x + (y - x) * t for x, y in zip(a, b))
+def toit_chaume(P, x0, x1, y0, y1, z0, z1, deb=.6, ep=.45, c=CHAUME, couches=6):
+    """Toit à deux pans de chaume épais (le faîte suit l'axe X) : couches de bottes en escalier, coupées en tronçons irréguliers,
+    frange de paille qui dépasse en bas, quelques plaques de mousse, faîtage arrondi."""
     ym = (y0 + y1) / 2; demi = (y1 - y0) / 2 + deb; haut = z1 - z0; ang = math.atan2(haut, (y1 - y0) / 2)
     Lp = math.hypot(demi, haut + deb * math.tan(ang)); L = x1 - x0 + 2 * deb
+    n = max(2, int(L / 1.1))
     for s in (-1, 1):
         for k in range(couches):
             t0 = k / couches; t1 = (k + 1) / couches
-            # bande de chaume le long du pan, légèrement en escalier
             cy = ym + s * demi * (1 - (t0 + t1) / 2); cz = z0 - deb * math.tan(ang) + (haut + deb * math.tan(ang)) * (t0 + t1) / 2
-            P.boite(((x0 + x1) / 2, cy, cz + k * .05), (L + .1 * (couches - k), Lp / couches * 1.12, ep), varie(c if k % 2 == 0 else CHAUME_F, .05), rx=-s * ang, bev=.16, jit=.04)
-    P.cylindre((x0 - deb - .1, ym, z1 + .15), (x1 + deb + .1, ym, z1 + .15), .38, .38, CHAUME_F, n=10, jit=.03)   # faîtage
+            # tronçons de bottes, décalés d'une couche à l'autre (demi-tronçons aux deux bouts) : chaque rangée couvre tout le toit
+            bords = [i / n for i in range(n + 1)] if k % 2 == 0 else [0] + [(i + .5) / n for i in range(n)] + [1]
+            for i in range(len(bords) - 1):
+                e0, e1 = bords[i], bords[i + 1]; xc = x0 - deb + (e0 + e1) / 2 * L; lt = (e1 - e0) * L
+                coul = melange_c(c, CHAUME_F, R.uniform(0, .45) + .25 * (k / couches))
+                if R.random() < .05 and k < couches - 1: coul = melange_c(coul, MOUSSE_T, .6)
+                P.boite((xc, cy, cz + k * .04 + R.uniform(-.03, .03)), (lt + .08, Lp / couches * 1.18, ep * R.uniform(.88, 1.06)), varie(coul, .04), rx=-s * ang, bev=min(.12, lt * .25), jit=.03)
+        # frange : des mèches de paille qui pendent sous le bord du toit
+        ybord = ym + s * demi; zbord = z0 - deb * math.tan(ang) - ep * .2
+        for i in range(int(L / .22)):
+            xc = x0 - deb + (i + .5) * .22
+            P.cylindre((xc, ybord - s * .05, zbord + .1), (xc + R.uniform(-.04, .04), ybord + s * .06, zbord - R.uniform(.12, .22)), .07, .015, varie(CHAUME_F, .1), n=5)
+    P.cylindre((x0 - deb - .1, ym, z1 + .15), (x1 + deb + .1, ym, z1 + .15), .38, .38, CHAUME_F, n=12, jit=.03)   # faîtage
+    for i in range(int(L / .6)):   # liens du faîtage
+        xc = x0 - deb + (i + .5) * .6; P.cylindre((xc - .04, ym, z1 + .15), (xc + .04, ym, z1 + .15), .41, .41, BOIS_F, n=12)
 
 def toit_plats(P, x0, x1, y0, y1, z0, z1, c, deb=.5, ep=.2, rangs=7, tuiles=True):
     """Toit à deux pans de bardeaux / tuiles / ardoises en rangées qui se chevauchent."""
@@ -326,17 +342,47 @@ def puits(P):
     P.cylindre((-1.1, 0, 2.2), (1.1, 0, 2.2), .12, .12, BOIS_C, n=8)
     toit_plats(P, -1.3, 1.3, -.9, .9, 2.55, 3.3, BARDEAU, deb=.25, rangs=3)
     P.cylindre((.2, 0, 1.0), (.2, 0, 1.45), .2, .24, BOIS_C, n=10)
-def tonneau(P):
-    P.cylindre((0, 0, 0), (0, 0, .5), .38, .45, BOIS_C, n=14); P.cylindre((0, 0, .5), (0, 0, 1.0), .45, .38, BOIS_C, n=14)
-    for z in (.12, .5, .88): P.cylindre((0, 0, z - .04), (0, 0, z + .04), .46, .46, FER, n=14)
-def caisse(P):
-    P.boite((0, 0, .4), (.8, .8, .8), BOIS_C, bev=.04)
-    for s in (-1, 1): P.boite((0, s * .41, .4), (.85, .05, .15), BOIS_F, ry=s * .78)
+def tonneau(P):   # douelles bombées (chacune sa nuance), trois cercles de fer, fond cerclé
+    n = 16
+    for k in range(n):
+        a0 = (k + .04) / n * math.tau; a1 = (k + .96) / n * math.tau; c = varie(BOIS_C, .1)
+        for (z0, z1, r0, r1) in ((0, .5, .38, .46), (.5, 1.0, .46, .38)):
+            vs = P.boite((0, 0, (z0 + z1) / 2), (1, 1, z1 - z0), c, bev=0)
+            for v in vs:   # chaque douelle : un secteur de couronne d'épaisseur .035
+                u = (v.co.x + .5); r = (r0 if v.co.z < (z0 + z1) / 2 else r1) - (.035 if v.co.y < 0 else 0); ang = a0 + (a1 - a0) * u
+                v.co.x, v.co.y = math.cos(ang) * r, math.sin(ang) * r
+    for z in (.1, .5, .9):
+        rr = .46 if z == .5 else .41
+        P.cylindre((0, 0, z - .035), (0, 0, z + .035), rr + .012, rr + .012, FER, n=24)
+        for k in range(8): a = k / 8 * math.tau; P.sphere((math.cos(a) * (rr + .02), math.sin(a) * (rr + .02), z), .012, lin("#2a2826"), sub=1)   # rivets
+    P.cylindre((0, 0, .9), (0, 0, .97), .35, .35, BOIS, n=20)
+    for k in range(4): P.boite((0, -.24 + k * .16, .975), (.66 - abs(k - 1.5) * .12, .012, .01), BOIS_F, bev=0)   # joints du fond
+def caisse(P):   # planches clouées avec des jours, montants aux coins
+    for face in range(4):
+        rz = face * math.pi / 2; ca, sa = math.cos(rz), math.sin(rz)
+        for i in range(4):
+            z = .12 + i * .19; c = varie(BOIS_C, .12)
+            P.boite((ca * .0 - sa * .39, sa * 0 + ca * .39, z), (.74, .04, .17), c, rz=rz, bev=.012)
+        for sx in (-1, 1): P.boite((ca * sx * .35 - sa * .41, sa * sx * .35 + ca * .41, .4), (.08, .03, .8), BOIS_F, rz=rz, bev=.01)
+        for sx in (-1, 1):
+            for i in range(4): P.sphere((ca * sx * .35 - sa * .43, sa * sx * .35 + ca * .43, .12 + i * .19), .011, FER, sub=1)   # clous
+    for i in range(4): P.boite((0, -.3 + i * .2, .8), (.78, .18, .04), varie(BOIS_C, .12), bev=.01)   # couvercle
+    P.boite((0, 0, .825), (.8, .08, .03), BOIS_F, rz=.78, bev=.008)
+def roue(P, x, y, z, r=.55, ep=.1):   # roue à rayons : jante, moyeu, huit rayons
+    for k in range(16):
+        a = k / 16 * math.tau; P.boite((x, y + math.cos(a) * r, z + math.sin(a) * r), (ep, r * .42, .08), varie(BOIS_F, .08), rx=a + math.pi / 2, bev=.01)
+    P.cylindre((x - ep * .8, y, z), (x + ep * .8, y, z), .1, .1, BOIS, n=10); P.cylindre((x - ep, y, z), (x + ep, y, z), .05, .05, FER, n=8)
+    for k in range(8): a = k / 8 * math.tau; P.cylindre((x, y, z), (x, y + math.cos(a) * r * .95, z + math.sin(a) * r * .95), .028, .022, BOIS_C, n=6)
 def charrette(P):
-    P.boite((0, 0, .9), (1.6, 2.6, .12), BOIS_C)
-    for s in (-1, 1): P.boite((s * .8, 0, 1.2), (.1, 2.6, .5), BOIS); P.cylindre((s * .9, .3, .55), (s * 1.05, .3, .55), .55, .55, BOIS_F, n=14)
-    for s in (-1, 1): P.boite((s * .4, -2.1, .8), (.1, 2.0, .1), BOIS_F, rx=.1)
-    for i in range(4): P.sphere((R.uniform(-.5, .5), R.uniform(-.8, .8), 1.25), .32, varie(lin("#8aa83a"), .15), sub=1)   # choux
+    for i in range(6): P.boite((0, -1.1 + i * .44, .9), (1.6, .42, .1), varie(BOIS_C, .1), bev=.015)   # plancher en planches
+    for s in (-1, 1):
+        for z in (1.05, 1.32): P.boite((s * .8, 0, z), (.08, 2.6, .2), varie(BOIS, .06), bev=.015)
+        for y in (-1.2, -.4, .4, 1.2): P.boite((s * .8, y, 1.15), (.1, .08, .5), BOIS_F, bev=.01)
+        roue(P, s * .95, .3, .55)
+        P.boite((s * .4, -2.1, .8), (.1, 2.0, .1), BOIS_F, rx=.1)
+    P.cylindre((-.9, .3, .55), (.9, .3, .55), .05, .05, FER, n=8)   # essieu
+    for i in range(5): P.sphere((R.uniform(-.5, .5), R.uniform(-.8, .8), 1.22), .3, varie(lin("#8aa83a"), .15), sub=2, jit=.03)   # choux
+    for i in range(2): P.cylindre((R.uniform(-.4, .4), .9, 1.0), (R.uniform(-.4, .4), .9, 1.55), .22, .2, varie(PAILLE, .1), n=10)   # sacs de grain
 def etal(P):
     for x in (-1.3, 1.3):
         for y in (-.6, .6): P.boite((x, y, 1.1), (.12, .12, 2.2 + (y > 0) * .4), BOIS_F)
@@ -346,9 +392,15 @@ def etal(P):
 def cloture(P):
     for x in (-1.5, 0, 1.5): P.boite((x, 0, .55), (.16, .16, 1.1), BOIS_F, jit=.02)
     for z in (.4, .85): P.boite((0, 0, z), (3.2, .09, .14), BOIS, rz=R.uniform(-.03, .03))
-def lanterne(P):
-    P.boite((0, 0, 1.5), (.16, .16, 3.0), BOIS_F); P.boite((.35, 0, 2.95), (.8, .1, .1), BOIS_F)
-    P.boite((.65, 0, 2.55), (.3, .3, .4), FER, bev=.02); P.boite((.65, 0, 2.55), (.24, .32, .32), lin("#ffcf6a"), bev=0)
+def lanterne(P):   # poteau, potence, lanterne de fer à vitres, petit toit
+    P.boite((0, 0, 1.5), (.16, .16, 3.0), BOIS_F, bev=.02); P.boite((.35, 0, 2.95), (.8, .1, .1), BOIS_F, bev=.015)
+    P.boite((.12, 0, 2.75), (.06, .06, .4), BOIS_F, rx=0, ry=-.7, bev=0)   # jambe de force
+    P.boite((.65, 0, 2.8), (.03, .03, .2), FER, bev=0)
+    for sx in (-1, 1):
+        for sy in (-1, 1): P.boite((.65 + sx * .14, sy * .14, 2.52), (.035, .035, .42), FER, bev=.005)
+    P.boite((.65, 0, 2.3), (.34, .34, .05), FER, bev=.01); P.boite((.65, 0, 2.74), (.36, .36, .05), FER, bev=.01)
+    P.cylindre((.65, 0, 2.76), (.65, 0, 2.92), .24, .02, FER, n=4)
+    P.boite((.65, 0, 2.52), (.26, .26, .38), lin("#ffcf6a"), bev=0)
 def foin(P):
     P.sphere((0, 0, .9), 1.2, varie(PAILLE, .05), (1, 1, .85), sub=3, jit=.03); P.cylindre((0, 0, 1.6), (0, 0, 2.5), .05, .05, BOIS_F, n=6)
 def ponton(P):
