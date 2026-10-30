@@ -585,12 +585,19 @@ const v3 = c => `vec3(${(c.x ?? c.r).toFixed(4)}, ${(c.y ?? c.g).toFixed(4)}, ${
 
 // Ciel, soleil et brume atmosphérique : une seule fonction pour le ciel, l'eau, les nuages et toutes les matières.
 // La brume prend la couleur du ciel à l'horizon dans la direction du regard (plus claire et dorée vers le soleil).
+// Jour et nuit : l'heure (0 = minuit, 0,5 = midi) passe par la densité de la brume de three.js (« fogDensity »),
+// que le moteur envoie déjà à toutes les matières ; les matières faites à la main reçoivent le même uniforme (U_HEURE).
+// Le soleil garde sa direction (les ombres des montagnes sont précalculées) : ce sont la lumière et le ciel qui changent.
 const GLSL_ATMO = `
+uniform float fogDensity;
 const vec3 SUN_DIR = ${v3(SOLEIL)};
-const vec3 SUN_COL = ${v3(COUL.soleil)};
-const vec3 SKY_ZEN = ${v3(COUL.zenith)};
-const vec3 SKY_HOR = ${v3(COUL.horizon)};
-const vec3 SKY_HALO = ${v3(COUL.halo)};
+float jourK() { float h = fogDensity; return smoothstep(0.21, 0.29, h) * (1.0 - smoothstep(0.76, 0.84, h)); }
+float soirK() { float h = fogDensity; return clamp(exp(-pow((h - 0.262) / 0.04, 2.0)) + exp(-pow((h - 0.8) / 0.04, 2.0)), 0.0, 1.0); }
+vec3 ciel3(vec3 jour, vec3 soir, vec3 nuit) { return mix(nuit, mix(jour, soir, soirK()), jourK()); }
+#define SUN_COL ciel3(${v3(COUL.soleil)}, vec3(1.0, 0.56, 0.34), vec3(0.13, 0.17, 0.27))
+#define SKY_ZEN ciel3(${v3(COUL.zenith)}, vec3(0.13, 0.13, 0.3), vec3(0.004, 0.008, 0.026))
+#define SKY_HOR ciel3(${v3(COUL.horizon)}, vec3(0.92, 0.52, 0.38), vec3(0.02, 0.03, 0.065))
+#define SKY_HALO ciel3(${v3(COUL.halo)}, vec3(1.0, 0.48, 0.24), vec3(0.2, 0.25, 0.38))
 vec3 skyCol(vec3 rd) {
   float y = rd.y;
   vec3 c = mix(SKY_HOR, SKY_ZEN, pow(clamp(y, 0.0, 1.0), 0.45));
@@ -638,7 +645,7 @@ scene.fog = new THREE.FogExp2(0xffffff, 0.0001);   // active la brume (calculée
 const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 1.2, 70000);
 camera.position.set(0, 300, 2600);
 const horloge = { t: 0 };
-const U_TEMPS = { value: 0 };
+const U_TEMPS = { value: 0 }, U_HEURE = { value: .4 };
 
 // ------------------------------------------------------------------ outils
 function alea(graine) {
@@ -879,7 +886,7 @@ vec4 coucheNuages(vec3 ro, vec3 rd) {
 function creerCiel(pourEnv) {
   const m = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, depthTest: false,
-    uniforms: { tBruit: { value: tBruit }, uTemps: U_TEMPS },
+    uniforms: { tBruit: { value: tBruit }, uTemps: U_TEMPS, fogDensity: U_HEURE },
     vertexShader: "varying vec3 vW; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }",
     fragmentShader: `
       uniform sampler2D tBruit; uniform float uTemps; varying vec3 vW;
@@ -889,7 +896,10 @@ function creerCiel(pourEnv) {
         vec3 rd = normalize(vW - cameraPosition);
         vec3 c = skyCol(rd);
         ${pourEnv ? "if (rd.y < 0.0) c = mix(c, vec3(0.05, 0.07, 0.05), smoothstep(0.0, -0.25, rd.y));" :
-          "float sd = dot(rd, SUN_DIR); c += SUN_COL * smoothstep(0.99955, 0.99985, sd) * 30.0;"}
+          `float sd = dot(rd, SUN_DIR); c += mix(vec3(0.75, 0.8, 0.9) * 1.2, SUN_COL * 30.0, jourK()) * smoothstep(0.99955, 0.99985, sd);
+           float nuit = 1.0 - jourK();
+           if (nuit > 0.01 && rd.y > 0.0) { vec3 q = floor(rd * 560.0); float hs = fract(sin(dot(q, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+             c += vec3(0.85, 0.9, 1.0) * step(0.9972, hs) * nuit * (0.6 + 0.8 * fract(hs * 97.0)) * smoothstep(0.0, 0.25, rd.y); }`}
         vec4 nl = coucheNuages(cameraPosition, rd); c = mix(c, nl.rgb, nl.a);
         gl_FragColor = vec4(c, 1.0);
         #include <tonemapping_fragment>
@@ -1056,7 +1066,7 @@ function creerMer() {
   }
   const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
   const m = new THREE.ShaderMaterial({
-    uniforms: { tH: { value: tH }, tTerr: { value: tTerr }, tVagues: { value: tVagues }, tBruit: { value: tBruit }, uTemps: U_TEMPS },
+    uniforms: { tH: { value: tH }, tTerr: { value: tTerr }, tVagues: { value: tVagues }, tBruit: { value: tBruit }, uTemps: U_TEMPS, fogDensity: U_HEURE },
     vertexShader: `
       uniform float uTemps; varying vec3 vW;
       void main() {
@@ -1093,7 +1103,7 @@ function creerMer() {
         vec3 body = mix(shallow, mid, smoothstep(0.6, 11.0, prof));
         body = mix(body, deep, smoothstep(11.0, 70.0, prof));
         body = mix(vec3(0.3, 0.28, 0.2), body, smoothstep(0.0, 3.2, prof));
-        float eclair = (0.4 + 0.6 * sh) * (0.55 + 0.75 * max(SUN_DIR.y, 0.0));
+        float eclair = (0.4 + 0.6 * sh) * (0.55 + 0.75 * max(SUN_DIR.y, 0.0)) * mix(0.1, 1.0, jourK());   // la nuit, l'eau s'assombrit
         body *= eclair;
         body += vec3(0.02, 0.09, 0.08) * pow(max(dot(-V, SUN_DIR), 0.0), 3.0) * (1.0 - smoothstep(0.0, 20.0, prof)) * sh;
         float fn = texture(tBruit, vW.xz / 7.0 + uTemps * vec2(0.021, 0.013)).a;
@@ -1103,7 +1113,7 @@ function creerMer() {
         float ecume = clamp(bord * smoothstep(0.42, 0.7, fn) + bande * 0.5 * smoothstep(0.45, 0.8, fn), 0.0, 1.0) * det;
         ecume += smoothstep(0.86, 0.95, fn2 * 0.6 + fn * 0.4) * 0.12 * det;
         vec3 col = mix(body, refl, fres) + spec;
-        col = mix(col, vec3(0.8, 0.84, 0.86) * (0.45 + 0.55 * sh), clamp(ecume, 0.0, 1.0) * 0.85);
+        col = mix(col, vec3(0.8, 0.84, 0.86) * (0.45 + 0.55 * sh) * mix(0.15, 1.0, jourK()), clamp(ecume, 0.0, 1.0) * 0.85);
         col = atmo(col, vW);
         gl_FragColor = vec4(col, 1.0);
         #include <tonemapping_fragment>
@@ -1141,7 +1151,7 @@ function creerNuages() {
   geo.instanceCount = n;
   const m = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false,
-    uniforms: { tNuage: { value: tNuage } },
+    uniforms: { tNuage: { value: tNuage }, fogDensity: U_HEURE },
     vertexShader: `
       attribute vec3 iPos, iInfo; varying vec2 vUv; varying float vShade, vFade; varying vec3 vW;
       void main() {
@@ -1755,7 +1765,7 @@ class Particules {
     g.setAttribute("position", this.aPos); g.setAttribute("aInfo", this.aInfo); g.setDrawRange(0, 0);
     this.mat = new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, blending: additif ? THREE.AdditiveBlending : THREE.NormalBlending,
-      uniforms: { uEchelle: { value: innerHeight * pixelRatio * .9 } },
+      uniforms: { uEchelle: { value: innerHeight * pixelRatio * .9 }, fogDensity: U_HEURE },
       vertexShader: `uniform float uEchelle; attribute vec2 aInfo; varying float vAge; varying vec3 vW;
         void main() { vAge = aInfo.x; vW = position; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv;
           gl_PointSize = min(aInfo.y * uEchelle / max(-mv.z, 1.0), 400.0); }`,
@@ -1811,7 +1821,7 @@ let dragon, modele, riderHead, rider, lumiereFeu, VISAGE, matEcailles;
 function teindre(mat, i) {
   if (!mat) return;
   const [, hex, force] = COULEURS_DRAGON[i] || COULEURS_DRAGON[0];
-  if (!mat.userData.teinte) {
+  if (!mat.userData.teinte || !mat.userData.teinte.uTeinte.value.isColor) {   // (un clone copie userData en JSON : on refait)
     mat.userData.teinte = { uTeinte: { value: new THREE.Color() }, uForce: { value: 0 } };
     mat.onBeforeCompile = sh => { Object.assign(sh.uniforms, mat.userData.teinte);
       sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform vec3 uTeinte; uniform float uForce;")
@@ -1936,6 +1946,39 @@ function creerLumieres() {
   const envScene = new THREE.Scene(); envScene.add(creerCiel(true));
   scene.environment = pmrem.fromScene(envScene, 0, .1, 1000).texture;
   scene.environmentIntensity = 1.0;
+}
+
+// ------------------------------------------------------------------ l'heure du monde : une journée dure 24 minutes
+const MONDE_T = { heure: .4, vitesse: 1 / 1440 };
+const adoucir = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const jourK = h => adoucir(.21, .29, h) * (1 - adoucir(.76, .84, h));
+const soirK = h => Math.min(1, Math.exp(-(((h - .262) / .04) ** 2)) + Math.exp(-(((h - .8) / .04) ** 2)));
+const _cJ = new THREE.Color(), _cS = new THREE.Color(1, .56, .34), _cN = new THREE.Color(.13, .17, .27);
+let halos = null;
+function majHeure(dt) {
+  MONDE_T.heure = (MONDE_T.heure + dt * MONDE_T.vitesse) % 1;
+  const h = MONDE_T.heure, j = jourK(h), s = soirK(h), nuit = 1 - j;
+  scene.fog.density = U_HEURE.value = h;
+  _cJ.copy(COUL.soleil).lerp(_cS, s); soleil.color.copy(_cN).lerp(_cJ, j);
+  soleil.intensity = .9 + 2.7 * j;
+  scene.environmentIntensity = .14 + .86 * j;
+  renderer.toneMappingExposure = 1 + .45 * nuit;
+  if (MAT_VITRES) MAT_VITRES.emissiveIntensity = 2.6 * nuit;   // les fenêtres s'allument le soir
+  if (halos) { halos.material.opacity = nuit; halos.visible = nuit > .02; }
+}
+// halos des lanternes et des fenêtres, la nuit (un seul dessin)
+function creerHalos() {
+  const pos = [];
+  for (const v of VILLAGES) {
+    for (const p of v.props || []) if (p.nom === "lanterne") pos.push(p.x + Math.cos(p.yaw) * .65, p.y + 2.55, p.z - Math.sin(p.yaw) * .65);
+    for (const pt of PORTES) if (Math.hypot(pt.x - v.place.x, pt.z - v.place.z) < v.rayon + 20) pos.push(pt.x + Math.sin(pt.yaw) * .3, pt.y + 2.6, pt.z + Math.cos(pt.yaw) * .3);
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d"), gr = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, "rgba(255,230,170,1)"); gr.addColorStop(.25, "rgba(255,190,90,.55)"); gr.addColorStop(1, "rgba(255,150,60,0)"); x.fillStyle = gr; x.fillRect(0, 0, 64, 64);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  halos = new THREE.Points(g, new THREE.PointsMaterial({ map: t, size: 5, sizeAttenuation: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+  halos.frustumCulled = false; scene.add(halos);
 }
 
 // ------------------------------------------------------------------ état du jeu
@@ -2138,7 +2181,7 @@ function creerHerbe() {
   g.setAttribute("iOff", new THREE.InstancedBufferAttribute(off, 3)); g.instanceCount = N;
   const m = new THREE.ShaderMaterial({
     side: THREE.DoubleSide,
-    uniforms: { tH: { value: tH }, tTerr: { value: tTerr }, tBruit: { value: tBruit }, tHum: { value: tHum }, uTemps: U_TEMPS, uCentre: { value: new THREE.Vector3() }, uR: { value: R } },
+    uniforms: { tH: { value: tH }, tTerr: { value: tTerr }, tBruit: { value: tBruit }, tHum: { value: tHum }, uTemps: U_TEMPS, uCentre: { value: new THREE.Vector3() }, uR: { value: R }, fogDensity: U_HEURE },
     vertexShader: `
       uniform sampler2D tH, tTerr, tBruit, tHum; uniform float uTemps, uR; uniform vec3 uCentre;
       attribute vec3 iOff; attribute float aCote, aFleur;
@@ -2193,7 +2236,7 @@ function creerHerbe() {
   const offc = new Float32Array(NC * 3); for (let i = 0; i < NC; i++) { offc[i * 3] = (r() * 2 - 1) * RC; offc[i * 3 + 1] = r(); offc[i * 3 + 2] = (r() * 2 - 1) * RC; }
   ic.setAttribute("iOff", new THREE.InstancedBufferAttribute(offc, 3)); ic.instanceCount = NC;
   const mc = new THREE.ShaderMaterial({
-    uniforms: { tH: { value: tH }, tTerr: { value: tTerr }, tBruit: { value: tBruit }, tRoche: { value: tRoche }, uCentre: herbe.material.uniforms.uCentre, uR: { value: RC } },
+    uniforms: { tH: { value: tH }, tTerr: { value: tTerr }, tBruit: { value: tBruit }, tRoche: { value: tRoche }, uCentre: herbe.material.uniforms.uCentre, uR: { value: RC }, fogDensity: U_HEURE },
     vertexShader: `
       uniform sampler2D tH, tTerr, tBruit; uniform float uR; uniform vec3 uCentre; attribute vec3 iOff;
       varying vec3 vW, vN; varying float vSh;
@@ -2620,7 +2663,7 @@ function creerMouettes() {
   for (let i = 0; i < n; i++) { const v = VOLEES[i % VOLEES.length]; I.set([v.x, 25 + r() * 70, v.z, r() * 6.28], i * 4); C.set([40 + r() * 90, (r() < .5 ? 1 : -1) * (5 + r() * 4), r() * 6.28], i * 3); }
   g.setAttribute("iCentre", new THREE.InstancedBufferAttribute(I, 4)); g.setAttribute("iVol", new THREE.InstancedBufferAttribute(C, 3)); g.instanceCount = n;
   mouettes = new THREE.Mesh(g, new THREE.ShaderMaterial({
-    side: THREE.DoubleSide, uniforms: { uTemps: U_TEMPS },
+    side: THREE.DoubleSide, uniforms: { uTemps: U_TEMPS, fogDensity: U_HEURE },
     vertexShader: `uniform float uTemps; attribute float aAile; attribute vec4 iCentre; attribute vec3 iVol; varying vec3 vW; varying float vL;
       void main() {
         float a = iCentre.w + uTemps * iVol.y / iVol.x;
@@ -3033,13 +3076,14 @@ function sauverProgression() {
   const p = dedans ? dedans.porte : etat.sol === "pied" ? marche.pos : etat.pos, enVol = !etat.sol;
   memoire.ecrire("progression", { pos: [Math.round(p.x), Math.round(enVol ? p.y : Math.max(p.y + 60, hauteur(p.x, p.z) + 80)), Math.round(p.z)],
     yaw: +(etat.sol === "pied" ? marche.yaw : etat.yaw).toFixed(2), feux: FEUX.map((f, i) => f.allume ? i : -1).filter(i => i >= 0),
-    poissons: nbPoissons, quete: etat.quete === "anneaux" ? null : etat.quete });
+    poissons: nbPoissons, quete: etat.quete === "anneaux" ? null : etat.quete, heure: +MONDE_T.heure.toFixed(3) });
   const pa = partieActive(); if (pa) { pa.maj = Date.now(); sauverParties(); }
 }
 function reprendreProgression() {
   const pr = memoire.lire("progression", null); if (!pr) return false;
   for (const i of pr.feux || []) if (FEUX[i] && !FEUX[i].allume) { FEUX[i].allume = true; etat.feux++; }
   nbPoissons = Math.max(0, pr.poissons | 0); majRayons();
+  if (Number.isFinite(pr.heure)) MONDE_T.heure = Math.min(.999, Math.max(0, pr.heure));
   if (Array.isArray(pr.pos) && pr.pos.every(Number.isFinite)) { etat.pos.set(...pr.pos); etat.yaw = +pr.yaw || 0; camYaw = etat.yaw; }
   if (pr.quete === "feux" || pr.quete === "peche") { etat.quete = pr.quete; rayonsFeux.visible = pr.quete === "feux"; }
   majBandeau(); return true;
@@ -3093,7 +3137,7 @@ function image(now, dtForce) {
   const brut = dtForce ?? (now - dernier) / 1000; dernier = now;
   const dt = Math.min(.05, brut);
   if (etat.mode === "pause" || etat.mode === "bravo") { rendre(); return; }
-  horloge.t += dt; U_TEMPS.value = horloge.t;
+  horloge.t += dt; U_TEMPS.value = horloge.t; majHeure(dt);
   const auto = etat.mode === "titre";
   if (auto || !etat.sol) majVol(dt, auto);
   else if (etat.sol === "atterrit" || etat.sol === "appel") { majAtterrissage(dt); if (etat.sol === "appel") majPied(dt); }
@@ -3102,7 +3146,7 @@ function image(now, dtForce) {
   animerDragon(dt);
   if (etat.sol === "pied" || etat.sol === "appel") majCameraPied(dt); else majCamera(dt, auto);
   if (!auto) { if (!etat.sol) verifierAnneaux(); majHud(dt); majMiniCarte(dt); }
-  majVillages(dt, camera.position.x, camera.position.z); if (etat.sol === "pied" || dedans) majPortes(dt);
+  majVillages(dt, camera.position.x, camera.position.z); if (etat.sol === "pied" || dedans) majPortes(dt); majSauvages(dt);
   if (!etat.sol && !auto) { const c = dansUnRect(etat.pos.x, etat.pos.z, 4); if (c && c.haut && etat.pos.y < c.haut + 3) etat.pos.y += (c.haut + 3 - etat.pos.y) * Math.min(1, dt * 8); }   // le dragon passe au-dessus des toits
   majAnneaux(); majFeuxAllumes(dt); majPeche(dt); majHutte(dt); animerBebes(dt); majMouettes();
   if (!auto) { const ok = !etat.sol && peutSePoser(); $("btPoser").hidden = !TACTILE || !ok; $("indice").hidden = TACTILE || !ok; }
@@ -3397,6 +3441,38 @@ function recevoirPosition(j, m) {
 }
 const _qAv = new THREE.Quaternion(), _am = new THREE.Vector3();
 function tournerAv(a, nom, ax, ay, az, angle) { const b = a.os[nom], o = OS[nom]; if (!b || !o || !angle) return; _am.set(ax, ay, az).applyQuaternion(o.inv); _qAv.setFromAxisAngle(_am, angle); b.quaternion.multiply(_qAv); }
+// ------------------------------------------------------------------ dragons sauvages dans le ciel
+// Deux groupes de trois, de couleurs différentes, tournent autour des montagnes ; préparés au chargement.
+const SAUVAGES = [];
+async function creerSauvages() {
+  const { clone } = await import("three/addons/utils/SkeletonUtils.js");
+  const couleurs = [2, 2, 4, 5, 6, 1], r = alea(77);
+  const centres = FEUX.length >= 2 ? [FEUX[0], FEUX[Math.min(FEUX.length - 1, 3)]] : [{ x: 0, y: 300, z: 0 }, { x: 800, y: 300, z: -600 }];
+  for (let i = 0; i < 6; i++) {
+    const g = new THREE.Group(); g.rotation.order = "YXZ"; const m = clone(modele); m.position.y = -1; g.add(m);
+    const enlever = []; m.traverse(o => { if (/^Rider/.test(o.name)) enlever.push(o); }); for (const o of enlever) o.parent.remove(o);   // sans cavalier
+    const os = {}; m.traverse(o => { if (OS[o.name] && o.isBone) os[o.name] = o; });
+    const mat = matEcailles.clone(); teindre(mat, couleurs[i]); m.traverse(o => { if (o.isMesh && o.material.name === "Scales") o.material = mat; });
+    const ech = .7 + r() * .35; g.scale.setScalar(ech); g.visible = false; scene.add(g);
+    const c = centres[i < 3 ? 0 : 1];
+    SAUVAGES.push({ g, m, os, mat, c, rayon: 260 + r() * 160, haut: Math.max(c.y + 60, 220) + r() * 120, vit: (.045 + r() * .02) * (i % 2 ? 1 : -1), a: r() * 6.28, ph: r() * 6.28, decal: (i % 3) * .14, pos: new THREE.Vector3(), yaw: 0 });
+  }
+}
+function majSauvages(dt) {
+  const cx = camera.position.x, cz = camera.position.z;
+  for (const d of SAUVAGES) {
+    d.a += d.vit * dt; const a = d.a + d.decal, ondule = Math.sin(d.a * 3 + d.decal * 9);
+    const x = d.c.x + Math.cos(a) * d.rayon * (1 + .25 * Math.sin(a * 2)), z = d.c.z + Math.sin(a) * d.rayon, y = d.haut + ondule * 25;
+    const proche = Math.hypot(x - cx, z - cz) < 2600; d.g.visible = proche && !dedans; if (!d.g.visible) continue;
+    const vx = x - d.pos.x, vz = z - d.pos.z; if (d.pos.lengthSq() > 0) d.yaw = Math.atan2(vx, vz); d.pos.set(x, y, z);
+    d.g.position.copy(d.pos); d.g.rotation.set(-ondule * .15, d.yaw, -Math.sign(d.vit) * .35);
+    d.ph += dt * 6.5; const sn = Math.sin(d.ph), A = .55;
+    for (const n in d.os) d.os[n].quaternion.copy(OS[n].rest);
+    for (const [S, sg] of [["L", 1], ["R", -1]]) { tournerAv(d, "Arm" + S, 0, 0, 1, sg * (.1 + A * .95 * sn)); tournerAv(d, "Forearm" + S, 0, 0, 1, sg * A * .55 * Math.sin(d.ph - .8)); }
+    for (let i = 1; i <= 8; i++) tournerAv(d, "Tail" + i, 0, 1, 0, .05 * Math.sin(d.ph * .4 - i * .7));
+    d.m.position.y = -1 - sn * .35 * A;
+  }
+}
 function majMulti(dt) {
   if ((multi.envoiT -= dt) < 0 && etat.mode === "vol") {   // 12 positions par seconde
     multi.envoiT = 1 / 12; const pied = etat.sol === "pied" || etat.sol === "appel", p = pied ? marche.pos : etat.pos;
@@ -3501,10 +3577,10 @@ async function demarrer() {
     creerNuages(); creerParticules(); creerHerbe();
     await progression(.68, "Building the villages…");
     await chargerKit();
-    VILLAGES = creerVillages(); creerInterieurs();
+    VILLAGES = creerVillages(); creerInterieurs(); creerHalos();
     await progression(.76, "Planting the forests…");
     creerArbres();
-    creerFeux(); creerAnneaux(); creerNid(); creerHutte(); creerPeche(); creerMouettes(); await creerBebes();
+    creerFeux(); creerAnneaux(); creerNid(); creerHutte(); creerPeche(); creerMouettes(); await creerBebes(); await creerSauvages();
     majBandeau(); dessinerCarte();
     await progression(.85, "Mixing the colours…");
     majVol(.016, true); animerDragon(.016); majCamera(1, true); majTerrain(); trierNuages(); majArbres(); majHerbe();
@@ -3526,7 +3602,7 @@ async function demarrer() {
 window.__df = { camera, renderer, scene, etat, get dragon() { return dragon; }, hauteur, FEUX, ANNEAUX, NIVEAUX, entree, majTerrain, rendre,
   vue(x, y, z, tx, ty, tz) { camera.position.set(x, y, z); camera.lookAt(tx, ty, tz); camera.near = Math.min(camera.near, .1); camera.updateProjectionMatrix(); camera.updateMatrixWorld(); majTerrain(); trierNuages(); majArbres(); mer.position.set(x, 0, z); },
   POSE_SOL, poseTest(p) { if (p) Object.assign(POSE_SOL, p); etat.pose = 1; etat.ampl = 0; etat.pitch = etat.roll = 0; animerDragon(0); },
-  jouer, allumerFeu, sePoser, monterOuAppeler, marche, get VILLAGES() { return VILLAGES; }, PORTES, entrer, sortir, get dedans() { return dedans; }, get portePres() { return portePres; }, majVillagesTest() { majVillages(0, camera.position.x, camera.position.z); }, get NID() { return NID; }, get HUTTE() { return HUTTE; }, BANCS,
+  jouer, allumerFeu, sePoser, monterOuAppeler, marche, get VILLAGES() { return VILLAGES; }, PORTES, entrer, sortir, get dedans() { return dedans; }, get portePres() { return portePres; }, MONDE_T, majHeure, SAUVAGES, majSauvages, majVillagesTest() { majVillages(0, camera.position.x, camera.position.z); }, get NID() { return NID; }, get HUTTE() { return HUTTE; }, BANCS,
   pas(n = 1, dt = 1 / 30) { sansRendu = true; for (let i = 0; i < n; i++) image(performance.now(), dt); sansRendu = false; image(performance.now(), dt); } };
 demarrer();
 </script>
@@ -3588,7 +3664,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
 })();
 </script>
 <script>
-window.DRAGONFLYER_VERSION = "2026.10.30-9"; // à changer à chaque modification du jeu
+window.DRAGONFLYER_VERSION = "2026.10.30-10"; // à changer à chaque modification du jeu
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
