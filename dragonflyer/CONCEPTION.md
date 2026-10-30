@@ -1,4 +1,4 @@
-# The Dragon Learner Chronicles — document de conception
+# The Dragon Apprentice Chronicles — document de conception
 
 Un jeu d'aventure en monde ouvert, à la profondeur d'un *Zelda : Ocarina of Time*, dans l'archipel déjà construit,
 avec l'ambiance des films *Dragons* (Vikings, dresseurs, dragons attachants) et un fil éducatif : le héros devient

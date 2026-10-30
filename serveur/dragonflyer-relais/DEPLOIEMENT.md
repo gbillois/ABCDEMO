@@ -1,4 +1,4 @@
-# Relais de The Dragon Learner Chronicles : déploiement
+# Relais de The Dragon Apprentice Chronicles : déploiement
 
 Le relais est un Cloudflare Worker avec un Durable Object (`Salle`), construit comme celui du Domaine des Pins.
 - **Jouer à plusieurs** : une salle = un code de 8 caractères, 8 joueurs au plus. Il transmet seulement les positions
@@ -26,7 +26,7 @@ Le relais est un Cloudflare Worker avec un Durable Object (`Salle`), construit c
 > 5. Garder l'adresse publique `workers.dev`.
 >
 > **Tests après le déploiement**
-> - `curl https://dragonflyer-relais.<sous-domaine>.workers.dev/` répond « Relais de The Dragon Learner Chronicles : OK ».
+> - `curl https://dragonflyer-relais.<sous-domaine>.workers.dev/` répond « Relais de The Dragon Apprentice Chronicles : OK ».
 > - Une connexion WebSocket vers `wss://…/salle/ABCDEFGH?creer=1` avec `Origin: https://gbillois.github.io`
 >   reçoit `{"t":"bienvenue","s":0,"joueurs":[]}`.
 > - La même connexion avec `Origin: https://exemple.com` est refusée (HTTP 403).
