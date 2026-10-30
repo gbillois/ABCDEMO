@@ -5,7 +5,7 @@ const CACHE = "dragonflyer-v3";
 const BASE = "https://cdn.jsdelivr.net/npm/three@0.170.0/";
 const FICHIERS = [
   "./", "./manifest.webmanifest", "./icone-192.png", "./icone-512.png", "./apple-touch-icon.png", "./blason.webp",
-  "./ui-cuir.webp", "./ui-parchemin.webp", "./ui-gravure.webp", "./assets/village.glb", "./assets/animaux.glb", ...["fermier", "fermiere", "ancien", "forgeron", "pecheuse", "chef"].map(m => `./assets/villageois_${m}.glb`),
+  "./ui-cuir.webp", "./ui-parchemin.webp", "./ui-gravure.webp", "./assets/village.glb", "./assets/animaux.glb", "./assets/paysages.glb", ...["fermier", "fermiere", "ancien", "forgeron", "pecheuse", "chef"].map(m => `./assets/villageois_${m}.glb`),
   BASE + "build/three.module.js",
   BASE + "examples/jsm/loaders/GLTFLoader.js",
   BASE + "examples/jsm/libs/meshopt_decoder.module.js",
