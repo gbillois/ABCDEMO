@@ -175,6 +175,27 @@ input,textarea,select{font-size:max(16px,1em)}
   #bulles { position: fixed; left: max(14px, env(safe-area-inset-left)); bottom: max(130px, calc(env(safe-area-inset-bottom) + 120px)); z-index: 7; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
   #bulles > div { font: 400 16px var(--texte); color: #2e1a0a; padding: 6px 12px; border-radius: 8px; background: rgba(250,240,214,.92); box-shadow: 0 0 0 2px #c99a5c, 0 3px 8px rgba(0,0,0,.4); transition: opacity .6s; }
   #bulles b { font-weight: 700; }
+  /* journal, sac, défis */
+  .sac { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 0 4px; }
+  .case-sac { aspect-ratio: 1; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    background: rgba(255,248,226,.6); box-shadow: inset 0 0 0 2px #b88a4e, inset 0 0 12px rgba(120,80,30,.25); font: 400 13px var(--tete); color: #3e2008; }
+  .case-sac .ico { width: 32px; height: 32px; color: #4e2e12; } .case-sac b { font: 900 15px var(--chiffres); } .case-sac.vide { opacity: .35; }
+  .etape { display: flex; align-items: center; gap: 10px; font: 400 16px var(--texte); color: #3e2008; padding: 4px 6px; }
+  .etape .ico { width: 24px; height: 24px; flex: none; color: #6b4a2a; } .etape.fait { opacity: .6; text-decoration: line-through; } .etape.actuelle { font-weight: 700; color: #2e1a0a; }
+  .savoir { display: flex; align-items: center; gap: 10px; font: 400 16px var(--tete); color: #3e2008; }
+  .savoir .etoiles { display: flex; gap: 2px; } .savoir .etoiles .ico { width: 18px; height: 18px; color: #c98a1a; } .savoir .etoiles .ico.eteinte { color: #b8a888; }
+  .savoir small { font: 400 13px var(--texte); color: #6b4220; } .savoir .orne { margin-left: auto; }
+  .defiImage { height: 190px; display: grid; place-items: center; margin: 0 4px 6px; }
+  .defiImage svg { width: 100%; height: 100%; color: #3e2008; }
+  .defiQuestion { font: 400 19px var(--texte); color: #2e1a0a; margin: 4px 6px 10px; }
+  .defiReponses { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 4px; }
+  .defiReponses .orne { min-height: 54px; font: 400 24px var(--tete); padding: 2px 8px; }
+  .defiReponses .orne.faux { animation: secoue .35s; filter: grayscale(.6) brightness(.85); } @keyframes secoue { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  .defiReponses .orne.juste { filter: drop-shadow(0 0 10px rgba(120,200,80,.95)); }
+  .defiPoints { display: flex; gap: 8px; justify-content: center; margin-top: 10px; } .defiPoints i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #4e2e12; } .defiPoints i.ok { background: #c98a1a; }
+  #dialogueSuite { position: absolute; right: -14px; bottom: -14px; width: 46px; height: 46px; pointer-events: auto; } #dialogueSuite .ico { width: 20px; height: 20px; }
+  #dialogue.histoire { pointer-events: auto; }
+  .objectif { font: 400 15px var(--texte); gap: 8px; max-width: 46vw; } .objectif .ico { width: 20px; height: 20px; flex: none; }
   .petit { font: 700 14px var(--tete); color: #6b4220; margin-top: 12px; min-height: 18px; }
   .aide { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; text-align: left; font: 700 14px var(--tete); color: #4a2c12; margin: 4px 8px 0; align-items: center; }
   .aide kbd { font: 900 12px var(--chiffres); border: 2px solid #4a2c12; border-radius: 5px; padding: 0 5px; background: #fff6e0; }
@@ -285,7 +306,7 @@ input,textarea,select{font-size:max(16px,1em)}
 </svg>
 
 <!-- icônes gravées du grimoire, dessinées en SVG (32×32, encre = currentColor) -->
-<svg class="defs" aria-hidden="true"><symbol id="i-dragon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M4 27C5 19 9 14 15 12.5c4-1 8-1.5 11 .5 3 2 4 5 2 7l-5 1c-2 0-4 1-5 3l-1 3'/><path fill='currentColor' fill-opacity='.14' d='M15 12.5C13 8 13 5 10 2.5c5 1 8 4 9 9.5M21 11.5c1-4 3-6.5 7-8-1 3-2 6-3 8.5'/><path d='M28 20c-3-1-6-1-8 .5'/><path d='M19.5 15.6q2.2-1.6 4.4 0'/><circle cx='21.7' cy='15.9' r='1.1' fill='currentColor'/><circle cx='27' cy='16.4' r='.6' fill='currentColor'/><path stroke-width='1.1' opacity='.7' d='M7 23c2-3 4-5 7-6M10 25c2-3 3-4 6-5M6 19c1-2 3-4 5-5'/></symbol><symbol id="i-engrenage" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M20.1 12.5 L22.3 14.2 L21.9 15.9 L19.1 16.3 L18.3 17.4 L18.9 20.2 L17.5 21.2 L15.1 19.6 L13.8 20.0 L12.5 22.5 L10.8 22.3 L9.9 19.6 L8.7 19.1 L6.1 20.2 L4.8 18.9 L5.9 16.3 L5.4 15.1 L2.7 14.2 L2.5 12.5 L5.0 11.2 L5.4 9.9 L3.8 7.5 L4.8 6.1 L7.6 6.7 L8.7 5.9 L9.1 3.1 L10.8 2.7 L12.5 4.9 L13.8 5.0 L15.9 3.1 L17.5 3.8 L17.4 6.7 L18.3 7.6 L21.2 7.5 L21.9 9.1 L20.0 11.2Z'/><circle cx='12.5' cy='12.5' r='4'/><circle cx='12.5' cy='12.5' r='1.4' fill='currentColor'/><path fill='currentColor' fill-opacity='.14' d='M27.9 23.5 L29.7 24.9 L29.3 26.3 L26.9 26.2 L26.2 26.9 L26.3 29.3 L24.9 29.7 L23.5 27.9 L22.5 27.8 L20.7 29.3 L19.5 28.5 L20.1 26.2 L19.5 25.4 L17.3 24.9 L17.1 23.5 L19.2 22.5 L19.5 21.6 L18.5 19.5 L19.5 18.5 L21.6 19.5 L22.5 19.2 L23.5 17.1 L24.9 17.3 L25.4 19.5 L26.2 20.1 L28.5 19.5 L29.3 20.7 L27.8 22.5Z'/><circle cx='23.5' cy='23.5' r='1.6'/></symbol><symbol id="i-maj" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M25 12a10 10 0 0 0-17-3l-2 2'/><path d='M5 6v5h5'/><path d='M7 20a10 10 0 0 0 17 3l2-2'/><path d='M27 26v-5h-5'/></symbol><symbol id="i-maison" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 17 16 5l14 12'/><path d='M13 6l-3-4M19 6l3-4'/><path d='M6 14v13h20V14'/><path d='M13 27v-7h6v7'/><path stroke-width='1.1' opacity='.7' d='M8 18h3M21 18h3M8 22h3M21 22h3'/></symbol><symbol id="i-rouleau" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M9 6h16a3 3 0 0 1 0 6h-2v14a3 3 0 0 1-3 3H6a3 3 0 0 1 0-6h3z'/><path d='M23 12V9'/><path d='M9 23v3a3 3 0 0 1-3 3'/><path stroke-width='1.1' opacity='.7' d='M12 12h8M12 16h8M12 20h6'/></symbol><symbol id="i-longuevue" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M4 21 22 8l3 4L7 25z'/><path d='M22 8l3-2 3 4-3 2'/><path d='M11 18l3 4'/><path d='M8 28l4-5 4 5'/></symbol><symbol id="i-cor" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M4 9c9 0 18 5 23 16l-4 2C19 18 12 14 4 14z'/><path d='M4 9v5'/><path d='M10 9.6v4.6M16 11.5l-1.5 4.4'/><path stroke-width='1.1' opacity='.7' d='M8 6c2-1 4-1 6 0'/></symbol><symbol id="i-muet" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M4 9c9 0 18 5 23 16l-4 2C19 18 12 14 4 14z'/><path d='M4 9v5'/><path d='M18 3l10 10M28 3 18 13' stroke-width='2.4'/></symbol><symbol id="i-lyre" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M9 27h14'/><path d='M10 27C6 20 5 12 8 5c2 3 4 4 5 4M22 27c4-7 5-15 2-22-2 3-4 4-5 4'/><path d='M9 9h14'/><path d='M13 9v15M16 9v15M19 9v15'/></symbol><symbol id="i-cadenas" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x='7' y='14' width='18' height='14' rx='2'/><path d='M11 14V9a5 5 0 0 1 10 0v5'/><circle cx='16' cy='20' r='2' fill='currentColor'/><path d='M16 22v3'/></symbol><symbol id="i-fleches" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 3v26'/><path d='M10 9l6-6 6 6M10 23l6 6 6-6'/></symbol><symbol id="i-sablier" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M7 3h18M7 29h18'/><path d='M9 3c0 8 7 9 7 13s-7 5-7 13M23 3c0 8-7 9-7 13s7 5 7 13'/><path stroke-width='1.1' opacity='.7' d='M12 26c2-2 6-2 8 0M13 9h6'/></symbol><symbol id="i-pause" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x='8' y='6' width='5' height='20' rx='1.5' fill='currentColor'/><rect x='19' y='6' width='5' height='20' rx='1.5' fill='currentColor'/></symbol><symbol id="i-viser" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx='16' cy='16' r='10'/><circle cx='16' cy='16' r='3' fill='currentColor'/><path d='M16 2v6M16 24v6M2 16h6M24 16h6'/></symbol><symbol id="i-croix" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 3v26M3 16h26'/><path d='M12 7l4-4 4 4M12 25l4 4 4-4M7 12l-4 4 4 4M25 12l4 4-4 4'/></symbol><symbol id="i-aile" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M4 26C6 18 8 12 10 6c6-1 13-1 19-2-2 4-3 6-2 9-3 0-5 1-5 4-3 0-5 2-5 5-4-1-9 1-13 4z'/><path d='M10 6l17 7M10 6l12 11M10 6l7 16'/></symbol><symbol id="i-feu" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 29c-6 0-10-4-10-9 0-6 5-8 6-14 3 2 4 5 4 8 1-2 3-3 3-6 4 3 7 8 7 12 0 5-4 9-10 9z'/><path d='M16 29c-3 0-5-2-5-5 0-3 3-4 4-7 2 2 6 4 6 7 0 3-2 5-5 5z'/></symbol><symbol id="i-atterrir" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 3v15'/><path d='M10 12l6 6 6-6'/><path d='M3 26h26'/><path stroke-width='1.1' opacity='.7' d='M7 29h4M14 29h4M21 29h4'/></symbol><symbol id="i-saut" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M5 27c3-10 8-17 17-20'/><path d='M15 6l7 1-2 7'/><path d='M3 29h10'/></symbol><symbol id="i-anneau" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><ellipse cx='16' cy='16' rx='12' ry='12'/><ellipse cx='16' cy='16' rx='7.5' ry='7.5'/><path stroke-width='1.1' opacity='.7' d='M8 9l2 2M23 22l2 2M24 9l-2 2'/></symbol><symbol id="i-poisson" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M3 16c5-7 13-8 19-2l7-5v14l-7-5c-6 6-14 5-19-2z'/><circle cx='9' cy='14.5' r='1.4' fill='currentColor'/><path stroke-width='1.1' opacity='.7' d='M14 12c1 3 1 5 0 8M18 13c1 2 1 4 0 6'/></symbol><symbol id="i-nid" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M3 18c2 8 24 8 26 0'/><path d='M4 21c7 3 17 3 24 0M6 25c6 2 14 2 20 0'/><ellipse cx='11' cy='15' rx='3.2' ry='4'/><ellipse cx='17' cy='13' rx='3.2' ry='4.2'/><ellipse cx='22.5' cy='15.5' rx='3' ry='3.8'/></symbol><symbol id="i-phare" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M12 29 13 11h6l1 18'/><path d='M11 11h10M12 11V7h8v4M14 7l2-3 2 3'/><path d='M9 29h14'/><path stroke-width='1.1' opacity='.7' d='M13 17h6M12.5 23h7'/><path d='M5 6l6 2M27 6l-6 2'/></symbol><symbol id="i-village" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 20 9 13l7 7M5 18v10h8V18'/><path d='M14 16 21 8l9 9M17 13v15h11V14'/><path d='M21 28v-5h3v5'/><path d='M2 28h28'/></symbol><symbol id="i-pic" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 28 12 12l4 6 3-5 11 15z'/><path stroke-width='1.1' opacity='.7' d='M10 18l2 3M18 17l3 4'/><path d='M19 11c-2 0-3-2-3-3 0-2 2-3 2-5 2 1 4 3 4 5 0 2-1 3-3 3z'/></symbol><symbol id="i-fermer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M7 7l18 18M25 7 7 25' stroke-width='3'/></symbol><symbol id="i-rejouer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M26 16a10 10 0 1 1-4-8'/><path d='M23 3v6h-6' stroke-width='2.2'/></symbol><symbol id="i-jouer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M10 6v20l16-10z' fill='currentColor'/></symbol><symbol id="i-oeil" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 16c4-6 9-9 14-9s10 3 14 9c-4 6-9 9-14 9S6 22 2 16z'/><circle cx='16' cy='16' r='5'/><circle cx='16' cy='16' r='2' fill='currentColor'/></symbol><symbol id="i-livre" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M5 6c4-2 8-2 11 1v20c-3-3-7-3-11-1z'/><path fill='currentColor' fill-opacity='.14' d='M27 6c-4-2-8-2-11 1v20c3-3 7-3 11-1z'/><path stroke-width='1.1' opacity='.7' d='M8 11c2-1 4-1 6 0M8 15c2-1 4-1 6 0M18 11c2-1 4-1 6 0M18 15c2-1 4-1 6 0'/></symbol><symbol id="i-envoyer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 20V4'/><path d='M10 10l6-6 6 6'/><path d='M5 18v8h22v-8'/></symbol><symbol id="i-recevoir" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 4v16'/><path d='M10 14l6 6 6-6'/><path d='M5 18v8h22v-8'/></symbol><symbol id="i-poubelle" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M6 9h20M13 9V5h6v4'/><path fill='currentColor' fill-opacity='.14' d='M8 9l2 18h12l2-18'/><path stroke-width='1.1' opacity='.7' d='M13 13v10M19 13v10'/></symbol><symbol id="i-joueurs" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx='11' cy='11' r='4.5'/><path d='M3 27c0-6 4-9 8-9s8 3 8 9'/><circle cx='22' cy='9' r='3.6'/><path d='M19 16c1-1 2-1.5 3-1.5 3.5 0 7 2.5 7 8'/><path d='M7 7l-2-4M15 7l2-4'/></symbol><symbol id="i-plus" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 5v22M5 16h22' stroke-width='3'/></symbol><symbol id="i-bulle" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M5 7h22v14H14l-6 5v-5H5z'/><path stroke-width='1.1' opacity='.7' d='M9 12h14M9 16h10'/></symbol><symbol id="i-courbe" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M3 25c5-14 13-19 26-18'/><path d='M23 3l6 4-5 5'/><path d='M3 29h26' stroke-width='1.1' opacity='.7'/></symbol></svg>
+<svg class="defs" aria-hidden="true"><symbol id="i-dragon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M4 27C5 19 9 14 15 12.5c4-1 8-1.5 11 .5 3 2 4 5 2 7l-5 1c-2 0-4 1-5 3l-1 3'/><path fill='currentColor' fill-opacity='.14' d='M15 12.5C13 8 13 5 10 2.5c5 1 8 4 9 9.5M21 11.5c1-4 3-6.5 7-8-1 3-2 6-3 8.5'/><path d='M28 20c-3-1-6-1-8 .5'/><path d='M19.5 15.6q2.2-1.6 4.4 0'/><circle cx='21.7' cy='15.9' r='1.1' fill='currentColor'/><circle cx='27' cy='16.4' r='.6' fill='currentColor'/><path stroke-width='1.1' opacity='.7' d='M7 23c2-3 4-5 7-6M10 25c2-3 3-4 6-5M6 19c1-2 3-4 5-5'/></symbol><symbol id="i-engrenage" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M20.1 12.5 L22.3 14.2 L21.9 15.9 L19.1 16.3 L18.3 17.4 L18.9 20.2 L17.5 21.2 L15.1 19.6 L13.8 20.0 L12.5 22.5 L10.8 22.3 L9.9 19.6 L8.7 19.1 L6.1 20.2 L4.8 18.9 L5.9 16.3 L5.4 15.1 L2.7 14.2 L2.5 12.5 L5.0 11.2 L5.4 9.9 L3.8 7.5 L4.8 6.1 L7.6 6.7 L8.7 5.9 L9.1 3.1 L10.8 2.7 L12.5 4.9 L13.8 5.0 L15.9 3.1 L17.5 3.8 L17.4 6.7 L18.3 7.6 L21.2 7.5 L21.9 9.1 L20.0 11.2Z'/><circle cx='12.5' cy='12.5' r='4'/><circle cx='12.5' cy='12.5' r='1.4' fill='currentColor'/><path fill='currentColor' fill-opacity='.14' d='M27.9 23.5 L29.7 24.9 L29.3 26.3 L26.9 26.2 L26.2 26.9 L26.3 29.3 L24.9 29.7 L23.5 27.9 L22.5 27.8 L20.7 29.3 L19.5 28.5 L20.1 26.2 L19.5 25.4 L17.3 24.9 L17.1 23.5 L19.2 22.5 L19.5 21.6 L18.5 19.5 L19.5 18.5 L21.6 19.5 L22.5 19.2 L23.5 17.1 L24.9 17.3 L25.4 19.5 L26.2 20.1 L28.5 19.5 L29.3 20.7 L27.8 22.5Z'/><circle cx='23.5' cy='23.5' r='1.6'/></symbol><symbol id="i-maj" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M25 12a10 10 0 0 0-17-3l-2 2'/><path d='M5 6v5h5'/><path d='M7 20a10 10 0 0 0 17 3l2-2'/><path d='M27 26v-5h-5'/></symbol><symbol id="i-maison" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 17 16 5l14 12'/><path d='M13 6l-3-4M19 6l3-4'/><path d='M6 14v13h20V14'/><path d='M13 27v-7h6v7'/><path stroke-width='1.1' opacity='.7' d='M8 18h3M21 18h3M8 22h3M21 22h3'/></symbol><symbol id="i-rouleau" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M9 6h16a3 3 0 0 1 0 6h-2v14a3 3 0 0 1-3 3H6a3 3 0 0 1 0-6h3z'/><path d='M23 12V9'/><path d='M9 23v3a3 3 0 0 1-3 3'/><path stroke-width='1.1' opacity='.7' d='M12 12h8M12 16h8M12 20h6'/></symbol><symbol id="i-longuevue" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M4 21 22 8l3 4L7 25z'/><path d='M22 8l3-2 3 4-3 2'/><path d='M11 18l3 4'/><path d='M8 28l4-5 4 5'/></symbol><symbol id="i-cor" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M4 9c9 0 18 5 23 16l-4 2C19 18 12 14 4 14z'/><path d='M4 9v5'/><path d='M10 9.6v4.6M16 11.5l-1.5 4.4'/><path stroke-width='1.1' opacity='.7' d='M8 6c2-1 4-1 6 0'/></symbol><symbol id="i-muet" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M4 9c9 0 18 5 23 16l-4 2C19 18 12 14 4 14z'/><path d='M4 9v5'/><path d='M18 3l10 10M28 3 18 13' stroke-width='2.4'/></symbol><symbol id="i-lyre" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M9 27h14'/><path d='M10 27C6 20 5 12 8 5c2 3 4 4 5 4M22 27c4-7 5-15 2-22-2 3-4 4-5 4'/><path d='M9 9h14'/><path d='M13 9v15M16 9v15M19 9v15'/></symbol><symbol id="i-cadenas" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x='7' y='14' width='18' height='14' rx='2'/><path d='M11 14V9a5 5 0 0 1 10 0v5'/><circle cx='16' cy='20' r='2' fill='currentColor'/><path d='M16 22v3'/></symbol><symbol id="i-fleches" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 3v26'/><path d='M10 9l6-6 6 6M10 23l6 6 6-6'/></symbol><symbol id="i-sablier" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M7 3h18M7 29h18'/><path d='M9 3c0 8 7 9 7 13s-7 5-7 13M23 3c0 8-7 9-7 13s7 5 7 13'/><path stroke-width='1.1' opacity='.7' d='M12 26c2-2 6-2 8 0M13 9h6'/></symbol><symbol id="i-pause" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x='8' y='6' width='5' height='20' rx='1.5' fill='currentColor'/><rect x='19' y='6' width='5' height='20' rx='1.5' fill='currentColor'/></symbol><symbol id="i-viser" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx='16' cy='16' r='10'/><circle cx='16' cy='16' r='3' fill='currentColor'/><path d='M16 2v6M16 24v6M2 16h6M24 16h6'/></symbol><symbol id="i-croix" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 3v26M3 16h26'/><path d='M12 7l4-4 4 4M12 25l4 4 4-4M7 12l-4 4 4 4M25 12l4 4-4 4'/></symbol><symbol id="i-aile" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M4 26C6 18 8 12 10 6c6-1 13-1 19-2-2 4-3 6-2 9-3 0-5 1-5 4-3 0-5 2-5 5-4-1-9 1-13 4z'/><path d='M10 6l17 7M10 6l12 11M10 6l7 16'/></symbol><symbol id="i-feu" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 29c-6 0-10-4-10-9 0-6 5-8 6-14 3 2 4 5 4 8 1-2 3-3 3-6 4 3 7 8 7 12 0 5-4 9-10 9z'/><path d='M16 29c-3 0-5-2-5-5 0-3 3-4 4-7 2 2 6 4 6 7 0 3-2 5-5 5z'/></symbol><symbol id="i-atterrir" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 3v15'/><path d='M10 12l6 6 6-6'/><path d='M3 26h26'/><path stroke-width='1.1' opacity='.7' d='M7 29h4M14 29h4M21 29h4'/></symbol><symbol id="i-saut" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M5 27c3-10 8-17 17-20'/><path d='M15 6l7 1-2 7'/><path d='M3 29h10'/></symbol><symbol id="i-anneau" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><ellipse cx='16' cy='16' rx='12' ry='12'/><ellipse cx='16' cy='16' rx='7.5' ry='7.5'/><path stroke-width='1.1' opacity='.7' d='M8 9l2 2M23 22l2 2M24 9l-2 2'/></symbol><symbol id="i-poisson" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M3 16c5-7 13-8 19-2l7-5v14l-7-5c-6 6-14 5-19-2z'/><circle cx='9' cy='14.5' r='1.4' fill='currentColor'/><path stroke-width='1.1' opacity='.7' d='M14 12c1 3 1 5 0 8M18 13c1 2 1 4 0 6'/></symbol><symbol id="i-nid" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M3 18c2 8 24 8 26 0'/><path d='M4 21c7 3 17 3 24 0M6 25c6 2 14 2 20 0'/><ellipse cx='11' cy='15' rx='3.2' ry='4'/><ellipse cx='17' cy='13' rx='3.2' ry='4.2'/><ellipse cx='22.5' cy='15.5' rx='3' ry='3.8'/></symbol><symbol id="i-phare" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M12 29 13 11h6l1 18'/><path d='M11 11h10M12 11V7h8v4M14 7l2-3 2 3'/><path d='M9 29h14'/><path stroke-width='1.1' opacity='.7' d='M13 17h6M12.5 23h7'/><path d='M5 6l6 2M27 6l-6 2'/></symbol><symbol id="i-village" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 20 9 13l7 7M5 18v10h8V18'/><path d='M14 16 21 8l9 9M17 13v15h11V14'/><path d='M21 28v-5h3v5'/><path d='M2 28h28'/></symbol><symbol id="i-pic" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 28 12 12l4 6 3-5 11 15z'/><path stroke-width='1.1' opacity='.7' d='M10 18l2 3M18 17l3 4'/><path d='M19 11c-2 0-3-2-3-3 0-2 2-3 2-5 2 1 4 3 4 5 0 2-1 3-3 3z'/></symbol><symbol id="i-fermer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M7 7l18 18M25 7 7 25' stroke-width='3'/></symbol><symbol id="i-rejouer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M26 16a10 10 0 1 1-4-8'/><path d='M23 3v6h-6' stroke-width='2.2'/></symbol><symbol id="i-jouer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M10 6v20l16-10z' fill='currentColor'/></symbol><symbol id="i-oeil" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 16c4-6 9-9 14-9s10 3 14 9c-4 6-9 9-14 9S6 22 2 16z'/><circle cx='16' cy='16' r='5'/><circle cx='16' cy='16' r='2' fill='currentColor'/></symbol><symbol id="i-livre" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M5 6c4-2 8-2 11 1v20c-3-3-7-3-11-1z'/><path fill='currentColor' fill-opacity='.14' d='M27 6c-4-2-8-2-11 1v20c3-3 7-3 11-1z'/><path stroke-width='1.1' opacity='.7' d='M8 11c2-1 4-1 6 0M8 15c2-1 4-1 6 0M18 11c2-1 4-1 6 0M18 15c2-1 4-1 6 0'/></symbol><symbol id="i-envoyer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 20V4'/><path d='M10 10l6-6 6 6'/><path d='M5 18v8h22v-8'/></symbol><symbol id="i-recevoir" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 4v16'/><path d='M10 14l6 6 6-6'/><path d='M5 18v8h22v-8'/></symbol><symbol id="i-poubelle" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M6 9h20M13 9V5h6v4'/><path fill='currentColor' fill-opacity='.14' d='M8 9l2 18h12l2-18'/><path stroke-width='1.1' opacity='.7' d='M13 13v10M19 13v10'/></symbol><symbol id="i-joueurs" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx='11' cy='11' r='4.5'/><path d='M3 27c0-6 4-9 8-9s8 3 8 9'/><circle cx='22' cy='9' r='3.6'/><path d='M19 16c1-1 2-1.5 3-1.5 3.5 0 7 2.5 7 8'/><path d='M7 7l-2-4M15 7l2-4'/></symbol><symbol id="i-plus" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 5v22M5 16h22' stroke-width='3'/></symbol><symbol id="i-bulle" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M5 7h22v14H14l-6 5v-5H5z'/><path stroke-width='1.1' opacity='.7' d='M9 12h14M9 16h10'/></symbol><symbol id="i-mouton" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M7 17c-2-1-2-5 1-6 0-3 4-4 6-2 2-3 6-2 7 1 3 0 4 4 2 6 1 3-2 5-4 4-2 2-6 2-8 0-2 1-5-1-4-3z'/><path fill='currentColor' fill-opacity='.14' d='M24 13c2-1 5 0 5 3s-2 4-4 3'/><circle cx='27' cy='15' r='.8' fill='currentColor'/><path d='M10 22v5M14 22v5M19 22v5M23 21v5'/></symbol><symbol id="i-balance" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 4v22M9 27h14'/><path d='M5 8h22'/><path d='M5 8l-3 8h6zM27 8l-3 8h6z'/><path fill='currentColor' fill-opacity='.14' d='M2 16a3 2 0 0 0 6 0zM24 16a3 2 0 0 0 6 0z'/><circle cx='16' cy='5' r='1.6'/></symbol><symbol id="i-piece" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle fill='currentColor' fill-opacity='.14' cx='16' cy='16' r='12'/><circle cx='16' cy='16' r='9'/><path d='M12 11c4-2 8 0 8 3s-4 3-4 3 4 1 4 4-4 4-8 2'/></symbol><symbol id="i-rune" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M10 29V8c0-4 12-4 12 0v21z'/><path d='M14 11v12M14 14l5-3M14 18l5 4M18 24l-4 0'/><path d='M7 29h18'/></symbol><symbol id="i-etoile" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M16 3l3.6 8.1 8.8.9-6.6 5.9 1.9 8.6L16 22l-7.7 4.5 1.9-8.6L3.6 12l8.8-.9z'/></symbol><symbol id="i-sac" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M9 12c-3 4-4 9-2 13 2 3 16 3 18 0 2-4 1-9-2-13z'/><path d='M11 12l-2-5h14l-2 5'/><path d='M10 12h12'/><path stroke-width='1.1' opacity='.7' d='M13 18c2 1 4 1 6 0'/></symbol><symbol id="i-suivant" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M8 6l12 10-12 10' stroke-width='3'/><path d='M18 6l8 10-8 10' stroke-width='1.1' opacity='.7'/></symbol><symbol id="i-courbe" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M3 25c5-14 13-19 26-18'/><path d='M23 3l6 4-5 5'/><path d='M3 29h26' stroke-width='1.1' opacity='.7'/></symbol></svg>
 
 <div id="chargement" class="ecran">
   <img class="blason" src="blason.webp" alt="">
@@ -359,6 +380,7 @@ input,textarea,select{font-size:max(16px,1em)}
 <div id="hud" hidden>
   <div id="hudHaut">
     <div class="gauche">
+      <div class="bandeau objectif" id="objectif" hidden><svg class="ico"><use href="#i-rouleau"/></svg><span id="objectifTexte"></span></div>
       <div class="bandeau" id="bandeau" hidden><span id="compteur"></span><span id="chronoBox"><svg class="ico"><use href="#i-sablier"/></svg> <b id="chrono">0:00</b></span></div>
       <div id="mesure" hidden></div>
     </div>
@@ -390,7 +412,7 @@ input,textarea,select{font-size:max(16px,1em)}
 </div>
 <div id="bulles" aria-live="polite"></div>
 <div id="fondu"></div>
-<div id="dialogue" hidden><b id="dialogueNom"></b><p id="dialogueTexte"></p></div>
+<div id="dialogue" hidden><b id="dialogueNom"></b><p id="dialogueTexte"></p><button class="bouclier" id="dialogueSuite" aria-label="Next" hidden><span><svg class="ico"><use href="#i-suivant"/></svg></span></button></div>
 <div id="indice" class="bandeau" hidden><svg class="ico"><use href="#i-atterrir"/></svg> <b>L</b>&nbsp;to land</div>
 
 <div id="quetes" class="ecran" hidden>
@@ -398,13 +420,40 @@ input,textarea,select{font-size:max(16px,1em)}
     <div class="baton"></div>
     <div class="papier">
       <button class="bouclier fermer" id="bFermerQuetes" aria-label="Close"><span><svg class="ico"><use href="#i-fermer"/></svg></span></button>
-      <h2>Quests</h2>
-      <div class="pile">
+      <h2>Journal</h2>
+      <div class="onglets" role="tablist">
+        <button class="onglet choisi" data-onglet="histoire" role="tab"><i><svg class="ico"><use href="#i-rouleau"/></svg></i>Story</button>
+        <button class="onglet" data-onglet="defis" role="tab"><i><svg class="ico"><use href="#i-anneau"/></svg></i>Quests</button>
+        <button class="onglet" data-onglet="sac" role="tab"><i><svg class="ico"><use href="#i-sac"/></svg></i>Bag</button>
+        <button class="onglet" data-onglet="savoir" role="tab"><i><svg class="ico"><use href="#i-etoile"/></svg></i>Knowledge</button>
+      </div>
+      <section class="page" data-page="histoire"><div class="sous" id="actTitre">Act I · The Apprentice</div><div class="liste" id="listeHistoire"></div></section>
+      <section class="page" data-page="defis" hidden>
+  <div class="pile">
         <button class="orne" data-quete="anneaux"><span class="ic"><svg class="ico"><use href="#i-anneau"/></svg></span>Golden rings<small id="pqAnneaux"></small></button>
         <button class="orne" data-quete="feux"><span class="ic"><svg class="ico"><use href="#i-feu"/></svg></span>Mountain fires<small id="pqFeux"></small></button>
         <button class="orne" data-quete="peche"><span class="ic"><svg class="ico"><use href="#i-poisson"/></svg></span>Feed the babies<small id="pqPeche"></small></button>
         <button class="orne" data-quete=""><span class="ic"><svg class="ico"><use href="#i-aile"/></svg></span>Free flight</button>
       </div>
+      </section>
+      <section class="page" data-page="sac" hidden><div class="sac" id="grilleSac"></div></section>
+      <section class="page" data-page="savoir" hidden><div class="liste" id="listeSavoir"></div></section>
+    </div>
+    <div class="baton"></div>
+  </div>
+</div>
+
+<div id="defi" class="ecran" hidden>
+  <div class="rouleau">
+    <div class="baton"></div>
+    <div class="papier">
+      <button class="bouclier fermer" id="bFermerDefi" aria-label="Close"><span><svg class="ico"><use href="#i-fermer"/></svg></span></button>
+      <h2 id="defiTitre">Challenge</h2>
+      <div class="defiImage" id="defiImage"></div>
+      <p class="defiQuestion" id="defiQuestion"></p>
+      <div class="defiReponses" id="defiReponses"></div>
+      <div class="defiPoints" id="defiPoints"></div>
+      <p class="petit" id="defiInfo"></p>
     </div>
     <div class="baton"></div>
   </div>
@@ -417,7 +466,7 @@ input,textarea,select{font-size:max(16px,1em)}
       <h2>Pause</h2>
       <div class="pile">
         <button class="orne grand" id="bReprendre"><span class="ic sceau"><svg class="ico"><use href="#i-jouer"/></svg></span>Resume</button>
-        <button class="orne" id="bQuetes2"><span class="ic"><svg class="ico"><use href="#i-rouleau"/></svg></span>Quests<small id="pqActive"></small></button>
+        <button class="orne" id="bQuetes2"><span class="ic"><svg class="ico"><use href="#i-rouleau"/></svg></span>Journal<small id="pqActive"></small></button>
         <button class="orne" id="bCarte2"><span class="ic"><svg class="ico"><use href="#i-longuevue"/></svg></span>Map</button>
         <button class="orne" id="bMulti2"><span class="ic"><svg class="ico"><use href="#i-joueurs"/></svg></span>Together<small id="pqMulti"></small></button>
         <button class="orne" id="bReglages2"><span class="ic"><svg class="ico"><use href="#i-engrenage"/></svg></span>Settings</button>
@@ -1581,7 +1630,7 @@ async function creerPaysages() {
   // cercle de menhirs sur un plateau
   chercher(1, (x, z, h) => h > 40 && h < 200 && pente(x, z) < .1 && pente(x + 12, z) < .15 && pente(x - 12, z) < .15 && loinVillages(x, z, 400), (x, z) => {
     for (let i = 0; i < 9; i++) { const a = i / 9 * 6.28; poser("D_menhir", x + Math.cos(a) * 11, z + Math.sin(a) * 11, -a + Math.PI / 2, .9 + r() * .3); }
-    LIBRES.push({ x, z, r: 18 }); window.__menhirs = { x, z }; });
+    LIBRES.push({ x, z, r: 18 }); window.__menhirs = CERCLE = { x, z }; });
   // épaves, barques, bois flotté sur les plages
   chercher(3, (x, z, h) => h > -1.2 && h < .6 && loinVillages(x, z, 300), (x, z) => { poser("D_epave", x, z, r() * 6.28, 1, hauteurFine(x, z) - .3); LIBRES.push({ x, z, r: 10 }); });
   chercher(30, (x, z, h) => h > .4 && h < 2.5 && pente(x, z) < .25 && loinVillages(x, z, 40), (x, z) => poser("D_bois", x, z, r() * 6.28, .8 + r() * .5, null, false));
@@ -2467,7 +2516,7 @@ async function chargerPieton() {
   }
   pieton = new THREE.Group(); pieton.add(pietonModele); pieton.visible = false; scene.add(pieton);
 }
-function animerPieton(dt, O = OSP, M = marche, modele = modele) {
+function animerPieton(dt, O = OSP, M = marche, modele = pietonModele) {
   for (const k in O) { O[k].b.quaternion.copy(O[k].rest); O[k].b.position.copy(O[k].pos); }
   const v = M.vitesse, course = lisse(3.6, 6.5, v), pas = Math.min(1, v / 1.2);
   M.phase += dt * Math.PI * 2 * (v / (1.25 + .75 * course) + (1 - pas) * .0);
@@ -2583,6 +2632,7 @@ function majPied(dt) {
   const T = entree.touches;
   let ax = (T.has("ArrowRight") || T.has("KeyD") ? 1 : 0) - (T.has("ArrowLeft") || T.has("KeyA") || T.has("KeyQ") ? 1 : 0) + entree.joyX + entree.padX;
   let ay = (T.has("ArrowUp") || T.has("KeyW") || T.has("KeyZ") ? 1 : 0) - (T.has("ArrowDown") || T.has("KeyS") ? 1 : 0) - entree.joyY - entree.padY;
+  if (enDialogue) ax = ay = 0;   // on écoute
   const l = Math.hypot(ax, ay); if (l > 1) { ax /= l; ay /= l; }
   const court = T.has("ShiftLeft") || T.has("ShiftRight") || Math.hypot(entree.joyX + entree.padX, entree.joyY + entree.padY) > .9;
   const vmax = court ? 7.5 : 3.4, voulu = Math.min(1, Math.hypot(ax, ay)) * vmax;
@@ -3037,7 +3087,9 @@ function majHud(dt) {
   // boussole : seulement avec une quête, un poisson à porter, ou pour retrouver le dragon à pied
   let cible = null, nom = "", best = 1e9;
   const essai = (x, y, z, n, bonus = 0) => { const d = Math.hypot(x - etat.pos.x, z - etat.pos.z) - bonus; if (d < best) { best = d; cible = _cam.set(x, y, z); nom = n; } };
-  if ((etat.sol === "pied" || etat.sol === "appel") && !etat.destination) { if (Math.hypot(marche.pos.x - etat.pos.x, marche.pos.z - etat.pos.z) > 25) essai(etat.pos.x, etat.pos.y, etat.pos.z, "Your dragon"); }
+  const cH = !etat.quete && !etat.destination && !etat.porte ? cibleHistoire() : null;
+  if (cH) essai(cH[0], cH[1], cH[2], cH[3]);
+  else if ((etat.sol === "pied" || etat.sol === "appel") && !etat.destination) { if (Math.hypot(marche.pos.x - etat.pos.x, marche.pos.z - etat.pos.z) > 25) essai(etat.pos.x, etat.pos.y, etat.pos.z, "Your dragon"); }
   else if (etat.destination) {
     const L = etat.destination, o = etat.sol === "pied" ? marche.pos : etat.pos;
     if (Math.hypot(L.x - o.x, L.z - o.z) < 60) { afficher("You've arrived!", L.nom); etat.destination = null; } else essai(L.x, L.y, L.z, L.nom);
@@ -3136,6 +3188,7 @@ addEventListener("keydown", e => {
     else if (e.code === "KeyM") basculerSon();
     else if (e.code === "KeyQ" && !e.ctrlKey && !e.metaKey) ouvrirEcran("quetes");
     else if (e.code === "KeyL" && !etat.sol) sePoser();
+    else if (enDialogue && (e.code === "KeyE" || e.code === "Enter" || e.code === "Space")) suiteDialogue();
     else if ((e.code === "KeyE" || e.code === "KeyF" || e.code === "Enter") && etat.sol === "pied") { if (portePres) entrer(portePres); else if (villageoisPres && e.code !== "KeyF") parler(villageoisPres); else monterOuAppeler(); }
   } else if (e.code === "Escape") retour();
   else if (etat.mode === "pause" && e.code === "KeyP") fermerEcrans();
@@ -3204,7 +3257,7 @@ function majBoutons() {
 }
 function basculerSon() { son.init(); son.basculer(); majBoutons(); }
 function changerVue() { etat.vue = (etat.vue + 1) % VUES.length; son.clic(); }
-const ECRANS = ["pause", "quetes", "reglages", "carte", "parties", "multi"];
+const ECRANS = ["pause", "quetes", "reglages", "carte", "parties", "multi", "defi"];
 $("bVue2").addEventListener("click", changerVue);
 let retourTitre = false, retourPause = false;
 function ouvrirEcran(id) {
@@ -3213,7 +3266,7 @@ function ouvrirEcran(id) {
   if (!retourTitre) etat.mode = "pause";
   for (const e of ECRANS) $(e).hidden = e !== id;
   $("titre").hidden = true; $("tactile").hidden = true;
-  if (id === "quetes") majBandeau();
+  if (id === "quetes") { majBandeau(); dessinerJournal(); }
   majBoutons();
   son.clic();
 }
@@ -3318,7 +3371,7 @@ function image(now, dtForce) {
   animerDragon(dt);
   if (etat.sol === "pied" || etat.sol === "appel") majCameraPied(dt); else majCamera(dt, auto);
   if (!auto) { if (!etat.sol) verifierAnneaux(); majHud(dt); majMiniCarte(dt); }
-  majVillages(dt, camera.position.x, camera.position.z); if (etat.sol === "pied" || dedans) majPortes(dt); majSauvages(dt); majAnimaux(dt); majVillageois(dt); majCascades(dt);
+  majVillages(dt, camera.position.x, camera.position.z); if (etat.sol === "pied" || dedans) majPortes(dt); majSauvages(dt); majAnimaux(dt); majVillageois(dt); majCascades(dt); majHistoire(dt);
   if (!etat.sol && !auto) { const c = dansUnRect(etat.pos.x, etat.pos.z, 4); if (c && c.haut && etat.pos.y < c.haut + 3) etat.pos.y += (c.haut + 3 - etat.pos.y) * Math.min(1, dt * 8); }   // le dragon passe au-dessus des toits
   majAnneaux(); majFeuxAllumes(dt); majPeche(dt); majHutte(dt); animerBebes(dt); majMouettes();
   if (!auto) { const ok = !etat.sol && peutSePoser(); $("btPoser").hidden = !TACTILE || !ok; if (etat.sol !== "pied") { if (!$("indice").hidden !== (!TACTILE && ok)) $("indice").innerHTML = `${ico("atterrir")} <b>L</b>&nbsp;to land`; $("indice").hidden = TACTILE || !ok; } }
@@ -3702,7 +3755,7 @@ function majAnimaux(dt) {
 // ------------------------------------------------------------------ villageois (pieton.py --variante : même squelette que le héros)
 // Le jour, ils vont et viennent entre la place, les étals et leur porte ; le soir, ils rentrent chez eux.
 // On leur parle (E, ou le bouton bulle) : quelques répliques par métier, qui annoncent l'histoire.
-const METIERS = ["fermier", "fermiere", "ancien", "forgeron", "pecheuse", "chef"];
+const METIERS = ["fermier", "fermiere", "ancien", "forgeron", "pecheuse", "chef", "runa"];
 const REPLIQUES = {
   fermier: ["Good morning, apprentice! The sheep love the meadow by the mill.", "My cows give the best milk in the isles. Dragons love it too!", "Count the sheep for me? I always lose one."],
   fermiere: ["Have you seen the windmill? It grinds our flour.", "The Grey Mist came close last night. The hens were scared.", "Bread is better with honey. Your dragon prefers fish!"],
@@ -3723,6 +3776,14 @@ async function creerVillageois() {
   const qui = { Mistholm: ["chef", "fermier", "fermiere", "forgeron", "ancien", "fermiere", "pecheuse", "fermier"], Saltcliff: ["pecheuse", "pecheuse", "fermier", "ancien", "pecheuse"],
     Fernhollow: ["fermier", "fermiere", "fermier", "fermiere", "ancien"], Stonebrook: ["forgeron", "chef", "fermier", "ancien", "fermiere"] };
   const r = alea(555);
+  const mist = VILLAGES.find(v => v.nom === "Mistholm"), salle = mist && mist.maisons.find(o => o.type === "longere");
+  const pr = salle && PORTES.find(p => p.maison === salle);
+  if (modeles.runa && pr) {   // Runa attend devant la grande salle de Mistholm
+    const modele = clone(modeles.runa); const g = new THREE.Group(); g.add(modele); g.scale.setScalar(1.12); scene.add(g);
+    const O = {}; modele.traverse(o => { if (o.isBone && OSP[o.name]) O[o.name] = { b: o, rest: OSP[o.name].rest, inv: OSP[o.name].inv, pos: OSP[o.name].pos }; });
+    const M = { pos: new THREE.Vector3(pr.x + Math.sin(pr.yaw) * 2.6, pr.y, pr.z + Math.cos(pr.yaw) * 2.6), yaw: pr.yaw, vy: 0, auSol: true, vitesse: 0, phase: 0, virage: 0 };
+    RUNA = { metier: "runa", v: mist, g, modele, O, M, maison: pr, cible: null, attente: 1e9, dehors: true, fixe: true, replique: 0 }; VILLAGEOIS.push(RUNA);
+  }
   for (const v of VILLAGES) {
     const portes = PORTES.filter(p => Math.hypot(p.x - v.place.x, p.z - v.place.z) < v.rayon + 25);
     for (const metier of qui[v.nom] || ["fermier", "fermiere"]) {
@@ -3746,13 +3807,13 @@ function majVillageois(dt) {
   for (const p of VILLAGEOIS) {
     const loin = Math.hypot(p.M.pos.x - cx, p.M.pos.z - cz) > 220 || dedans;
     const chezSoi = { x: p.maison.x + Math.sin(p.maison.yaw) * 1.2, z: p.maison.z + Math.cos(p.maison.yaw) * 1.2 };
-    if (!jour && p.dehors && !p.rentre) { p.rentre = true; p.cible = chezSoi; }
+    if (!jour && p.dehors && !p.rentre && !p.fixe) { p.rentre = true; p.cible = chezSoi; }
     if (jour && !p.dehors) { p.dehors = true; p.rentre = false; p.M.pos.set(chezSoi.x, p.maison.y, chezSoi.z); p.attente = Math.random() * 4; }
     if (!p.dehors) { p.g.visible = false; continue; }
     if (loin) { p.g.visible = false; if (p.rentre) { p.dehors = false; } continue; }   // loin : on ne calcule rien
     p.g.visible = true;
     const parle = interlocuteur === p;
-    if (!p.cible && !parle) { p.attente -= dt; if (p.attente < 0) p.cible = lieuDuJour(p, Math.random()); }
+    if (!p.cible && !parle && !p.fixe) { p.attente -= dt; if (p.attente < 0) p.cible = lieuDuJour(p, Math.random()); }
     let v = 0;
     if (p.cible && !parle) {
       const dx = p.cible.x - p.M.pos.x, dz = p.cible.z - p.M.pos.z, d = Math.hypot(dx, dz);
@@ -3769,17 +3830,185 @@ function majVillageois(dt) {
     if (pied) { const d = Math.hypot(p.M.pos.x - marche.pos.x, p.M.pos.z - marche.pos.z); if (d < dProche) { dProche = d; proche = p; } }
   }
   villageoisPres = proche;
-  if (interlocuteur && ((repliqueT -= dt) < 0 || !pied || Math.hypot(interlocuteur.M.pos.x - marche.pos.x, interlocuteur.M.pos.z - marche.pos.z) > 4)) { interlocuteur = null; $("dialogue").hidden = true; }
+  if (interlocuteur && !enDialogue && ((repliqueT -= dt) < 0 || !pied || Math.hypot(interlocuteur.M.pos.x - marche.pos.x, interlocuteur.M.pos.z - marche.pos.z) > 4)) { interlocuteur = null; $("dialogue").hidden = true; }
+  if (enDialogue && (!pied || (interlocuteur && Math.hypot(interlocuteur.M.pos.x - marche.pos.x, interlocuteur.M.pos.z - marche.pos.z) > 6))) { enDialogue = null; $("dialogue").hidden = true; $("dialogue").classList.remove("histoire"); $("dialogueSuite").hidden = true; }
   $("btParler").hidden = !TACTILE || !villageoisPres || !!portePres;
   if (!TACTILE && villageoisPres && !portePres && etat.sol === "pied") { $("indice").hidden = false; $("indice").innerHTML = `${ico("bulle")} <b>E</b>&nbsp;to talk`; }
 }
 let villageoisPres = null;
 function parler(p) {
-  if (!p) return; interlocuteur = p; repliqueT = 6;
+  if (!p || enDialogue) return;
+  if (p.metier === "runa") { interlocuteur = p; repliqueT = 999; parlerRuna(); return; }
+  if (HIST.etape === 2 && p.metier === "pecheuse" && p.v.nom === "Saltcliff") { interlocuteur = p; repliqueT = 999;
+    dialogueHistoire("Fisher of Saltcliff", ["Oh, an apprentice! My scale is broken and the market opens soon.", "Can you help me weigh the fish?"], () => lancerDefi("balance", 3, "Weigh the fish", () => { gagner(10); avancer(3, "The fisher is happy!", "+10 gold · Find the old runestones"); })); return; }
+  interlocuteur = p; repliqueT = 6;
   const L = REPLIQUES[p.metier]; const t = L[p.replique++ % L.length];
   $("dialogueNom").textContent = { fermier: "Farmer", fermiere: "Farmer", ancien: "Elder", forgeron: "Blacksmith", pecheuse: "Fisher", chef: "Chief" }[p.metier] + " of " + p.v.nom;
   $("dialogueTexte").textContent = t; $("dialogue").hidden = false; son.clic();
 }
+
+// ------------------------------------------------------------------ l'histoire (acte I) et les défis du grimoire
+// La progression vit dans la partie (« histoire ») : étape du récit, sac, niveau de chaque savoir (1 à 3, qui s'adapte).
+const HIST = Object.assign({ etape: 0, sac: { or: 0 }, savoirs: { nombres: 1, logique: 1, mots: 1 }, serie: { nombres: 0, logique: 0, mots: 0 }, reussis: { nombres: 0, logique: 0, mots: 0 } },
+  memoire.lire("histoire", {}));
+const sauverHistoire = () => memoire.ecrire("histoire", HIST);
+let RUNA = null, CERCLE = null;
+const ETAPES = [
+  { obj: "Meet Runa in Mistholm", cible: () => RUNA && [RUNA.M.pos.x, RUNA.M.pos.y + 2, RUNA.M.pos.z, "Runa"] },
+  { obj: "Count the sheep of Fernhollow", cible: () => { const h = troupeauMoutons(); return h && [h.x, hauteur(h.x, h.z) + 2, h.z, "The sheep"]; } },
+  { obj: "Help the fisher of Saltcliff", cible: () => { const p = VILLAGEOIS.find(q => q.metier === "pecheuse" && q.v.nom === "Saltcliff" && q.dehors) || VILLAGEOIS.find(q => q.v.nom === "Saltcliff");
+      return p ? [p.M.pos.x, p.M.pos.y + 2, p.M.pos.z, "The fisher"] : null; } },
+  { obj: "Read the old runestones", cible: () => CERCLE && [CERCLE.x, hauteur(CERCLE.x, CERCLE.z) + 3, CERCLE.z, "Runestones"] },
+  { obj: "Go back to Runa", cible: () => RUNA && [RUNA.M.pos.x, RUNA.M.pos.y + 2, RUNA.M.pos.z, "Runa"] },
+  { obj: "Find the Ember Cavern, in the north (soon!)", cible: () => null },
+];
+function troupeauMoutons() { const v = VILLAGES.find(q => q.nom === "Fernhollow"); const L = ANIMAUX.filter(a => a.esp === "mouton" && v && Math.hypot(a.mx - v.place.x, a.mz - v.place.z) < 200); return L.length ? { x: L[0].mx, z: L[0].mz } : null; }
+const DIALOGUES = {
+  0: ["So you are the one my blue dragon chose. Welcome, apprentice!", "A dragon rider must be brave... and wise. Wisdom comes from learning.", "First lesson: Fernhollow's sheep keep wandering off. Go and count them for the shepherd."],
+  1: ["The sheep graze near Fernhollow, by the windmill. Land your dragon and count them!"],
+  2: ["Well counted! Now the fishers of Saltcliff need help weighing their catch."],
+  3: ["On the high plateau stands a circle of old stones. Their runes hide a message."],
+  4: ["You read the runes! They speak of the Grey Mist...", "Long ago, the first riders pushed it back with four Stones of Knowledge.", "Numbers, Logic, Words and Stars. The mist is rising again.",
+      "The first Stone sleeps in the Ember Cavern, in the north. Train well, apprentice!"],
+  5: ["Train your mind with the Journal's Knowledge page. The Ember Cavern will open soon."],
+};
+let enDialogue = null;
+function dialogueHistoire(nom, lignes, puis) {
+  enDialogue = { lignes, i: 0, puis }; $("dialogue").classList.add("histoire"); $("dialogueSuite").hidden = false; $("dialogueNom").textContent = nom;
+  $("dialogueTexte").textContent = lignes[0]; $("dialogue").hidden = false; son.clic();
+}
+function suiteDialogue() {
+  if (!enDialogue) return; son.clic();
+  if (++enDialogue.i < enDialogue.lignes.length) { $("dialogueTexte").textContent = enDialogue.lignes[enDialogue.i]; return; }
+  const f = enDialogue.puis; enDialogue = null; $("dialogue").hidden = true; $("dialogue").classList.remove("histoire"); $("dialogueSuite").hidden = true; if (f) f();
+}
+$("dialogueSuite").addEventListener("click", suiteDialogue);
+$("dialogue").addEventListener("click", e => { if (enDialogue && e.target.closest("#dialogue") && !e.target.closest("#dialogueSuite")) suiteDialogue(); });
+function avancer(etape, titre, petit) {
+  HIST.etape = Math.max(HIST.etape, etape); sauverHistoire(); son.feuAllume(); afficher(titre || "New goal!", petit || ETAPES[HIST.etape]?.obj || ""); dessinerJournal();
+}
+function gagner(or) { HIST.sac.or = (HIST.sac.or || 0) + or; sauverHistoire(); }
+function parlerRuna() {
+  const e = HIST.etape, L = DIALOGUES[Math.min(e, 5)];
+  dialogueHistoire("Runa, dragon master", L, () => { if (e === 0) avancer(1); else if (e === 4) { gagner(20); avancer(5, "The legend of the Stones", "+20 gold"); } });
+}
+let defiPause = 0;
+function majHistoire(dt) {
+  if ((defiPause -= dt) > 0) return;
+  const pied = etat.sol === "pied" && !dedans, o = pied ? marche.pos : etat.pos;
+  if (HIST.etape === 1 && pied) { const h = troupeauMoutons(); if (h && Math.hypot(h.x - o.x, h.z - o.z) < 32) { defiPause = 8; lancerDefi("compter", 3, "Count the sheep", () => { gagner(10); avancer(2, "The shepherd thanks you!", "+10 gold"); }); } }
+  if (HIST.etape === 3 && pied && CERCLE && Math.hypot(CERCLE.x - o.x, CERCLE.z - o.z) < 18) { defiPause = 8; lancerDefi("runes", 3, "The runestones", () => { gagner(10); avancer(4, "The runes speak!", "+10 gold · Go back to Runa"); }); }
+  // l'objectif, en haut à gauche, quand aucune autre quête n'est lancée
+  const obj = ETAPES[HIST.etape]?.obj; $("objectif").hidden = !obj || !!etat.quete || etat.mode !== "vol"; if (obj) $("objectifTexte").textContent = obj;
+}
+
+// ---- les défis
+const DOMAINES = { compter: "nombres", balance: "nombres", suite: "logique", runes: "mots", mots: "mots" };
+let DEFI = null;
+const melanger = a => { for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const hasard = (a, b) => a + ((Math.random() * (b - a + 1)) | 0);
+function choixNombres(bonne, ecart = 2, min = 0) {
+  const S = new Set([bonne]); while (S.size < 4) { const v = bonne + hasard(-ecart, ecart) + (S.size > 2 ? hasard(-3, 3) : 0); if (v >= min && v !== bonne) S.add(v); }
+  const L = melanger([...S]); return { reponses: L.map(String), bonne: L.indexOf(bonne) };
+}
+// runes : un alphabet inventé (une hampe et deux branches choisies par lettre)
+const BRANCHES = ["M5 3 L11 0", "M5 3 L11 7", "M5 9 L11 6", "M5 9 L11 13", "M5 6 L11 6", "M5 3 L-1 0", "M5 9 L-1 13", "M5 6 L1 2", "M5 12 L10 15", "M5 0 L1 4", "M9 0 L9 15", "M5 6 L9 10"];
+const PAIRES = []; for (let i = 0; i < BRANCHES.length; i++) for (let j = i + 1; j < BRANCHES.length; j++) PAIRES.push([i, j]);
+const rune = (lettre, x, y, t = 3) => { const k = (lettre.charCodeAt(0) - 65) * 7 % PAIRES.length, [i, j] = PAIRES[k];
+  return `<g transform="translate(${x},${y}) scale(${t})" fill="none" stroke="currentColor" stroke-width="${1.6 / t * 3}" stroke-linecap="round"><path d="M5 0 L5 15 ${BRANCHES[i]} ${BRANCHES[j]}"/></g>`; };
+const MOTS_RUNES = { 1: ["SUN", "SEA", "SKY", "OWL", "FOX", "CAT"], 2: ["FIRE", "FISH", "WING", "NEST", "MIST", "TREE"], 3: ["STONE", "CLOUD", "FLAME", "SHEEP", "RIVER", "SWORD"] };
+const IMAGES_MOTS = [["poisson", "FISH", "poisson"], ["feu", "FIRE", "feu"], ["maison", "HOUSE", "maison"], ["dragon", "DRAGON", "dragon"], ["aile", "WING", "aile"], ["nid", "NEST", "nid"],
+  ["phare", "LIGHTHOUSE", "phare"], ["mouton", "SHEEP", "mouton"], ["livre", "BOOK", "livre"], ["etoile", "STAR", "étoile"], ["cor", "HORN", "cor"], ["sac", "BAG", "sac"]];
+const GENERATEURS = {
+  compter(niv) {
+    const n = niv === 1 ? hasard(3, 8) : niv === 2 ? hasard(8, 14) : hasard(12, 24), parLigne = niv === 3 ? 6 : niv === 2 ? 5 : 4, lignes = Math.ceil(n / parLigne);
+    let g = ""; for (let i = 0; i < n; i++) { const c = i % parLigne, l = (i / parLigne) | 0, x = 20 + c * (260 / parLigne) + (niv === 1 ? hasard(-8, 8) : 0), y = 10 + l * (170 / Math.max(lignes, 3)) + (niv === 1 ? hasard(-6, 6) : 0);
+      g += `<use href="#i-mouton" x="${x}" y="${y}" width="${Math.min(42, 230 / parLigne)}" height="${Math.min(42, 230 / parLigne)}"/>`; }
+    return { question: niv === 3 ? "How many sheep? Count the rows!" : "How many sheep are there?", svg: `<svg viewBox="0 0 300 190">${g}</svg>`, ...choixNombres(n, niv === 1 ? 2 : 3, 1),
+      indice: niv === 3 ? `Each full row has ${parLigne} sheep.` : "Touch each sheep with your eyes, one by one." };
+  },
+  balance(niv) {
+    let a, b, c, txt;
+    if (niv === 1) { a = hasard(1, 5); b = hasard(1, 5); c = a + b; txt = [`${a}`, `${b}`, "?"]; }
+    else if (niv === 2) { a = hasard(3, 9); c = hasard(a + 2, a + 9); b = c - a; txt = [`${a}`, "?", `${c}`]; }
+    else { a = hasard(2, 5); const k = hasard(2, 4); c = a * k; b = k; txt = [`${a} ×`, "?", `${c}`]; }
+    const bonne = niv === 1 ? c : b;
+    const pan = (x, t1, t2) => `<g transform="translate(${x},0)"><path d="M-55 120 a55 18 0 0 0 110 0z" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="3"/>
+      <use href="#i-poisson" x="-52" y="72" width="44" height="44"/><text x="-30" y="70" font-size="22" text-anchor="middle" fill="currentColor" font-family="Almendra SC, serif">${t1}</text>
+      ${t2 ? `<use href="#i-poisson" x="6" y="72" width="44" height="44"/><text x="28" y="70" font-size="22" text-anchor="middle" fill="currentColor" font-family="Almendra SC, serif">${t2}</text>` : ""}</g>`;
+    const svg = `<svg viewBox="0 0 300 190"><path d="M150 30 V175 M100 178 H200 M60 40 H240 M60 40 L60 105 M240 40 L240 105" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="150" cy="30" r="7" fill="currentColor"/>
+      ${pan(60, txt[0], niv === 1 ? txt[1] : niv === 2 ? txt[1] : txt[1])}${pan(240, txt[2], "")}</svg>`;
+    const q = niv === 1 ? "Both fish go on the scale. How much do they weigh together?" : niv === 2 ? "The scale is balanced. How heavy is the missing fish?" : `How many fish of ${a} balance ${c}?`;
+    return { question: q, svg, ...choixNombres(bonne, 2, 1), indice: niv === 1 ? `Count on from ${a}: add ${b} more.` : niv === 2 ? `${a} + ? = ${c}. Count from ${a} up to ${c}.` : `Count by ${a}s up to ${c}.` };
+  },
+  suite(niv) {
+    const pas = niv === 1 ? hasard(1, 2) : niv === 2 ? [3, 4, 5, 10][hasard(0, 3)] : 0, d = hasard(1, 6);
+    let L; if (niv < 3) L = [0, 1, 2, 3, 4].map(i => d + i * pas); else { const m = hasard(0, 1); L = m ? [1, 2, 4, 8, 16].map(x => x * (d > 3 ? 1 : 3)) : [2, 5, 8, 11, 14].map(x => x + d); }
+    const bonne = L[4], g = L.slice(0, 4).map((v, i) => `<path d="M${14 + i * 72} 128 V48 q0 -26 25 -26 q25 0 25 26 V128 z" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-width="3"/><path d="M${8 + i * 72} 130 h62" stroke="currentColor" stroke-width="3"/><text x="${39 + i * 72}" y="96" font-size="34" text-anchor="middle" fill="currentColor" font-family="Almendra SC, serif">${v}</text>`).join("");
+    return { question: "Which number comes next on the stones?", svg: `<svg viewBox="0 0 300 190">${g}<text x="150" y="170" font-size="26" text-anchor="middle" fill="currentColor" font-family="Almendra SC, serif">… ?</text></svg>`,
+      ...choixNombres(bonne, Math.max(2, (L[4] - L[3])), 0), indice: `Look at the jump from one stone to the next: ${L[1] - L[0]}?` };
+  },
+  runes(niv) {
+    const L = MOTS_RUNES[niv], mot = L[hasard(0, L.length - 1)], lettres = [...new Set([...mot])];
+    const autres = melanger(L.filter(w => w !== mot)).slice(0, 3); const choix = melanger([mot, ...autres]);
+    const t = mot.length > 4 ? 3 : 3.6, w = 15 * t + 8, x0 = 150 - mot.length * w / 2;
+    let g = [...mot].map((c, i) => rune(c, x0 + i * w, 6, t)).join("");
+    const cle = melanger([...lettres, ...melanger("ABCDEFGHIKLMNOPRSTUWY".split("").filter(c => !lettres.includes(c))).slice(0, 7 - lettres.length)]).slice(0, 7);
+    g += cle.map((c, i) => `${rune(c, 14 + i * 41, 128, 1.6)}<text x="${22 + i * 41}" y="182" font-size="16" text-anchor="middle" fill="currentColor" font-family="Almendra SC, serif">${c}</text>`).join("");
+    return { question: "Use the key below to read the runes. Which word is it?", svg: `<svg viewBox="0 0 300 190">${g}</svg>`, reponses: choix, bonne: choix.indexOf(mot), indice: `The first rune is the letter ${mot[0]}.` };
+  },
+  mots(niv) {
+    const L = melanger(IMAGES_MOTS.slice()), [img, mot, fr] = L[0], choix = melanger([mot, L[1][1], L[2][1], L[3][1]]);
+    return { question: niv >= 2 ? `How do you say « ${fr} » in English?` : "What is this? Choose the English word.", svg: niv >= 2 ? `<svg viewBox="0 0 300 190"><text x="150" y="110" font-size="40" text-anchor="middle" fill="currentColor" font-family="Almendra, serif">${fr}</text></svg>` : `<svg viewBox="0 0 300 190"><use href="#i-${img}" x="85" y="5" width="130" height="130"/></svg>`,
+      reponses: choix, bonne: choix.indexOf(mot), indice: `It starts with ${mot[0]}.` };
+  },
+};
+function lancerDefi(type, n, titre, puis) {
+  DEFI = { type, n, fait: 0, titre, puis, erreurs: 0 }; $("defiTitre").textContent = titre; ouvrirEcran("defi"); questionDefi();
+}
+function questionDefi() {
+  const dom = DOMAINES[DEFI.type], q = GENERATEURS[DEFI.type](HIST.savoirs[dom] || 1); DEFI.q = q; DEFI.essais = 0;
+  $("defiImage").innerHTML = q.svg; $("defiQuestion").textContent = q.question; $("defiInfo").textContent = "";
+  const R0 = $("defiReponses"); R0.innerHTML = "";
+  q.reponses.forEach((t, i) => { const b = document.createElement("button"); b.className = "orne"; b.textContent = t; b.addEventListener("click", () => repondre(i, b)); R0.append(b); });
+  $("defiPoints").innerHTML = Array.from({ length: DEFI.n }, (_, i) => `<i class="${i < DEFI.fait ? "ok" : ""}"></i>`).join("");
+}
+function repondre(i, b) {
+  if (!DEFI || DEFI.bloque) return;
+  const dom = DOMAINES[DEFI.type];
+  if (i === DEFI.q.bonne) {
+    b.classList.add("juste"); son.feuAllume(); DEFI.bloque = true;
+    if (DEFI.essais === 0) { HIST.reussis[dom]++; if (++HIST.serie[dom] >= 3 && HIST.savoirs[dom] < 3) { HIST.savoirs[dom]++; HIST.serie[dom] = 0; } }
+    DEFI.fait++; sauverHistoire();
+    $("defiInfo").textContent = ["Well done!", "Great!", "Perfect!", "Yes!"][hasard(0, 3)];
+    setTimeout(() => { DEFI.bloque = false; if (DEFI.fait >= DEFI.n) finirDefi(); else questionDefi(); }, 900);
+  } else {
+    b.classList.add("faux"); b.disabled = true; son.clic(); DEFI.essais++;
+    HIST.serie[dom] = Math.min(0, HIST.serie[dom]) - 1; if (HIST.serie[dom] <= -2 && HIST.savoirs[dom] > 1) { HIST.savoirs[dom]--; HIST.serie[dom] = 0; } sauverHistoire();
+    $("defiInfo").textContent = "Not quite. " + DEFI.q.indice;
+  }
+}
+function finirDefi() { const f = DEFI.puis; DEFI = null; fermerEcrans(); if (f) f(); }
+$("bFermerDefi").addEventListener("click", () => { DEFI = null; retour(); });
+
+// ---- le journal
+function dessinerJournal() {
+  const L = $("listeHistoire"); if (!L) return; L.innerHTML = "";
+  ETAPES.forEach((e, i) => { if (i > HIST.etape) return; const d = document.createElement("div"); d.className = "etape" + (i < HIST.etape ? " fait" : " actuelle");
+    d.innerHTML = `${ico(i < HIST.etape ? "etoile" : "rouleau")}<span></span>`; d.lastChild.textContent = e.obj; L.append(d); });
+  const S = $("grilleSac"); S.innerHTML = "";
+  const objets = [["piece", "Gold", HIST.sac.or || 0], ["poisson", "Fish", nbPoissons], ["rune", "Runestones", HIST.etape >= 4 ? 1 : 0], ["etoile", "Stones", 0], ["?", "Sword", 0], ["?", "Shield", 0], ["cor", "Horn", 0], ["phare", "Lantern", 0]];
+  for (const [ic, nom, n] of objets) { const c = document.createElement("div"); c.className = "case-sac" + (n ? "" : " vide");
+    c.innerHTML = ic === "?" ? `<b>?</b><span></span>` : `${ico(ic)}<b>${n || ""}</b><span></span>`; c.lastChild.textContent = n || ic !== "?" ? nom : "???"; S.append(c); }
+  const K = $("listeSavoir"); K.innerHTML = "";
+  for (const [dom, nom, type] of [["nombres", "Numbers", "balance"], ["logique", "Logic", "suite"], ["mots", "Words", "mots"]]) {
+    const d = document.createElement("div"); d.className = "savoir";
+    d.innerHTML = `<span>${nom}</span><span class="etoiles">${[1, 2, 3].map(k => `<svg class="ico${k > HIST.savoirs[dom] ? " eteinte" : ""}"><use href="#i-etoile"/></svg>`).join("")}</span><small>${HIST.reussis[dom]} solved</small>`;
+    const b = document.createElement("button"); b.className = "orne mini"; b.textContent = "Practice"; b.addEventListener("click", () => lancerDefi(type, 3, nom + " practice", () => { gagner(3); afficher("Practice done!", "+3 gold"); }));
+    d.append(b); K.append(d);
+  }
+}
+function cibleHistoire() { const e = ETAPES[HIST.etape]; return e && e.cible ? e.cible() : null; }
 
 // ------------------------------------------------------------------ dragons sauvages dans le ciel
 // Deux groupes de trois, de couleurs différentes, tournent autour des montagnes ; préparés au chargement.
@@ -3943,7 +4172,7 @@ async function demarrer() {
 window.__df = { camera, renderer, scene, etat, get dragon() { return dragon; }, hauteur, FEUX, ANNEAUX, NIVEAUX, entree, majTerrain, rendre,
   vue(x, y, z, tx, ty, tz) { camera.position.set(x, y, z); camera.lookAt(tx, ty, tz); camera.near = Math.min(camera.near, .1); camera.updateProjectionMatrix(); camera.updateMatrixWorld(); majTerrain(); trierNuages(); majArbres(); mer.position.set(x, 0, z); },
   POSE_SOL, poseTest(p) { if (p) Object.assign(POSE_SOL, p); etat.pose = 1; etat.ampl = 0; etat.pitch = etat.roll = 0; animerDragon(0); },
-  jouer, allumerFeu, sePoser, monterOuAppeler, marche, get VILLAGES() { return VILLAGES; }, PORTES, entrer, sortir, get dedans() { return dedans; }, get portePres() { return portePres; }, MONDE_T, majHeure, SAUVAGES, majSauvages, ANIMAUX, majAnimaux, VILLAGEOIS, majVillageois, parler, CASCADES, LIBRES, majVillagesTest() { majVillages(0, camera.position.x, camera.position.z); }, get NID() { return NID; }, get HUTTE() { return HUTTE; }, BANCS,
+  jouer, allumerFeu, sePoser, monterOuAppeler, marche, get VILLAGES() { return VILLAGES; }, PORTES, entrer, sortir, get dedans() { return dedans; }, get portePres() { return portePres; }, MONDE_T, majHeure, SAUVAGES, majSauvages, ANIMAUX, majAnimaux, VILLAGEOIS, majVillageois, parler, CASCADES, LIBRES, HIST, lancerDefi, get RUNA() { return RUNA; }, suiteDialogue, dessinerJournal, majVillagesTest() { majVillages(0, camera.position.x, camera.position.z); }, get NID() { return NID; }, get HUTTE() { return HUTTE; }, BANCS,
   pas(n = 1, dt = 1 / 30) { sansRendu = true; for (let i = 0; i < n; i++) image(performance.now(), dt); sansRendu = false; image(performance.now(), dt); } };
 demarrer();
 </script>
@@ -4005,7 +4234,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
 })();
 </script>
 <script>
-window.DRAGONFLYER_VERSION = "2026.10.30-13"; // à changer à chaque modification du jeu
+window.DRAGONFLYER_VERSION = "2026.10.30-14"; // à changer à chaque modification du jeu
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.

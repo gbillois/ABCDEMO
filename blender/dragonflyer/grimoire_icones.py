@@ -36,6 +36,13 @@ I = {
 "joueurs": "<circle cx='11' cy='11' r='4.5'/><path d='M3 27c0-6 4-9 8-9s8 3 8 9'/><circle cx='22' cy='9' r='3.6'/><path d='M19 16c1-1 2-1.5 3-1.5 3.5 0 7 2.5 7 8'/><path d='M7 7l-2-4M15 7l2-4'/>",
 "plus": "<path d='M16 5v22M5 16h22' stroke-width='3'/>",
 "bulle": "<path class='f' d='M5 7h22v14H14l-6 5v-5H5z'/><path class='h' d='M9 12h14M9 16h10'/>",
+"mouton": "<path class='f' d='M7 17c-2-1-2-5 1-6 0-3 4-4 6-2 2-3 6-2 7 1 3 0 4 4 2 6 1 3-2 5-4 4-2 2-6 2-8 0-2 1-5-1-4-3z'/><path class='f' d='M24 13c2-1 5 0 5 3s-2 4-4 3'/><circle cx='27' cy='15' r='.8' fill='currentColor'/><path d='M10 22v5M14 22v5M19 22v5M23 21v5'/>",
+"balance": "<path d='M16 4v22M9 27h14'/><path d='M5 8h22'/><path d='M5 8l-3 8h6zM27 8l-3 8h6z'/><path class='f' d='M2 16a3 2 0 0 0 6 0zM24 16a3 2 0 0 0 6 0z'/><circle cx='16' cy='5' r='1.6'/>",
+"piece": "<circle class='f' cx='16' cy='16' r='12'/><circle cx='16' cy='16' r='9'/><path d='M12 11c4-2 8 0 8 3s-4 3-4 3 4 1 4 4-4 4-8 2'/>",
+"rune": "<path class='f' d='M10 29V8c0-4 12-4 12 0v21z'/><path d='M14 11v12M14 14l5-3M14 18l5 4M18 24l-4 0'/><path d='M7 29h18'/>",
+"etoile": "<path class='f' d='M16 3l3.6 8.1 8.8.9-6.6 5.9 1.9 8.6L16 22l-7.7 4.5 1.9-8.6L3.6 12l8.8-.9z'/>",
+"sac": "<path class='f' d='M9 12c-3 4-4 9-2 13 2 3 16 3 18 0 2-4 1-9-2-13z'/><path d='M11 12l-2-5h14l-2 5'/><path d='M10 12h12'/><path class='h' d='M13 18c2 1 4 1 6 0'/>",
+"suivant": "<path d='M8 6l12 10-12 10' stroke-width='3'/><path d='M18 6l8 10-8 10' class='h'/>",
 "courbe": "<path d='M3 25c5-14 13-19 26-18'/><path d='M23 3l6 4-5 5'/><path d='M3 29h26' class='h'/>",
 }
 def sprite():
