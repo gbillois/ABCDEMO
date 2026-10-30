@@ -1,0 +1,22 @@
+# Relais multijoueur de The Dragon Learner Chronicles (Cloudflare Worker + Durable Object).
+name = "dragonflyer-relais"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+# Seuls ces sites peuvent se connecter au relais (séparés par des virgules).
+[vars]
+ORIGINES = "https://gbillois.github.io"
+
+[[durable_objects.bindings]]
+name = "SALLES"
+class_name = "Salle"
+
+# Classe SQLite : disponible avec l'offre gratuite. Le relais n'y écrit rien.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Salle"]
+
+# Pas de journaux : on ne garde aucune trace des connexions.
+[observability]
+enabled = false
