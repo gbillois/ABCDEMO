@@ -3146,7 +3146,7 @@ function image(now, dtForce) {
   animerDragon(dt);
   if (etat.sol === "pied" || etat.sol === "appel") majCameraPied(dt); else majCamera(dt, auto);
   if (!auto) { if (!etat.sol) verifierAnneaux(); majHud(dt); majMiniCarte(dt); }
-  majVillages(dt, camera.position.x, camera.position.z); if (etat.sol === "pied" || dedans) majPortes(dt); majSauvages(dt);
+  majVillages(dt, camera.position.x, camera.position.z); if (etat.sol === "pied" || dedans) majPortes(dt); majSauvages(dt); majAnimaux(dt);
   if (!etat.sol && !auto) { const c = dansUnRect(etat.pos.x, etat.pos.z, 4); if (c && c.haut && etat.pos.y < c.haut + 3) etat.pos.y += (c.haut + 3 - etat.pos.y) * Math.min(1, dt * 8); }   // le dragon passe au-dessus des toits
   majAnneaux(); majFeuxAllumes(dt); majPeche(dt); majHutte(dt); animerBebes(dt); majMouettes();
   if (!auto) { const ok = !etat.sol && peutSePoser(); $("btPoser").hidden = !TACTILE || !ok; $("indice").hidden = TACTILE || !ok; }
@@ -3441,6 +3441,92 @@ function recevoirPosition(j, m) {
 }
 const _qAv = new THREE.Quaternion(), _am = new THREE.Vector3();
 function tournerAv(a, nom, ax, ay, az, angle) { const b = a.os[nom], o = OS[nom]; if (!b || !o || !angle) return; _am.set(ax, ay, az).applyQuaternion(o.inv); _qAv.setFromAxisAngle(_am, angle); b.quaternion.multiply(_qAv); }
+// ------------------------------------------------------------------ animaux (Blender : blender/dragonflyer/animaux.py → assets/animaux.glb)
+// Un InstancedMesh par espèce ; pattes et tête bougent dans le vertex shader (l'attribut « _tag » dit quelle partie).
+// Chaque animal broute, marche vers un point proche, revient ; les cerfs fuient le cavalier.
+const ESPECES = {
+  mouton: { vit: 1.1, rayon: 30, fuit: 0 }, chevre: { vit: 1.3, rayon: 35, fuit: 0 }, poule: { vit: .9, rayon: 10, fuit: 5 },
+  cerf: { vit: 1.6, rayon: 60, fuit: 32 }, vache: { vit: .8, rayon: 25, fuit: 0 },
+};
+const ANIMAUX = [], TROUPEAUX = {};
+async function creerAnimaux() {
+  const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+  const gltf = await loader.loadAsync("assets/animaux.glb"); gltf.scene.updateMatrixWorld(true);
+  const geos = {};
+  gltf.scene.traverse(o => { if (!o.isMesh) return;
+    const g = o.geometry.clone(), p = g.attributes.position, v = new THREE.Vector3(), t = new Float32Array(p.count * 3);
+    for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld); t.set([v.x, v.y, v.z], i * 3); }
+    g.setAttribute("position", new THREE.BufferAttribute(t, 3)); geos[o.name.replace("A_", "")] = { g, hanche: o.userData.hanche || .5, cou: o.userData.cou || [-.5, .8] }; });
+  const r = alea(321);
+  const troupeau = (esp, n, cx, cz, etal) => { for (let i = 0; i < n; i++) for (let k = 0; k < 20; k++) {
+    const x = cx + (r() - .5) * etal, z = cz + (r() - .5) * etal, h = hauteur(x, z);
+    if (h < 1.5 || pente(x, z) > .45 || dansUnRect(x, z, 1)) continue;
+    ANIMAUX.push({ esp, x, z, y: hauteurFine(x, z), yaw: r() * 6.28, mx: cx, mz: cz, etat: 0, t: r() * 5, cx: x, cz: z, ph: r() * 6.28, marche: 0, broute: 0 }); break; } };
+  const V = n => VILLAGES.find(v => v.nom === n) || VILLAGES[0];
+  const autour = (v, d0, d1) => { const a = r() * 6.28, d = d0 + r() * (d1 - d0); return [v.place.x + Math.cos(a) * d, v.place.z + Math.sin(a) * d]; };
+  if (VILLAGES.length) {
+    for (let i = 0; i < 3; i++) troupeau("mouton", 7, ...autour(V("Fernhollow"), 45, 90), 30);
+    troupeau("vache", 4, ...autour(V("Fernhollow"), 40, 80), 25); troupeau("mouton", 6, ...autour(V("Mistholm"), 50, 90), 25);
+    for (let i = 0; i < 2; i++) troupeau("chevre", 5, ...autour(V("Stonebrook"), 35, 80), 30);
+    for (const n of ["Mistholm", "Saltcliff", "Fernhollow"]) troupeau("poule", 6, ...autour(V(n), 10, 22), 10);
+  }
+  for (let i = 0, k = 0; i < 6 && k < 400; k++) {   // cerfs dans les clairières, loin des villages
+    const x = (r() - .5) * MONDE * .8, z = (r() - .5) * MONDE * .8, h = hauteur(x, z);
+    if (h < 15 || h > 160 || pente(x, z) > .3 || VILLAGES.some(v => Math.hypot(v.place.x - x, v.place.z - z) < 300)) continue;
+    troupeau("cerf", 4, x, z, 25); i++;
+  }
+  for (const [esp, d] of Object.entries(geos)) {
+    const n = ANIMAUX.filter(a => a.esp === esp).length; if (!n) continue;
+    const aAnim = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3); d.g.setAttribute("aAnim", aAnim);
+    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .9 });
+    const H = d.hanche, cy = d.cou[1], cz = -d.cou[0];
+    mat.onBeforeCompile = sh => {
+      sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute vec3 aAnim; attribute float _tag;")
+        .replace("#include <begin_vertex>", `#include <begin_vertex>
+          { float tg = _tag; float ph = aAnim.x, mv = aAnim.y, br = aAnim.z;
+            if (tg < 0.15) { float a = br * 0.95 + sin(ph * 0.7) * 0.05 * (1.0 - mv); vec3 q = transformed - vec3(0.0, ${cy.toFixed(3)}, ${cz.toFixed(3)});
+              transformed = vec3(0.0, ${cy.toFixed(3)}, ${cz.toFixed(3)}) + vec3(q.x, q.y * cos(a) - q.z * sin(a), q.y * sin(a) + q.z * cos(a)); }
+            else if (tg < 0.95) { float off = (tg < 0.3 || tg > 0.7) ? 0.0 : 3.14159; float a = sin(ph + off) * 0.55 * mv;
+              float dy = transformed.y - ${H.toFixed(3)}; transformed.y = ${H.toFixed(3)} + dy * cos(a); transformed.z += dy * sin(a); }
+            transformed.y += abs(sin(ph)) * 0.03 * mv; }`);
+    };
+    mat.customProgramCacheKey = () => "animal-" + esp;
+    const im = new THREE.InstancedMesh(d.g, mat, n); im.castShadow = true; im.receiveShadow = true; im.frustumCulled = false;
+    scene.add(im); TROUPEAUX[esp] = { im, aAnim, liste: ANIMAUX.filter(a => a.esp === esp) };
+  }
+}
+const _ma = new THREE.Matrix4(), _qa2 = new THREE.Quaternion(), _pa = new THREE.Vector3(), _sa = new THREE.Vector3(1, 1, 1), _Ya = new THREE.Vector3(0, 1, 0);
+function majAnimaux(dt) {
+  const pied = etat.sol === "pied", jx = pied ? marche.pos.x : etat.pos.x, jz = pied ? marche.pos.z : etat.pos.z, haut = pied ? 0 : etat.pos.y - hauteur(etat.pos.x, etat.pos.z);
+  const cx = camera.position.x, cz = camera.position.z;
+  for (const [esp, T] of Object.entries(TROUPEAUX)) {
+    const E = ESPECES[esp]; let n = 0;
+    for (const a of T.liste) {
+      if (Math.abs(a.x - cx) > 500 || Math.abs(a.z - cz) > 500 || dedans) continue;   // loin : ni calcul ni dessin
+      const dj = Math.hypot(a.x - jx, a.z - jz);
+      if (E.fuit && dj < E.fuit && haut < 40 && a.etat !== 2) { a.etat = 2; a.t = 3 + Math.random() * 2; }
+      a.t -= dt;
+      if (a.etat === 2) { const ang = Math.atan2(a.x - jx, a.z - jz); a.cx = a.x + Math.sin(ang) * 30; a.cz = a.z + Math.cos(ang) * 30; if (a.t < 0) a.etat = 0; }
+      else if (a.t < 0) { if (a.etat === 0) { a.etat = 1; const an = Math.random() * 6.28, d = Math.random() * E.rayon; a.cx = a.mx + Math.cos(an) * d; a.cz = a.mz + Math.sin(an) * d; a.t = 12; } else { a.etat = 0; a.t = 3 + Math.random() * 7; } }
+      const vit = a.etat === 2 ? E.vit * 4 : a.etat === 1 ? E.vit : 0;
+      if (vit) {
+        const dx = a.cx - a.x, dz = a.cz - a.z, d = Math.hypot(dx, dz);
+        if (d < .5 && a.etat === 1) { a.etat = 0; a.t = 3 + Math.random() * 7; }
+        else { let dd = Math.atan2(dx, dz) - a.yaw; dd = Math.atan2(Math.sin(dd), Math.cos(dd)); a.yaw += dd * Math.min(1, dt * 3);
+          const nx = a.x + Math.sin(a.yaw) * vit * dt, nz = a.z + Math.cos(a.yaw) * vit * dt, hn = hauteur(nx, nz);
+          if (hn > 1 && hn - a.y < vit * dt * 1.2) { a.x = nx; a.z = nz; } else { a.etat = 0; a.t = 2; }
+          _pa.set(a.x, 0, a.z); pousserHors(_pa, .6); a.x = _pa.x; a.z = _pa.z; }
+      }
+      a.y += (hauteurFine(a.x, a.z) - a.y) * Math.min(1, dt * 8);   // sur le sol dessiné (avec son relief fin)
+      a.marche += ((vit ? 1 : 0) - a.marche) * Math.min(1, dt * 6); a.broute += ((a.etat === 0 && esp !== "poule" ? 1 : esp === "poule" && a.etat === 0 ? (Math.sin(a.ph * 3) > .3 ? 1 : 0) : 0) - a.broute) * Math.min(1, dt * 3);
+      a.ph += dt * (2 + vit * 5);
+      _ma.compose(_pa.set(a.x, a.y, a.z), _qa2.setFromAxisAngle(_Ya, a.yaw), _sa); T.im.setMatrixAt(n, _ma);
+      T.aAnim.setXYZ(n, a.ph, a.marche, a.broute); n++;
+    }
+    T.im.count = n; T.im.instanceMatrix.needsUpdate = true; T.aAnim.needsUpdate = true;
+  }
+}
+
 // ------------------------------------------------------------------ dragons sauvages dans le ciel
 // Deux groupes de trois, de couleurs différentes, tournent autour des montagnes ; préparés au chargement.
 const SAUVAGES = [];
@@ -3580,7 +3666,7 @@ async function demarrer() {
     VILLAGES = creerVillages(); creerInterieurs(); creerHalos();
     await progression(.76, "Planting the forests…");
     creerArbres();
-    creerFeux(); creerAnneaux(); creerNid(); creerHutte(); creerPeche(); creerMouettes(); await creerBebes(); await creerSauvages();
+    creerFeux(); creerAnneaux(); creerNid(); creerHutte(); creerPeche(); creerMouettes(); await creerBebes(); await creerSauvages(); await creerAnimaux();
     majBandeau(); dessinerCarte();
     await progression(.85, "Mixing the colours…");
     majVol(.016, true); animerDragon(.016); majCamera(1, true); majTerrain(); trierNuages(); majArbres(); majHerbe();
@@ -3602,7 +3688,7 @@ async function demarrer() {
 window.__df = { camera, renderer, scene, etat, get dragon() { return dragon; }, hauteur, FEUX, ANNEAUX, NIVEAUX, entree, majTerrain, rendre,
   vue(x, y, z, tx, ty, tz) { camera.position.set(x, y, z); camera.lookAt(tx, ty, tz); camera.near = Math.min(camera.near, .1); camera.updateProjectionMatrix(); camera.updateMatrixWorld(); majTerrain(); trierNuages(); majArbres(); mer.position.set(x, 0, z); },
   POSE_SOL, poseTest(p) { if (p) Object.assign(POSE_SOL, p); etat.pose = 1; etat.ampl = 0; etat.pitch = etat.roll = 0; animerDragon(0); },
-  jouer, allumerFeu, sePoser, monterOuAppeler, marche, get VILLAGES() { return VILLAGES; }, PORTES, entrer, sortir, get dedans() { return dedans; }, get portePres() { return portePres; }, MONDE_T, majHeure, SAUVAGES, majSauvages, majVillagesTest() { majVillages(0, camera.position.x, camera.position.z); }, get NID() { return NID; }, get HUTTE() { return HUTTE; }, BANCS,
+  jouer, allumerFeu, sePoser, monterOuAppeler, marche, get VILLAGES() { return VILLAGES; }, PORTES, entrer, sortir, get dedans() { return dedans; }, get portePres() { return portePres; }, MONDE_T, majHeure, SAUVAGES, majSauvages, ANIMAUX, majAnimaux, majVillagesTest() { majVillages(0, camera.position.x, camera.position.z); }, get NID() { return NID; }, get HUTTE() { return HUTTE; }, BANCS,
   pas(n = 1, dt = 1 / 30) { sansRendu = true; for (let i = 0; i < n; i++) image(performance.now(), dt); sansRendu = false; image(performance.now(), dt); } };
 demarrer();
 </script>
@@ -3664,7 +3750,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
 })();
 </script>
 <script>
-window.DRAGONFLYER_VERSION = "2026.10.30-10"; // à changer à chaque modification du jeu
+window.DRAGONFLYER_VERSION = "2026.10.30-11"; // à changer à chaque modification du jeu
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
