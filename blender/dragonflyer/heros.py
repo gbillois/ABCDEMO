@@ -66,18 +66,19 @@ class Maillage:
         bpy.data.objects.remove(ob); bpy.data.meshes.remove(m2)
 
 def fourrure(M, boucle, r, tag=None, graine=1):
-    """Col (ou revers) de fourrure : un boudin gris-brun le long d'une boucle fermée, hérissé de petites mèches de poil."""
+    """Col (ou revers) de fourrure : un boudin gris-brun le long d'une boucle fermée, couvert de mèches courtes et rondes qui retombent."""
     rng = np.random.default_rng(graine); P = [np.array(p, float) for p in boucle]; n = len(P)
     ctr = sum(P) / n
     M.tube(P + [P[0]], [r] * (n + 1), FUR, 12, tag)
     for i in range(n):
         a, b = P[i], P[(i + 1) % n]
-        for k in range(6):
-            c = a + (b - a) * (k + rng.random()) / 6
-            out = nrm(c - ctr); d = nrm(out * .8 + np.array([0, 0, .7]) + rng.normal(0, .35, 3))
-            base = c + d * r * .55; ln = r * (.9 + .7 * rng.random())
+        tg = nrm(b - a)
+        for k in range(10):   # mèches courtes et rondes, couchées vers le bas comme une fourrure qui retombe
+            c = a + (b - a) * (k + rng.random()) / 10
+            out = nrm(c - ctr); d = nrm(out * .45 + np.array([0, 0, -.75]) + tg * rng.normal(0, .35) + rng.normal(0, .15, 3))
+            base = c + out * r * .7 + np.array([0, 0, r * .2]); ln = r * (.5 + .35 * rng.random())
             col = tuple(x * (.8 + .35 * rng.random()) for x in FUR)
-            M.tube([base, base + d * ln * .5, base + d * ln], [r * .32, r * .2, r * .02], col, 6, tag)
+            M.tube([base, base + d * ln * .55, base + d * ln], [r * .42, r * .34, r * .2], col, 7, tag)
 
 def main(M, wrist, fwd, up, side_sign, pose, tag=None):
     """Main à quatre doigts et un pouce : « poing » (fermé) ou « plat » (doigts tendus), brassard de cuir."""
