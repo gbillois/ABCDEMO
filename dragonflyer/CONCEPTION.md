@@ -68,6 +68,10 @@ courses d'anneaux, allumer les feux d'alerte. **À pied** : marcher, courir, sau
 pousser des blocs, tirer des leviers, nager un peu ; plus tard **épée** (couper, frapper les cristaux),
 **bouclier** (renvoyer, se protéger), **cor** (appeler / calmer).
 
+**Ennemis** (jamais cruels) : les **feux follets** de la Brume Grise rôdent dans la nature (plus nombreux la nuit) ;
+les **rampants de braise** gardent les cavernes. Un coup d'épée ou le feu du dragon les dissout ou les renvoie dans la lave.
+Le héros a trois cœurs ; s'il les perd, il se réveille à l'abri, sans rien perdre. Les cœurs reviennent seuls.
+
 **Dresser un dragon** (inspiré des « livres de dragons » des films, espèces originales) :
 1. **Observer** (le trouver, lire sa page d'encyclopédie, comprendre ce qu'il aime) ;
 2. **Approcher** (nourriture qu'il aime, calme, mains vides, petite énigme de rythme) ;
