@@ -225,6 +225,10 @@ input,textarea,select{font-size:max(16px,1em)}
   #boussole { position: absolute; top: calc(var(--haut) + 4px); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; }
   #fleche { width: 52px; height: 52px; filter: drop-shadow(0 3px 3px rgba(0,0,0,.6)); }
   #cible { font: 700 15px var(--tete); white-space: nowrap; padding: 4px 16px; }
+  @media (max-width: 600px) {
+    .objectif { font-size: 13px; max-width: calc(100vw - 150px); padding: 6px 12px; } .objectif span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    #boussole { top: calc(var(--haut) + 140px); } #cible { font-size: 12px; padding: 3px 10px; }
+  }
   #toast { position: fixed; left: 50%; top: 28%; transform: translate(-50%, -50%) scale(.9); z-index: 8; pointer-events: none; opacity: 0; transition: opacity .3s, transform .3s;
     font: 900 clamp(34px, 6.5vw, 60px) var(--titre); text-align: center; white-space: nowrap; letter-spacing: 1px;
     background: linear-gradient(180deg, #fff6d0, #f2c54f 45%, #b0721a 60%, #ffe07a); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
@@ -1463,7 +1467,7 @@ let MAT_VILLAGE, MAT_VITRES, MAT_LUEUR;
 async function chargerKit() {
   const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
   const gltf = await loader.parseAsync(await fichier("assets/village.glb"), "");
-  MAT_VILLAGE = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .86 });
+  MAT_VILLAGE = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .86, side: THREE.DoubleSide, shadowSide: THREE.FrontSide });   // les deux faces : jamais de jour à travers un toit
   MAT_VITRES = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .25, metalness: .1, emissive: 0xffb04a, emissiveIntensity: 0 });
   MAT_LUEUR = new THREE.MeshBasicMaterial({ vertexColors: true });
   gltf.scene.updateMatrixWorld(true);
@@ -2419,7 +2423,7 @@ function hauteurFine(x, z) {
 // Chaque touffe a une place fixe dans un carré qui se répète : elle se replace toute seule près de la caméra.
 let herbe, cailloux;
 function creerHerbe() {
-  const R = 30, N = Math.round(14000 * Q.arbres), r = alea(321);
+  const R = 30, N = Math.round(14000 * Q.arbres * (TACTILE ? .6 : 1)), r = alea(321);   // moins de touffes sur téléphone et tablette
   const pos = [], cote = [], fleur = [];
   for (let b = 0; b < 7; b++) {   // une touffe : 7 brins courbés (3 segments chacun), une fleur sur le premier
     const a = b / 7 * Math.PI * 2 + r(), ox = Math.cos(a) * .12 * r(), oz = Math.sin(a) * .12 * r(), dx = Math.cos(a + 1.57) * .03, dz = Math.sin(a + 1.57) * .03;
@@ -2441,9 +2445,9 @@ function creerHerbe() {
   g.setAttribute("iOff", new THREE.InstancedBufferAttribute(off, 3)); g.instanceCount = N;
   const m = new THREE.ShaderMaterial({
     side: THREE.DoubleSide,
-    uniforms: { tH: { value: tH }, tTerr: { value: tTerr }, tBruit: { value: tBruit }, tHum: { value: tHum }, uTemps: U_TEMPS, uCentre: { value: new THREE.Vector3() }, uR: { value: R }, fogDensity: U_HEURE },
+    uniforms: { tH: { value: tH }, tTerr: { value: tTerr }, tBruit: { value: tBruit }, tHum: { value: tHum }, uTemps: U_TEMPS, uCentre: { value: new THREE.Vector3() }, uR: { value: R }, fogDensity: U_HEURE, uVillages: { value: [0, 1, 2, 3].map(() => new THREE.Vector4(1e6, 1e6, 0, 0)) } },
     vertexShader: `
-      uniform sampler2D tH, tTerr, tBruit, tHum; uniform float uTemps, uR; uniform vec3 uCentre;
+      uniform sampler2D tH, tTerr, tBruit, tHum; uniform float uTemps, uR; uniform vec3 uCentre; uniform vec4 uVillages[4];
       attribute vec3 iOff; attribute float aCote, aFleur;
       varying vec3 vW, vCol; varying float vCote, vSh, vFleur;
       ${GLSL_HAUTEUR()}
@@ -2457,6 +2461,7 @@ function creerHerbe() {
         vec4 n1 = textureLod(tBruit, p / 1500.0, 0.0), n2 = textureLod(tBruit, p / 270.0, 0.0), n3 = textureLod(tBruit, p / 41.0, 0.0), n4 = textureLod(tBruit, p / 9.0, 0.0);
         float hum = textureLod(tHum, tuv, 0.0).r;
         float pres = (1.0 - smoothstep(0.2, 0.3, pente + (n2.r - 0.5) * 0.15)) * smoothstep(2.6, 4.5, h) * (1.0 - smoothstep(430.0, 560.0, h)) * smoothstep(0.25, 0.45, n3.g * 0.7 + n4.b * 0.5);
+        for (int i = 0; i < 4; i++) pres *= smoothstep(uVillages[i].z, uVillages[i].z + 12.0, length(p - uVillages[i].xy));   // rues et places sans hautes herbes
         float s = (1.0 - smoothstep(uR * 0.55, uR * 0.95, d)) * pres * (0.55 + 0.9 * rnd);
         float fl = aFleur * step(0.93, fract(rnd * 37.0));
         vec3 q = position * vec3(1.0, s, 1.0) * mix(1.0, 0.0, aFleur * (1.0 - fl));
@@ -4547,6 +4552,7 @@ async function creerSauvages() {
     const enlever = []; m.traverse(o => { if (/^Rider/.test(o.name)) enlever.push(o); }); for (const o of enlever) o.parent.remove(o);   // sans cavalier
     const os = {}; m.traverse(o => { if (OS[o.name] && o.isBone) os[o.name] = o; });
     const mat = matEcailles.clone(); teindre(mat, couleurs[i]); m.traverse(o => { if (o.isMesh && o.material.name === "Scales") o.material = mat; });
+    m.traverse(o => { if (o.isMesh) o.castShadow = false; });   // trop loin pour que l'ombre se voie
     const ech = .7 + r() * .35; g.scale.setScalar(ech); g.visible = false; scene.add(g);
     const c = centres[i < 3 ? 0 : 1];
     SAUVAGES.push({ g, m, os, mat, c, rayon: 260 + r() * 160, haut: Math.max(c.y + 60, 220) + r() * 120, vit: (.045 + r() * .02) * (i % 2 ? 1 : -1), a: r() * 6.28, ph: r() * 6.28, decal: (i % 3) * .14, pos: new THREE.Vector3(), yaw: 0 });
@@ -4672,6 +4678,7 @@ async function demarrer() {
     await progression(.68, "Building the villages…");
     chrono("kit"); await chargerKit();
     chrono("villages"); VILLAGES = creerVillages(); creerInterieurs(); creerHalos();
+    VILLAGES.slice(0, 4).forEach((v, i) => herbe.material.uniforms.uVillages.value[i].set(v.place.x, v.place.z, Math.max(25, (v.rayon || 50) - 12), 0));
     chrono("paysages"); await creerPaysages(); chrono("caverne"); await creerCaverne(); creerFollets(); creerRampants(); creerEpeeMain();
     await progression(.76, "Planting the forests…");
     creerArbres();
@@ -4763,7 +4770,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
 })();
 </script>
 <script>
-window.DRAGONFLYER_VERSION = "2026.10.30-17"; // à changer à chaque modification du jeu
+window.DRAGONFLYER_VERSION = "2026.10.30-18"; // à changer à chaque modification du jeu
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
