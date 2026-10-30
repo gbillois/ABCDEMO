@@ -596,10 +596,10 @@ def rider():
         a = P(sx * .67, -.05, -.54)
         M.ellipsoid(a + np.array([0, -.06, -.02]), np.array([.066, 0, 0]), np.array([0, .12, 0]), np.array([0, 0, .062]), BOOT, 16, 10)
         M.ellipsoid(a + np.array([0, -.065, -.065]), np.array([.068, 0, 0]), np.array([0, .124, 0]), np.array([0, 0, .018]), SOLE, 16, 8)
-        M.tube([P(sx * .6, -.15, -.33), P(sx * .625, -.13, -.38)], [.086, .086], FUR, 14)
+        heros.fourrure(M, [P(sx * .61, -.14, -.355) + np.array([.075 * math.cos(a), .075 * math.sin(a), 0]) for a in np.linspace(0, 2 * math.pi, 7)[:-1]], .03, None, 2)
     # ouverture du gilet (la tunique se voit), col de fourrure, boucle de ceinture, bas de tunique sur la selle
     M.ellipsoid(P(0, -.165, .34), np.array([.045, 0, 0]), np.array([0, .03, 0]), np.array([0, 0, .12]), TUNIC2, 12, 8)
-    M.tube([P(.11, -.08, .5), P(0, .03, .52), P(-.11, -.08, .5), P(-.05, -.15, .48), P(.05, -.15, .48), P(.11, -.08, .5)], [.042] * 6, FUR, 10)
+    heros.fourrure(M, [P(.11, -.08, .5), P(.08, .01, .515), P(0, .035, .52), P(-.08, .01, .515), P(-.11, -.08, .5), P(-.05, -.15, .48), P(.05, -.15, .48)], .04)
     M.ellipsoid(P(0, -.145, .2), np.array([.032, 0, 0]), np.array([0, .012, 0]), np.array([0, 0, .026]), IRON, 10, 6)
     M.tube([P(0, .06, .16), P(0, .07, .08), P(0, .1, .02)], [.14, .155, .16], TUNIC, 20)
     for sx in (1, -1):   # épaulettes de cuir

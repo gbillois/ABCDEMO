@@ -11,7 +11,7 @@ def srgb(h):
     return tuple(x / 12.92 if x <= .04045 else ((x + .055) / 1.055) ** 2.4 for x in c)
 
 SKIN, TUNIC, TUNIC2, VEST = srgb("#efc09a"), srgb("#5f7a48"), srgb("#4a6038"), srgb("#5a3820")   # tunique verte, gilet de cuir
-FUR, PANTS, BOOT, BELT = srgb("#a08462"), srgb("#4a3a2c"), srgb("#4e3220"), srgb("#2e1e12")      # fourrure, pantalon, bottes
+FUR, PANTS, BOOT, BELT = srgb("#6f6252"), srgb("#4a3a2c"), srgb("#4e3220"), srgb("#2e1e12")      # fourrure, pantalon, bottes
 BRACER, SOLE, IRON, HAIR = srgb("#6a4428"), srgb("#2a1c12"), srgb("#8a8478"), srgb("#64301a")   # cheveux auburn
 
 def nrm(v): v = np.array(v, float); return v / np.linalg.norm(v)
@@ -65,6 +65,21 @@ class Maillage:
         s.F.extend([[i + o for i in p.vertices] for p in m2.polygons])
         bpy.data.objects.remove(ob); bpy.data.meshes.remove(m2)
 
+def fourrure(M, boucle, r, tag=None, graine=1):
+    """Col (ou revers) de fourrure : un boudin gris-brun le long d'une boucle fermée, couvert de mèches courtes et rondes qui retombent."""
+    rng = np.random.default_rng(graine); P = [np.array(p, float) for p in boucle]; n = len(P)
+    ctr = sum(P) / n
+    M.tube(P + [P[0]], [r] * (n + 1), FUR, 12, tag)
+    for i in range(n):
+        a, b = P[i], P[(i + 1) % n]
+        tg = nrm(b - a)
+        for k in range(10):   # mèches courtes et rondes, couchées vers le bas comme une fourrure qui retombe
+            c = a + (b - a) * (k + rng.random()) / 10
+            out = nrm(c - ctr); d = nrm(out * .45 + np.array([0, 0, -.75]) + tg * rng.normal(0, .35) + rng.normal(0, .15, 3))
+            base = c + out * r * .7 + np.array([0, 0, r * .2]); ln = r * (.5 + .35 * rng.random())
+            col = tuple(x * (.8 + .35 * rng.random()) for x in FUR)
+            M.tube([base, base + d * ln * .55, base + d * ln], [r * .42, r * .34, r * .2], col, 7, tag)
+
 def main(M, wrist, fwd, up, side_sign, pose, tag=None):
     """Main à quatre doigts et un pouce : « poing » (fermé) ou « plat » (doigts tendus), brassard de cuir."""
     f = nrm(fwd); u = nrm(np.array(up, float) - f * (np.array(up, float) @ f)); s = np.cross(f, u) * side_sign
@@ -102,9 +117,11 @@ def forme(d, R):
             p[2] += .025 * R * h * f * t                                  # bout légèrement relevé
     return p
 
-def tete(piv):
-    """Tête du jeune Viking : crâne avec le nez sculpté (UV de face pour le visage dessiné), oreilles, cheveux auburn en mèches
-    désordonnées, frange de côté, petite tresse. Renvoie (Maillage, uv, nb faces du visage)."""
+def tete(piv, style="heros", hair=None, barbe=False, casque=False):
+    """Tête : crâne avec le nez sculpté (UV de face pour le visage dessiné), oreilles, cheveux. Renvoie (Maillage, uv, nb faces du visage).
+    style : « heros » (mèches désordonnées, frange de côté, petite tresse), « court », « tresses » (deux longues tresses),
+    « chauve » (couronne de cheveux) ; barbe et casque (viking, à cornes) en plus. Les villageois (pieton.py --variante) s'en servent."""
+    HC = hair or HAIR
     H = Maillage(); rng = np.random.default_rng(3)
     R = .148; hc = piv + np.array([0, -.03, .165])
     ez = np.array([0, 0, 1.0]); ey = np.array([0, 1.0, 0])
@@ -121,6 +138,8 @@ def tete(piv):
         for i in range(nu):
             a, b = j * (nu + 1) + i, j * (nu + 1) + i + 1; H.F.append([a, a + nu + 1, b + nu + 1, b])
     nface = len(H.F)
+    # cou attaché à la tête : il descend jusque dans le col, la tête ne flotte plus
+    H.tube([piv + np.array([0, .012, -.085]), piv + np.array([0, .0, .02]), hc + np.array([0, .02, -.06])], [.054, .052, .05], SKIN, 16, "Head")
     def sur(d, lift=0.0):
         d = nrm(d); p = forme(d, R); return hc + p + d * lift, d
     for sx in (1, -1):   # oreilles
@@ -132,8 +151,9 @@ def tete(piv):
         for i in range(nu2):
             ph = 2 * math.pi * i / nu2
             d = np.array([math.sin(th) * math.cos(ph), math.sin(th) * math.sin(ph), math.cos(th)])
-            H.V.append(hc + forme(d, R) * 1.05); H.C.append(HAIR); H.T.append("Head")
-            keep.append(d[2] > .5 - .32 * abs(d[0]) - 1.05 * max(0, d[1]) ** .8)
+            H.V.append(hc + forme(d, R) * 1.05); H.C.append(HC); H.T.append("Head")
+            if style == "chauve": keep.append(-.38 < d[2] < .22 and d[1] > -.25)
+            else: keep.append(d[2] > .5 - .32 * abs(d[0]) - 1.05 * max(0, d[1]) ** .8)
     for j in range(nv2):
         for i in range(nu2):
             a, b = j * nu2 + i, j * nu2 + (i + 1) % nu2
@@ -142,19 +162,29 @@ def tete(piv):
         t = nrm(tip); p0, n0 = sur(base, lift)
         mid = p0 + (n0 * .35 + t * .65) * ln * .4
         pts = [p0, mid, mid + t * ln * .38, p0 + (n0 * .18 + t * .82) * ln]
-        H.tube(pts, [r, r * .8, r * .48, .004], HAIR, 7, "Head")
+        H.tube(pts, [r, r * .8, r * .48, .004], HC, 7, "Head")
     # mèches tout autour (arrière et côtés), qui tombent en désordre jusqu'à la nuque
-    for el in (.62, .32, .02):
+    court = .55 if style in ("court", "tresses") else 1.0
+    for el in ((.62, .32, .02) if style == "heros" else (.62, .32) if style in ("court", "tresses") else ()):
         for k in range(14):
             ph = -2.4 + 4.8 * k / 13 + rng.uniform(-.12, .12)       # 0 = arrière (+y) ; ±π = devant
             d = np.array([math.sin(ph) * math.cos(el), math.cos(ph) * math.cos(el), math.sin(el)])
             if el < .1 and abs(ph) > 1.7: continue                 # rien devant les oreilles en bas
             out = np.array([d[0], d[1], 0]); out = out / (np.linalg.norm(out) + 1e-6)
             tip = out * (.28 + .12 * rng.random()) + np.array([0, 0, -1]) * (.9 + .2 * rng.random()) + rng.normal(0, .08, 3)
-            meche(d, tip, (.11 if el > .5 else .13 if el > .2 else .1) + .03 * rng.random(), .032 + .008 * rng.random())
+            meche(d, tip, ((.11 if el > .5 else .13 if el > .2 else .1) + .03 * rng.random()) * court, .032 + .008 * rng.random())
+    if style == "chauve": return fin_tete(H, uv, nface, sur, hc, R, HC, barbe, casque)
     # dessus en désordre : mèches couchées vers l'arrière et les côtés
     for base, tip in (((0, .1, 1), (.15, .9, -.3)), ((.25, -.2, .95), (.8, .3, -.4)), ((-.3, 0, .95), (-.8, .4, -.4)), ((.05, .45, .9), (0, 1, -.5))):
         meche(base, tip, .1, .04, -.006)
+    if style == "tresses":   # deux longues tresses qui tombent devant les épaules
+        for sx in (1, -1):
+            tb, nb = sur((sx * .88, .15, -.1), .0)
+            for k in range(11):
+                c = tb + np.array([sx * .012 * k, -.022 * k, -.034 * k]) + nb * .014
+                H.ellipsoid(c, np.array([.022, 0, 0]), np.array([0, .022, 0]), ez * .022, HC, 8, 6, "Head")
+            H.ellipsoid(tb + np.array([sx * .14, -.25, -.39]) + nb * .014, np.array([.016, 0, 0]), np.array([0, .016, 0]), ez * .016, BELT, 8, 6, "Head")
+    if style != "heros": return fin_tete(H, uv, nface, sur, hc, R, HC, barbe, casque)
     # frange balayée sur le côté (vers la droite du personnage)
     for bx, ln in ((-.4, .1), (-.2, .1), (0, .095), (.2, .085), (.4, .075)):
         meche((bx, -.6, .76), (.85, -.4, -.38), ln, .03, -.004)
@@ -162,8 +192,34 @@ def tete(piv):
     tb, nb = sur((.86, .32, -.12), .0)
     for k in range(6):
         c = tb + np.array([.008 * k, .012 * k, -.026 * k]) + nb * .012
-        H.ellipsoid(c, np.array([.016, 0, 0]), np.array([0, .016, 0]), ez * .017, HAIR, 8, 6, "Head")
+        H.ellipsoid(c, np.array([.016, 0, 0]), np.array([0, .016, 0]), ez * .017, HC, 8, 6, "Head")
     H.ellipsoid(tb + np.array([.05, .075, -.165]) + nb * .012, np.array([.012, 0, 0]), np.array([0, .012, 0]), ez * .012, BELT, 8, 6, "Head")
+    return fin_tete(H, uv, nface, sur, hc, R, HC, barbe, casque)
+
+def fin_tete(H, uv, nface, sur, hc, R, HC, barbe, casque):
+    ez = np.array([0, 0, 1.0])
+    if barbe:   # barbe fournie et moustache
+        for d, r, ech in (((0, -.85, -.62), .075, (1.3, 1, 1.2)), ((.5, -.7, -.55), .06, (1, 1, 1.1)), ((-.5, -.7, -.55), .06, (1, 1, 1.1)),
+                          ((.75, -.45, -.3), .045, (1, 1, 1.3)), ((-.75, -.45, -.3), .045, (1, 1, 1.3))):
+            p, n = sur(d, .015); H.ellipsoid(p, np.array([r * ech[0], 0, 0]), np.array([0, r * ech[1], 0]), ez * r * ech[2], HC, 10, 8, "Head")
+        p, n = sur((0, -.75, -.75), .02); H.ellipsoid(p + np.array([0, -.01, -.06]), np.array([.06, 0, 0]), np.array([0, .05, 0]), ez * .1, HC, 10, 8, "Head")
+        for sx in (1, -1):
+            p, n = sur((sx * .28, -.95, -.28), .012); H.ellipsoid(p, np.array([.045, 0, 0]), np.array([0, .02, 0]), ez * .018, HC, 8, 6, "Head")
+    if casque:   # casque viking : calotte de fer, bandeau, nasal, petites cornes
+        FER, CORNE = srgb("#8a8a86"), srgb("#e8dcc0")
+        o = len(H.V); nu2, nv2 = 24, 8
+        for j in range(nv2 + 1):
+            th = (math.pi / 2) * j / nv2
+            for i in range(nu2):
+                ph = 2 * math.pi * i / nu2; d = np.array([math.sin(th) * math.cos(ph), math.sin(th) * math.sin(ph), math.cos(th)])
+                H.V.append(hc + d * R * 1.14 + np.array([0, 0, .01])); H.C.append(FER); H.T.append("Head")
+        for j in range(nv2):
+            for i in range(nu2):
+                a, b = j * nu2 + i, j * nu2 + (i + 1) % nu2; H.F.append([o + a, o + a + nu2, o + b + nu2, o + b])
+        H.tube([hc + np.array([R * 1.16 * math.cos(a), R * 1.16 * math.sin(a), .012]) for a in np.linspace(0, 2 * math.pi, 25)], [.025] * 25, srgb("#6a4a2a"), 8, "Head")
+        H.ellipsoid(hc + np.array([0, -R * 1.12, -.02]), np.array([.016, 0, 0]), np.array([0, .012, 0]), ez * .07, FER, 8, 6, "Head")
+        for sx in (1, -1):
+            a = hc + np.array([sx * R * .95, 0, R * .55]); H.tube([a, a + np.array([sx * .09, -.02, .05]), a + np.array([sx * .13, -.03, .15])], [.03, .022, .006], CORNE, 8, "Head")
     return H, uv + [(0, 0)] * (len(H.V) - len(uv)), nface
 
 def materiaux():
