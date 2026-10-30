@@ -18,6 +18,7 @@ VARIANTES = {
     "ancien":    dict(tunic="#7a7a70", tunic2="#9a9a8a", vest="#3a5a3a", pants="#4a4a44", bracer="#3a5a3a", hair="#c8c4ba", style="chauve", barbe=True, fourrure=True),
     "forgeron":  dict(tunic="#5a4a40", tunic2="#6a5a4a", vest="#5a4a40", pants="#3a3430", bracer="#3a2a20", hair="#2a2420", style="chauve", barbe=True, tablier="#6a4428", fourrure=False),
     "pecheuse":  dict(tunic="#a8382a", tunic2="#c85a3a", vest="#e8dcc0", pants="#3a4a5a", bracer="#3a4a5a", hair="#a84a2a", style="tresses", fourrure=False),
+    "runa":      dict(tunic="#3a5a4a", tunic2="#c8b890", vest="#5a3a2a", pants="#3a5a4a", bracer="#5a3a2a", hair="#d8d4cc", style="tresses", robe=True, fourrure=True),
     "chef":      dict(tunic="#2f5a9a", tunic2="#3a6aaa", vest="#5a3820", pants="#3a3028", bracer="#5a3820", hair="#a84a22", style="court", barbe=True, casque=True, fourrure=True),
 }
 OPT = VARIANTES.get(VAR, {})
