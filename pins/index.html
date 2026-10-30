@@ -24,6 +24,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Les Pins">
+<script>if (navigator.standalone) document.documentElement.classList.add("app", "ios");</script>
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icone-192.png">
 <title>Le Domaine des Pins</title>
@@ -111,6 +112,10 @@ input,textarea,select{font-size:max(16px,1em)}
 [hidden]{display:none!important}
 html,body{height:100%;margin:0;overflow:hidden;background:#24452f;color:var(--ink);font-family:var(--ui);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 #game{position:fixed;inset:0;height:100vh;height:100lvh} /* lvh : toute la hauteur de l'écran, même sous la barre du bas de Safari */
+/* appli installée sur iPhone / iPad : iOS ne donne à la page que la zone entre l'heure et la barre du bas, et laissait voir
+   le fond vert au-dessus et au-dessous. L'image 3D (et celle de l'accueil) débordent donc dans ces deux bandes ;
+   les boutons restent dans la zone de la page (l'heure et la réception restent dégagées). */
+html.ios #game,html.ios #accueil{top:-90px;bottom:-90px;height:auto}
 #game canvas{display:block;width:100%;height:100%}
 .pill{background:var(--panel);border-radius:999px;padding:4px 14px;font-weight:800;font-size:19px;box-shadow:0 3px 0 rgba(0,0,0,.18);font-variant-numeric:tabular-nums}
 .btn{font-family:var(--ui);font-weight:800;font-size:19px;border:0;border-radius:18px;padding:9px 16px;color:#fff;background:var(--leaf);box-shadow:0 4px 0 rgba(0,0,0,.25);cursor:pointer;touch-action:manipulation;text-decoration:none;display:inline-block}
@@ -521,6 +526,9 @@ html.app .site{display:none!important}
       <p id="majMsg2" class="small"></p>
       <h3>Mes parties sur un autre appareil</h3>
       <p class="small">Transférer, recevoir, exporter ou importer une partie : sur l'écran de départ, touche <b>Gérer</b>.</p>
+      <h3>Qualité des images</h3>
+      <div class="themes" role="group" aria-label="Qualité des images"><button class="btn" data-qual="eco">⚡ Fluide</button><button class="btn" data-qual="auto">✨ Auto</button><button class="btn" data-qual="belle">🌟 Belle</button></div>
+      <p id="qualTxt" class="small"></p>
       <h3>Autres réglages</h3>
       <div class="grille">
         <button id="perfBtn" class="btn" style="background:#34495e"><i data-ico="graphique"></i> Compteur de fluidité</button>
@@ -993,7 +1001,10 @@ const joliNumero = n => n.slice(0, 3) + " " + n.slice(3);
 function changerDePartie(id) { PARTIES.id = id; sauverParties(); chargementEnCours = true; location.reload(); }
 function creerPartie() { const id = nouveauNumero(PARTIES.liste.map(p => p.id)); PARTIES.liste.unshift({ id, nom: "Nouvelle partie", maj: Date.now() }); PARTIES.id = id; sauverParties(); try { LS_VRAI.setItem("pins-nouvelle", "1"); } catch (e) {} chargementEnCours = true; location.reload(); }
 function oublierPartie(id) { try { const cles = []; for (let i = 0; i < LS_VRAI.length; i++) { const k = LS_VRAI.key(i); if (k && k.startsWith(`pins@${id}:`)) cles.push(k); } for (const k of cles) LS_VRAI.removeItem(k); } catch (e) {} }
-const LOWQ = matchMedia("(pointer: coarse)").matches; // tablettes et téléphones : un peu moins de détails
+// qualité des images, choisie dans Réglages → Plus (réglage de l'appareil) : « eco » (Fluide), « auto », « belle »
+const QUAL = (() => { try { const q = LS_VRAI.getItem("pins-qualite"); return q === "eco" || q === "belle" ? q : "auto"; } catch (e) { return "auto"; } })();
+const TACTILE = matchMedia("(pointer: coarse)").matches;
+const LOWQ = QUAL === "eco" ? true : QUAL === "belle" ? false : TACTILE; // tablettes et téléphones (en Auto) : un peu moins de détails
 // Chargement par étapes : entre deux étapes, on laisse l'écran se redessiner (la barre avance, rien ne semble bloqué)
 const souffle = (p, txt) => { $("chargeBar").style.width = p + "%"; if (txt) $("chargeTxt").textContent = txt;
   return new Promise(r => { let fait = false; const ok = () => { if (!fait) { fait = true; r(); } }; requestAnimationFrame(() => setTimeout(ok, 0)); setTimeout(ok, 150); }); };
@@ -1010,10 +1021,10 @@ const renderer = new THREE.WebGLRenderer({ antialias: !LOWQ, powerPreference: "h
 addEventListener("error", e => { const d = document.getElementById("bugView"); if (!d || !d.hidden) return; document.getElementById("bugMsg").textContent = String(e.message || e.error || "?").slice(0, 160); d.hidden = false; });
 // téléphones et tablettes : un peu moins de pixels (l'écran est petit, la différence ne se voit pas, le jeu reste fluide)
 const PETIT = LOWQ && Math.min(screen.width, screen.height) < 500;
-renderer.setPixelRatio(Math.min(devicePixelRatio, PETIT ? 1.25 : LOWQ ? 1.3 : 1.75));
+renderer.setPixelRatio(Math.min(devicePixelRatio, QUAL === "eco" ? 1 : QUAL === "belle" ? 2 : PETIT ? 1.25 : LOWQ ? 1.3 : 1.75));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.85;
-renderer.shadowMap.enabled = true;
+renderer.shadowMap.enabled = QUAL !== "eco"; // Fluide : pas d'ombres
 renderer.shadowMap.type = LOWQ ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap; // ombres douces plus coûteuses : seulement sur ordinateur
 $("game").appendChild(renderer.domElement);
 const scene = new THREE.Scene();
@@ -9658,6 +9669,12 @@ for (const [id, k] of [["volGen", "gen"], ["volMus", "mus"], ["volFx", "fx"]]) {
   r.addEventListener("input", () => { VOL[k] = r.value / 100; try { localStorage.setItem("pins-volumes", JSON.stringify(VOL)); } catch (e) {} audioOn(); appliquerVolumes(); });
   r.addEventListener("change", () => { if (k !== "mus") sfx.click(); }); }
 // les thèmes (pour l'instant : normal ou Halloween)
+// la qualité des images : le jeu redémarre pour la changer (la partie est gardée)
+{ const DIT = { eco: "Fluide : moins de détails et pas d'ombres, pour les tablettes qui rament.", auto: "Auto : le jeu choisit selon l'appareil.", belle: "Belle : plus d'herbe, d'arbres et de reflets, des ombres douces. Pour un ordinateur ou un iPad récent." };
+  document.querySelectorAll("[data-qual]").forEach(b => { b.setAttribute("aria-pressed", b.dataset.qual === QUAL ? "true" : "false");
+    b.onclick = () => { sfx.click(); const q = b.dataset.qual; if (q === QUAL) return;
+      demander("Changer la qualité des images ?", "Le jeu va redémarrer. Ta partie est gardée.", "Oui, redémarrer", () => { try { LS_VRAI.setItem("pins-qualite", q); } catch (e) {} sauverPartie(false); chargementEnCours = true; location.reload(); }); }; });
+  $("qualTxt").textContent = DIT[QUAL]; }
 document.querySelectorAll(".themes [data-theme]").forEach(t => t.onclick = () => { if ((t.dataset.theme === "halloween") !== HALLO.on) $("halloBtn").click(); else sfx.click(); });
 setHalloBtn();
 // jour / nuit et jeu à plusieurs : on ferme le menu pour voir le ciel changer ou choisir sa partie
@@ -9790,7 +9807,7 @@ $("svCharger").onclick = () => { sfx.click(); if (!svAttente) return;
   PARTIES.id = o.parties[0].id; sauverParties(); chargementEnCours = true; toast("✅ Parties chargées ! Le jeu redémarre…", 2000); setTimeout(() => location.reload(), 900); };
 $("svExport").onclick = async () => { sfx.click(); const txt = JSON.stringify(svPaquet(), null, 1), nom = "domaine-des-pins-" + new Date().toISOString().slice(0, 10) + ".json";
   const f = new File([txt], nom, { type: "application/json" });
-  if (LOWQ && navigator.canShare?.({ files: [f] })) { try { await navigator.share({ files: [f], title: "Ma partie du Domaine des Pins" }); return; } catch (e) { if (e.name === "AbortError") return; } }
+  if (TACTILE && navigator.canShare?.({ files: [f] })) { try { await navigator.share({ files: [f], title: "Ma partie du Domaine des Pins" }); return; } catch (e) { if (e.name === "AbortError") return; } }
   const a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = nom; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast("📤 Fichier enregistré : " + nom, 2600); };
 $("svImport").onclick = () => { sfx.click(); $("svFichier").value = ""; $("svFichier").click(); };
 $("svFichier").onchange = async () => { const f = $("svFichier").files[0]; if (!f) return; let o = null; try { o = JSON.parse(await f.text()); } catch (e) {}
@@ -9861,6 +9878,7 @@ function manette() {
 }
 /* ================= Boucle ================= */
 const clock = new THREE.Clock(); let walkT = 0, time = 0, stepAcc = 0, lastWhere = "";
+let camDedans = -9; // dernier moment où la caméra était dans un bâtiment
 const tv = new THREE.Vector3(), camO = new THREE.Vector3(), camDir = new THREE.Vector3(), prev = { x: 0, z: 0 };
 player.position.set(SPAWN.x, 0, SPAWN.z);
 applyRelief();
@@ -10327,12 +10345,18 @@ function loop() {
 
   // caméra
   if (state !== "ride") {
-    if (inCottage || inAq || inBalo || inGT || inBF || inShop || MANOR.inside || FETE.inside || CINE.inside || BOWL.inside) { camDist = 7.5; minPitch = 1.0; } if (seatT && seatT.show) { camDist = 4.2; let dy = seatT.show.ry + Math.PI - yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yaw += dy * Math.min(1, dt * 2); pitch += (.12 - pitch) * Math.min(1, dt * 2); minPitch = .05; } if (state === "bowl") { camDist = 4.6; minPitch = .32; } if (inLock) { camDist = 6.5; minPitch = 1.05; } if (state === "golf") { camDist = 5; minPitch = .45; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
-    const pt = Math.min(1.3, Math.max(pitch, minPitch) + (minPitch < .9 ? CAMMUR.lift : 0)); const baseY = state === "top" ? 9.95 : state === "boat" ? .6 : Math.max(P.y, 0), FP = state === "bowl" ? BOWL.cam : P;
+    // dans les bâtiments : on arrive avec une vue d'en haut (les murs s'effacent), puis on peut baisser la caméra pour regarder
+    // autour de soi (glisser le doigt) ; les murs l'arrêtent comme dehors
+    const dedans = inCottage || inAq || inBalo || inGT || inBF || inShop || MANOR.inside || FETE.inside || CINE.inside || BOWL.inside;
+    // plus on baisse la caméra, plus elle se rapproche (elle reste dans la pièce) ; une entrée ne compte qu'après 0,6 s dehors
+    if (dedans) { if (time - camDedans > .6 && pitch < 1) pitch = 1; minPitch = .35; camDist = 3.2 + 4.3 * Math.min(1, Math.max(0, (pitch - .35) / .55)); camDedans = time; }
+    if (seatT && seatT.show) { camDist = 4.2; let dy = seatT.show.ry + Math.PI - yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yaw += dy * Math.min(1, dt * 2); pitch += (.12 - pitch) * Math.min(1, dt * 2); minPitch = .05; } if (state === "bowl") { camDist = 4.6; minPitch = .32; } if (inLock) { camDist = 6.5; minPitch = 1.05; } if (state === "golf") { camDist = 5; minPitch = .45; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
+    const pt = Math.min(1.3, Math.max(pitch, minPitch) + (minPitch < .9 && !dedans ? CAMMUR.lift : 0)); const baseY = state === "top" ? 9.95 : state === "boat" ? .6 : Math.max(P.y, 0), FP = state === "bowl" ? BOWL.cam : P;
     const cx = FP.x + Math.sin(yaw) * Math.cos(pt) * camDist, cz = FP.z + Math.cos(yaw) * Math.cos(pt) * camDist, cy = baseY + 1.5 + Math.sin(pt) * camDist;
     // devant un mur : la caméra se rapproche tout de suite, et ne repart en arrière que doucement
     let k = Math.min(1, dt * 7); tv.set(cx, Math.max(cy, .6), cz);
-    if (minPitch < .9 && state !== "top") { camO.set(FP.x, baseY + 1.4, FP.z); camDir.subVectors(tv, camO); const L = camDir.length(); camDir.divideScalar(L);
+    // (dedans, vue d'en haut : pas de collision, on voit par-dessus les murs effacés, comme avant)
+    if (minPitch < .9 && !(dedans && pt >= .9) && state !== "top") { camO.set(FP.x, baseY + 1.4, FP.z); camDir.subVectors(tv, camO); const L = camDir.length(); camDir.divideScalar(L);
       const libre = Math.max(.9, camLibre(camO, camDir, L + .4) - .4) / L;
       if (!(CAMMUR.d <= 1)) CAMMUR.d = 1;
       if (libre < CAMMUR.d) { CAMMUR.d = Math.max(libre, CAMMUR.d - dt * 6); k = Math.min(1, dt * 18); } else CAMMUR.d = Math.min(1, libre, CAMMUR.d + dt * 1.2);
@@ -10483,7 +10507,7 @@ function loop() {
   voituresTick(dt); trier(dt); suivreFeux(dt); majInterieurs(); if (!paused) majObjectif(dt); if (dejaVu) adapterResolution();
   suivreVitres(); gel(); renderer.render(scene, camera); dejaVu = true; majPerf();
 }
-window.__pins = { ouvrirCrea, openBook, lvTourner, toast, MANOR, get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; } };
+window.__pins = { ouvrirCrea, openBook, lvTourner, toast, MANOR, get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; }, get pitch() { return pitch; }, get camDedans() { return camDedans; } };
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
 // (jusqu'à 6 s sur iPad) : la barre continue d'avancer doucement et les messages changent, pour qu'on voie que ça avance
 await souffle(96, "Les maîtres-nageurs arrivent…");
@@ -10519,7 +10543,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.30-1"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.10.30-5"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
