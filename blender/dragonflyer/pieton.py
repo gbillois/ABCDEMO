@@ -9,6 +9,18 @@ import heros
 from heros import SKIN, TUNIC, TUNIC2, VEST, FUR, PANTS, BOOT, BELT, BRACER, SOLE, IRON
 
 OUT = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else "/tmp/pieton"
+# Variantes : les villageois ont le même squelette que le héros (le jeu leur prête son animation de marche).
+# Lancer : blender -b -P pieton.py -- <dossier> <variante>      Produit : villageois_<variante>.glb
+VAR = sys.argv[sys.argv.index("--") + 2] if "--" in sys.argv and len(sys.argv) > sys.argv.index("--") + 2 else None
+VARIANTES = {
+    "fermier":   dict(tunic="#a8743a", tunic2="#c8944a", vest="#7a5232", pants="#5a4a36", bracer="#7a5232", hair="#5a3a22", style="court", barbe=True, fourrure=False),
+    "fermiere":  dict(tunic="#4a6a9a", tunic2="#e8dcc0", vest="#4a6a9a", pants="#4a6a9a", bracer="#4a6a9a", hair="#d8b060", style="tresses", robe=True, tablier="#e8dcc0", fourrure=False),
+    "ancien":    dict(tunic="#7a7a70", tunic2="#9a9a8a", vest="#3a5a3a", pants="#4a4a44", bracer="#3a5a3a", hair="#c8c4ba", style="chauve", barbe=True, fourrure=True),
+    "forgeron":  dict(tunic="#5a4a40", tunic2="#6a5a4a", vest="#5a4a40", pants="#3a3430", bracer="#3a2a20", hair="#2a2420", style="chauve", barbe=True, tablier="#6a4428", fourrure=False),
+    "pecheuse":  dict(tunic="#a8382a", tunic2="#c85a3a", vest="#e8dcc0", pants="#3a4a5a", bracer="#3a4a5a", hair="#a84a2a", style="tresses", fourrure=False),
+    "chef":      dict(tunic="#2f5a9a", tunic2="#3a6aaa", vest="#5a3820", pants="#3a3028", bracer="#5a3820", hair="#a84a22", style="court", barbe=True, casque=True, fourrure=True),
+}
+OPT = VARIANTES.get(VAR, {})
 os.makedirs(OUT, exist_ok=True)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
@@ -43,6 +55,8 @@ for s in "LR":
     GROUPES["bras" + s] = ["Chest", f"UpperArm.{s}", f"LowerArm.{s}", f"Hand.{s}"]
 
 # ---------------------------------------------------------------- corps
+if OPT:
+    TUNIC, TUNIC2, VEST, PANTS, BRACER = (heros.srgb(OPT[k]) for k in ("tunic", "tunic2", "vest", "pants", "bracer"))
 M = heros.Maillage()
 # buste fin d'ado : tunique aux hanches, ceinture, gilet de cuir sur la poitrine, cou
 nodes = [A([0, 0, .6]), A([0, 0, .69]), A([0, 0, .8]), A([0, 0, .92]), A([0, 0, 1.02])]
@@ -64,19 +78,21 @@ for s_, sx in (("L", 1), ("R", -1)):
     a = A([sx * .115, 0, .05])
     M.ellipsoid(a + A([0, -.055, -.005]), A([.066, 0, 0]), A([0, .12, 0]), A([0, 0, .058]), BOOT, 16, 10, "jambe" + s_)   # botte
     M.ellipsoid(a + A([0, -.06, -.042]), A([.068, 0, 0]), A([0, .124, 0]), A([0, 0, .016]), SOLE, 16, 8, "jambe" + s_)
-    heros.fourrure(M, [A([sx * .112 + .08 * math.cos(a), .08 * math.sin(a), .19]) for a in np.linspace(0, 2 * math.pi, 7)[:-1]], .032, "jambe" + s_, 2)   # revers de fourrure
+    if OPT.get("fourrure", True): heros.fourrure(M, [A([sx * .112 + .08 * math.cos(a), .08 * math.sin(a), .19]) for a in np.linspace(0, 2 * math.pi, 7)[:-1]], .032, "jambe" + s_, 2)   # revers de fourrure
     for z in (.27, .37): M.tube([A([sx * .108, -.015, z]), A([sx * .108, -.015, z + .018])], [.074, .074], BELT, 12, "jambe" + s_)  # lanières
     heros.main(M, nodes[POIGNETS[s_]], [0, -.15, -1], [sx, 0, 0], -sx, "poing", "bras" + s_)
 # bas de tunique évasé sous la ceinture
-M.tube([A([0, -.005, .67]), A([0, -.01, .58]), A([0, -.015, .48])], [.138, .155, .17], TUNIC, 20, "corps")
+if OPT.get("robe"): M.tube([A([0, -.005, .67]), A([0, -.01, .45]), A([0, -.015, .2])], [.138, .19, .24], TUNIC, 24, "corps")   # robe longue
+else: M.tube([A([0, -.005, .67]), A([0, -.01, .58]), A([0, -.015, .48])], [.138, .155, .17], TUNIC, 20, "corps")
+if OPT.get("tablier"): M.ellipsoid(A([0, -.15, .55]), A([.12, 0, 0]), A([0, .03, 0]), A([0, 0, .32]), heros.srgb(OPT["tablier"]), 12, 8, "corps")   # tablier
 # ouverture du gilet : la tunique se voit devant ; col de fourrure ; boucle de ceinture
 M.ellipsoid(A([0, -.105, .86]), A([.045, 0, 0]), A([0, .03, 0]), A([0, 0, .13]), TUNIC2, 12, 8, "corps")
-heros.fourrure(M, [A([.11, -.04, 1.0]), A([.08, .06, 1.0]), A([0, .085, 1.0]), A([-.08, .06, 1.0]), A([-.11, -.04, 1.0]), A([-.05, -.11, .985]), A([.05, -.11, .985])], .04, "corps")
+if OPT.get("fourrure", True): heros.fourrure(M, [A([.11, -.04, 1.0]), A([.08, .06, 1.0]), A([0, .085, 1.0]), A([-.08, .06, 1.0]), A([-.11, -.04, 1.0]), A([-.05, -.11, .985]), A([.05, -.11, .985])], .04, "corps")
 M.ellipsoid(A([0, -.128, .69]), A([.032, 0, 0]), A([0, .012, 0]), A([0, 0, .026]), IRON, 10, 6, "corps")
 for sx in (1, -1):   # épaulettes de cuir
     M.ellipsoid(A([sx * .17, 0, .96]), A([.07, 0, 0]), A([0, .075, 0]), A([0, 0, .035]), VEST, 12, 8, "bras" + ("L" if sx > 0 else "R"))
 piv = A([0, 0, 1.03])
-H, uv, nface = heros.tete(piv)
+H, uv, nface = heros.tete(piv, OPT.get("style", "heros"), heros.srgb(OPT["hair"]) if OPT else None, OPT.get("barbe", False), OPT.get("casque", False))
 
 # ---------------------------------------------------------------- armature, poids, objets
 arm_d = bpy.data.armatures.new("PietonRig"); rig = bpy.data.objects.new("PietonRig", arm_d)
@@ -99,7 +115,7 @@ tete_ob = heros.objet(scene, "PietonTete", H, np.zeros(3), uv, nface); habiller(
 print("pieton:", len(M.V) + len(H.V), "sommets")
 
 bpy.ops.object.select_all(action="SELECT")
-bpy.ops.export_scene.gltf(filepath=os.path.join(OUT, "pieton.glb"), export_format="GLB", use_selection=True, export_skins=True,
+bpy.ops.export_scene.gltf(filepath=os.path.join(OUT, f"villageois_{VAR}.glb" if VAR else "pieton.glb"), export_format="GLB", use_selection=True, export_skins=True,
                           export_animations=False, export_morph=False, export_yup=True, export_apply=False)
 
 # aperçu : jambe gauche en avant, bras droit levé
@@ -116,6 +132,6 @@ rig.pose.bones["Shin.L"].rotation_euler = (math.radians(30), 0, 0)
 rig.pose.bones["Thigh.R"].rotation_euler = (math.radians(20), 0, 0)
 rig.pose.bones["UpperArm.R"].rotation_euler = (math.radians(-60), 0, 0)
 bpy.ops.object.mode_set(mode="OBJECT")
-for nom, loc in (("apercu_pieton.png", (-1.4, -2.6, 1.2)), ("apercu_pieton_dos.png", (.9, 2.6, 1.3))):
+for nom, loc in ((f"apercu_{VAR}.png", (-1.4, -2.6, 1.2)),) if VAR else (("apercu_pieton.png", (-1.4, -2.6, 1.2)), ("apercu_pieton_dos.png", (.9, 2.6, 1.3))):
     cam.location = loc; d = Vector((0, 0, .75)) - Vector(loc); cam.rotation_euler = d.to_track_quat("-Z", "Y").to_euler(); cam.data.lens = 40
     scene.render.filepath = os.path.join(OUT, nom); bpy.ops.render.render(write_still=True)
