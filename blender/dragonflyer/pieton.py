@@ -1,12 +1,12 @@
-# DragonFlyer : le petit héros à pied (même personnage que le cavalier, debout), avec un squelette pour marcher,
+# DragonFlyer : le jeune Viking à pied (même personnage que le cavalier, debout), avec un squelette pour marcher,
 # courir et sauter (animé en code dans le jeu). Modèle, squelette et poids faits ici par le code.
 # Lancer :  blender -b -P pieton.py -- <dossier_de_sortie>     Produit : pieton.glb (+ apercu_pieton.png)
 import bpy, math, os, sys
 import numpy as np
 from mathutils import Vector, Matrix
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import manga
-from manga import SKIN, GI, SASH, UNDER, BAND, SHOE, SOLE
+import heros
+from heros import SKIN, TUNIC, TUNIC2, VEST, FUR, PANTS, BOOT, BELT, BRACER, SOLE, IRON
 
 OUT = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else "/tmp/pieton"
 os.makedirs(OUT, exist_ok=True)
@@ -43,9 +43,10 @@ for s in "LR":
     GROUPES["bras" + s] = ["Chest", f"UpperArm.{s}", f"LowerArm.{s}", f"Hand.{s}"]
 
 # ---------------------------------------------------------------- corps
-M = manga.Maillage()
+M = heros.Maillage()
+# buste fin d'ado : tunique aux hanches, ceinture, gilet de cuir sur la poitrine, cou
 nodes = [A([0, 0, .6]), A([0, 0, .69]), A([0, 0, .8]), A([0, 0, .92]), A([0, 0, 1.02])]
-radii = [.15, .155, .16, .17, .075]; cols = [GI, SASH, GI, GI, UNDER]; tags = ["corps"] * 5
+radii = [.135, .13, .13, .142, .058]; cols = [TUNIC, BELT, VEST, VEST, SKIN]; tags = ["corps"] * 5
 edges = [(0, 1), (1, 2), (2, 3), (3, 4)]
 def chain(pts, rr, cc, start, tag):
     prev = start
@@ -53,27 +54,29 @@ def chain(pts, rr, cc, start, tag):
         nodes.append(A(p, float)); radii.append(r); cols.append(c); tags.append(tag); edges.append((prev, len(nodes) - 1)); prev = len(nodes) - 1
     return prev
 POIGNETS = {}
-for s, sx in (("L", 1), ("R", -1)):
-    chain([(sx * .1, 0, .56), (sx * .11, -.01, .43), (sx * .115, -.02, .31), (sx * .12, -.01, .2), (sx * .12, 0, .1), (sx * .12, 0, .07)],
-          [.1, .098, .093, .088, .082, .055], [GI, GI, GI, GI, GI, SKIN], 0, "jambe" + s)
-    POIGNETS[s] = chain([(sx * .2, 0, .95), (sx * .26, 0, .85), (sx * .29, 0, .75), (sx * .3, -.015, .65), (sx * .31, -.03, .55)],
-                        [.08, .068, .05, .046, .044], [GI, GI, SKIN, SKIN, BAND], 3, "bras" + s)
+for s_, sx in (("L", 1), ("R", -1)):
+    chain([(sx * .09, 0, .56), (sx * .1, -.01, .43), (sx * .108, -.02, .31), (sx * .112, -.01, .2), (sx * .115, 0, .1), (sx * .115, 0, .07)],
+          [.082, .075, .068, .074, .078, .07], [PANTS, PANTS, PANTS, BOOT, BOOT, BOOT], 0, "jambe" + s_)
+    POIGNETS[s_] = chain([(sx * .19, 0, .95), (sx * .25, 0, .85), (sx * .28, 0, .75), (sx * .295, -.015, .65), (sx * .305, -.03, .56)],
+                         [.068, .056, .046, .046, .044], [VEST, TUNIC, TUNIC, BRACER, BRACER], 3, "bras" + s_)
 M.skin(scene, nodes, radii, cols, edges, tags)
-for s, sx in (("L", 1), ("R", -1)):
-    a = A([sx * .12, 0, .05])
-    M.ellipsoid(a + A([0, -.06, -.0]), A([.07, 0, 0]), A([0, .12, 0]), A([0, 0, .065]), SHOE, 16, 10, "jambe" + s)
-    M.ellipsoid(a + A([0, -.07, -.045]), A([.072, 0, 0]), A([0, .125, 0]), A([0, 0, .022]), SOLE, 16, 8, "jambe" + s)
-    M.tube([a + A([0, .02, .04]), a + A([0, .02, .075])], [.062, .062], SOLE, 14, "jambe" + s)
-    manga.main(M, nodes[POIGNETS[s]], [0, -.15, -1], [sx, 0, 0], -sx, "poing", "bras" + s)
-knot = A([-.08, -.15, .7])
-M.ellipsoid(knot, A([.05, 0, 0]), A([0, .035, 0]), A([0, 0, .04]), SASH, 12, 8, "corps")
-for dx, ln in ((-.09, .14), (-.03, .17)):
-    M.tube([knot, knot + A([dx * .5, -.03, -.05]), knot + A([dx, -.035, -ln])], [.028, .026, .024], SASH, 8, "corps")
-for sx in (1, -1):
-    M.tube([A([sx * .08, -.15, 1.0]), A([sx * .035, -.17, .9]), A([0, -.16, .82])], [.022, .022, .02], GI, 8, "corps")
-M.tube([A([.1, -.07, 1.02]), A([0, .03, 1.01]), A([-.1, -.07, 1.02]), A([0, -.13, 1.03]), A([.1, -.07, 1.02])], [.045] * 5, BAND, 10, "corps")   # écharpe
+for s_, sx in (("L", 1), ("R", -1)):
+    a = A([sx * .115, 0, .05])
+    M.ellipsoid(a + A([0, -.055, -.005]), A([.066, 0, 0]), A([0, .12, 0]), A([0, 0, .058]), BOOT, 16, 10, "jambe" + s_)   # botte
+    M.ellipsoid(a + A([0, -.06, -.042]), A([.068, 0, 0]), A([0, .124, 0]), A([0, 0, .016]), SOLE, 16, 8, "jambe" + s_)
+    M.tube([A([sx * .112, 0, .17]), A([sx * .112, 0, .21])], [.088, .088], FUR, 14, "jambe" + s_)                     # revers de fourrure
+    for z in (.27, .37): M.tube([A([sx * .108, -.015, z]), A([sx * .108, -.015, z + .018])], [.074, .074], BELT, 12, "jambe" + s_)  # lanières
+    heros.main(M, nodes[POIGNETS[s_]], [0, -.15, -1], [sx, 0, 0], -sx, "poing", "bras" + s_)
+# bas de tunique évasé sous la ceinture
+M.tube([A([0, -.005, .67]), A([0, -.01, .58]), A([0, -.015, .48])], [.138, .155, .17], TUNIC, 20, "corps")
+# ouverture du gilet : la tunique se voit devant ; col de fourrure ; boucle de ceinture
+M.ellipsoid(A([0, -.105, .86]), A([.045, 0, 0]), A([0, .03, 0]), A([0, 0, .13]), TUNIC2, 12, 8, "corps")
+M.tube([A([.11, -.04, 1.0]), A([0, .07, 1.0]), A([-.11, -.04, 1.0]), A([-.05, -.11, .985]), A([.05, -.11, .985]), A([.11, -.04, 1.0])], [.042] * 6, FUR, 10, "corps")
+M.ellipsoid(A([0, -.128, .69]), A([.032, 0, 0]), A([0, .012, 0]), A([0, 0, .026]), IRON, 10, 6, "corps")
+for sx in (1, -1):   # épaulettes de cuir
+    M.ellipsoid(A([sx * .17, 0, .96]), A([.07, 0, 0]), A([0, .075, 0]), A([0, 0, .035]), VEST, 12, 8, "bras" + ("L" if sx > 0 else "R"))
 piv = A([0, 0, 1.03])
-H, uv, nface = manga.tete(piv)
+H, uv, nface = heros.tete(piv)
 
 # ---------------------------------------------------------------- armature, poids, objets
 arm_d = bpy.data.armatures.new("PietonRig"); rig = bpy.data.objects.new("PietonRig", arm_d)
@@ -91,8 +94,8 @@ def habiller(ob, Mx, tete=False):
         w = {"Head": 1.0} if tete else poids(np.array(p), GROUPES[Mx.T[i]])
         for n, x in w.items(): gr[n].add([i], x, "REPLACE")
     ob.parent = rig; m = ob.modifiers.new("rig", "ARMATURE"); m.object = rig
-corps = manga.objet(scene, "Pieton", M, np.zeros(3)); habiller(corps, M)
-tete_ob = manga.objet(scene, "PietonTete", H, np.zeros(3), uv, nface); habiller(tete_ob, H, True)
+corps = heros.objet(scene, "Pieton", M, np.zeros(3)); habiller(corps, M)
+tete_ob = heros.objet(scene, "PietonTete", H, np.zeros(3), uv, nface); habiller(tete_ob, H, True)
 print("pieton:", len(M.V) + len(H.V), "sommets")
 
 bpy.ops.object.select_all(action="SELECT")

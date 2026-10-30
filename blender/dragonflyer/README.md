@@ -6,7 +6,7 @@ dans `dragonflyer/index.html`, qui reste un seul fichier.
 | fichier | rôle |
 |---|---|
 | `dragon.py` | Blender 4.2 : dragon (corps lofté, ailes en carreaux de Coons, pattes Skin), squelette, poids, textures d'écailles cuites (couleur, relief, occlusion), cavalier assis → `dragon.glb` |
-| `manga.py` | le petit héros de manga (tête, cheveux, mains, couleurs), partagé par le cavalier et le marcheur |
+| `heros.py` | le jeune Viking (tête, cheveux auburn, mains, tenue, couleurs), partagé par le cavalier et le marcheur |
 | `pieton.py` | Blender 4.2 : le héros debout, avec squelette (marche, course, saut animés dans le jeu) → `pieton.glb` |
 | `relief.py` | numpy : îles, modèle « stream power » (FastScape) pour les vallées, érosion par gouttes et thermique → `relief.webp` (hauteur 16 bits + humidité) |
 | `integrer.py` | met les trois fichiers en base64 dans le jeu |

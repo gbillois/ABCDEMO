@@ -567,17 +567,17 @@ for vi, w in enumerate(B.W):
     for n, x in w.items(): groups[n].add([vi], x / tot, "REPLACE")
 dragon.parent = rig; mod = dragon.modifiers.new("rig", "ARMATURE"); mod.object = rig
 
-# ---------------------------------------------------------------- cavalier : le héros de manga (manga.py), assis, une main sur la poignée
+# ---------------------------------------------------------------- cavalier : le jeune Viking (heros.py), assis, une main sur la poignée
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import manga
-from manga import SKIN, GI, SASH, UNDER, BAND, SHOE, SOLE
+import heros
+from heros import SKIN, TUNIC, TUNIC2, VEST, FUR, PANTS, BOOT, BELT, BRACER, SOLE, IRON
 def rider():
     zt = saddle_top[2]; y0 = SADDLE_Y
     P = lambda x, y, z: np.array([x, y0 + y, zt + z])
-    M = manga.Maillage()
-    # corps, jambes (pantalon large) le long du cou, bras
+    M = heros.Maillage()
+    # corps fin, jambes le long du cou, bras
     nodes = [P(0, .05, .1), P(0, .02, .2), P(0, -.02, .31), P(0, -.05, .42), P(0, -.08, .5)]
-    radii = [.15, .155, .16, .17, .075]; cols = [GI, SASH, GI, GI, UNDER]; edges = [(0, 1), (1, 2), (2, 3), (3, 4)]
+    radii = [.135, .13, .13, .142, .058]; cols = [TUNIC, BELT, VEST, VEST, SKIN]; edges = [(0, 1), (1, 2), (2, 3), (3, 4)]
     def chain(pts, rr, cc, start):
         prev = start
         for p, r, c in zip(pts, rr, cc):
@@ -585,39 +585,40 @@ def rider():
         return prev
     for sx in (1, -1):
         chain([P(sx * .12, .0, .06), P(sx * .25, -.17, .0), P(sx * .37, -.32, -.07), P(sx * .52, -.24, -.25), P(sx * .63, -.12, -.42), P(sx * .66, -.08, -.5)],
-              [.1, .1, .095, .088, .08, .055], [GI, GI, GI, GI, GI, SKIN], 0)
+              [.088, .082, .075, .07, .074, .07], [TUNIC, PANTS, PANTS, PANTS, BOOT, BOOT], 0)
     # bras gauche (sx = -1) : tient la poignée ; bras droit (sx = +1) : main en visière
-    WL = chain([P(-.2, -.06, .45), P(-.25, -.14, .38), P(-.26, -.24, .32), P(-.19, -.35, .28), P(-.13, -.42, .27)],
-               [.08, .068, .05, .046, .044], [GI, GI, SKIN, SKIN, BAND], 3)
-    WR = chain([P(.2, -.06, .46), P(.28, -.12, .54), P(.33, -.19, .63), P(.27, -.26, .74), P(.2, -.3, .8)],
-               [.08, .068, .05, .046, .044], [GI, GI, SKIN, SKIN, BAND], 3)
+    WL = chain([P(-.19, -.06, .45), P(-.24, -.14, .38), P(-.25, -.24, .32), P(-.19, -.35, .28), P(-.13, -.42, .27)],
+               [.068, .056, .046, .046, .044], [VEST, TUNIC, TUNIC, BRACER, BRACER], 3)
+    WR = chain([P(.19, -.06, .46), P(.27, -.12, .54), P(.32, -.19, .63), P(.27, -.26, .74), P(.2, -.3, .8)],
+               [.068, .056, .046, .046, .044], [VEST, TUNIC, TUNIC, BRACER, BRACER], 3)
     M.skin(scene, nodes, radii, cols, edges)
-    for sx in (1, -1):   # chaussures rondes, semelle, chaussette
+    for sx in (1, -1):   # bottes, semelle, revers de fourrure
         a = P(sx * .67, -.05, -.54)
-        M.ellipsoid(a + np.array([0, -.06, -.02]), np.array([.07, 0, 0]), np.array([0, .12, 0]), np.array([0, 0, .07]), SHOE, 16, 10)
-        M.ellipsoid(a + np.array([0, -.07, -.075]), np.array([.072, 0, 0]), np.array([0, .125, 0]), np.array([0, 0, .025]), SOLE, 16, 8)
-        M.tube([a + np.array([0, .02, .03]), a + np.array([0, .02, .065])], [.062, .062], SOLE, 14)
-    knot = P(-.08, -.15, .21)   # ceinture blanche nouée devant, pans qui pendent
-    M.ellipsoid(knot, np.array([.05, 0, 0]), np.array([0, .035, 0]), np.array([0, 0, .04]), SASH, 12, 8)
-    for dx, ln in ((-.09, .1), (-.03, .12)):
-        M.tube([knot, knot + np.array([dx * .5, -.03, -.04]), knot + np.array([dx, -.035, -ln])], [.028, .026, .024], SASH, 8)
-    for sx in (1, -1):   # col en V
-        M.tube([P(sx * .08, -.15, .5), P(sx * .035, -.19, .4), P(0, -.18, .32)], [.022, .022, .02], GI, 8)
-    manga.main(M, np.array(nodes[WL]), [.25, -1, -.15], [0, 0, 1], -1, "poing")
+        M.ellipsoid(a + np.array([0, -.06, -.02]), np.array([.066, 0, 0]), np.array([0, .12, 0]), np.array([0, 0, .062]), BOOT, 16, 10)
+        M.ellipsoid(a + np.array([0, -.065, -.065]), np.array([.068, 0, 0]), np.array([0, .124, 0]), np.array([0, 0, .018]), SOLE, 16, 8)
+        M.tube([P(sx * .6, -.15, -.33), P(sx * .625, -.13, -.38)], [.086, .086], FUR, 14)
+    # ouverture du gilet (la tunique se voit), col de fourrure, boucle de ceinture, bas de tunique sur la selle
+    M.ellipsoid(P(0, -.165, .34), np.array([.045, 0, 0]), np.array([0, .03, 0]), np.array([0, 0, .12]), TUNIC2, 12, 8)
+    M.tube([P(.11, -.08, .5), P(0, .03, .52), P(-.11, -.08, .5), P(-.05, -.15, .48), P(.05, -.15, .48), P(.11, -.08, .5)], [.042] * 6, FUR, 10)
+    M.ellipsoid(P(0, -.145, .2), np.array([.032, 0, 0]), np.array([0, .012, 0]), np.array([0, 0, .026]), IRON, 10, 6)
+    M.tube([P(0, .06, .16), P(0, .07, .08), P(0, .1, .02)], [.14, .155, .16], TUNIC, 20)
+    for sx in (1, -1):   # épaulettes de cuir
+        M.ellipsoid(P(sx * .17, -.06, .46), np.array([.07, 0, 0]), np.array([0, .075, 0]), np.array([0, 0, .035]), VEST, 12, 8)
+    heros.main(M, np.array(nodes[WL]), [.25, -1, -.15], [0, 0, 1], -1, "poing")
     # poignée du harnais : la barre passe dans le poing fermé, un montant la fixe à la selle
-    fL = manga.nrm([.25, -1, -.15]); uL = manga.nrm(np.array([0, 0, 1.0]) - fL * fL[2])
+    fL = heros.nrm([.25, -1, -.15]); uL = heros.nrm(np.array([0, 0, 1.0]) - fL * fL[2])
     grip = np.array(nodes[WL]) + fL * .07 - uL * .028
     GOLD, LEATH = srgb("#e2b443"), srgb("#5a2f18")
     M.tube([grip + np.array([-.1, 0, 0]), np.array([0, grip[1], grip[2]]), np.array([.2, grip[1], grip[2]])], [.024, .026, .024], GOLD, 10)
     for xx in (-.1, .2): M.ellipsoid(np.array([xx, grip[1], grip[2]]), np.array([.03, 0, 0]), np.array([0, .03, 0]), np.array([0, 0, .03]), GOLD, 10, 6)
     post0 = np.array([.05, grip[1], grip[2]]); post1 = np.array([.05, grip[1] + .06, zt - .02])
     M.tube([post0, (post0 + post1) / 2, post1], [.03, .032, .045], LEATH, 10)
-    manga.main(M, np.array(nodes[WR]), [-1, -.35, .05], [0, .25, 1], 1, "plat")
+    heros.main(M, np.array(nodes[WR]), [-1, -.35, .05], [0, .25, 1], 1, "plat")
     # tête (objet à part, pivot au cou, pour qu'elle regarde dans les virages)
     piv = P(0, -.09, .55)
-    H, uv, nface = manga.tete(piv)
-    obr = manga.objet(scene, "Rider", M, np.zeros(3))
-    obh = manga.objet(scene, "RiderHead", H, piv, uv, nface)
+    H, uv, nface = heros.tete(piv)
+    obr = heros.objet(scene, "Rider", M, np.zeros(3))
+    obh = heros.objet(scene, "RiderHead", H, piv, uv, nface)
     print("cavalier:", len(M.V) + len(H.V), "sommets")
     # pas de parenté à l'os dans le fichier (l'export glTF le retournait) : le jeu l'attache à l'os « Chest »
     obh.parent = obr; obh.matrix_parent_inverse = Matrix.Identity(4)

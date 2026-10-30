@@ -1,6 +1,7 @@
-# Le petit héros de manga (style Toriyama, années 80), commun au cavalier (dragon.py) et au marcheur (pieton.py).
-# Grosse tête ronde, cheveux roux clair en grosses mèches pointues, tunique bleue, ceinture blanche nouée,
-# bracelets rouges. Le visage (yeux, bouche) est dessiné dans le jeu sur une texture (matériau « RiderFace », UV de face).
+# Le jeune Viking, commun au cavalier (dragon.py) et au marcheur (pieton.py) : silhouette d'ado fine, cheveux auburn
+# en mèches désordonnées avec une petite tresse, tunique verte, gilet de cuir à col de fourrure, ceinture, brassards
+# et bottes fourrées. Le visage (yeux verts, sourcils, taches de rousseur, bouche) est dessiné dans le jeu sur une
+# texture (matériau « RiderFace », UV de face).
 import bpy, bmesh, math
 import numpy as np
 from mathutils import Vector
@@ -9,8 +10,9 @@ def srgb(h):
     h = h.lstrip("#"); c = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
     return tuple(x / 12.92 if x <= .04045 else ((x + .055) / 1.055) ** 2.4 for x in c)
 
-SKIN, GI, SASH, UNDER = srgb("#f8c9a0"), srgb("#2f6fd0"), srgb("#f6f3ea"), srgb("#183a7a")   # tunique bleue
-BAND, SHOE, SOLE, HAIR = srgb("#d92f2a"), srgb("#6b3f22"), srgb("#e9e4d6"), srgb("#d0703a")   # cheveux roux clair
+SKIN, TUNIC, TUNIC2, VEST = srgb("#efc09a"), srgb("#5f7a48"), srgb("#4a6038"), srgb("#5a3820")   # tunique verte, gilet de cuir
+FUR, PANTS, BOOT, BELT = srgb("#a08462"), srgb("#4a3a2c"), srgb("#4e3220"), srgb("#2e1e12")      # fourrure, pantalon, bottes
+BRACER, SOLE, IRON, HAIR = srgb("#6a4428"), srgb("#2a1c12"), srgb("#8a8478"), srgb("#64301a")   # cheveux auburn
 
 def nrm(v): v = np.array(v, float); return v / np.linalg.norm(v)
 
@@ -64,7 +66,7 @@ class Maillage:
         bpy.data.objects.remove(ob); bpy.data.meshes.remove(m2)
 
 def main(M, wrist, fwd, up, side_sign, pose, tag=None):
-    """Main à quatre doigts et un pouce : « poing » (fermé) ou « plat » (doigts tendus), bracelet rouge."""
+    """Main à quatre doigts et un pouce : « poing » (fermé) ou « plat » (doigts tendus), brassard de cuir."""
     f = nrm(fwd); u = nrm(np.array(up, float) - f * (np.array(up, float) @ f)); s = np.cross(f, u) * side_sign
     c = wrist + f * .05
     M.ellipsoid(c, s * .042, f * .048, u * .024, SKIN, 14, 10, tag)
@@ -77,59 +79,84 @@ def main(M, wrist, fwd, up, side_sign, pose, tag=None):
     tb = c - f * .012 + s * .036
     tp = [tb, tb + s * .02 + f * .02 - u * .012, tb + f * .045 - u * .03] if pose == "poing" else [tb, tb + s * .02 + f * .015, tb + s * .025 + f * .04]
     M.tube(tp, [.014, .013, .012], SKIN, 8, tag); M.ellipsoid(tp[-1], s * .012, f * .012, u * .012, SKIN, 8, 6, tag)
-    M.tube([wrist - f * .035, wrist + f * .005], [.05, .05], BAND, 14, tag)
+    M.tube([wrist - f * .07, wrist - f * .03, wrist + f * .005], [.05, .052, .05], BRACER, 14, tag)   # brassard de cuir
     return c, f, u
 
+def forme(d, R):
+    """Point du crâne dans la direction d : tête un peu haute, mâchoire fine, menton en avant, arrière du crâne rond."""
+    p = d * R * np.array([.93, .98, 1.1])
+    if d[1] > 0: p[1] *= 1.06
+    if d[2] < 0:
+        p[0] *= 1 - .3 * (-d[2]) ** 2
+        p[1] -= .1 * R * (-d[2]) * max(0, -d[1])
+    return p
+
 def tete(piv):
-    """Tête : crâne (UV de face pour le visage dessiné), oreilles, cheveux en mèches, nez. Renvoie (Maillage, uv, nb faces du visage)."""
-    H = Maillage()
-    hc = piv + np.array([0, -.035, .21]); R = .205
+    """Tête du jeune Viking : crâne (UV de face pour le visage dessiné), oreilles, nez, cheveux auburn en mèches
+    désordonnées, frange de côté, petite tresse. Renvoie (Maillage, uv, nb faces du visage)."""
+    H = Maillage(); rng = np.random.default_rng(3)
+    R = .148; hc = piv + np.array([0, -.03, .165])
     ez = np.array([0, 0, 1.0]); ey = np.array([0, 1.0, 0])
-    nu, nv = 40, 26; uv = []
+    nu, nv = 44, 30; uv = []
     for j in range(nv + 1):
         th = math.pi * j / nv
         for i in range(nu + 1):
             ph = 2 * math.pi * i / nu - math.pi / 2           # couture à l'arrière
             d = np.array([math.sin(th) * math.cos(ph), math.sin(th) * math.sin(ph), math.cos(th)])
-            p = d * R * np.array([1.0, .97, 1.0])
-            if d[2] < 0: p[2] *= 1.0 + .1 * max(0, -d[1]); p[0] *= 1 + .05 * (-d[2]) - .2 * (-d[2]) ** 3   # joues et menton
+            p = forme(d, R)
             H.V.append(hc + p); H.C.append(SKIN); H.T.append("Head")
-            uv.append((.5 + p[0] / (2.2 * R), .5 + p[2] / (2.2 * R)))
+            uv.append((.5 + p[0] / (2.2 * R), .5 + p[2] / (2.2 * R * 1.1)))
     for j in range(nv):
         for i in range(nu):
             a, b = j * (nu + 1) + i, j * (nu + 1) + i + 1; H.F.append([a, a + nu + 1, b + nu + 1, b])
     nface = len(H.F)
     def sur(d, lift=0.0):
-        d = nrm(d); return hc + d * (R * .97 + lift), d
-    for sx in (1, -1):
-        po, no = sur((sx, .08, -.12), -.012); H.ellipsoid(po, no * .028, ey * .045, ez * .06, SKIN, 12, 8, "Head")
-    o = len(H.V); keep = []; nu2, nv2 = 32, 20
+        d = nrm(d); p = forme(d, R); return hc + p + d * lift, d
+    for sx in (1, -1):   # oreilles
+        po, no = sur((sx, .1, -.02), -.006); H.ellipsoid(po, no * .02, ey * .03, ez * .042, SKIN, 12, 8, "Head")
+    # nez : arête et bout arrondi
+    p0, _ = sur((0, -1, .06), -.006); p1, n1 = sur((0, -1, -.2), .016)
+    H.tube([p0, (p0 + p1) / 2 + n1 * .01, p1], [.014, .017, .019], SKIN, 10, "Head")
+    H.ellipsoid(p1, np.array([.021, 0, 0]), n1 * .017, ez * .017, SKIN, 10, 6, "Head")
+    # calotte de cheveux : haut et arrière, front dégagé, tempes plus basses
+    o = len(H.V); keep = []; nu2, nv2 = 36, 22
     for j in range(nv2 + 1):
         th = math.pi * j / nv2
         for i in range(nu2):
             ph = 2 * math.pi * i / nu2
             d = np.array([math.sin(th) * math.cos(ph), math.sin(th) * math.sin(ph), math.cos(th)])
-            H.V.append(hc + d * R * 1.05); H.C.append(HAIR); H.T.append("Head")
-            keep.append(d[2] > .42 - .6 * max(0, d[1]) - .25 * abs(d[0]) or (d[1] > .2 and d[2] > -.6))
+            H.V.append(hc + forme(d, R) * 1.05); H.C.append(HAIR); H.T.append("Head")
+            keep.append(d[2] > .5 - .32 * abs(d[0]) - 1.05 * max(0, d[1]) ** .8)
     for j in range(nv2):
         for i in range(nu2):
             a, b = j * nu2 + i, j * nu2 + (i + 1) % nu2
             if all(keep[k] for k in (a, b, b + nu2, a + nu2)): H.F.append([o + a, o + a + nu2, o + b + nu2, o + b])
-    SPIKES = [((0, .2, 1), (0, .3, 1), .36, .1), ((.42, .2, .88), (.72, .35, .62), .36, .1), ((.75, .25, .5), (1, .3, .2), .34, .095),
-              ((.3, .7, .6), (.45, 1, .35), .34, .1), ((0, .8, .55), (0, 1, .3), .34, .105), ((.6, .7, .1), (.75, .85, -.3), .3, .095),
-              ((.2, .97, -.15), (.2, 1, -.55), .26, .09), ((.88, .25, -.05), (1, .25, -.55), .22, .08), ((.25, -.2, .95), (.25, -.05, 1), .3, .095),
-              ((.62, -.12, .75), (.85, 0, .55), .28, .09), ((.5, .45, -.4), (.6, .6, -.8), .2, .075)]
-    BANGS = [((.05, -.7, .7), (.0, -.6, -.3), .2, .075), ((.3, -.66, .68), (.35, -.55, -.35), .19, .07), ((.55, -.5, .66), (.75, -.4, -.25), .17, .065),
-             ((-.2, -.66, .7), (-.3, -.5, -.2), .17, .07), ((-.48, -.52, .68), (-.7, -.4, -.3), .18, .065)]
-    for base, tip, ln, r in SPIKES:
-        for sx in ((1, -1) if base[0] != 0 else (1,)):
-            b = np.array(base, float) * np.array([sx, 1, 1]); t = nrm(np.array(tip, float) * np.array([sx, 1, 1]))
-            p0, n0 = sur(b, -.03); mid = p0 + (n0 * .5 + t * .5) * ln * .45
-            H.tube([p0, mid, mid + t * ln * .35, p0 + (n0 * .3 + t * .7) * ln + n0 * .02], [r, r * .78, r * .42, .004], HAIR, 8, "Head")
-    for base, tip, ln, r in BANGS:
-        t = nrm(tip); p0, n0 = sur(base, -.02); mid = p0 + (n0 * .45 + t * .55) * ln * .4
-        H.tube([p0, mid, mid + t * ln * .35, p0 + (n0 * .25 + t * .75) * ln + n0 * .03], [r, r * .75, r * .4, .004], HAIR, 7, "Head")
-    pn, nn_ = sur((0, -1, -.22), -.004); H.ellipsoid(pn, np.array([.016, 0, 0]), nn_ * .013, ez * .014, SKIN, 10, 6, "Head")
+    def meche(base, tip, ln, r, lift=-.012, cols=None):
+        t = nrm(tip); p0, n0 = sur(base, lift)
+        mid = p0 + (n0 * .35 + t * .65) * ln * .4
+        pts = [p0, mid, mid + t * ln * .38, p0 + (n0 * .18 + t * .82) * ln]
+        H.tube(pts, [r, r * .8, r * .48, .004], HAIR, 7, "Head")
+    # mèches tout autour (arrière et côtés), qui tombent en désordre jusqu'à la nuque
+    for el in (.62, .32, .02):
+        for k in range(14):
+            ph = -2.4 + 4.8 * k / 13 + rng.uniform(-.12, .12)       # 0 = arrière (+y) ; ±π = devant
+            d = np.array([math.sin(ph) * math.cos(el), math.cos(ph) * math.cos(el), math.sin(el)])
+            if el < .1 and abs(ph) > 1.7: continue                 # rien devant les oreilles en bas
+            out = np.array([d[0], d[1], 0]); out = out / (np.linalg.norm(out) + 1e-6)
+            tip = out * (.28 + .12 * rng.random()) + np.array([0, 0, -1]) * (.9 + .2 * rng.random()) + rng.normal(0, .08, 3)
+            meche(d, tip, (.11 if el > .5 else .13 if el > .2 else .1) + .03 * rng.random(), .032 + .008 * rng.random())
+    # dessus en désordre : mèches couchées vers l'arrière et les côtés
+    for base, tip in (((0, .1, 1), (.15, .9, -.3)), ((.25, -.2, .95), (.8, .3, -.4)), ((-.3, 0, .95), (-.8, .4, -.4)), ((.05, .45, .9), (0, 1, -.5))):
+        meche(base, tip, .1, .04, -.006)
+    # frange balayée sur le côté (vers la droite du personnage)
+    for bx, ln in ((-.4, .1), (-.2, .1), (0, .095), (.2, .085), (.4, .075)):
+        meche((bx, -.6, .76), (.85, -.4, -.38), ln, .03, -.004)
+    # petite tresse derrière l'oreille gauche
+    tb, nb = sur((.86, .32, -.12), .0)
+    for k in range(6):
+        c = tb + np.array([.008 * k, .012 * k, -.026 * k]) + nb * .012
+        H.ellipsoid(c, np.array([.016, 0, 0]), np.array([0, .016, 0]), ez * .017, HAIR, 8, 6, "Head")
+    H.ellipsoid(tb + np.array([.05, .075, -.165]) + nb * .012, np.array([.012, 0, 0]), np.array([0, .012, 0]), ez * .012, BELT, 8, 6, "Head")
     return H, uv + [(0, 0)] * (len(H.V) - len(uv)), nface
 
 def materiaux():
