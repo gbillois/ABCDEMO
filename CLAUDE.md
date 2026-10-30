@@ -6,6 +6,9 @@ Structure :
 - `index.html` — page d'accueil (étagère de cartouches, un bouton par jeu).
 - `jeux/<nom>.html` — un fichier par jeu.
 - `pins/` — Le Domaine des Pins, en application installable (voir plus bas).
+- `dragonflyer/` — DragonFlyer, en application installable (voir plus bas).
+- `blender/dragonflyer/` — scripts (Blender, numpy) qui fabriquent le dragon, le héros et le relief de DragonFlyer,
+  embarqués en base64 dans `dragonflyer/index.html` (voir le README du dossier).
 
 ## Principes
 
@@ -105,6 +108,19 @@ Accord du propriétaire : le jeu vit dans `pins/` pour avoir sa propre adresse
   Dans le module du jeu, `localStorage` est remplacé par une version qui range les clés de la partie sous
   `pins@<numéro>:<clé>` ; seuls les réglages de l'appareil (`CLES_APPAREIL`) restent communs. L'export et le transfert
   envoient les parties cochées (format version 2 : `parties: [{ id, nom, donnees }]`).
+
+## Exception : DragonFlyer en application (PWA)
+
+Accord du propriétaire (octobre 2026) : DragonFlyer vit dans `dragonflyer/` (https://gbillois.github.io/ABCDEMO/dragonflyer/),
+comme le Domaine des Pins (`manifest.webmanifest`, `sw.js`, bouton « Update » sur l'écran titre et dans les réglages).
+- `jeux/dragonflyer.html` ne fait que rediriger vers `../dragonflyer/`.
+- Le jeu est en anglais (demande du propriétaire).
+- L'icône et le blason (`icone-*.png`, `apple-touch-icon.png`, `blason.webp`) viennent d'une image fournie par le propriétaire.
+- Nom affiché : « The DragonFlyer Chronicles ». Menus en grimoire : `ui-cuir.webp`, `ui-parchemin.webp`, `ui-gravure.webp`
+  sont faits par les scripts `grimoire_*.py` de `blender/dragonflyer/` (à ajouter à `FICHIERS` de `sw.js` s'il y en a d'autres).
+- `window.DRAGONFLYER_VERSION` (en bas de `dragonflyer/index.html`) est à changer à chaque modification ;
+  penser à dire à l'utilisateur d'appuyer sur « Update ». Si on ajoute un module three.js, l'ajouter à `FICHIERS` de `sw.js`.
+- Pour l'instant, le jeu n'est pas dans le menu des jeux (`index.html`), à la demande du propriétaire.
 
 ## Exception : sons enregistrés du Domaine des Pins
 
