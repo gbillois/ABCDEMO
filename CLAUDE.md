@@ -70,7 +70,7 @@ Accord du propriétaire pour ce seul jeu : `pins/index.html` peut se connecter
   Le relais garde le dernier en mémoire pour les arrivants et l'oublie quand la salle se vide. Chaque invité garde
   son sac, son téléphone, son argent et ses quêtes, et retrouve son heure et son thème en partant.
 - L'adresse du relais se règle dans `RELAIS_PROD` du jeu ; déploiement : `serveur/pins-relais/DEPLOIEMENT.md`.
-- Aucun autre jeu ne doit utiliser le réseau (sauf l'Oracle du Grand Arbre, ci-dessous).
+- Aucun autre jeu ne doit utiliser le réseau (sauf l'Oracle du Grand Arbre et DragonFlyer, ci-dessous).
 
 ## Exception : l'Oracle des animaux du Grand Arbre
 
@@ -116,11 +116,27 @@ comme le Domaine des Pins (`manifest.webmanifest`, `sw.js`, bouton « Update » 
 - `jeux/dragonflyer.html` ne fait que rediriger vers `../dragonflyer/`.
 - Le jeu est en anglais (demande du propriétaire).
 - L'icône et le blason (`icone-*.png`, `apple-touch-icon.png`, `blason.webp`) viennent d'une image fournie par le propriétaire.
-- Nom affiché : « The DragonFlyer Chronicles ». Menus en grimoire : `ui-cuir.webp`, `ui-parchemin.webp`, `ui-gravure.webp`
+- Nom affiché : « The Dragon Learner Chronicles » (sur l'écran d'accueil : « Dragon Learner ») ; le dossier reste `dragonflyer/`. Menus en grimoire : `ui-cuir.webp`, `ui-parchemin.webp`, `ui-gravure.webp`
   sont faits par les scripts `grimoire_*.py` de `blender/dragonflyer/` (à ajouter à `FICHIERS` de `sw.js` s'il y en a d'autres).
 - `window.DRAGONFLYER_VERSION` (en bas de `dragonflyer/index.html`) est à changer à chaque modification ;
   penser à dire à l'utilisateur d'appuyer sur « Update ». Si on ajoute un module three.js, l'ajouter à `FICHIERS` de `sw.js`.
 - Pour l'instant, le jeu n'est pas dans le menu des jeux (`index.html`), à la demande du propriétaire.
+
+## Exception : DragonFlyer à plusieurs et transfert de partie
+
+Accord du propriétaire (octobre 2026) : `dragonflyer/index.html` peut se connecter à son relais WebSocket Cloudflare
+(code dans `serveur/dragonflyer-relais/`, déploiement : `serveur/dragonflyer-relais/DEPLOIEMENT.md`), mêmes règles que
+le Domaine des Pins (voir aussi `REGLES-JEUX.md`) :
+- Le jeu reste entièrement jouable seul et sans réseau ; le relais ne sert qu'à « Together » et au transfert.
+- Salle = code de 8 caractères, 8 joueurs au plus. Profil : surnom facultatif (2 à 16 caractères, filtre
+  `filtrerSurnom` identique dans le jeu et le relais) et couleur du dragon (numéro de `COULEURS_DRAGON`).
+- Messages en listes fermées seulement : positions bornées, numéros de `PHRASES` (`NB_PHRASES` du relais ≥ longueur).
+- Rien n'est stocké sur disque, pas de journaux. Adresse dans `RELAIS_PROD`.
+- Parties : numéro à 6 chiffres et nom du cavalier (`dragonflyer:parties`, `dragonflyer:active`) ; données sous
+  `dragonflyer@<numéro>:<clé>`, réglages de l'appareil dans `CLES_APPAREIL`. Export/import en JSON
+  (`{ jeu: "dragonflyer", version: 1, parties: [{ id, nom, maj, donnees }] }`) et transfert chiffré
+  (`/transfert/<6 chiffres>`, ECDH P-256, HKDF salé par le code, AES-GCM, 10 minutes).
+- Tests : `node --test serveur/dragonflyer-relais/tests/relais.test.mjs`.
 
 ## Exception : sons enregistrés du Domaine des Pins
 
@@ -163,6 +179,11 @@ de travail **et sur `main`** pour mettre à jour GitHub Pages, puis republier l'
 2. Ajouter une entrée dans le tableau `JEUX` de `index.html`
    (`titre`, `description`, `icone`, `fichier`, `couleur` c1…c6).
 3. Commit, push (branche + `main`), republier l'artefact (accueil + `files` du jeu).
+
+## Règles habituelles du propriétaire
+
+Avant de créer ou de modifier un jeu, lire `REGLES-JEUX.md` (organisation des menus, sauvegardes, jeu à plusieurs,
+applications installables, manette, mesures de performance).
 
 ## Fluidité des jeux 3D
 

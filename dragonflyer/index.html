@@ -21,13 +21,13 @@
 *{touch-action:manipulation}
 input,textarea,select{font-size:max(16px,1em)}
 </style>
-<title>The DragonFlyer Chronicles</title>
+<title>The Dragon Learner Chronicles</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1a0f08">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="DragonFlyer">
+<meta name="apple-mobile-web-app-title" content="Dragon Learner">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=New+Rocker&family=Almendra+SC&family=Almendra:wght@400;700&family=Nunito:wght@800;900&display=swap">
 <style>
@@ -146,6 +146,35 @@ input,textarea,select{font-size:max(16px,1em)}
   .papier > .fermer .ico { width: 20px; height: 20px; }
   .reglage small { font: 400 13px var(--texte); color: #8a5a2a; margin-left: 6px; }
   .orne.mini[disabled] { opacity: .45; }
+  /* écrans Chronicles et Together : listes, champs, codes, couleurs, phrases */
+  .onglets.deux { grid-template-columns: repeat(2, 1fr); }
+  .liste { display: flex; flex-direction: column; gap: 6px; margin: 0 4px; text-align: left; }
+  .partie { display: flex; align-items: center; gap: 8px; }
+  .partie > .orne { flex: 1; justify-content: flex-start; text-align: left; min-height: 48px; padding: 2px 10px; font-size: 15px; }
+  .partie > .orne b { font: 400 16px var(--tete); } .partie > .orne small { margin-left: auto; font: 400 12px var(--texte); color: #6b4220; text-align: right; white-space: pre-line; line-height: 1.25; }
+  .partie > .orne.actif { filter: drop-shadow(0 0 5px rgba(255,210,110,.95)); }
+  .partie > .bouclier { width: 40px; height: 40px; flex: none; } .partie > .bouclier .ico { width: 18px; height: 18px; }
+  .partie > .bouclier.danger { box-shadow: 0 0 0 3px #b8261a, 0 3px 0 #1e1006; }
+  .case { display: flex; align-items: center; gap: 10px; background: none; border: 0; padding: 4px 6px; font: 400 15px var(--texte); color: #3e2008; text-align: left; }
+  .case i { width: 24px; height: 24px; flex: none; border: 2px solid #4e2e12; border-radius: 5px; background: #fbf2d8; display: grid; place-items: center; font: 900 16px var(--chiffres); font-style: normal; }
+  .champ { font: 400 16px var(--texte); color: #2e1a0a; background: rgba(255,250,235,.85); border: 2px solid #7a5530; border-radius: 6px; padding: 7px 10px; min-width: 0; width: 170px;
+    box-shadow: inset 0 2px 4px rgba(90,50,10,.2); -webkit-user-select: text; user-select: text; }
+  .champ:focus { outline: 2px solid #d9a948; outline-offset: 1px; } .champ.court { width: 118px; letter-spacing: 2px; text-align: center; }
+  .nouvelle { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 12px 4px 0; } .nouvelle .champ { flex: 1; width: auto; }
+  .grille2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 4px 0; } .grille2 .orne { min-height: 44px; gap: 6px; } .grille2 .ico { width: 20px; height: 20px; }
+  .orne.mini .ico { width: 18px; height: 18px; margin-right: 4px; }
+  .svBox { margin: 12px 4px 0; padding: 10px; border: 1px dashed rgba(78,46,18,.5); border-radius: 6px; font: 400 15px var(--texte); color: #3e2008; }
+  .svBox p { margin: 0 0 8px; } .svBox .duo { justify-content: center; margin-top: 8px; }
+  .grandCode { font: 400 40px var(--titre); letter-spacing: 6px; color: #3e2008; text-shadow: 1px 1px 0 #fff6da; margin: 4px 0 8px; user-select: text; -webkit-user-select: text; }
+  .nuances { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 0 4px; }
+  .nuance { width: 34px; height: 34px; border-radius: 50%; border: 3px solid #3a2210; box-shadow: inset 0 -6px 10px rgba(0,0,0,.35), inset 0 4px 6px rgba(255,255,255,.35); padding: 0; }
+  .nuance.choisi { box-shadow: 0 0 0 3px #fff2c0, 0 0 12px 3px rgba(255,200,90,.95), inset 0 -6px 10px rgba(0,0,0,.35); }
+  .phrases { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin: 0 4px; }
+  .joueur { display: flex; align-items: center; gap: 8px; font: 400 16px var(--texte); color: #2e1a0a; } .joueur i { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #3a2210; }
+  .partieTitre { display: block; margin: 10px auto 0; background: none; border: 0; font: 400 15px var(--texte); color: #4e2e12; text-decoration: underline dotted; }
+  #bulles { position: fixed; left: max(14px, env(safe-area-inset-left)); bottom: max(130px, calc(env(safe-area-inset-bottom) + 120px)); z-index: 7; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+  #bulles > div { font: 400 16px var(--texte); color: #2e1a0a; padding: 6px 12px; border-radius: 8px; background: rgba(250,240,214,.92); box-shadow: 0 0 0 2px #c99a5c, 0 3px 8px rgba(0,0,0,.4); transition: opacity .6s; }
+  #bulles b { font-weight: 700; }
   .petit { font: 700 14px var(--tete); color: #6b4220; margin-top: 12px; min-height: 18px; }
   .aide { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; text-align: left; font: 700 14px var(--tete); color: #4a2c12; margin: 4px 8px 0; align-items: center; }
   .aide kbd { font: 900 12px var(--chiffres); border: 2px solid #4a2c12; border-radius: 5px; padding: 0 5px; background: #fff6e0; }
@@ -249,11 +278,11 @@ input,textarea,select{font-size:max(16px,1em)}
 </svg>
 
 <!-- icônes gravées du grimoire, dessinées en SVG (32×32, encre = currentColor) -->
-<svg class="defs" aria-hidden="true"><symbol id="i-dragon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M4 27C5 19 9 14 15 12.5c4-1 8-1.5 11 .5 3 2 4 5 2 7l-5 1c-2 0-4 1-5 3l-1 3'/><path fill='currentColor' fill-opacity='.14' d='M15 12.5C13 8 13 5 10 2.5c5 1 8 4 9 9.5M21 11.5c1-4 3-6.5 7-8-1 3-2 6-3 8.5'/><path d='M28 20c-3-1-6-1-8 .5'/><path d='M19.5 15.6q2.2-1.6 4.4 0'/><circle cx='21.7' cy='15.9' r='1.1' fill='currentColor'/><circle cx='27' cy='16.4' r='.6' fill='currentColor'/><path stroke-width='1.1' opacity='.7' d='M7 23c2-3 4-5 7-6M10 25c2-3 3-4 6-5M6 19c1-2 3-4 5-5'/></symbol><symbol id="i-engrenage" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M20.1 12.5 L22.3 14.2 L21.9 15.9 L19.1 16.3 L18.3 17.4 L18.9 20.2 L17.5 21.2 L15.1 19.6 L13.8 20.0 L12.5 22.5 L10.8 22.3 L9.9 19.6 L8.7 19.1 L6.1 20.2 L4.8 18.9 L5.9 16.3 L5.4 15.1 L2.7 14.2 L2.5 12.5 L5.0 11.2 L5.4 9.9 L3.8 7.5 L4.8 6.1 L7.6 6.7 L8.7 5.9 L9.1 3.1 L10.8 2.7 L12.5 4.9 L13.8 5.0 L15.9 3.1 L17.5 3.8 L17.4 6.7 L18.3 7.6 L21.2 7.5 L21.9 9.1 L20.0 11.2Z'/><circle cx='12.5' cy='12.5' r='4'/><circle cx='12.5' cy='12.5' r='1.4' fill='currentColor'/><path fill='currentColor' fill-opacity='.14' d='M27.9 23.5 L29.7 24.9 L29.3 26.3 L26.9 26.2 L26.2 26.9 L26.3 29.3 L24.9 29.7 L23.5 27.9 L22.5 27.8 L20.7 29.3 L19.5 28.5 L20.1 26.2 L19.5 25.4 L17.3 24.9 L17.1 23.5 L19.2 22.5 L19.5 21.6 L18.5 19.5 L19.5 18.5 L21.6 19.5 L22.5 19.2 L23.5 17.1 L24.9 17.3 L25.4 19.5 L26.2 20.1 L28.5 19.5 L29.3 20.7 L27.8 22.5Z'/><circle cx='23.5' cy='23.5' r='1.6'/></symbol><symbol id="i-maj" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M25 12a10 10 0 0 0-17-3l-2 2'/><path d='M5 6v5h5'/><path d='M7 20a10 10 0 0 0 17 3l2-2'/><path d='M27 26v-5h-5'/></symbol><symbol id="i-maison" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 17 16 5l14 12'/><path d='M13 6l-3-4M19 6l3-4'/><path d='M6 14v13h20V14'/><path d='M13 27v-7h6v7'/><path stroke-width='1.1' opacity='.7' d='M8 18h3M21 18h3M8 22h3M21 22h3'/></symbol><symbol id="i-rouleau" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M9 6h16a3 3 0 0 1 0 6h-2v14a3 3 0 0 1-3 3H6a3 3 0 0 1 0-6h3z'/><path d='M23 12V9'/><path d='M9 23v3a3 3 0 0 1-3 3'/><path stroke-width='1.1' opacity='.7' d='M12 12h8M12 16h8M12 20h6'/></symbol><symbol id="i-longuevue" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M4 21 22 8l3 4L7 25z'/><path d='M22 8l3-2 3 4-3 2'/><path d='M11 18l3 4'/><path d='M8 28l4-5 4 5'/></symbol><symbol id="i-cor" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M4 9c9 0 18 5 23 16l-4 2C19 18 12 14 4 14z'/><path d='M4 9v5'/><path d='M10 9.6v4.6M16 11.5l-1.5 4.4'/><path stroke-width='1.1' opacity='.7' d='M8 6c2-1 4-1 6 0'/></symbol><symbol id="i-muet" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M4 9c9 0 18 5 23 16l-4 2C19 18 12 14 4 14z'/><path d='M4 9v5'/><path d='M18 3l10 10M28 3 18 13' stroke-width='2.4'/></symbol><symbol id="i-lyre" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M9 27h14'/><path d='M10 27C6 20 5 12 8 5c2 3 4 4 5 4M22 27c4-7 5-15 2-22-2 3-4 4-5 4'/><path d='M9 9h14'/><path d='M13 9v15M16 9v15M19 9v15'/></symbol><symbol id="i-cadenas" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x='7' y='14' width='18' height='14' rx='2'/><path d='M11 14V9a5 5 0 0 1 10 0v5'/><circle cx='16' cy='20' r='2' fill='currentColor'/><path d='M16 22v3'/></symbol><symbol id="i-fleches" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 3v26'/><path d='M10 9l6-6 6 6M10 23l6 6 6-6'/></symbol><symbol id="i-sablier" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M7 3h18M7 29h18'/><path d='M9 3c0 8 7 9 7 13s-7 5-7 13M23 3c0 8-7 9-7 13s7 5 7 13'/><path stroke-width='1.1' opacity='.7' d='M12 26c2-2 6-2 8 0M13 9h6'/></symbol><symbol id="i-pause" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x='8' y='6' width='5' height='20' rx='1.5' fill='currentColor'/><rect x='19' y='6' width='5' height='20' rx='1.5' fill='currentColor'/></symbol><symbol id="i-viser" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx='16' cy='16' r='10'/><circle cx='16' cy='16' r='3' fill='currentColor'/><path d='M16 2v6M16 24v6M2 16h6M24 16h6'/></symbol><symbol id="i-croix" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 3v26M3 16h26'/><path d='M12 7l4-4 4 4M12 25l4 4 4-4M7 12l-4 4 4 4M25 12l4 4-4 4'/></symbol><symbol id="i-aile" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M4 26C6 18 8 12 10 6c6-1 13-1 19-2-2 4-3 6-2 9-3 0-5 1-5 4-3 0-5 2-5 5-4-1-9 1-13 4z'/><path d='M10 6l17 7M10 6l12 11M10 6l7 16'/></symbol><symbol id="i-feu" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 29c-6 0-10-4-10-9 0-6 5-8 6-14 3 2 4 5 4 8 1-2 3-3 3-6 4 3 7 8 7 12 0 5-4 9-10 9z'/><path d='M16 29c-3 0-5-2-5-5 0-3 3-4 4-7 2 2 6 4 6 7 0 3-2 5-5 5z'/></symbol><symbol id="i-atterrir" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 3v15'/><path d='M10 12l6 6 6-6'/><path d='M3 26h26'/><path stroke-width='1.1' opacity='.7' d='M7 29h4M14 29h4M21 29h4'/></symbol><symbol id="i-saut" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M5 27c3-10 8-17 17-20'/><path d='M15 6l7 1-2 7'/><path d='M3 29h10'/></symbol><symbol id="i-anneau" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><ellipse cx='16' cy='16' rx='12' ry='12'/><ellipse cx='16' cy='16' rx='7.5' ry='7.5'/><path stroke-width='1.1' opacity='.7' d='M8 9l2 2M23 22l2 2M24 9l-2 2'/></symbol><symbol id="i-poisson" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M3 16c5-7 13-8 19-2l7-5v14l-7-5c-6 6-14 5-19-2z'/><circle cx='9' cy='14.5' r='1.4' fill='currentColor'/><path stroke-width='1.1' opacity='.7' d='M14 12c1 3 1 5 0 8M18 13c1 2 1 4 0 6'/></symbol><symbol id="i-nid" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M3 18c2 8 24 8 26 0'/><path d='M4 21c7 3 17 3 24 0M6 25c6 2 14 2 20 0'/><ellipse cx='11' cy='15' rx='3.2' ry='4'/><ellipse cx='17' cy='13' rx='3.2' ry='4.2'/><ellipse cx='22.5' cy='15.5' rx='3' ry='3.8'/></symbol><symbol id="i-phare" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M12 29 13 11h6l1 18'/><path d='M11 11h10M12 11V7h8v4M14 7l2-3 2 3'/><path d='M9 29h14'/><path stroke-width='1.1' opacity='.7' d='M13 17h6M12.5 23h7'/><path d='M5 6l6 2M27 6l-6 2'/></symbol><symbol id="i-village" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 20 9 13l7 7M5 18v10h8V18'/><path d='M14 16 21 8l9 9M17 13v15h11V14'/><path d='M21 28v-5h3v5'/><path d='M2 28h28'/></symbol><symbol id="i-pic" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 28 12 12l4 6 3-5 11 15z'/><path stroke-width='1.1' opacity='.7' d='M10 18l2 3M18 17l3 4'/><path d='M19 11c-2 0-3-2-3-3 0-2 2-3 2-5 2 1 4 3 4 5 0 2-1 3-3 3z'/></symbol><symbol id="i-fermer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M7 7l18 18M25 7 7 25' stroke-width='3'/></symbol><symbol id="i-rejouer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M26 16a10 10 0 1 1-4-8'/><path d='M23 3v6h-6' stroke-width='2.2'/></symbol><symbol id="i-jouer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M10 6v20l16-10z' fill='currentColor'/></symbol><symbol id="i-oeil" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 16c4-6 9-9 14-9s10 3 14 9c-4 6-9 9-14 9S6 22 2 16z'/><circle cx='16' cy='16' r='5'/><circle cx='16' cy='16' r='2' fill='currentColor'/></symbol><symbol id="i-courbe" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M3 25c5-14 13-19 26-18'/><path d='M23 3l6 4-5 5'/><path d='M3 29h26' stroke-width='1.1' opacity='.7'/></symbol></svg>
+<svg class="defs" aria-hidden="true"><symbol id="i-dragon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M4 27C5 19 9 14 15 12.5c4-1 8-1.5 11 .5 3 2 4 5 2 7l-5 1c-2 0-4 1-5 3l-1 3'/><path fill='currentColor' fill-opacity='.14' d='M15 12.5C13 8 13 5 10 2.5c5 1 8 4 9 9.5M21 11.5c1-4 3-6.5 7-8-1 3-2 6-3 8.5'/><path d='M28 20c-3-1-6-1-8 .5'/><path d='M19.5 15.6q2.2-1.6 4.4 0'/><circle cx='21.7' cy='15.9' r='1.1' fill='currentColor'/><circle cx='27' cy='16.4' r='.6' fill='currentColor'/><path stroke-width='1.1' opacity='.7' d='M7 23c2-3 4-5 7-6M10 25c2-3 3-4 6-5M6 19c1-2 3-4 5-5'/></symbol><symbol id="i-engrenage" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M20.1 12.5 L22.3 14.2 L21.9 15.9 L19.1 16.3 L18.3 17.4 L18.9 20.2 L17.5 21.2 L15.1 19.6 L13.8 20.0 L12.5 22.5 L10.8 22.3 L9.9 19.6 L8.7 19.1 L6.1 20.2 L4.8 18.9 L5.9 16.3 L5.4 15.1 L2.7 14.2 L2.5 12.5 L5.0 11.2 L5.4 9.9 L3.8 7.5 L4.8 6.1 L7.6 6.7 L8.7 5.9 L9.1 3.1 L10.8 2.7 L12.5 4.9 L13.8 5.0 L15.9 3.1 L17.5 3.8 L17.4 6.7 L18.3 7.6 L21.2 7.5 L21.9 9.1 L20.0 11.2Z'/><circle cx='12.5' cy='12.5' r='4'/><circle cx='12.5' cy='12.5' r='1.4' fill='currentColor'/><path fill='currentColor' fill-opacity='.14' d='M27.9 23.5 L29.7 24.9 L29.3 26.3 L26.9 26.2 L26.2 26.9 L26.3 29.3 L24.9 29.7 L23.5 27.9 L22.5 27.8 L20.7 29.3 L19.5 28.5 L20.1 26.2 L19.5 25.4 L17.3 24.9 L17.1 23.5 L19.2 22.5 L19.5 21.6 L18.5 19.5 L19.5 18.5 L21.6 19.5 L22.5 19.2 L23.5 17.1 L24.9 17.3 L25.4 19.5 L26.2 20.1 L28.5 19.5 L29.3 20.7 L27.8 22.5Z'/><circle cx='23.5' cy='23.5' r='1.6'/></symbol><symbol id="i-maj" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M25 12a10 10 0 0 0-17-3l-2 2'/><path d='M5 6v5h5'/><path d='M7 20a10 10 0 0 0 17 3l2-2'/><path d='M27 26v-5h-5'/></symbol><symbol id="i-maison" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 17 16 5l14 12'/><path d='M13 6l-3-4M19 6l3-4'/><path d='M6 14v13h20V14'/><path d='M13 27v-7h6v7'/><path stroke-width='1.1' opacity='.7' d='M8 18h3M21 18h3M8 22h3M21 22h3'/></symbol><symbol id="i-rouleau" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M9 6h16a3 3 0 0 1 0 6h-2v14a3 3 0 0 1-3 3H6a3 3 0 0 1 0-6h3z'/><path d='M23 12V9'/><path d='M9 23v3a3 3 0 0 1-3 3'/><path stroke-width='1.1' opacity='.7' d='M12 12h8M12 16h8M12 20h6'/></symbol><symbol id="i-longuevue" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M4 21 22 8l3 4L7 25z'/><path d='M22 8l3-2 3 4-3 2'/><path d='M11 18l3 4'/><path d='M8 28l4-5 4 5'/></symbol><symbol id="i-cor" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M4 9c9 0 18 5 23 16l-4 2C19 18 12 14 4 14z'/><path d='M4 9v5'/><path d='M10 9.6v4.6M16 11.5l-1.5 4.4'/><path stroke-width='1.1' opacity='.7' d='M8 6c2-1 4-1 6 0'/></symbol><symbol id="i-muet" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M4 9c9 0 18 5 23 16l-4 2C19 18 12 14 4 14z'/><path d='M4 9v5'/><path d='M18 3l10 10M28 3 18 13' stroke-width='2.4'/></symbol><symbol id="i-lyre" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M9 27h14'/><path d='M10 27C6 20 5 12 8 5c2 3 4 4 5 4M22 27c4-7 5-15 2-22-2 3-4 4-5 4'/><path d='M9 9h14'/><path d='M13 9v15M16 9v15M19 9v15'/></symbol><symbol id="i-cadenas" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x='7' y='14' width='18' height='14' rx='2'/><path d='M11 14V9a5 5 0 0 1 10 0v5'/><circle cx='16' cy='20' r='2' fill='currentColor'/><path d='M16 22v3'/></symbol><symbol id="i-fleches" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 3v26'/><path d='M10 9l6-6 6 6M10 23l6 6 6-6'/></symbol><symbol id="i-sablier" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M7 3h18M7 29h18'/><path d='M9 3c0 8 7 9 7 13s-7 5-7 13M23 3c0 8-7 9-7 13s7 5 7 13'/><path stroke-width='1.1' opacity='.7' d='M12 26c2-2 6-2 8 0M13 9h6'/></symbol><symbol id="i-pause" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x='8' y='6' width='5' height='20' rx='1.5' fill='currentColor'/><rect x='19' y='6' width='5' height='20' rx='1.5' fill='currentColor'/></symbol><symbol id="i-viser" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx='16' cy='16' r='10'/><circle cx='16' cy='16' r='3' fill='currentColor'/><path d='M16 2v6M16 24v6M2 16h6M24 16h6'/></symbol><symbol id="i-croix" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 3v26M3 16h26'/><path d='M12 7l4-4 4 4M12 25l4 4 4-4M7 12l-4 4 4 4M25 12l4 4-4 4'/></symbol><symbol id="i-aile" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M4 26C6 18 8 12 10 6c6-1 13-1 19-2-2 4-3 6-2 9-3 0-5 1-5 4-3 0-5 2-5 5-4-1-9 1-13 4z'/><path d='M10 6l17 7M10 6l12 11M10 6l7 16'/></symbol><symbol id="i-feu" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 29c-6 0-10-4-10-9 0-6 5-8 6-14 3 2 4 5 4 8 1-2 3-3 3-6 4 3 7 8 7 12 0 5-4 9-10 9z'/><path d='M16 29c-3 0-5-2-5-5 0-3 3-4 4-7 2 2 6 4 6 7 0 3-2 5-5 5z'/></symbol><symbol id="i-atterrir" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 3v15'/><path d='M10 12l6 6 6-6'/><path d='M3 26h26'/><path stroke-width='1.1' opacity='.7' d='M7 29h4M14 29h4M21 29h4'/></symbol><symbol id="i-saut" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M5 27c3-10 8-17 17-20'/><path d='M15 6l7 1-2 7'/><path d='M3 29h10'/></symbol><symbol id="i-anneau" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><ellipse cx='16' cy='16' rx='12' ry='12'/><ellipse cx='16' cy='16' rx='7.5' ry='7.5'/><path stroke-width='1.1' opacity='.7' d='M8 9l2 2M23 22l2 2M24 9l-2 2'/></symbol><symbol id="i-poisson" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M3 16c5-7 13-8 19-2l7-5v14l-7-5c-6 6-14 5-19-2z'/><circle cx='9' cy='14.5' r='1.4' fill='currentColor'/><path stroke-width='1.1' opacity='.7' d='M14 12c1 3 1 5 0 8M18 13c1 2 1 4 0 6'/></symbol><symbol id="i-nid" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M3 18c2 8 24 8 26 0'/><path d='M4 21c7 3 17 3 24 0M6 25c6 2 14 2 20 0'/><ellipse cx='11' cy='15' rx='3.2' ry='4'/><ellipse cx='17' cy='13' rx='3.2' ry='4.2'/><ellipse cx='22.5' cy='15.5' rx='3' ry='3.8'/></symbol><symbol id="i-phare" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M12 29 13 11h6l1 18'/><path d='M11 11h10M12 11V7h8v4M14 7l2-3 2 3'/><path d='M9 29h14'/><path stroke-width='1.1' opacity='.7' d='M13 17h6M12.5 23h7'/><path d='M5 6l6 2M27 6l-6 2'/></symbol><symbol id="i-village" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 20 9 13l7 7M5 18v10h8V18'/><path d='M14 16 21 8l9 9M17 13v15h11V14'/><path d='M21 28v-5h3v5'/><path d='M2 28h28'/></symbol><symbol id="i-pic" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 28 12 12l4 6 3-5 11 15z'/><path stroke-width='1.1' opacity='.7' d='M10 18l2 3M18 17l3 4'/><path d='M19 11c-2 0-3-2-3-3 0-2 2-3 2-5 2 1 4 3 4 5 0 2-1 3-3 3z'/></symbol><symbol id="i-fermer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M7 7l18 18M25 7 7 25' stroke-width='3'/></symbol><symbol id="i-rejouer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M26 16a10 10 0 1 1-4-8'/><path d='M23 3v6h-6' stroke-width='2.2'/></symbol><symbol id="i-jouer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M10 6v20l16-10z' fill='currentColor'/></symbol><symbol id="i-oeil" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 16c4-6 9-9 14-9s10 3 14 9c-4 6-9 9-14 9S6 22 2 16z'/><circle cx='16' cy='16' r='5'/><circle cx='16' cy='16' r='2' fill='currentColor'/></symbol><symbol id="i-livre" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M5 6c4-2 8-2 11 1v20c-3-3-7-3-11-1z'/><path fill='currentColor' fill-opacity='.14' d='M27 6c-4-2-8-2-11 1v20c3-3 7-3 11-1z'/><path stroke-width='1.1' opacity='.7' d='M8 11c2-1 4-1 6 0M8 15c2-1 4-1 6 0M18 11c2-1 4-1 6 0M18 15c2-1 4-1 6 0'/></symbol><symbol id="i-envoyer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 20V4'/><path d='M10 10l6-6 6 6'/><path d='M5 18v8h22v-8'/></symbol><symbol id="i-recevoir" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 4v16'/><path d='M10 14l6 6 6-6'/><path d='M5 18v8h22v-8'/></symbol><symbol id="i-poubelle" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M6 9h20M13 9V5h6v4'/><path fill='currentColor' fill-opacity='.14' d='M8 9l2 18h12l2-18'/><path stroke-width='1.1' opacity='.7' d='M13 13v10M19 13v10'/></symbol><symbol id="i-joueurs" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx='11' cy='11' r='4.5'/><path d='M3 27c0-6 4-9 8-9s8 3 8 9'/><circle cx='22' cy='9' r='3.6'/><path d='M19 16c1-1 2-1.5 3-1.5 3.5 0 7 2.5 7 8'/><path d='M7 7l-2-4M15 7l2-4'/></symbol><symbol id="i-plus" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 5v22M5 16h22' stroke-width='3'/></symbol><symbol id="i-bulle" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M5 7h22v14H14l-6 5v-5H5z'/><path stroke-width='1.1' opacity='.7' d='M9 12h14M9 16h10'/></symbol><symbol id="i-courbe" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M3 25c5-14 13-19 26-18'/><path d='M23 3l6 4-5 5'/><path d='M3 29h26' stroke-width='1.1' opacity='.7'/></symbol></svg>
 
 <div id="chargement" class="ecran">
   <img class="blason" src="blason.webp" alt="">
-  <h1><small>The</small>DragonFlyer<small>Chronicles</small></h1>
+  <h1><small>The</small>Dragon Learner<small>Chronicles</small></h1>
   <div class="barre"><i id="barreCh"></i></div>
   <p id="texteCh">The dragon wakes up…</p>
 </div>
@@ -263,10 +292,13 @@ input,textarea,select{font-size:max(16px,1em)}
     <div class="baton"></div>
     <div class="papier">
       <img class="blason" src="blason.webp" alt="">
-      <h1><small>The</small>DragonFlyer<small>Chronicles</small></h1>
+      <h1><small>The</small>Dragon Learner<small>Chronicles</small></h1>
       <div class="ruban">RIDERS OF THE ISLES</div>
       <div class="pile"><button class="orne grand" id="bJouer"><span class="ic sceau"><svg class="ico"><use href="#i-dragon"/></svg></span>Play</button></div>
+      <button class="partieTitre" id="bPartieTitre"><span id="nomPartieTitre"></span></button>
       <div class="rangee">
+        <button class="bouclier" id="bParties" aria-label="Chronicles" title="Chronicles"><span><svg class="ico"><use href="#i-livre"/></svg></span></button>
+        <button class="bouclier" id="bMulti" aria-label="Together" title="Play together"><span><svg class="ico"><use href="#i-joueurs"/></svg></span></button>
         <button class="bouclier" id="bReglages" aria-label="Settings"><span><svg class="ico"><use href="#i-engrenage"/></svg></span></button>
         <button class="bouclier" id="bMaj" aria-label="Update" hidden><span><svg class="ico"><use href="#i-maj"/></svg></span></button>
         <a class="bouclier site" href="../index.html" aria-label="Home"><span><svg class="ico"><use href="#i-maison"/></svg></span></a>
@@ -347,6 +379,7 @@ input,textarea,select{font-size:max(16px,1em)}
   <button class="bt bouclier" id="btFeu" aria-label="Fire"><span><svg class="ico"><use href="#i-feu"/></svg></span></button>
   <button class="bt bouclier" id="btPoser" aria-label="Land" hidden><span><svg class="ico"><use href="#i-atterrir"/></svg></span></button>
 </div>
+<div id="bulles" aria-live="polite"></div>
 <div id="indice" class="bandeau" hidden><svg class="ico"><use href="#i-atterrir"/></svg> <b>L</b>&nbsp;to land</div>
 
 <div id="quetes" class="ecran" hidden>
@@ -375,10 +408,12 @@ input,textarea,select{font-size:max(16px,1em)}
         <button class="orne grand" id="bReprendre"><span class="ic sceau"><svg class="ico"><use href="#i-jouer"/></svg></span>Resume</button>
         <button class="orne" id="bQuetes2"><span class="ic"><svg class="ico"><use href="#i-rouleau"/></svg></span>Quests<small id="pqActive"></small></button>
         <button class="orne" id="bCarte2"><span class="ic"><svg class="ico"><use href="#i-longuevue"/></svg></span>Map</button>
+        <button class="orne" id="bMulti2"><span class="ic"><svg class="ico"><use href="#i-joueurs"/></svg></span>Together<small id="pqMulti"></small></button>
         <button class="orne" id="bReglages2"><span class="ic"><svg class="ico"><use href="#i-engrenage"/></svg></span>Settings</button>
       </div>
       <div class="rangee">
-        <button class="bouclier" id="bRejouer" aria-label="Restart" title="Restart"><span><svg class="ico"><use href="#i-rejouer"/></svg></span></button>
+        <button class="bouclier" id="bRejouer" aria-label="Back to start" title="Back to start"><span><svg class="ico"><use href="#i-rejouer"/></svg></span></button>
+        <button class="bouclier" id="bParties2" aria-label="Chronicles" title="Chronicles"><span><svg class="ico"><use href="#i-livre"/></svg></span></button>
         <a class="bouclier site" href="../index.html" aria-label="Home" title="Home"><span><svg class="ico"><use href="#i-maison"/></svg></span></a>
       </div>
     </div>
@@ -394,6 +429,68 @@ input,textarea,select{font-size:max(16px,1em)}
       <h2>Well done, dragon rider!</h2>
       <div class="petit" id="texteBravo" style="font-size:17px"></div>
       <div class="rangee"><button class="orne grand" id="bContinuer"><span class="ic sceau"><svg class="ico"><use href="#i-dragon"/></svg></span>Fly on</button></div>
+    </div>
+    <div class="baton"></div>
+  </div>
+</div>
+
+<div id="parties" class="ecran" hidden>
+  <div class="rouleau">
+    <div class="baton"></div>
+    <div class="papier">
+      <button class="bouclier fermer" id="bFermerParties" aria-label="Close"><span><svg class="ico"><use href="#i-fermer"/></svg></span></button>
+      <h2>Chronicles</h2>
+      <div class="onglets deux" role="tablist">
+        <button class="onglet choisi" data-onglet="liste" role="tab"><i><svg class="ico"><use href="#i-livre"/></svg></i>Saves</button>
+        <button class="onglet" data-onglet="partager" role="tab"><i><svg class="ico"><use href="#i-envoyer"/></svg></i>Share</button>
+      </div>
+      <section class="page" data-page="liste">
+        <div class="liste" id="listeParties"></div>
+        <div class="nouvelle"><input class="champ" id="nomNouvelle" maxlength="16" placeholder="New rider's name" autocomplete="off" spellcheck="false"><button class="orne mini" id="bNouvelle"><svg class="ico"><use href="#i-plus"/></svg>New</button></div>
+        <p class="petit" id="infoParties"></p>
+      </section>
+      <section class="page" data-page="partager" hidden>
+        <div class="sous">Which chronicles?</div>
+        <div class="liste" id="svChoix"></div>
+        <div class="grille2">
+          <button class="orne mini" id="svExport"><svg class="ico"><use href="#i-envoyer"/></svg>Save file</button><button class="orne mini" id="svImport"><svg class="ico"><use href="#i-recevoir"/></svg>Open file</button>
+          <button class="orne mini" id="svEnvoyer"><svg class="ico"><use href="#i-envoyer"/></svg>Send</button><button class="orne mini" id="svRecevoir"><svg class="ico"><use href="#i-recevoir"/></svg>Receive</button>
+        </div>
+        <input type="file" id="svFichier" accept="application/json,.json" hidden>
+        <div class="svBox" id="svBox" hidden>
+          <p id="svInfo"></p>
+          <div class="grandCode" id="svGrand" hidden></div>
+          <div class="duo" id="svSaisieL" hidden><input class="champ court" id="svSaisie" inputmode="numeric" maxlength="7" placeholder="123 456" autocomplete="off"><button class="orne mini" id="svRecevoirOk">OK</button></div>
+          <div class="duo"><button class="orne mini" id="svCharger" hidden>Load</button><button class="orne mini" id="svAnnuler">Cancel</button></div>
+        </div>
+      </section>
+    </div>
+    <div class="baton"></div>
+  </div>
+</div>
+
+<div id="multi" class="ecran" hidden>
+  <div class="rouleau">
+    <div class="baton"></div>
+    <div class="papier">
+      <button class="bouclier fermer" id="bFermerMulti" aria-label="Close"><span><svg class="ico"><use href="#i-fermer"/></svg></span></button>
+      <h2>Together</h2>
+      <section id="multiHors">
+        <div class="reglage"><span>Nickname</span><input class="champ" id="mPseudo" maxlength="16" placeholder="(optional)" autocomplete="off" spellcheck="false"></div>
+        <div class="sous">Your dragon</div>
+        <div class="nuances" id="mCouleurs"></div>
+        <div class="pile" style="margin-top:12px"><button class="orne" id="mCreer"><span class="ic"><svg class="ico"><use href="#i-joueurs"/></svg></span>Create a room</button></div>
+        <div class="reglage"><span>Join with a code</span><span class="duo"><input class="champ court" id="mCode" maxlength="9" placeholder="ABCD 2345" autocomplete="off" spellcheck="false" autocapitalize="characters"><button class="orne mini" id="mRejoindre">OK</button></span></div>
+      </section>
+      <section id="multiDans" hidden>
+        <div class="sous">Room code — give it to your friends</div>
+        <div class="grandCode" id="mCodeGrand"></div>
+        <div class="liste" id="mJoueurs"></div>
+        <div class="sous">Say</div>
+        <div class="phrases" id="mPhrases"></div>
+        <div class="pile" style="margin-top:12px"><button class="orne" id="mQuitter"><span class="ic"><svg class="ico"><use href="#i-fermer"/></svg></span>Leave the room</button></div>
+      </section>
+      <p class="petit" id="mInfo"></p>
     </div>
     <div class="baton"></div>
   </div>
@@ -422,10 +519,42 @@ const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform 
 if (TACTILE) document.body.classList.add("tactile");
 
 // ------------------------------------------------------------------ mémoire (localStorage, peut être indisponible)
+// Les parties (« chronicles ») : chacune a un numéro unique à 6 chiffres et le nom du cavalier. Ce qui fait la partie
+// (record, progression) est rangé sous « dragonflyer@<numéro>:<clé> » ; les réglages de l'appareil (qualité, son,
+// caméra, surnom et couleur pour jouer à plusieurs…) restent communs, sous « dragonflyer:<clé> ».
+const LS = (() => { try { return window.localStorage; } catch { return null; } })();
+const CLES_APPAREIL = new Set(["qualite", "recul", "verrou", "perf", "onglet", "muet", "musique", "inverser", "parties", "active", "pseudo", "couleur"]);
+const nouveauNumero = (deja = []) => { let n; do n = String(100000 + Math.floor(Math.random() * 900000)); while (deja.includes(n)); return n; };
+const PARTIES = (() => { let liste = null, id = null;
+  try { liste = JSON.parse(LS.getItem("dragonflyer:parties") || "null"); } catch {}
+  if (!Array.isArray(liste) || !liste.length) {   // première fois : l'ancien record devient la partie n° 1
+    id = nouveauNumero(); liste = [{ id, nom: "Rider", maj: Date.now() }];
+    try { const k = "dragonflyer:record", v = LS.getItem(k); if (v != null) { LS.setItem(`dragonflyer@${id}:record`, v); LS.removeItem(k); }
+      LS.setItem("dragonflyer:parties", JSON.stringify(liste)); LS.setItem("dragonflyer:active", JSON.stringify(id)); } catch {}
+  }
+  try { id = JSON.parse(LS.getItem("dragonflyer:active")); } catch {} if (!liste.some(p => p.id === id)) id = liste[0].id;
+  return { liste, id }; })();
+const partieActive = () => PARTIES.liste.find(p => p.id === PARTIES.id);
+function sauverParties() { try { LS.setItem("dragonflyer:parties", JSON.stringify(PARTIES.liste)); LS.setItem("dragonflyer:active", JSON.stringify(PARTIES.id)); } catch {} }
+const cleDe = (id, k) => CLES_APPAREIL.has(k) ? "dragonflyer:" + k : `dragonflyer@${id}:${k}`;
 const memoire = {
-  lire(k, d) { try { const v = localStorage.getItem("dragonflyer:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
-  ecrire(k, v) { try { localStorage.setItem("dragonflyer:" + k, JSON.stringify(v)); } catch {} },
+  lire(k, d) { try { const v = LS.getItem(cleDe(PARTIES.id, k)); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  ecrire(k, v) { try { LS.setItem(cleDe(PARTIES.id, k), JSON.stringify(v)); } catch {} },
 };
+const joliNumero = n => n.slice(0, 3) + " " + n.slice(3);
+// Filtre des surnoms et des noms de partie : identique dans le jeu et le relais (serveur/dragonflyer-relais).
+function filtrerSurnom(v) {
+  if (typeof v !== "string") return null;
+  const p = v.normalize("NFC").trim().replace(/\s+/g, " ");
+  if (!p) return ""; // sans surnom, on garde le nom de l'animal
+  if (p.length < 2 || p.length > 16 || !/^[A-Za-zÀ-ÖØ-öø-ÿ0-9 _'-]+$/.test(p) || !/[A-Za-zÀ-ÖØ-öø-ÿ0-9]/.test(p)) return null;
+  const simple = p.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/[01345789]/g, c => ({ 0: "o", 1: "i", 3: "e", 4: "a", 5: "s", 7: "t", 8: "b", 9: "g" })[c]);
+  const compact = simple.replace(/[^a-z]/g, "");
+  if (/(connard|connasse|salope|salopard|encul|putain|pute|merde|batard|abruti|debile|idiot|ta?gueule|fuck|shit|bitch|nazi|negro|negre|bougnoule|salejuif)/.test(compact)
+      || /(?:^|[^a-z])(con|cons|pd|fdp|ntm)(?:$|[^a-z])/.test(simple) || /^(con|cons|pd|fdp|ntm)$/.test(compact)) return null;
+  return p;
+}
 
 // ------------------------------------------------------------------ qualité d'image
 const QUALITES = {
@@ -1476,7 +1605,21 @@ function creerParticules() {
 }
 
 // ------------------------------------------------------------------ dragon et cavalier (modèle Blender embarqué)
-let dragon, modele, riderHead, rider, lumiereFeu, VISAGE;
+let dragon, modele, riderHead, rider, lumiereFeu, VISAGE, matEcailles;
+// Couleur du dragon : les écailles gardent leur relief et leurs nuances, la teinte vient de la liste COULEURS_DRAGON.
+function teindre(mat, i) {
+  if (!mat) return;
+  const [, hex, force] = COULEURS_DRAGON[i] || COULEURS_DRAGON[0];
+  if (!mat.userData.teinte) {
+    mat.userData.teinte = { uTeinte: { value: new THREE.Color() }, uForce: { value: 0 } };
+    mat.onBeforeCompile = sh => { Object.assign(sh.uniforms, mat.userData.teinte);
+      sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform vec3 uTeinte; uniform float uForce;")
+        .replace("#include <map_fragment>", `#include <map_fragment>
+          { float l = dot(diffuseColor.rgb, vec3(.3, .59, .11)); diffuseColor.rgb = mix(diffuseColor.rgb, uTeinte * (l * 2.2 + .04), uForce); }`); };
+    mat.customProgramCacheKey = () => "teinte";
+  }
+  mat.userData.teinte.uTeinte.value.set(hex); mat.userData.teinte.uForce.value = force;
+}
 const OS = {};
 const _q = new THREE.Quaternion(), _a = new THREE.Vector3();
 function tourner(nom, ax, ay, az, angle) { const o = OS[nom]; if (!o || angle === 0) return; _a.set(ax, ay, az).applyQuaternion(o.inv); _q.setFromAxisAngle(_a, angle); o.b.quaternion.multiply(_q); }
@@ -1543,7 +1686,7 @@ async function chargerDragon() {
     o.frustumCulled = false; o.castShadow = true; o.receiveShadow = true;
     const m0 = o.material, nom = m0.name;
     if (nom === "Scales") {
-      o.material = new THREE.MeshPhysicalMaterial({ name: nom, map: m0.map, normalMap: m0.normalMap, normalScale: m0.normalScale.clone().multiplyScalar(1.1),
+      o.material = matEcailles = new THREE.MeshPhysicalMaterial({ name: nom, map: m0.map, normalMap: m0.normalMap, normalScale: m0.normalScale.clone().multiplyScalar(1.1),
         roughness: .55, metalness: 0, clearcoat: .2, clearcoatRoughness: .35, sheen: .12, sheenColor: new THREE.Color(0.2, 0.5, 0.6), sheenRoughness: .6, envMapIntensity: .7 });
     } else if (nom === "Membrane") {
       membraneMat = o.material = new THREE.MeshStandardMaterial({ name: nom, map: m0.map, normalMap: m0.normalMap, normalScale: m0.normalScale, roughness: .62, side: THREE.DoubleSide });
@@ -1561,6 +1704,7 @@ async function chargerDragon() {
       o.material = matHeros(visage);
     }
   });
+  teindre(matEcailles, couleurChoisie());
   rider = modele.getObjectByName("Rider"); riderHead = modele.getObjectByName("RiderHead");
   if (riderHead) riderHead.userData.repos = riderHead.quaternion.clone();   // rotation d'origine (repère du fichier)
   modele.updateMatrixWorld(true);
@@ -1605,7 +1749,7 @@ const etat = {
   record: memoire.lire("record", null),
 };
 const DEPART = { pos: new THREE.Vector3(250, 230, 2700), yaw: Math.PI };
-const entree = { touches: new Set(), joyX: 0, joyY: 0, ailes: false, feu: false };
+const entree = { touches: new Set(), joyX: 0, joyY: 0, padX: 0, padY: 0, ailes: false, feu: false };
 
 function avant(yaw, pitch, out) { return out.set(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)); }
 const _f = new THREE.Vector3(), _v = new THREE.Vector3(), _w = new THREE.Vector3(), _prev = new THREE.Vector3();
@@ -1620,8 +1764,8 @@ function majVol(dt, auto) {
     const alt = etat.pos.y - sol(etat.pos.x, etat.pos.z);
     haut = Math.max(-.5, Math.min(.5, (200 - alt) / 120 + (260 - etat.pos.y) / 300));
   } else {
-    dir = (T.has("ArrowRight") || T.has("KeyD") ? 1 : 0) - (T.has("ArrowLeft") || T.has("KeyA") || T.has("KeyQ") ? 1 : 0) + entree.joyX;
-    haut = (T.has("ArrowUp") || T.has("KeyW") || T.has("KeyZ") ? 1 : 0) - (T.has("ArrowDown") || T.has("KeyS") ? 1 : 0) - entree.joyY;
+    dir = (T.has("ArrowRight") || T.has("KeyD") ? 1 : 0) - (T.has("ArrowLeft") || T.has("KeyA") || T.has("KeyQ") ? 1 : 0) + entree.joyX + entree.padX;
+    haut = (T.has("ArrowUp") || T.has("KeyW") || T.has("KeyZ") ? 1 : 0) - (T.has("ArrowDown") || T.has("KeyS") ? 1 : 0) - entree.joyY - entree.padY;
     if (etat.invert) haut = -haut;
     battre = T.has("Space") || entree.ailes;
     feu = T.has("KeyF") || T.has("KeyE") || T.has("Enter") || entree.feu;
@@ -2021,10 +2165,10 @@ function majAuSol(dt) {   // le dragon attend : respiration, battements très le
 const _d = new THREE.Vector3();
 function majPied(dt) {
   const T = entree.touches;
-  let ax = (T.has("ArrowRight") || T.has("KeyD") ? 1 : 0) - (T.has("ArrowLeft") || T.has("KeyA") || T.has("KeyQ") ? 1 : 0) + entree.joyX;
-  let ay = (T.has("ArrowUp") || T.has("KeyW") || T.has("KeyZ") ? 1 : 0) - (T.has("ArrowDown") || T.has("KeyS") ? 1 : 0) - entree.joyY;
+  let ax = (T.has("ArrowRight") || T.has("KeyD") ? 1 : 0) - (T.has("ArrowLeft") || T.has("KeyA") || T.has("KeyQ") ? 1 : 0) + entree.joyX + entree.padX;
+  let ay = (T.has("ArrowUp") || T.has("KeyW") || T.has("KeyZ") ? 1 : 0) - (T.has("ArrowDown") || T.has("KeyS") ? 1 : 0) - entree.joyY - entree.padY;
   const l = Math.hypot(ax, ay); if (l > 1) { ax /= l; ay /= l; }
-  const court = T.has("ShiftLeft") || T.has("ShiftRight") || Math.hypot(entree.joyX, entree.joyY) > .9;
+  const court = T.has("ShiftLeft") || T.has("ShiftRight") || Math.hypot(entree.joyX + entree.padX, entree.joyY + entree.padY) > .9;
   const vmax = court ? 7.5 : 3.4, voulu = Math.min(1, Math.hypot(ax, ay)) * vmax;
   marche.vitesse += (voulu - marche.vitesse) * (1 - Math.exp(-8 * dt));
   if (voulu > .1) {   // on avance dans la direction choisie, vue depuis la caméra (avant = haut, droite = droite)
@@ -2343,6 +2487,8 @@ function majMiniCarte(dt) {
   g.drawImage(IMG_CARTE, (p.x + MONDE / 2 - R) * k, (p.z + MONDE / 2 - R) * k, 2 * R * k, 2 * R * k, 0, 0, W, W);
   const pt = (x, z) => [W / 2 + (x - p.x) / R * W / 2, W / 2 + (z - p.z) / R * W / 2];
   for (const L of LIEUX) { const [x, y] = pt(L.x, L.z); if (Math.hypot(x - W / 2, y - W / 2) < W / 2 - 16) g.drawImage(imageIcone(L.ic), x - 19, y - 19, 38, 38); }
+  for (const j of multi.joueurs.values()) if (j.av && j.cible) { const [x, y] = pt(j.av.pos.x, j.av.pos.z); if (Math.hypot(x - W / 2, y - W / 2) < W / 2 - 10) {   // les autres joueurs
+    g.fillStyle = COULEURS_DRAGON[j.couleur ?? 0][1]; g.strokeStyle = "#1e1006"; g.lineWidth = 4; g.beginPath(); g.arc(x, y, 11, 0, 7); g.fill(); g.stroke(); } }
   if (etat.destination) { const [x, y] = pt(etat.destination.x, etat.destination.z); g.strokeStyle = "#ffd24a"; g.lineWidth = 5; g.beginPath(); g.arc(Math.max(16, Math.min(W - 16, x)), Math.max(16, Math.min(W - 16, y)), 18, 0, 7); g.stroke(); }
   const yaw = etat.sol === "pied" ? marche.yaw : etat.yaw;
   g.translate(W / 2, W / 2); g.rotate(Math.atan2(Math.cos(yaw), Math.sin(yaw)));
@@ -2576,11 +2722,13 @@ addEventListener("blur", () => { entree.touches.clear(); entree.ailes = entree.f
 
 (() => {   // manette virtuelle : glisser sur la moitié gauche
   const zone = $("zoneJoy"), joy = $("joy"), bouton = joy.querySelector("i"); let id = null, x0 = 0, y0 = 0;
-  zone.addEventListener("pointerdown", e => { id = e.pointerId; x0 = e.clientX; y0 = e.clientY; joy.style.left = x0 + "px"; joy.style.top = y0 + "px"; joy.style.display = "block"; $("aideJoy").style.display = "none"; zone.setPointerCapture(id); });
+  // la manette est dans la zone (qui ne commence pas en haut de l'écran) : on la place par rapport à la zone
+  zone.addEventListener("pointerdown", e => { if (id !== null) return; id = e.pointerId; x0 = e.clientX; y0 = e.clientY; const r = zone.getBoundingClientRect(); joy.style.left = (x0 - r.left) + "px"; joy.style.top = (y0 - r.top) + "px"; joy.style.display = "block"; $("aideJoy").style.display = "none"; zone.setPointerCapture(id); });
   zone.addEventListener("pointermove", e => { if (e.pointerId !== id) return; let dx = e.clientX - x0, dy = e.clientY - y0; const l = Math.hypot(dx, dy), m = 55; if (l > m) { dx *= m / l; dy *= m / l; }
     bouton.style.transform = `translate(${dx}px, ${dy}px)`; entree.joyX = dx / m; entree.joyY = dy / m; });
   const fin = e => { if (e.pointerId !== id) return; id = null; joy.style.display = "none"; bouton.style.transform = ""; entree.joyX = entree.joyY = 0; };
-  zone.addEventListener("pointerup", fin); zone.addEventListener("pointercancel", fin);
+  zone.addEventListener("pointerup", fin); zone.addEventListener("pointercancel", fin); zone.addEventListener("lostpointercapture", fin);
+  addEventListener("blur", () => fin({ pointerId: id }));
   $("btPoser").addEventListener("pointerdown", e => { e.preventDefault(); sePoser(); });
   for (const [bid, cle] of [["btFeu", "feu"], ["btAiles", "ailes"]]) {
     const b = $(bid);
@@ -2610,7 +2758,7 @@ function ico(n) { return `<svg class="ico"><use href="#i-${n}"/></svg>`; }
 function aideCommandes() {
   const L = TACTILE
     ? [[ico("croix"), "Steer"], [ico("aile"), "Flap"], [ico("feu"), "Fire"], [ico("atterrir"), "Land"], [ico("dragon"), "Ride"]]
-    : [["<kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd>", "Fly / walk"], ["<kbd>Space</kbd>", "Flap / jump"], ["<kbd>F</kbd>", "Fire"], ["<kbd>L</kbd>", "Land"], ["<kbd>E</kbd>", "Ride"], ["<kbd>Q</kbd>", "Quests"]];
+    : [["<kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd>", "Fly / walk"], ["<kbd>🎮</kbd>", "Controller: left stick fly, right stick camera, A flap, B or trigger fire, X land, Y view"], ["<kbd>Space</kbd>", "Flap / jump"], ["<kbd>F</kbd>", "Fire"], ["<kbd>L</kbd>", "Land"], ["<kbd>E</kbd>", "Ride"], ["<kbd>Q</kbd>", "Quests"]];
   return L.map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join("");
 }
 $("aideCommandes").innerHTML = aideCommandes();
@@ -2631,7 +2779,7 @@ function majBoutons() {
 }
 function basculerSon() { son.init(); son.basculer(); majBoutons(); }
 function changerVue() { etat.vue = (etat.vue + 1) % VUES.length; son.clic(); }
-const ECRANS = ["pause", "quetes", "reglages", "carte"];
+const ECRANS = ["pause", "quetes", "reglages", "carte", "parties", "multi"];
 $("bVue2").addEventListener("click", changerVue);
 let retourTitre = false, retourPause = false;
 function ouvrirEcran(id) {
@@ -2644,7 +2792,7 @@ function ouvrirEcran(id) {
   majBoutons();
   son.clic();
 }
-function ouvrirPause() { if (etat.mode === "vol") ouvrirEcran("pause"); }
+function ouvrirPause() { if (etat.mode === "vol") { sauverProgression(); ouvrirEcran("pause"); } }
 function fermerEcrans() {
   for (const e of ECRANS) $(e).hidden = true;
   if (retourTitre) { $("titre").hidden = false; return; }
@@ -2652,13 +2800,13 @@ function fermerEcrans() {
 }
 const reprendre = fermerEcrans;
 function retour() { if (retourPause) { retourPause = false; ouvrirEcran("pause"); } else fermerEcrans(); }
-function choisirOnglet(n) {
-  for (const b of document.querySelectorAll(".onglet")) b.classList.toggle("choisi", b.dataset.onglet === n);
-  for (const p of document.querySelectorAll(".page")) p.hidden = p.dataset.page !== n;
-  memoire.ecrire("onglet", n);
+function choisirOnglet(n, papier) {
+  for (const b of papier.querySelectorAll(".onglet")) b.classList.toggle("choisi", b.dataset.onglet === n);
+  for (const p of papier.querySelectorAll(".page")) p.hidden = p.dataset.page !== n;
 }
-for (const b of document.querySelectorAll(".onglet")) b.addEventListener("click", () => { choisirOnglet(b.dataset.onglet); son.clic(); });
-choisirOnglet(memoire.lire("onglet", "son"));
+for (const b of document.querySelectorAll(".onglet")) b.addEventListener("click", () => {
+  const pa = b.closest(".papier"); choisirOnglet(b.dataset.onglet, pa); if (pa.closest("#reglages")) memoire.ecrire("onglet", b.dataset.onglet); son.clic(); });
+choisirOnglet(memoire.lire("onglet", "son"), $("reglages"));
 function remettreAZero() {
   etat.pos.copy(DEPART.pos); etat.yaw = DEPART.yaw; etat.pitch = 0; etat.roll = 0; etat.vitesse = 34; camYaw = etat.yaw;
   etat.anneaux = 0; etat.feux = 0; etat.chrono = 0; etat.chronoOn = false; prochainAnneau = 0;
@@ -2667,14 +2815,35 @@ function remettreAZero() {
   if (etat.sol) { etat.sol = null; etat.pose = 0; pieton.visible = false; if (rider) rider.visible = true; majBoutonsJeu(); }
   majRayons(); majBandeau();
 }
-function jouer() {
+// Progression de la partie : où est le dragon, les feux allumés, les poissons, la quête en cours.
+// Gardée toutes les 10 s en vol, à la pause et quand on quitte l'appli.
+let sauveT = 10;
+function sauverProgression() {
+  if (etat.mode === "titre" || !FEUX.length) return;
+  const p = etat.sol === "pied" ? marche.pos : etat.pos, enVol = !etat.sol;
+  memoire.ecrire("progression", { pos: [Math.round(p.x), Math.round(enVol ? p.y : Math.max(p.y + 60, hauteur(p.x, p.z) + 80)), Math.round(p.z)],
+    yaw: +(etat.sol === "pied" ? marche.yaw : etat.yaw).toFixed(2), feux: FEUX.map((f, i) => f.allume ? i : -1).filter(i => i >= 0),
+    poissons: nbPoissons, quete: etat.quete === "anneaux" ? null : etat.quete });
+  const pa = partieActive(); if (pa) { pa.maj = Date.now(); sauverParties(); }
+}
+function reprendreProgression() {
+  const pr = memoire.lire("progression", null); if (!pr) return false;
+  for (const i of pr.feux || []) if (FEUX[i] && !FEUX[i].allume) { FEUX[i].allume = true; etat.feux++; }
+  nbPoissons = Math.max(0, pr.poissons | 0); majRayons();
+  if (Array.isArray(pr.pos) && pr.pos.every(Number.isFinite)) { etat.pos.set(...pr.pos); etat.yaw = +pr.yaw || 0; camYaw = etat.yaw; }
+  if (pr.quete === "feux" || pr.quete === "peche") { etat.quete = pr.quete; rayonsFeux.visible = pr.quete === "feux"; }
+  majBandeau(); return true;
+}
+function jouer(depuisDepart = false) {
   son.init(); son.rugissement();
   remettreAZero();
+  const repris = !depuisDepart && reprendreProgression();
   etat.mode = "vol"; for (const e of ["titre", ...ECRANS]) $(e).hidden = true; $("hud").hidden = false; if (TACTILE) $("tactile").hidden = false;
   camera.position.set(etat.pos.x, etat.pos.y + 10, etat.pos.z + 30);
-  canvas.focus(); afficher("Free flight!", TACTILE ? "Quests are in Pause" : "Q for quests");
+  canvas.focus(); afficher(repris ? "Welcome back!" : "Free flight!", TACTILE ? "Quests are in Pause" : "Q for quests");
+  sauverProgression();
 }
-$("bJouer").addEventListener("click", jouer);
+$("bJouer").addEventListener("click", () => jouer());
 $("miniCarte").addEventListener("click", ouvrirCarte);
 $("bFermerCarte").addEventListener("click", retour);
 $("bFermerQuetes").addEventListener("click", retour);
@@ -2695,13 +2864,14 @@ $("bPerf").addEventListener("click", () => { perf.visible = !perf.visible; memoi
 $("bVue").addEventListener("click", changerVue);
 $("bMusique").addEventListener("click", () => { etat.musique = !etat.musique; memoire.ecrire("musique", etat.musique); son.init(); son.musique(etat.musique); majBoutons(); });
 $("bInverser").addEventListener("click", () => { etat.invert = !etat.invert; memoire.ecrire("inverser", etat.invert); majBoutons(); });
-$("bRejouer").addEventListener("click", () => { fermerEcrans(); jouer(); });
+// « Restart » : le dragon revient au départ, les feux allumés et les poissons restent dans la partie
+$("bRejouer").addEventListener("click", () => { fermerEcrans(); sauverProgression(); const pr = memoire.lire("progression", null); if (pr) { pr.pos = null; memoire.ecrire("progression", pr); } jouer(); });
 $("bContinuer").addEventListener("click", () => { $("bravo").hidden = true; etat.mode = "vol"; if (TACTILE) $("tactile").hidden = false; });
 addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight);
   for (const p of [flammes, fumee, gouttes]) if (p) p.mat.uniforms.uEchelle.value = innerHeight * pixelRatio * .9;
 });
-document.addEventListener("visibilitychange", () => { if (typeof noterEvenement === "function") noterEvenement(document.hidden ? "cache" : "visible"); if (document.hidden && etat.mode === "vol") ouvrirPause(); });
+document.addEventListener("visibilitychange", () => { if (typeof noterEvenement === "function") noterEvenement(document.hidden ? "cache" : "visible"); if (document.hidden) sauverProgression(); if (document.hidden && etat.mode === "vol") ouvrirPause(); });
 
 // ------------------------------------------------------------------ boucle
 let dernier = performance.now(), triT = 0, mesureT = 0, mesureN = 0, mesurePire = 0, lent = 0, baisses = 0;
@@ -2736,7 +2906,10 @@ function image(now, dtForce) {
   son.maj(dt);
   if (!sansRendu) rendre();
   // résolution adaptative : baisse seulement après plusieurs mesures lentes, au plus trois fois
+  lireManette(dt);
   if (journal.actif) noterImage(brut);
+  if (!auto && (sauveT -= dt) < 0) { sauveT = 10; sauverProgression(); }
+  if (multi.ws) majMulti(dt);
   mesureT += brut; mesureN++; mesurePire = Math.max(mesurePire, brut);
   if (mesureT > 2) {
     const moy = mesureT / mesureN;
@@ -2746,6 +2919,294 @@ function image(now, dtForce) {
   }
 }
 function rendre() { renderer.render(scene, camera); }
+
+// ------------------------------------------------------------------ manette Bluetooth en jeu : sticks analogiques
+// Stick gauche : voler / marcher (progressif) ; stick droit : tourner la caméra ; gâchettes : souffler le feu ;
+// clic du stick droit : recentrer. Les boutons (A battre des ailes / sauter, B feu, X se poser, Y vue, Start pause,
+// Select quêtes) et les menus passent par le script « manette » en bas de la page (window.MANETTE).
+const manetteJeu = { feu: false, recentre: false };
+function lireManette(dt) {
+  const g = [...(navigator.getGamepads ? navigator.getGamepads() : [])].find(p => p && p.connected);
+  if (!g || etat.mode !== "vol") { entree.padX = entree.padY = 0; return; }
+  const ax = i => { const v = g.axes[i] ?? 0, m = Math.abs(v); return m < .15 ? 0 : Math.sign(v) * (m - .15) / .85; };
+  entree.padX = ax(0); entree.padY = ax(1);
+  const cx = ax(2), cy = ax(3);
+  if (cx || cy) {
+    if (etat.sol === "pied" || etat.sol === "appel") { marche.camYaw -= cx * 2.6 * dt; marche.camTangage = Math.max(-.15, Math.min(1.1, marche.camTangage + cy * 1.6 * dt)); marche.libre = 2.5; }
+    else { orbite.yaw -= cx * 2.6 * dt; orbite.pitch = Math.max(-.35, Math.min(1.1, orbite.pitch + cy * 1.6 * dt)); orbite.libre = 2; }
+  }
+  const feu = !!(g.buttons[7]?.pressed || g.buttons[6]?.pressed);
+  if (feu !== manetteJeu.feu) { manetteJeu.feu = feu; entree.feu = feu; }
+  const rc = !!g.buttons[11]?.pressed; if (rc && !manetteJeu.recentre) recentrer(); manetteJeu.recentre = rc;
+}
+
+// ------------------------------------------------------------------ Chronicles : les parties de l'appareil
+function resumePartie(id) {
+  const lire = k => { try { return JSON.parse(LS.getItem(`dragonflyer@${id}:${k}`)); } catch { return null; } };
+  const pr = lire("progression"), rec = lire("record");
+  return `${(pr?.feux || []).length}/${FEUX.length || "?"} fires · ${pr?.poissons || 0} fish${rec ? " · " + fmt(rec) : ""}`;
+}
+function majTitrePartie() { const pa = partieActive(); $("nomPartieTitre").textContent = pa ? `${pa.nom} · n° ${joliNumero(pa.id)}` : ""; }
+let aEffacer = null;
+function dessinerParties() {
+  const L = $("listeParties"); L.innerHTML = "";
+  for (const pa of PARTIES.liste) {
+    const ligne = document.createElement("div"); ligne.className = "partie";
+    const b = document.createElement("button"); b.className = "orne mini" + (pa.id === PARTIES.id ? " actif choisi" : "");
+    b.innerHTML = `<b></b><small></small>`; b.firstChild.textContent = pa.nom; b.lastChild.textContent = `n° ${joliNumero(pa.id)}\n${resumePartie(pa.id)}`;
+    b.addEventListener("click", () => { if (pa.id === PARTIES.id) return; son.clic(); sauverProgression(); PARTIES.id = pa.id; sauverParties(); location.reload(); });
+    const x = document.createElement("button"); x.className = "bouclier" + (aEffacer === pa.id ? " danger" : ""); x.setAttribute("aria-label", "Delete"); x.innerHTML = `<span>${ico("poubelle")}</span>`;
+    x.hidden = PARTIES.liste.length < 2;
+    x.addEventListener("click", () => {   // deux appuis pour effacer
+      son.clic();
+      if (aEffacer !== pa.id) { aEffacer = pa.id; $("infoParties").textContent = `Tap the bin again to delete ${pa.nom}.`; dessinerParties(); return; }
+      aEffacer = null; oublierPartie(pa.id); PARTIES.liste = PARTIES.liste.filter(q => q.id !== pa.id);
+      if (PARTIES.id === pa.id) { PARTIES.id = PARTIES.liste[0].id; sauverParties(); location.reload(); return; }
+      sauverParties(); $("infoParties").textContent = ""; dessinerParties(); dessinerSvChoix();
+    });
+    ligne.append(b, x); L.append(ligne);
+  }
+}
+function oublierPartie(id) { try { const cles = []; for (let i = 0; i < LS.length; i++) { const k = LS.key(i); if (k && k.startsWith(`dragonflyer@${id}:`)) cles.push(k); } for (const k of cles) LS.removeItem(k); } catch {} }
+$("bNouvelle").addEventListener("click", () => {
+  const nom = filtrerSurnom($("nomNouvelle").value);
+  if (nom === null) { $("infoParties").textContent = "Choose another name (2 to 16 letters)."; return; }
+  son.clic(); sauverProgression();
+  const id = nouveauNumero(PARTIES.liste.map(p => p.id)); PARTIES.liste.unshift({ id, nom: nom || "Rider", maj: Date.now() }); PARTIES.id = id; sauverParties(); location.reload();
+});
+$("nomNouvelle").addEventListener("keydown", e => { e.stopPropagation(); if (e.key === "Enter") $("bNouvelle").click(); });
+function ouvrirParties() { aEffacer = null; $("infoParties").textContent = ""; dessinerParties(); dessinerSvChoix(); ouvrirEcran("parties"); }
+for (const id of ["bParties", "bParties2", "bPartieTitre"]) $(id).addEventListener("click", ouvrirParties);
+$("bFermerParties").addEventListener("click", () => { svFin(); retour(); });
+
+// ------------------------------------------------------------------ partager : fichier, ou transfert direct chiffré
+// Le fichier JSON (format version 1) contient les parties cochées : { jeu, version, date, parties: [{ id, nom, maj, donnees }] }.
+const svCoches = new Set();
+function dessinerSvChoix() {
+  const L = $("svChoix"); L.innerHTML = ""; for (const id of [...svCoches]) if (!PARTIES.liste.some(p => p.id === id)) svCoches.delete(id); if (!svCoches.size) svCoches.add(PARTIES.id);
+  const ligne = (txt, coche, f) => { const b = document.createElement("button"); b.className = "case"; b.setAttribute("aria-pressed", coche); b.innerHTML = `<i>${coche ? "✓" : ""}</i><span></span>`; b.lastChild.textContent = txt;
+    b.addEventListener("click", () => { son.clic(); f(); dessinerSvChoix(); }); L.append(b); };
+  if (PARTIES.liste.length > 1) ligne("All chronicles", svCoches.size === PARTIES.liste.length, () => { if (svCoches.size === PARTIES.liste.length) { svCoches.clear(); svCoches.add(PARTIES.id); } else for (const p of PARTIES.liste) svCoches.add(p.id); });
+  for (const pa of PARTIES.liste) ligne(`${pa.nom} (n° ${joliNumero(pa.id)})`, svCoches.has(pa.id), () => { if (svCoches.has(pa.id)) { if (svCoches.size > 1) svCoches.delete(pa.id); } else svCoches.add(pa.id); });
+}
+function donneesDe(id) { const d = {}; try { const pre = `dragonflyer@${id}:`; for (let i = 0; i < LS.length; i++) { const k = LS.key(i); if (k && k.startsWith(pre)) d[k.slice(pre.length)] = LS.getItem(k); } } catch {} return d; }
+function svPaquet() { sauverProgression(); return { jeu: "dragonflyer", version: 1, date: new Date().toISOString(),
+  parties: PARTIES.liste.filter(p => svCoches.has(p.id)).map(p => ({ id: p.id, nom: p.nom, maj: p.maj, donnees: donneesDe(p.id) })) }; }
+const cleOk = (k, v) => typeof k === "string" && /^[a-z]{1,24}$/.test(k) && !CLES_APPAREIL.has(k) && typeof v === "string" && v.length < 20000;
+function svNormal(o) {
+  if (!o || o.jeu !== "dragonflyer" || !Array.isArray(o.parties) || !o.parties.length || o.parties.length > 30) return null;
+  for (const pa of o.parties) if (!pa || !/^\d{6}$/.test(pa.id) || !pa.donnees || typeof pa.donnees !== "object" || !Object.entries(pa.donnees).every(([k, v]) => cleOk(k, v))) return null;
+  for (const pa of o.parties) pa.nom = (typeof pa.nom === "string" && filtrerSurnom(pa.nom)) || "Rider";
+  return o;
+}
+let svAttente = null;
+const svResume = o => o.parties.map(pa => `${pa.nom} (n° ${joliNumero(pa.id)})`).join(", ");
+function svMontrer(info, { grand = null, saisie = false, charger = false } = {}) {
+  $("svBox").hidden = false; $("svInfo").textContent = info; $("svGrand").hidden = !grand; $("svGrand").textContent = grand || ""; $("svSaisieL").hidden = !saisie; $("svCharger").hidden = !charger;
+}
+$("svExport").addEventListener("click", async () => {
+  son.clic(); const nom = `dragon-learner-chronicles-${new Date().toISOString().slice(0, 10)}.json`, f = new File([JSON.stringify(svPaquet(), null, 1)], nom, { type: "application/json" });
+  if (TACTILE && navigator.canShare?.({ files: [f] })) { try { await navigator.share({ files: [f], title: "My Dragon Learner chronicles" }); return; } catch (e) { if (e.name === "AbortError") return; } }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = nom; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  svMontrer("File saved: " + nom);
+});
+$("svImport").addEventListener("click", () => { son.clic(); $("svFichier").value = ""; $("svFichier").click(); });
+$("svFichier").addEventListener("change", async () => {
+  const f = $("svFichier").files[0]; if (!f) return; let o = null; try { o = JSON.parse(await f.text()); } catch {}
+  svFin(); svAttente = svNormal(o);
+  if (!svAttente) { svMontrer("This file is not a Dragon Learner chronicle."); return; }
+  svMontrer(`In this file: ${svResume(svAttente)}. They will be added to this device (a chronicle with the same number is replaced).`, { charger: true });
+});
+$("svCharger").addEventListener("click", () => {
+  son.clic(); const o = svNormal(svAttente); if (!o) return;
+  try { for (const pa of o.parties) { oublierPartie(pa.id); for (const [k, v] of Object.entries(pa.donnees)) LS.setItem(`dragonflyer@${pa.id}:${k}`, v);
+      const deja = PARTIES.liste.find(q => q.id === pa.id); if (deja) { deja.nom = pa.nom; deja.maj = Date.now(); } else PARTIES.liste.push({ id: pa.id, nom: pa.nom, maj: Date.now() }); }
+  } catch { svMontrer("These chronicles could not be written on this device."); return; }
+  PARTIES.id = o.parties[0].id; sauverParties(); location.reload();
+});
+// En direct : l'appareil qui envoie montre un code à 6 chiffres, l'autre le tape. Les deux se rejoignent sur le relais
+// (/transfert/<code>), qui passe les messages sans rien écrire et coupe au bout de 10 minutes. Chiffrement de bout en bout
+// par le navigateur (clés ECDH P-256 tirées à chaque fois, HKDF salé par le code, AES-GCM) : le relais ne lit rien.
+const b64 = u => { let b = ""; for (let i = 0; i < u.length; i += 8192) b += String.fromCharCode(...u.subarray(i, i + 8192)); return btoa(b); }, unb64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
+const T_INFO = new TextEncoder().encode("dragonflyer-transfert-v1");
+const T_RAISON = { 4404: "This code does not exist, or it has ended. Check the 6 digits.", 4409: "This code is already in use.", 4408: "The code has ended (10 minutes). Start again.", 4413: "Too big to send." };
+const clePaire = () => crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, false, ["deriveBits"]);
+const clePub = async k => b64(new Uint8Array(await crypto.subtle.exportKey("raw", k.publicKey)));
+async function cleCommune(k, pub, code) {
+  const lui = await crypto.subtle.importKey("raw", unb64(pub), { name: "ECDH", namedCurve: "P-256" }, false, []);
+  const bits = await crypto.subtle.deriveBits({ name: "ECDH", public: lui }, k.privateKey, 256), hk = await crypto.subtle.importKey("raw", bits, "HKDF", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt: new TextEncoder().encode(code), info: T_INFO }, hk, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+}
+async function emballer(o, cle) { const iv = crypto.getRandomValues(new Uint8Array(12)), ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, cle, new TextEncoder().encode(JSON.stringify(o))));
+  const out = new Uint8Array(12 + ct.length); out.set(iv); out.set(ct, 12); return b64(out); }
+async function deballer(t, cle) { const u = unb64(t); return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: u.subarray(0, 12) }, cle, u.subarray(12)))); }
+let svLien = null, svMinuteur = 0;
+function svFin() { clearInterval(svMinuteur); if (svLien) { const w = svLien; svLien = null; w.onclose = w.onmessage = null; try { w.close(1000); } catch {} } }
+function svLier(code, role, surMessage, surFin) {
+  let ws; try { ws = new WebSocket(`${RELAIS}/transfert/${code}?r=${role}`); } catch { surFin("No internet connection: use a file instead."); return null; }
+  let ouvert = false; ws.onopen = () => { ouvert = true; }; ws.onmessage = e => { let m = null; try { m = JSON.parse(e.data); } catch {} if (m) surMessage(m); };
+  ws.onclose = e => { if (svLien !== ws) return; svLien = null; clearInterval(svMinuteur); surFin(T_RAISON[e.code] || (ouvert ? "The other device has left." : "No internet connection: use a file instead.")); };
+  return svLien = ws;
+}
+$("svEnvoyer").addEventListener("click", async () => {
+  son.clic(); svFin(); svAttente = null;
+  const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1e6).padStart(6, "0"), joli = joliNumero(code), k = await clePaire(), pub = await clePub(k), fin = Date.now() + 10 * 60e3;
+  const reste = () => { const t = Math.max(0, Math.round((fin - Date.now()) / 1000)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`; };
+  const attente = () => svMontrer(`On the other device: Chronicles → Share → Receive, then type this code (${reste()} left).`, { grand: joli });
+  let dit = false; const bonjour = () => { if (!dit) { dit = true; svLien?.send(JSON.stringify({ t: "hello", pub })); } };
+  const ws = svLier(code, "send", async m => {
+    if (m.relay === "peer") { bonjour(); svMontrer("The other device is here! Sending…", { grand: joli }); }
+    else if (m.relay === "gone") { dit = false; attente(); }
+    else if (m.t === "hello" && typeof m.pub === "string") { bonjour(); try { const cle = await cleCommune(k, m.pub, code); svLien?.send(JSON.stringify({ t: "data", d: await emballer(svPaquet(), cle) })); } catch { svMontrer("Could not send."); svFin(); } }
+    else if (m.t === "done") { svMontrer(m.ok ? "Your chronicles have arrived on the other device!" : "The other device could not read them."); svFin(); }
+  }, raison => svMontrer(raison));
+  if (ws) { attente(); svMinuteur = setInterval(() => { if (Date.now() > fin) { svFin(); svMontrer("The code has ended (10 minutes). Start again."); } else if (!$("svGrand").hidden && $("svInfo").textContent.startsWith("On the other")) attente(); }, 1000); }
+});
+$("svRecevoir").addEventListener("click", () => { son.clic(); svFin(); svAttente = null; $("svSaisie").value = ""; svMontrer("Type the 6-digit code shown on the other device:", { saisie: true }); $("svSaisie").focus(); });
+$("svSaisie").addEventListener("keydown", e => { e.stopPropagation(); if (e.key === "Enter") $("svRecevoirOk").click(); });
+$("svRecevoirOk").addEventListener("click", async () => {
+  son.clic(); const code = $("svSaisie").value.replace(/\D/g, ""); if (code.length !== 6) { $("svInfo").textContent = "The code has 6 digits."; return; }
+  svFin(); const k = await clePaire(), pub = await clePub(k); let cle = null, dit = false; const bonjour = () => { if (!dit) { dit = true; svLien?.send(JSON.stringify({ t: "hello", pub })); } };
+  svMontrer("Connecting to the other device…");
+  svLier(code, "recv", async m => {
+    if (m.relay === "peer") bonjour();
+    else if (m.t === "hello" && typeof m.pub === "string" && !cle) { bonjour(); try { cle = await cleCommune(k, m.pub, code); } catch {} svMontrer("Receiving…"); }
+    else if (m.t === "data" && cle) { let o = null; try { o = await deballer(m.d, cle); } catch {} svAttente = svNormal(o); svLien?.send(JSON.stringify({ t: "done", ok: !!svAttente })); svFin();
+      if (!svAttente) { svMontrer("What arrived cannot be read. Start again."); return; }
+      svMontrer(`Received: ${svResume(svAttente)}. They will be added to this device (a chronicle with the same number is replaced).`, { charger: true }); }
+    else if (m.relay === "gone") { svMontrer("The other device has left. Start again."); svFin(); }
+  }, raison => svMontrer(raison));
+});
+$("svAnnuler").addEventListener("click", () => { son.clic(); svFin(); $("svBox").hidden = true; });
+
+// ------------------------------------------------------------------ jouer à plusieurs (relais Cloudflare, serveur/dragonflyer-relais)
+// Une salle = un code de 8 caractères, 8 joueurs au plus. On envoie seulement sa position, son surnom court et filtré,
+// la couleur de son dragon (liste fermée) et des numéros de phrases (liste fermée) : jamais de texte libre.
+const RELAIS_PROD = "wss://dragonflyer-relais.gerome-billois.workers.dev";
+const RELAIS = (["localhost", "127.0.0.1"].includes(location.hostname) && PARAMS.get("relais")) || RELAIS_PROD;
+const PHRASES = ["Hello!", "Follow me!", "Wait for me!", "Race me!", "Look over there!", "Let's land!", "To the nest!", "Well done!", "Fire!", "Bye!"];
+const COULEURS_DRAGON = [["Sky", "#4aa8e0", 0], ["Night", "#30344a", 1], ["Ember", "#d0482a", 1], ["Forest", "#3f9a46", 1],
+  ["Gold", "#d8a830", 1], ["Violet", "#8a52c8", 1], ["Snow", "#e4e8ee", 1], ["Sea", "#2a9a98", 1]];
+const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const multi = { ws: null, code: null, s: -1, joueurs: new Map(), envoiT: 0, pool: [], prets: false };
+const couleurChoisie = () => Math.min(COULEURS_DRAGON.length - 1, Math.max(0, memoire.lire("couleur", 0) | 0));
+function dessinerCouleurs() {
+  const L = $("mCouleurs"); L.innerHTML = "";
+  COULEURS_DRAGON.forEach(([nom, hex], i) => { const b = document.createElement("button"); b.className = "nuance" + (i === couleurChoisie() ? " choisi" : ""); b.style.background = hex; b.title = nom; b.setAttribute("aria-label", nom);
+    b.addEventListener("click", () => { son.clic(); memoire.ecrire("couleur", i); teindre(matEcailles, i); dessinerCouleurs(); }); L.append(b); });
+}
+function dessinerMulti() {
+  const dans = !!multi.ws; $("multiHors").hidden = dans; $("multiDans").hidden = !dans; $("pqMulti").textContent = dans ? `${multi.joueurs.size + 1}` : "";
+  if (!dans) { $("mPseudo").value = memoire.lire("pseudo", ""); dessinerCouleurs(); return; }
+  $("mCodeGrand").textContent = multi.code.slice(0, 4) + " " + multi.code.slice(4);
+  const L = $("mJoueurs"); L.innerHTML = "";
+  const ligne = (nom, c) => { const d = document.createElement("div"); d.className = "joueur"; d.innerHTML = "<i></i><span></span>"; d.firstChild.style.background = COULEURS_DRAGON[c][1]; d.lastChild.textContent = nom; L.append(d); };
+  ligne((memoire.lire("pseudo", "") || "Me") + " (you)", couleurChoisie());
+  for (const j of multi.joueurs.values()) ligne(j.pseudo || "Rider " + (j.s + 1), j.couleur ?? 0);
+  const P = $("mPhrases"); if (!P.childElementCount) PHRASES.forEach((t, i) => { const b = document.createElement("button"); b.className = "orne mini"; b.textContent = t;
+    b.addEventListener("click", () => { son.clic(); envoyerMulti({ t: "m", i }); bulle(memoire.lire("pseudo", "") || "Me", t); }); P.append(b); });
+}
+function ouvrirMulti() { $("mInfo").textContent = ""; dessinerMulti(); ouvrirEcran("multi"); }
+for (const id of ["bMulti", "bMulti2"]) $(id).addEventListener("click", ouvrirMulti);
+$("bFermerMulti").addEventListener("click", retour);
+function profilMulti() {
+  const pseudo = filtrerSurnom($("mPseudo").value);
+  if (pseudo === null) { $("mInfo").textContent = "Choose another nickname (2 to 16 letters), or leave it empty."; return null; }
+  memoire.ecrire("pseudo", pseudo); return pseudo;
+}
+$("mPseudo").addEventListener("keydown", e => e.stopPropagation());
+$("mCode").addEventListener("keydown", e => { e.stopPropagation(); if (e.key === "Enter") $("mRejoindre").click(); });
+$("mCreer").addEventListener("click", () => { son.clic(); if (profilMulti() === null) return;
+  let c = ""; for (const v of crypto.getRandomValues(new Uint8Array(8))) c += ALPHABET[v % ALPHABET.length]; connecter(c, true); });
+$("mRejoindre").addEventListener("click", () => { son.clic(); if (profilMulti() === null) return;
+  const c = $("mCode").value.toUpperCase().replace(/[^A-Z0-9]/g, ""); if (c.length !== 8 || [...c].some(x => !ALPHABET.includes(x))) { $("mInfo").textContent = "The room code has 8 letters and digits."; return; } connecter(c, false); });
+$("mQuitter").addEventListener("click", () => { son.clic(); deconnecter("You left the room."); });
+function envoyerMulti(o) { if (multi.ws && multi.ws.readyState === 1) multi.ws.send(JSON.stringify(o)); }
+function bulle(nom, texte) {
+  const d = document.createElement("div"); d.innerHTML = "<b></b> "; d.firstChild.textContent = nom + ":"; d.append(texte); $("bulles").append(d);
+  while ($("bulles").childElementCount > 4) $("bulles").firstChild.remove();
+  setTimeout(() => { d.style.opacity = 0; setTimeout(() => d.remove(), 700); }, 5000);
+}
+async function connecter(code, creer) {
+  deconnecter(); $("mInfo").textContent = "Connecting…";
+  await preparerAvatars();
+  let ws; try { ws = new WebSocket(`${RELAIS}/salle/${code}${creer ? "?creer=1" : ""}`); } catch { $("mInfo").textContent = "No internet connection."; return; }
+  multi.ws = ws; multi.code = code; let accueilli = false;
+  ws.onopen = () => envoyerMulti({ t: "profil", pseudo: memoire.lire("pseudo", ""), couleur: couleurChoisie() });
+  ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch { return; }
+    if (m.t === "bienvenue") { accueilli = true; multi.s = m.s; for (const s of m.joueurs) arrivee(s); $("mInfo").textContent = creer ? "Room created! Give the code to your friends." : "You joined the room!"; dessinerMulti(); }
+    else if (m.t === "refus") { $("mInfo").textContent = m.c === 4001 ? "This room is full (8 riders)." : "No room with this code. Check it, or create a room."; }
+    else if (m.t === "profil_refuse") { $("mInfo").textContent = "Choose another nickname."; deconnecter(); }
+    else if (m.t === "arrive") { arrivee(m.s); dessinerMulti(); }
+    else if (m.t === "profil" && m.s !== multi.s) { const j = arrivee(m.s); j.pseudo = m.pseudo; j.couleur = m.couleur; nommer(j); if (j.av) teindre(j.av.mat, m.couleur); dessinerMulti(); bulle(j.pseudo || "A rider", "joined!"); }
+    else if (m.t === "p") { const j = multi.joueurs.get(m.s); if (j) recevoirPosition(j, m); }
+    else if (m.t === "m") { const j = multi.joueurs.get(m.s); if (j && PHRASES[m.i]) bulle(j.pseudo || "Rider " + (j.s + 1), PHRASES[m.i]); }
+    else if (m.t === "part") { const j = multi.joueurs.get(m.s); if (j) { if (j.pseudo) bulle(j.pseudo, "left."); libererAvatar(j); multi.joueurs.delete(m.s); dessinerMulti(); } }
+  };
+  ws.onclose = () => { if (multi.ws !== ws) return; deconnecter(accueilli ? "Connection lost." : $("mInfo").textContent === "Connecting…" ? "Could not reach the server." : $("mInfo").textContent); };
+}
+function deconnecter(info) {
+  const ws = multi.ws; multi.ws = null; multi.code = null; multi.s = -1;
+  if (ws) { ws.onclose = ws.onmessage = null; try { ws.close(1000); } catch {} }
+  for (const j of multi.joueurs.values()) libererAvatar(j); multi.joueurs.clear();
+  if (info) $("mInfo").textContent = info; if (!$("multi").hidden) dessinerMulti(); $("pqMulti").textContent = "";
+}
+function arrivee(s) { let j = multi.joueurs.get(s); if (!j) { j = { s, pseudo: "", couleur: 0, av: null, cible: null, vit: new THREE.Vector3(), t: 0 }; multi.joueurs.set(s, j); } return j; }
+
+// Les dragons des autres : préparés à l'avance (rien ne se fabrique pendant qu'on joue), cachés tant qu'ils ne servent pas.
+async function preparerAvatars() {
+  if (multi.prets) return; multi.prets = true;
+  const { clone } = await import("three/addons/utils/SkeletonUtils.js");
+  for (let i = 0; i < 7; i++) {
+    const g = new THREE.Group(); g.rotation.order = "YXZ"; const m = clone(modele); m.position.y = -1; g.add(m);
+    const os = {}; m.traverse(o => { if (OS[o.name] && o.isBone) os[o.name] = o; });
+    const mat = matEcailles.clone(); teindre(mat, 0); m.traverse(o => { if (o.isMesh && o.material.name === "Scales") o.material = mat; });
+    const p = clone(pietonModele); const gp = new THREE.Group(); gp.add(p);
+    const toile = document.createElement("canvas"); toile.width = 256; toile.height = 64;
+    const tex = new THREE.CanvasTexture(toile); tex.colorSpace = THREE.SRGBColorSpace;
+    const nom = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true })); nom.scale.set(8, 2, 1); nom.renderOrder = 10;
+    g.visible = gp.visible = nom.visible = false; scene.add(g, gp, nom);
+    multi.pool.push({ g, m, os, mat, gp, nom, toile, tex, pos: new THREE.Vector3(), yaw: 0, ph: Math.random() * 6, libre: true });
+  }
+  await renderer.compileAsync(scene, camera);
+}
+function nommer(j) {
+  if (!j.av) return; const c = j.av.toile, g = c.getContext("2d"); g.clearRect(0, 0, 256, 64);
+  g.font = "36px Almendra, Georgia, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.lineWidth = 6; g.strokeStyle = "rgba(30,16,6,.85)"; g.fillStyle = "#fff4d6";
+  const t = j.pseudo || "Rider " + (j.s + 1); g.strokeText(t, 128, 32); g.fillText(t, 128, 32); j.av.tex.needsUpdate = true;
+}
+function libererAvatar(j) { if (!j.av) return; const a = j.av; a.libre = true; a.g.visible = a.gp.visible = a.nom.visible = false; j.av = null; }
+function recevoirPosition(j, m) {
+  const now = performance.now();
+  if (!j.av) { const a = multi.pool.find(x => x.libre); if (!a) return; a.libre = false; j.av = a; teindre(a.mat, j.couleur ?? 0); nommer(j); a.pos.set(m.x, m.y, m.z); a.yaw = m.r; }
+  if (j.cible && now - j.t < 1000) j.vit.set(m.x - j.cible.x, m.y - j.cible.y, m.z - j.cible.z).multiplyScalar(1000 / Math.max(30, now - j.t)); else j.vit.set(0, 0, 0);
+  j.cible = m; j.t = now;
+}
+const _qAv = new THREE.Quaternion(), _am = new THREE.Vector3();
+function tournerAv(a, nom, ax, ay, az, angle) { const b = a.os[nom], o = OS[nom]; if (!b || !o || !angle) return; _am.set(ax, ay, az).applyQuaternion(o.inv); _qAv.setFromAxisAngle(_am, angle); b.quaternion.multiply(_qAv); }
+function majMulti(dt) {
+  if ((multi.envoiT -= dt) < 0 && etat.mode === "vol") {   // 12 positions par seconde
+    multi.envoiT = 1 / 12; const pied = etat.sol === "pied" || etat.sol === "appel", p = pied ? marche.pos : etat.pos;
+    envoyerMulti({ t: "p", x: +p.x.toFixed(1), y: +p.y.toFixed(1), z: +p.z.toFixed(1), r: +(pied ? marche.yaw : etat.yaw).toFixed(2), a: +etat.pitch.toFixed(2), b: +etat.roll.toFixed(2), m: pied ? 2 : etat.sol ? 1 : 0, f: etat.feu ? 1 : 0 });
+  }
+  const now = performance.now();
+  for (const j of multi.joueurs.values()) {
+    const a = j.av, c = j.cible; if (!a || !c) continue;
+    const ex = Math.min(.3, (now - j.t) / 1000), k = 1 - Math.exp(-8 * dt);
+    a.pos.lerp(_am.set(c.x + j.vit.x * ex, c.y + j.vit.y * ex, c.z + j.vit.z * ex), k);
+    let d = c.r - a.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); a.yaw += d * k;
+    const pied = c.m === 2; a.g.visible = !pied; a.gp.visible = pied; a.nom.visible = true;
+    a.nom.position.copy(a.pos).y += pied ? 2.6 : 7;
+    if (pied) { a.gp.position.copy(a.pos); a.gp.rotation.set(0, a.yaw, 0); continue; }
+    a.g.position.copy(a.pos); a.g.rotation.set(-c.a * .85, a.yaw, c.b);
+    a.ph += dt * (c.m === 0 ? 7.5 : 1.5); const A = c.m === 0 ? .5 : .05, sn = Math.sin(a.ph);
+    for (const n in a.os) a.os[n].quaternion.copy(OS[n].rest);
+    for (const [S, sg] of [["L", 1], ["R", -1]]) { tournerAv(a, "Arm" + S, 0, 0, 1, sg * (.1 + A * .95 * sn)); tournerAv(a, "Forearm" + S, 0, 0, 1, sg * A * .55 * Math.sin(a.ph - .8)); }
+    a.m.position.y = -1 - sn * .35 * A;
+    if (c.f && Math.random() < .7) { avant(a.yaw, c.a, _f); const bx = a.pos.x + _f.x * 7.5, by = a.pos.y + 1.2 + _f.y * 7.5, bz = a.pos.z + _f.z * 7.5;
+      for (let i = 0; i < 2; i++) flammes.emettre(bx, by, bz, j.vit.x + _f.x * 55 + (Math.random() - .5) * 7, j.vit.y + _f.y * 55 + (Math.random() - .5) * 7, j.vit.z + _f.z * 55 + (Math.random() - .5) * 7, .4 + Math.random() * .3, 1.2 + Math.random() * .8); }
+  }
+}
 
 // ------------------------------------------------------------------ journal des performances (Settings → Graphics → Perf log)
 // Une mesure par seconde de jeu (images/s, temps d'image moyen, 95e centile et pire, appels de dessin, triangles,
@@ -2838,7 +3299,7 @@ async function demarrer() {
     await progression(.95, "Almost ready…");
     for (let i = 0; i < 3; i++) { rendre(); await pause0(); }
     pieton.visible = false;
-    majBoutons();
+    majBoutons(); majTitrePartie();
     journal.chargementMs = performance.now();
     $("chargement").hidden = true; $("titre").hidden = false;
     dernier = performance.now(); if (!TEST) requestAnimationFrame(image);
@@ -2857,7 +3318,7 @@ demarrer();
 <script>
 // Manette de jeu (Bluetooth) : en jeu, le stick ou la croix et les boutons deviennent les touches du clavier du jeu ;
 // dans les menus, la croix choisit un bouton, A appuie, B revient. Réglages du jeu : window.MANETTE (ci-dessous).
-window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC", start: "KeyP", select: "KeyQ" };
+window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC", start: "KeyP", select: "KeyQ", analogique: true };   // sticks lus par le jeu (lireManette)
 (() => {
   const C = window.MANETTE, st = { prec: [], dir: "", rep: 0, focus: null, tenues: new Set(), roule: false };
   const css = document.createElement("style"); css.textContent = ".gp-focus{outline:4px solid #ffc93c!important;outline-offset:3px;box-shadow:0 0 0 7px rgba(255,255,255,.85)!important}"; document.head.append(css);
@@ -2898,7 +3359,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
       if (appui(1)) { const b = boutons(o).find(b => b.matches("button") && /fermer|retour|reprendre|continuer|annuler|^ok$|close/i.test(b.textContent.trim() || b.getAttribute("aria-label") || "")); if (b) b.click(); else { touche("Escape", true); touche("Escape", false); } }
     } else {
       if (st.focus) poser(null); st.dir = "";
-      touche("ArrowLeft", mx < -.45); touche("ArrowRight", mx > .45); touche("ArrowUp", my < -.45); touche("ArrowDown", my > .45);
+      if (!C.analogique) { touche("ArrowLeft", mx < -.45); touche("ArrowRight", mx > .45); touche("ArrowUp", my < -.45); touche("ArrowDown", my > .45); }
       const map = [[0, C.A], [1, C.B], [2, C.X], [3, C.Y], [9, C.start], [8, C.select]];
       for (const [i, m] of map) agir(m, B(i), appui(i));
       if (C.courir) touche(C.courir, B(4) || B(5) || B(6) || B(7));
@@ -2912,7 +3373,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
 })();
 </script>
 <script>
-window.DRAGONFLYER_VERSION = "2026.10.30-6"; // à changer à chaque modification du jeu
+window.DRAGONFLYER_VERSION = "2026.10.30-7"; // à changer à chaque modification du jeu
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
