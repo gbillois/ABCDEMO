@@ -43,6 +43,8 @@ I = {
 "etoile": "<path class='f' d='M16 3l3.6 8.1 8.8.9-6.6 5.9 1.9 8.6L16 22l-7.7 4.5 1.9-8.6L3.6 12l8.8-.9z'/>",
 "sac": "<path class='f' d='M9 12c-3 4-4 9-2 13 2 3 16 3 18 0 2-4 1-9-2-13z'/><path d='M11 12l-2-5h14l-2 5'/><path d='M10 12h12'/><path class='h' d='M13 18c2 1 4 1 6 0'/>",
 "suivant": "<path d='M8 6l12 10-12 10' stroke-width='3'/><path d='M18 6l8 10-8 10' class='h'/>",
+"epee": "<path class='f' d='M16 2l3 4v14h-6V6z'/><path d='M16 6v13' class='h'/><path d='M8 20h16'/><path d='M16 21v6'/><circle cx='16' cy='29' r='1.8'/>",
+"bouclier": "<path class='f' d='M16 3l11 4c0 10-4 17-11 22C9 24 5 17 5 7z'/><path d='M16 7v18M9 13h14' class='h'/>",
 "courbe": "<path d='M3 25c5-14 13-19 26-18'/><path d='M23 3l6 4-5 5'/><path d='M3 29h26' class='h'/>",
 }
 def sprite():

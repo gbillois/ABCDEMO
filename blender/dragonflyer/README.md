@@ -13,6 +13,7 @@ dans `dragonflyer/index.html`, qui reste un seul fichier.
 | `maisons.py` | Blender : kit de village (7 maisons, accessoires, 2 intérieurs meublés), occlusion cuite dans les couleurs → `village.glb` (puis meshopt → `dragonflyer/assets/village.glb`) |
 | `animaux.py` | Blender : mouton, chèvre, poule, cerf, vache ; attribut `_TAG` (pattes, tête) animé dans le jeu → `animaux.glb` |
 | `paysages.py` | Blender : rochers, arche et tour en ruine, menhir, épave, barque, bois flotté, chou, fleurs → `paysages.glb` (le blé est en cartes dessinées dans le jeu) |
+| `caverne.py` | Blender : la Caverne des Braises (galerie en trois salles, lave, cristaux, entrée dans la montagne), grille, brasero, flamme, dalle, socle, Épée de Braise, rampant de braise (ennemi) ; lumière de lave cuite dans les couleurs → `caverne.glb` (puis meshopt → `dragonflyer/assets/caverne.glb`) |
 | `grimoire_icones.py` | les icônes gravées des menus (SVG) |
 | `grimoire_gravure.py` | Blender : le dragon en vol, ailes levées, en blanc avec traits Freestyle (pour les menus) |
 | `grimoire_encre.py` | transforme ce rendu en gravure à l'encre brune (traits, hachures, lavis) → `ui-gravure.webp` (estompée à 30 %) |

@@ -50,6 +50,7 @@ input,textarea,select{font-size:max(16px,1em)}
   html, body { height: 100%; margin: 0; overflow: hidden; background: #1a0f08; color: var(--encre); font-family: var(--tete);
     touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
   canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
+  #vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse 75% 70% at 50% 48%, transparent 62%, rgba(18, 10, 24, .3) 100%); }
   #voile { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, rgba(255,255,255,.6), rgba(240,245,250,.9)); opacity: 0; transition: opacity .4s; }
   #vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 62%, rgba(20,12,4,.3) 100%); }
   svg.defs { position: absolute; width: 0; height: 0; }
@@ -263,6 +264,10 @@ input,textarea,select{font-size:max(16px,1em)}
   #btAiles { right: max(124px, calc(env(safe-area-inset-right) + 104px)); bottom: max(44px, calc(env(safe-area-inset-bottom) + 18px)); width: 76px; height: 76px; font-size: 32px; }
   #btEntrer { right: max(20px, env(safe-area-inset-right)); bottom: max(138px, calc(env(safe-area-inset-bottom) + 122px)); width: 72px; height: 72px; }
   #fondu { position: fixed; inset: 0; z-index: 9; background: #000; opacity: 0; pointer-events: none; transition: opacity .35s; } #fondu.noir { opacity: 1; }
+  #fondu.aie { background: radial-gradient(ellipse at center, transparent 45%, rgba(190, 30, 16, .55)); opacity: 1; transition: opacity .05s; }
+  #btEpee { right: max(124px, calc(env(safe-area-inset-right) + 104px)); bottom: max(138px, calc(env(safe-area-inset-bottom) + 122px)); width: 72px; height: 72px; }
+  #coeurs { display: flex; gap: 3px; margin-top: 6px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); } #coeurs[hidden] { display: none; }
+  #coeurs svg { width: 28px; height: 28px; } #coeurs path { fill: #f4e6c8; } #coeurs path.on { fill: #c8281e; } #coeurs path.t { fill: none; stroke: #3a1808; stroke-width: 2.2; stroke-linejoin: round; }
   #btParler { right: max(20px, env(safe-area-inset-right)); bottom: max(138px, calc(env(safe-area-inset-bottom) + 122px)); width: 72px; height: 72px; }
   #dialogue { position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 8; width: min(560px, 86vw); padding: 12px 20px 14px;
     background: radial-gradient(ellipse at 50% 30%, rgba(255,252,236,.7), transparent 70%), var(--parch) center / 300px; border-radius: 8px; color: #2e1a0a;
@@ -299,6 +304,7 @@ input,textarea,select{font-size:max(16px,1em)}
 <body>
 <canvas id="c" tabindex="0"></canvas>
 <div id="vignette"></div>
+<div id="vignette"></div>
 <div id="voile"></div>
 
 <svg class="defs" aria-hidden="true">
@@ -306,7 +312,7 @@ input,textarea,select{font-size:max(16px,1em)}
 </svg>
 
 <!-- icônes gravées du grimoire, dessinées en SVG (32×32, encre = currentColor) -->
-<svg class="defs" aria-hidden="true"><symbol id="i-dragon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M4 27C5 19 9 14 15 12.5c4-1 8-1.5 11 .5 3 2 4 5 2 7l-5 1c-2 0-4 1-5 3l-1 3'/><path fill='currentColor' fill-opacity='.14' d='M15 12.5C13 8 13 5 10 2.5c5 1 8 4 9 9.5M21 11.5c1-4 3-6.5 7-8-1 3-2 6-3 8.5'/><path d='M28 20c-3-1-6-1-8 .5'/><path d='M19.5 15.6q2.2-1.6 4.4 0'/><circle cx='21.7' cy='15.9' r='1.1' fill='currentColor'/><circle cx='27' cy='16.4' r='.6' fill='currentColor'/><path stroke-width='1.1' opacity='.7' d='M7 23c2-3 4-5 7-6M10 25c2-3 3-4 6-5M6 19c1-2 3-4 5-5'/></symbol><symbol id="i-engrenage" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M20.1 12.5 L22.3 14.2 L21.9 15.9 L19.1 16.3 L18.3 17.4 L18.9 20.2 L17.5 21.2 L15.1 19.6 L13.8 20.0 L12.5 22.5 L10.8 22.3 L9.9 19.6 L8.7 19.1 L6.1 20.2 L4.8 18.9 L5.9 16.3 L5.4 15.1 L2.7 14.2 L2.5 12.5 L5.0 11.2 L5.4 9.9 L3.8 7.5 L4.8 6.1 L7.6 6.7 L8.7 5.9 L9.1 3.1 L10.8 2.7 L12.5 4.9 L13.8 5.0 L15.9 3.1 L17.5 3.8 L17.4 6.7 L18.3 7.6 L21.2 7.5 L21.9 9.1 L20.0 11.2Z'/><circle cx='12.5' cy='12.5' r='4'/><circle cx='12.5' cy='12.5' r='1.4' fill='currentColor'/><path fill='currentColor' fill-opacity='.14' d='M27.9 23.5 L29.7 24.9 L29.3 26.3 L26.9 26.2 L26.2 26.9 L26.3 29.3 L24.9 29.7 L23.5 27.9 L22.5 27.8 L20.7 29.3 L19.5 28.5 L20.1 26.2 L19.5 25.4 L17.3 24.9 L17.1 23.5 L19.2 22.5 L19.5 21.6 L18.5 19.5 L19.5 18.5 L21.6 19.5 L22.5 19.2 L23.5 17.1 L24.9 17.3 L25.4 19.5 L26.2 20.1 L28.5 19.5 L29.3 20.7 L27.8 22.5Z'/><circle cx='23.5' cy='23.5' r='1.6'/></symbol><symbol id="i-maj" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M25 12a10 10 0 0 0-17-3l-2 2'/><path d='M5 6v5h5'/><path d='M7 20a10 10 0 0 0 17 3l2-2'/><path d='M27 26v-5h-5'/></symbol><symbol id="i-maison" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 17 16 5l14 12'/><path d='M13 6l-3-4M19 6l3-4'/><path d='M6 14v13h20V14'/><path d='M13 27v-7h6v7'/><path stroke-width='1.1' opacity='.7' d='M8 18h3M21 18h3M8 22h3M21 22h3'/></symbol><symbol id="i-rouleau" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M9 6h16a3 3 0 0 1 0 6h-2v14a3 3 0 0 1-3 3H6a3 3 0 0 1 0-6h3z'/><path d='M23 12V9'/><path d='M9 23v3a3 3 0 0 1-3 3'/><path stroke-width='1.1' opacity='.7' d='M12 12h8M12 16h8M12 20h6'/></symbol><symbol id="i-longuevue" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M4 21 22 8l3 4L7 25z'/><path d='M22 8l3-2 3 4-3 2'/><path d='M11 18l3 4'/><path d='M8 28l4-5 4 5'/></symbol><symbol id="i-cor" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M4 9c9 0 18 5 23 16l-4 2C19 18 12 14 4 14z'/><path d='M4 9v5'/><path d='M10 9.6v4.6M16 11.5l-1.5 4.4'/><path stroke-width='1.1' opacity='.7' d='M8 6c2-1 4-1 6 0'/></symbol><symbol id="i-muet" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M4 9c9 0 18 5 23 16l-4 2C19 18 12 14 4 14z'/><path d='M4 9v5'/><path d='M18 3l10 10M28 3 18 13' stroke-width='2.4'/></symbol><symbol id="i-lyre" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M9 27h14'/><path d='M10 27C6 20 5 12 8 5c2 3 4 4 5 4M22 27c4-7 5-15 2-22-2 3-4 4-5 4'/><path d='M9 9h14'/><path d='M13 9v15M16 9v15M19 9v15'/></symbol><symbol id="i-cadenas" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x='7' y='14' width='18' height='14' rx='2'/><path d='M11 14V9a5 5 0 0 1 10 0v5'/><circle cx='16' cy='20' r='2' fill='currentColor'/><path d='M16 22v3'/></symbol><symbol id="i-fleches" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 3v26'/><path d='M10 9l6-6 6 6M10 23l6 6 6-6'/></symbol><symbol id="i-sablier" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M7 3h18M7 29h18'/><path d='M9 3c0 8 7 9 7 13s-7 5-7 13M23 3c0 8-7 9-7 13s7 5 7 13'/><path stroke-width='1.1' opacity='.7' d='M12 26c2-2 6-2 8 0M13 9h6'/></symbol><symbol id="i-pause" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x='8' y='6' width='5' height='20' rx='1.5' fill='currentColor'/><rect x='19' y='6' width='5' height='20' rx='1.5' fill='currentColor'/></symbol><symbol id="i-viser" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx='16' cy='16' r='10'/><circle cx='16' cy='16' r='3' fill='currentColor'/><path d='M16 2v6M16 24v6M2 16h6M24 16h6'/></symbol><symbol id="i-croix" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 3v26M3 16h26'/><path d='M12 7l4-4 4 4M12 25l4 4 4-4M7 12l-4 4 4 4M25 12l4 4-4 4'/></symbol><symbol id="i-aile" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M4 26C6 18 8 12 10 6c6-1 13-1 19-2-2 4-3 6-2 9-3 0-5 1-5 4-3 0-5 2-5 5-4-1-9 1-13 4z'/><path d='M10 6l17 7M10 6l12 11M10 6l7 16'/></symbol><symbol id="i-feu" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 29c-6 0-10-4-10-9 0-6 5-8 6-14 3 2 4 5 4 8 1-2 3-3 3-6 4 3 7 8 7 12 0 5-4 9-10 9z'/><path d='M16 29c-3 0-5-2-5-5 0-3 3-4 4-7 2 2 6 4 6 7 0 3-2 5-5 5z'/></symbol><symbol id="i-atterrir" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 3v15'/><path d='M10 12l6 6 6-6'/><path d='M3 26h26'/><path stroke-width='1.1' opacity='.7' d='M7 29h4M14 29h4M21 29h4'/></symbol><symbol id="i-saut" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M5 27c3-10 8-17 17-20'/><path d='M15 6l7 1-2 7'/><path d='M3 29h10'/></symbol><symbol id="i-anneau" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><ellipse cx='16' cy='16' rx='12' ry='12'/><ellipse cx='16' cy='16' rx='7.5' ry='7.5'/><path stroke-width='1.1' opacity='.7' d='M8 9l2 2M23 22l2 2M24 9l-2 2'/></symbol><symbol id="i-poisson" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M3 16c5-7 13-8 19-2l7-5v14l-7-5c-6 6-14 5-19-2z'/><circle cx='9' cy='14.5' r='1.4' fill='currentColor'/><path stroke-width='1.1' opacity='.7' d='M14 12c1 3 1 5 0 8M18 13c1 2 1 4 0 6'/></symbol><symbol id="i-nid" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M3 18c2 8 24 8 26 0'/><path d='M4 21c7 3 17 3 24 0M6 25c6 2 14 2 20 0'/><ellipse cx='11' cy='15' rx='3.2' ry='4'/><ellipse cx='17' cy='13' rx='3.2' ry='4.2'/><ellipse cx='22.5' cy='15.5' rx='3' ry='3.8'/></symbol><symbol id="i-phare" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M12 29 13 11h6l1 18'/><path d='M11 11h10M12 11V7h8v4M14 7l2-3 2 3'/><path d='M9 29h14'/><path stroke-width='1.1' opacity='.7' d='M13 17h6M12.5 23h7'/><path d='M5 6l6 2M27 6l-6 2'/></symbol><symbol id="i-village" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 20 9 13l7 7M5 18v10h8V18'/><path d='M14 16 21 8l9 9M17 13v15h11V14'/><path d='M21 28v-5h3v5'/><path d='M2 28h28'/></symbol><symbol id="i-pic" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 28 12 12l4 6 3-5 11 15z'/><path stroke-width='1.1' opacity='.7' d='M10 18l2 3M18 17l3 4'/><path d='M19 11c-2 0-3-2-3-3 0-2 2-3 2-5 2 1 4 3 4 5 0 2-1 3-3 3z'/></symbol><symbol id="i-fermer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M7 7l18 18M25 7 7 25' stroke-width='3'/></symbol><symbol id="i-rejouer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M26 16a10 10 0 1 1-4-8'/><path d='M23 3v6h-6' stroke-width='2.2'/></symbol><symbol id="i-jouer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M10 6v20l16-10z' fill='currentColor'/></symbol><symbol id="i-oeil" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 16c4-6 9-9 14-9s10 3 14 9c-4 6-9 9-14 9S6 22 2 16z'/><circle cx='16' cy='16' r='5'/><circle cx='16' cy='16' r='2' fill='currentColor'/></symbol><symbol id="i-livre" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M5 6c4-2 8-2 11 1v20c-3-3-7-3-11-1z'/><path fill='currentColor' fill-opacity='.14' d='M27 6c-4-2-8-2-11 1v20c3-3 7-3 11-1z'/><path stroke-width='1.1' opacity='.7' d='M8 11c2-1 4-1 6 0M8 15c2-1 4-1 6 0M18 11c2-1 4-1 6 0M18 15c2-1 4-1 6 0'/></symbol><symbol id="i-envoyer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 20V4'/><path d='M10 10l6-6 6 6'/><path d='M5 18v8h22v-8'/></symbol><symbol id="i-recevoir" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 4v16'/><path d='M10 14l6 6 6-6'/><path d='M5 18v8h22v-8'/></symbol><symbol id="i-poubelle" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M6 9h20M13 9V5h6v4'/><path fill='currentColor' fill-opacity='.14' d='M8 9l2 18h12l2-18'/><path stroke-width='1.1' opacity='.7' d='M13 13v10M19 13v10'/></symbol><symbol id="i-joueurs" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx='11' cy='11' r='4.5'/><path d='M3 27c0-6 4-9 8-9s8 3 8 9'/><circle cx='22' cy='9' r='3.6'/><path d='M19 16c1-1 2-1.5 3-1.5 3.5 0 7 2.5 7 8'/><path d='M7 7l-2-4M15 7l2-4'/></symbol><symbol id="i-plus" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 5v22M5 16h22' stroke-width='3'/></symbol><symbol id="i-bulle" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M5 7h22v14H14l-6 5v-5H5z'/><path stroke-width='1.1' opacity='.7' d='M9 12h14M9 16h10'/></symbol><symbol id="i-mouton" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M7 17c-2-1-2-5 1-6 0-3 4-4 6-2 2-3 6-2 7 1 3 0 4 4 2 6 1 3-2 5-4 4-2 2-6 2-8 0-2 1-5-1-4-3z'/><path fill='currentColor' fill-opacity='.14' d='M24 13c2-1 5 0 5 3s-2 4-4 3'/><circle cx='27' cy='15' r='.8' fill='currentColor'/><path d='M10 22v5M14 22v5M19 22v5M23 21v5'/></symbol><symbol id="i-balance" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 4v22M9 27h14'/><path d='M5 8h22'/><path d='M5 8l-3 8h6zM27 8l-3 8h6z'/><path fill='currentColor' fill-opacity='.14' d='M2 16a3 2 0 0 0 6 0zM24 16a3 2 0 0 0 6 0z'/><circle cx='16' cy='5' r='1.6'/></symbol><symbol id="i-piece" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle fill='currentColor' fill-opacity='.14' cx='16' cy='16' r='12'/><circle cx='16' cy='16' r='9'/><path d='M12 11c4-2 8 0 8 3s-4 3-4 3 4 1 4 4-4 4-8 2'/></symbol><symbol id="i-rune" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M10 29V8c0-4 12-4 12 0v21z'/><path d='M14 11v12M14 14l5-3M14 18l5 4M18 24l-4 0'/><path d='M7 29h18'/></symbol><symbol id="i-etoile" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M16 3l3.6 8.1 8.8.9-6.6 5.9 1.9 8.6L16 22l-7.7 4.5 1.9-8.6L3.6 12l8.8-.9z'/></symbol><symbol id="i-sac" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M9 12c-3 4-4 9-2 13 2 3 16 3 18 0 2-4 1-9-2-13z'/><path d='M11 12l-2-5h14l-2 5'/><path d='M10 12h12'/><path stroke-width='1.1' opacity='.7' d='M13 18c2 1 4 1 6 0'/></symbol><symbol id="i-suivant" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M8 6l12 10-12 10' stroke-width='3'/><path d='M18 6l8 10-8 10' stroke-width='1.1' opacity='.7'/></symbol><symbol id="i-courbe" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M3 25c5-14 13-19 26-18'/><path d='M23 3l6 4-5 5'/><path d='M3 29h26' stroke-width='1.1' opacity='.7'/></symbol></svg>
+<svg class="defs" aria-hidden="true"><symbol id="i-dragon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M4 27C5 19 9 14 15 12.5c4-1 8-1.5 11 .5 3 2 4 5 2 7l-5 1c-2 0-4 1-5 3l-1 3'/><path fill='currentColor' fill-opacity='.14' d='M15 12.5C13 8 13 5 10 2.5c5 1 8 4 9 9.5M21 11.5c1-4 3-6.5 7-8-1 3-2 6-3 8.5'/><path d='M28 20c-3-1-6-1-8 .5'/><path d='M19.5 15.6q2.2-1.6 4.4 0'/><circle cx='21.7' cy='15.9' r='1.1' fill='currentColor'/><circle cx='27' cy='16.4' r='.6' fill='currentColor'/><path stroke-width='1.1' opacity='.7' d='M7 23c2-3 4-5 7-6M10 25c2-3 3-4 6-5M6 19c1-2 3-4 5-5'/></symbol><symbol id="i-engrenage" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M20.1 12.5 L22.3 14.2 L21.9 15.9 L19.1 16.3 L18.3 17.4 L18.9 20.2 L17.5 21.2 L15.1 19.6 L13.8 20.0 L12.5 22.5 L10.8 22.3 L9.9 19.6 L8.7 19.1 L6.1 20.2 L4.8 18.9 L5.9 16.3 L5.4 15.1 L2.7 14.2 L2.5 12.5 L5.0 11.2 L5.4 9.9 L3.8 7.5 L4.8 6.1 L7.6 6.7 L8.7 5.9 L9.1 3.1 L10.8 2.7 L12.5 4.9 L13.8 5.0 L15.9 3.1 L17.5 3.8 L17.4 6.7 L18.3 7.6 L21.2 7.5 L21.9 9.1 L20.0 11.2Z'/><circle cx='12.5' cy='12.5' r='4'/><circle cx='12.5' cy='12.5' r='1.4' fill='currentColor'/><path fill='currentColor' fill-opacity='.14' d='M27.9 23.5 L29.7 24.9 L29.3 26.3 L26.9 26.2 L26.2 26.9 L26.3 29.3 L24.9 29.7 L23.5 27.9 L22.5 27.8 L20.7 29.3 L19.5 28.5 L20.1 26.2 L19.5 25.4 L17.3 24.9 L17.1 23.5 L19.2 22.5 L19.5 21.6 L18.5 19.5 L19.5 18.5 L21.6 19.5 L22.5 19.2 L23.5 17.1 L24.9 17.3 L25.4 19.5 L26.2 20.1 L28.5 19.5 L29.3 20.7 L27.8 22.5Z'/><circle cx='23.5' cy='23.5' r='1.6'/></symbol><symbol id="i-maj" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M25 12a10 10 0 0 0-17-3l-2 2'/><path d='M5 6v5h5'/><path d='M7 20a10 10 0 0 0 17 3l2-2'/><path d='M27 26v-5h-5'/></symbol><symbol id="i-maison" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 17 16 5l14 12'/><path d='M13 6l-3-4M19 6l3-4'/><path d='M6 14v13h20V14'/><path d='M13 27v-7h6v7'/><path stroke-width='1.1' opacity='.7' d='M8 18h3M21 18h3M8 22h3M21 22h3'/></symbol><symbol id="i-rouleau" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M9 6h16a3 3 0 0 1 0 6h-2v14a3 3 0 0 1-3 3H6a3 3 0 0 1 0-6h3z'/><path d='M23 12V9'/><path d='M9 23v3a3 3 0 0 1-3 3'/><path stroke-width='1.1' opacity='.7' d='M12 12h8M12 16h8M12 20h6'/></symbol><symbol id="i-longuevue" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M4 21 22 8l3 4L7 25z'/><path d='M22 8l3-2 3 4-3 2'/><path d='M11 18l3 4'/><path d='M8 28l4-5 4 5'/></symbol><symbol id="i-cor" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M4 9c9 0 18 5 23 16l-4 2C19 18 12 14 4 14z'/><path d='M4 9v5'/><path d='M10 9.6v4.6M16 11.5l-1.5 4.4'/><path stroke-width='1.1' opacity='.7' d='M8 6c2-1 4-1 6 0'/></symbol><symbol id="i-muet" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M4 9c9 0 18 5 23 16l-4 2C19 18 12 14 4 14z'/><path d='M4 9v5'/><path d='M18 3l10 10M28 3 18 13' stroke-width='2.4'/></symbol><symbol id="i-lyre" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M9 27h14'/><path d='M10 27C6 20 5 12 8 5c2 3 4 4 5 4M22 27c4-7 5-15 2-22-2 3-4 4-5 4'/><path d='M9 9h14'/><path d='M13 9v15M16 9v15M19 9v15'/></symbol><symbol id="i-cadenas" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x='7' y='14' width='18' height='14' rx='2'/><path d='M11 14V9a5 5 0 0 1 10 0v5'/><circle cx='16' cy='20' r='2' fill='currentColor'/><path d='M16 22v3'/></symbol><symbol id="i-fleches" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 3v26'/><path d='M10 9l6-6 6 6M10 23l6 6 6-6'/></symbol><symbol id="i-sablier" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M7 3h18M7 29h18'/><path d='M9 3c0 8 7 9 7 13s-7 5-7 13M23 3c0 8-7 9-7 13s7 5 7 13'/><path stroke-width='1.1' opacity='.7' d='M12 26c2-2 6-2 8 0M13 9h6'/></symbol><symbol id="i-pause" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x='8' y='6' width='5' height='20' rx='1.5' fill='currentColor'/><rect x='19' y='6' width='5' height='20' rx='1.5' fill='currentColor'/></symbol><symbol id="i-viser" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx='16' cy='16' r='10'/><circle cx='16' cy='16' r='3' fill='currentColor'/><path d='M16 2v6M16 24v6M2 16h6M24 16h6'/></symbol><symbol id="i-croix" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 3v26M3 16h26'/><path d='M12 7l4-4 4 4M12 25l4 4 4-4M7 12l-4 4 4 4M25 12l4 4-4 4'/></symbol><symbol id="i-aile" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M4 26C6 18 8 12 10 6c6-1 13-1 19-2-2 4-3 6-2 9-3 0-5 1-5 4-3 0-5 2-5 5-4-1-9 1-13 4z'/><path d='M10 6l17 7M10 6l12 11M10 6l7 16'/></symbol><symbol id="i-feu" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 29c-6 0-10-4-10-9 0-6 5-8 6-14 3 2 4 5 4 8 1-2 3-3 3-6 4 3 7 8 7 12 0 5-4 9-10 9z'/><path d='M16 29c-3 0-5-2-5-5 0-3 3-4 4-7 2 2 6 4 6 7 0 3-2 5-5 5z'/></symbol><symbol id="i-atterrir" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 3v15'/><path d='M10 12l6 6 6-6'/><path d='M3 26h26'/><path stroke-width='1.1' opacity='.7' d='M7 29h4M14 29h4M21 29h4'/></symbol><symbol id="i-saut" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M5 27c3-10 8-17 17-20'/><path d='M15 6l7 1-2 7'/><path d='M3 29h10'/></symbol><symbol id="i-anneau" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><ellipse cx='16' cy='16' rx='12' ry='12'/><ellipse cx='16' cy='16' rx='7.5' ry='7.5'/><path stroke-width='1.1' opacity='.7' d='M8 9l2 2M23 22l2 2M24 9l-2 2'/></symbol><symbol id="i-poisson" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M3 16c5-7 13-8 19-2l7-5v14l-7-5c-6 6-14 5-19-2z'/><circle cx='9' cy='14.5' r='1.4' fill='currentColor'/><path stroke-width='1.1' opacity='.7' d='M14 12c1 3 1 5 0 8M18 13c1 2 1 4 0 6'/></symbol><symbol id="i-nid" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M3 18c2 8 24 8 26 0'/><path d='M4 21c7 3 17 3 24 0M6 25c6 2 14 2 20 0'/><ellipse cx='11' cy='15' rx='3.2' ry='4'/><ellipse cx='17' cy='13' rx='3.2' ry='4.2'/><ellipse cx='22.5' cy='15.5' rx='3' ry='3.8'/></symbol><symbol id="i-phare" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M12 29 13 11h6l1 18'/><path d='M11 11h10M12 11V7h8v4M14 7l2-3 2 3'/><path d='M9 29h14'/><path stroke-width='1.1' opacity='.7' d='M13 17h6M12.5 23h7'/><path d='M5 6l6 2M27 6l-6 2'/></symbol><symbol id="i-village" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 20 9 13l7 7M5 18v10h8V18'/><path d='M14 16 21 8l9 9M17 13v15h11V14'/><path d='M21 28v-5h3v5'/><path d='M2 28h28'/></symbol><symbol id="i-pic" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 28 12 12l4 6 3-5 11 15z'/><path stroke-width='1.1' opacity='.7' d='M10 18l2 3M18 17l3 4'/><path d='M19 11c-2 0-3-2-3-3 0-2 2-3 2-5 2 1 4 3 4 5 0 2-1 3-3 3z'/></symbol><symbol id="i-fermer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M7 7l18 18M25 7 7 25' stroke-width='3'/></symbol><symbol id="i-rejouer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M26 16a10 10 0 1 1-4-8'/><path d='M23 3v6h-6' stroke-width='2.2'/></symbol><symbol id="i-jouer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M10 6v20l16-10z' fill='currentColor'/></symbol><symbol id="i-oeil" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M2 16c4-6 9-9 14-9s10 3 14 9c-4 6-9 9-14 9S6 22 2 16z'/><circle cx='16' cy='16' r='5'/><circle cx='16' cy='16' r='2' fill='currentColor'/></symbol><symbol id="i-livre" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M5 6c4-2 8-2 11 1v20c-3-3-7-3-11-1z'/><path fill='currentColor' fill-opacity='.14' d='M27 6c-4-2-8-2-11 1v20c3-3 7-3 11-1z'/><path stroke-width='1.1' opacity='.7' d='M8 11c2-1 4-1 6 0M8 15c2-1 4-1 6 0M18 11c2-1 4-1 6 0M18 15c2-1 4-1 6 0'/></symbol><symbol id="i-envoyer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 20V4'/><path d='M10 10l6-6 6 6'/><path d='M5 18v8h22v-8'/></symbol><symbol id="i-recevoir" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 4v16'/><path d='M10 14l6 6 6-6'/><path d='M5 18v8h22v-8'/></symbol><symbol id="i-poubelle" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M6 9h20M13 9V5h6v4'/><path fill='currentColor' fill-opacity='.14' d='M8 9l2 18h12l2-18'/><path stroke-width='1.1' opacity='.7' d='M13 13v10M19 13v10'/></symbol><symbol id="i-joueurs" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx='11' cy='11' r='4.5'/><path d='M3 27c0-6 4-9 8-9s8 3 8 9'/><circle cx='22' cy='9' r='3.6'/><path d='M19 16c1-1 2-1.5 3-1.5 3.5 0 7 2.5 7 8'/><path d='M7 7l-2-4M15 7l2-4'/></symbol><symbol id="i-plus" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 5v22M5 16h22' stroke-width='3'/></symbol><symbol id="i-bulle" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M5 7h22v14H14l-6 5v-5H5z'/><path stroke-width='1.1' opacity='.7' d='M9 12h14M9 16h10'/></symbol><symbol id="i-mouton" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M7 17c-2-1-2-5 1-6 0-3 4-4 6-2 2-3 6-2 7 1 3 0 4 4 2 6 1 3-2 5-4 4-2 2-6 2-8 0-2 1-5-1-4-3z'/><path fill='currentColor' fill-opacity='.14' d='M24 13c2-1 5 0 5 3s-2 4-4 3'/><circle cx='27' cy='15' r='.8' fill='currentColor'/><path d='M10 22v5M14 22v5M19 22v5M23 21v5'/></symbol><symbol id="i-balance" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M16 4v22M9 27h14'/><path d='M5 8h22'/><path d='M5 8l-3 8h6zM27 8l-3 8h6z'/><path fill='currentColor' fill-opacity='.14' d='M2 16a3 2 0 0 0 6 0zM24 16a3 2 0 0 0 6 0z'/><circle cx='16' cy='5' r='1.6'/></symbol><symbol id="i-piece" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle fill='currentColor' fill-opacity='.14' cx='16' cy='16' r='12'/><circle cx='16' cy='16' r='9'/><path d='M12 11c4-2 8 0 8 3s-4 3-4 3 4 1 4 4-4 4-8 2'/></symbol><symbol id="i-rune" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M10 29V8c0-4 12-4 12 0v21z'/><path d='M14 11v12M14 14l5-3M14 18l5 4M18 24l-4 0'/><path d='M7 29h18'/></symbol><symbol id="i-etoile" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M16 3l3.6 8.1 8.8.9-6.6 5.9 1.9 8.6L16 22l-7.7 4.5 1.9-8.6L3.6 12l8.8-.9z'/></symbol><symbol id="i-sac" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M9 12c-3 4-4 9-2 13 2 3 16 3 18 0 2-4 1-9-2-13z'/><path d='M11 12l-2-5h14l-2 5'/><path d='M10 12h12'/><path stroke-width='1.1' opacity='.7' d='M13 18c2 1 4 1 6 0'/></symbol><symbol id="i-suivant" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M8 6l12 10-12 10' stroke-width='3'/><path d='M18 6l8 10-8 10' stroke-width='1.1' opacity='.7'/></symbol><symbol id="i-epee" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M16 2l3 4v14h-6V6z'/><path stroke-width='1.1' opacity='.7' d='M16 6v13'/><path d='M8 20h16'/><path d='M16 21v6'/><circle cx='16' cy='29' r='1.8'/></symbol><symbol id="i-bouclier" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path fill='currentColor' fill-opacity='.14' d='M16 3l11 4c0 10-4 17-11 22C9 24 5 17 5 7z'/><path stroke-width='1.1' opacity='.7' d='M16 7v18M9 13h14'/></symbol><symbol id="i-courbe" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d='M3 25c5-14 13-19 26-18'/><path d='M23 3l6 4-5 5'/><path d='M3 29h26' stroke-width='1.1' opacity='.7'/></symbol></svg>
 
 <div id="chargement" class="ecran">
   <img class="blason" src="blason.webp" alt="">
@@ -381,6 +387,7 @@ input,textarea,select{font-size:max(16px,1em)}
   <div id="hudHaut">
     <div class="gauche">
       <div class="bandeau objectif" id="objectif" hidden><svg class="ico"><use href="#i-rouleau"/></svg><span id="objectifTexte"></span></div>
+      <div id="coeurs" hidden></div>
       <div class="bandeau" id="bandeau" hidden><span id="compteur"></span><span id="chronoBox"><svg class="ico"><use href="#i-sablier"/></svg> <b id="chrono">0:00</b></span></div>
       <div id="mesure" hidden></div>
     </div>
@@ -409,6 +416,7 @@ input,textarea,select{font-size:max(16px,1em)}
   <button class="bt bouclier" id="btPoser" aria-label="Land" hidden><span><svg class="ico"><use href="#i-atterrir"/></svg></span></button>
   <button class="bt bouclier" id="btEntrer" aria-label="Go in" hidden><span><svg class="ico"><use href="#i-maison"/></svg></span></button>
   <button class="bt bouclier" id="btParler" aria-label="Talk" hidden><span><svg class="ico"><use href="#i-bulle"/></svg></span></button>
+  <button class="bt bouclier" id="btEpee" aria-label="Sword" hidden><span><svg class="ico"><use href="#i-epee"/></svg></span></button>
 </div>
 <div id="bulles" aria-live="polite"></div>
 <div id="fondu"></div>
@@ -701,7 +709,7 @@ scene.fog = new THREE.FogExp2(0xffffff, 0.0001);   // active la brume (calculée
 const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 1.2, 70000);
 camera.position.set(0, 300, 2600);
 const horloge = { t: 0 };
-const U_TEMPS = { value: 0 }, U_HEURE = { value: .4 };
+const U_TEMPS = { value: 0 }, U_HEURE = { value: .4 }, U_CONTOUR = { value: new THREE.Color(.4, .38, .34) };
 
 // ------------------------------------------------------------------ outils
 function alea(graine) {
@@ -1786,6 +1794,7 @@ function fonduNoir(puis) {
 }
 function entrer(pt) {
   const I = INTERIEURS[pt.interieur]; if (!I || dedans) return;
+  if (pt.interieur === "braises" && HIST.etape < 5) { afficher("The door is sealed", "Runa will tell you when you are ready"); son.clic(); return; }
   son.clic(); sauverProgression();
   fonduNoir(() => {
     dedans = { I, porte: pt };
@@ -1810,7 +1819,8 @@ function majPortes(dt) {
     let best = 2.2;
     for (const pt of PORTES) { const d = Math.hypot(pt.x - marche.pos.x, pt.z - marche.pos.z); if (d < best && Math.abs(pt.y - marche.pos.y) < 2.5) { best = d; portePres = pt; } }
   }
-  if (dedans) {   // le foyer vacille ; on sort en marchant jusqu'à la porte
+  if (dedans && dedans.I.grotte) { if (!fondu && marche.pos.z - dedans.I.g.position.z > 26.9 && Math.cos(marche.yaw) > .3 && marche.vitesse > .5) sortir(); }   // on ressort par où on est entré
+  else if (dedans) {   // le foyer vacille ; on sort en marchant jusqu'à la porte
     lumiereFeu.intensity = 35 * (.85 + .3 * Math.random());
     const o = dedans.I.g.position, p = dedans.I.porte;
     if (!fondu && Math.hypot(marche.pos.x - (o.x + p.x), marche.pos.z - (o.z + p.z - .45)) < .55 && Math.cos(marche.yaw) < -.3 && marche.vitesse > .5) sortir();
@@ -1823,6 +1833,7 @@ function garderDansPiece(p, marge = .45) {
   const I = dedans.I, o = I.g.position;
   p.x = Math.max(o.x - I.l / 2 + marge, Math.min(o.x + I.l / 2 - marge, p.x));
   p.z = Math.max(o.z - I.p / 2 + marge, Math.min(o.z + I.p / 2 - marge, p.z));
+  if (I.bloquer) I.bloquer(p, marge);
 }
 
 // ------------------------------------------------------------------ villages de pêcheurs (maisons rouges sur pilotis), phare, bateaux
@@ -2101,8 +2112,20 @@ function dessinerVisage() {
   return t;
 }
 function matHeros(visage) {
-  return visage ? new THREE.MeshStandardMaterial({ name: "RiderFace", map: visage, roughness: .62 })
-                : new THREE.MeshStandardMaterial({ name: "Rider", vertexColors: true, roughness: .82 });
+  return contour(visage ? new THREE.MeshStandardMaterial({ name: "RiderFace", map: visage, roughness: .62 })
+                        : new THREE.MeshStandardMaterial({ name: "Rider", vertexColors: true, roughness: .82 }));
+}
+// Lumière de contour (comme au cinéma) : le bord des personnages s'éclaire de la couleur du ciel ; la lumière
+// passe aussi un peu à travers la peau et le tissu (éclairage « enveloppé »). Coût : quelques instructions par pixel.
+function contour(m, force = 1) {
+  const prev = m.onBeforeCompile;
+  m.onBeforeCompile = (sh, r) => { if (prev) prev(sh, r); sh.uniforms.uContour = U_CONTOUR;
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform vec3 uContour;")
+      .replace("#include <opaque_fragment>", `{ float nv = clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0);
+        outgoingLight += uContour * (${force.toFixed(2)} * pow(1.0 - nv, 3.0)) * (0.6 + 0.4 * diffuseColor.rgb) + diffuseColor.rgb * uContour * 0.08; }
+      #include <opaque_fragment>`); };
+  m.customProgramCacheKey = () => "contour" + force;
+  return m;
 }
 async function chargerDragon() {
   const octets = base64("data-dragon");
@@ -2181,6 +2204,7 @@ function majHeure(dt) {
   _cJ.copy(COUL.soleil).lerp(_cS, s); soleil.color.copy(_cN).lerp(_cJ, j);
   soleil.intensity = .9 + 2.7 * j;
   scene.environmentIntensity = .14 + .86 * j;
+  U_CONTOUR.value.setRGB(.42 * j + .25 * s + .16 * nuit, .4 * j + .13 * s + .22 * nuit, .36 * j + .08 * s + .36 * nuit);   // contour : ciel de jour, soleil couchant, lune
   renderer.toneMappingExposure = 1 + .45 * nuit;
   if (MAT_VITRES) MAT_VITRES.emissiveIntensity = 2.6 * nuit;   // les fenêtres s'allument le soir
   if (halos) { halos.material.opacity = nuit; halos.visible = nuit > .02; }
@@ -2516,44 +2540,75 @@ async function chargerPieton() {
   }
   pieton = new THREE.Group(); pieton.add(pietonModele); pieton.visible = false; scene.add(pieton);
 }
+// Marche, course, repos et saut sont des couches mélangées (pas de changement de pose brutal).
+// Le cycle avance avec la distance parcourue (les pieds ne glissent pas) ; principes des animateurs :
+// talon qui attaque puis déroulé du pied, bassin qui monte au milieu du pas et bascule, buste qui compense,
+// bras en léger retard (chevauchement), tête stabilisée, inclinaison à l'accélération, réception amortie.
 function animerPieton(dt, O = OSP, M = marche, modele = pietonModele) {
   for (const k in O) { O[k].b.quaternion.copy(O[k].rest); O[k].b.position.copy(O[k].pos); }
-  const v = M.vitesse, course = lisse(3.6, 6.5, v), pas = Math.min(1, v / 1.2);
-  M.phase += dt * Math.PI * 2 * (v / (1.25 + .75 * course) + (1 - pas) * .0);
-  const ph = M.phase, s = Math.sin(ph), c = Math.cos(ph);
+  const v = M.vitesse, course = lisse(3.4, 6.8, v), k6 = 1 - Math.exp(-6 * dt);
+  if (M.decal === undefined) M.decal = Math.random() * 100;
+  M.poids = (M.poids || 0) + (lisse(.05, 1.1, v) - (M.poids || 0)) * k6;
+  M.air = (M.air || 0) + ((M.auSol === false ? 1 : 0) - (M.air || 0)) * (1 - Math.exp(-14 * dt));
+  if (M.auSol !== false && M.enVol) M.reception = Math.min(1, .5 + Math.abs(M.vChute || 0) / 14);
+  M.enVol = M.auSol === false; if (M.enVol) M.vChute = M.vy; M.reception = Math.max(0, (M.reception || 0) - dt * 3.2);
+  const acc = (v - (M.vPrec ?? v)) / Math.max(dt, 1e-3); M.vPrec = v;
+  M.elan = (M.elan || 0) + (Math.max(-6, Math.min(6, acc)) - (M.elan || 0)) * (1 - Math.exp(-5 * dt));
+  const sol = 1 - M.air, w = M.poids * sol, iw = (1 - M.poids) * sol, longueur = 1.45 + 1.4 * course;   // longueur d'un cycle (deux pas), en mètres
+  M.phase += dt * Math.PI * 2 * Math.max(v, .7 * M.poids) / longueur;
+  const ph = M.phase, s = Math.sin(ph), c2 = Math.cos(2 * ph), t = horloge.t + M.decal, vir = Math.max(-2, Math.min(2, M.virage || 0));
   let bond = 0;
-  if (!M.auSol) {   // saut : jambes repliées, bras levés
-    const k = lisse(-3, 5, M.vy);
-    for (const [S, sg] of [["L", 1], ["R", -1]]) {
-      tournerO(O, "Thigh" + S, 1, 0, 0, -.7 - .5 * k * (sg > 0 ? 1 : .6)); tournerO(O, "Shin" + S, 1, 0, 0, .9 + .7 * k);
-      tournerO(O, "UpperArm" + S, 0, 0, 1, sg * (.9 + 1.0 * k)); tournerO(O, "UpperArm" + S, 1, 0, 0, -.4); tournerO(O, "LowerArm" + S, 1, 0, 0, -.6);
+  for (const [S, sg] of [["L", 1], ["R", -1]]) {
+    if (w > .01) {
+      const p = ph + (sg > 0 ? 0 : Math.PI), a = Math.sin(p), swing = Math.max(0, Math.cos(p)), appui = Math.max(0, -Math.cos(p));
+      const genou = (.9 + .9 * course) * Math.pow(swing, 1.4) + .16 * Math.pow(Math.max(0, Math.sin(p + .5)), 3) * appui * (1 - course) + .28 * course;
+      tournerO(O, "Thigh" + S, 1, 0, 0, w * (-(.44 + .4 * course) * a - (.18 + .3 * course) * swing - .08 * course));
+      tournerO(O, "Shin" + S, 1, 0, 0, w * genou);
+      tournerO(O, "Foot" + S, 1, 0, 0, w * (-.3 * Math.max(0, a) * appui + .5 * Math.pow(Math.max(0, -a), 2) * (1 - swing) - .12 * swing));
+      const pb = p - .4, ab = Math.sin(pb);   // les bras suivent avec retard
+      tournerO(O, "UpperArm" + S, 1, 0, 0, w * (.4 + .5 * course) * ab);
+      tournerO(O, "UpperArm" + S, 0, 0, 1, sg * w * (.13 + .2 * course + .04 * Math.max(0, -ab)));
+      tournerO(O, "LowerArm" + S, 1, 0, 0, -w * ((.25 + 1.15 * course) + .4 * Math.max(0, ab)));
     }
-    tournerO(O, "Spine", 1, 0, 0, .15 * (1 - k)); tournerO(O, "Head", 1, 0, 0, -.15 * k);
-  } else if (pas > .02) {
-    const ampJ = (.5 + .35 * course) * pas, ampB = (.55 + .35 * course) * pas, genou = (.8 + .9 * course) * pas;
-    for (const [S, sg] of [["L", 1], ["R", -1]]) {
-      const a = sg * s, swing = Math.max(0, sg * c);          // swing : la jambe revient vers l'avant
-      tournerO(O, "Thigh" + S, 1, 0, 0, -ampJ * a - .12 * course);
-      tournerO(O, "Shin" + S, 1, 0, 0, genou * Math.pow(swing, .8) + .12 * pas + .25 * course);
-      tournerO(O, "Foot" + S, 1, 0, 0, (-.35 * a + .25 * swing) * pas);
-      tournerO(O, "UpperArm" + S, 1, 0, 0, ampB * a);
-      tournerO(O, "UpperArm" + S, 0, 0, 1, sg * (.14 + .2 * course));
-      tournerO(O, "LowerArm" + S, 1, 0, 0, -(.3 + 1.2 * course) * pas - .25 * Math.max(0, -a) * pas);
+    if (iw > .01) {   // repos : le poids passe d'une jambe à l'autre, les bras pendent et respirent
+      const sh = Math.sin(t * .42), r = Math.sin(t * 2.1);
+      tournerO(O, "Shin" + S, 1, 0, 0, iw * (.06 + .14 * Math.max(0, sg * sh)));
+      tournerO(O, "Thigh" + S, 1, 0, 0, -iw * .07 * Math.max(0, sg * sh));
+      tournerO(O, "UpperArm" + S, 0, 0, 1, sg * iw * (.11 + .025 * r));
+      tournerO(O, "UpperArm" + S, 1, 0, 0, iw * .04 * Math.sin(t * .9 + sg));
+      tournerO(O, "LowerArm" + S, 1, 0, 0, -iw * (.2 + .03 * r));
     }
-    bond = (Math.abs(c) * (.05 + .06 * course) - .03 * course) * pas;
-    tournerO(O, "Hips", 0, 1, 0, .16 * s * pas); tournerO(O, "Hips", 0, 0, 1, .05 * c * pas);
-    tournerO(O, "Spine", 1, 0, 0, .06 * pas + .28 * course); tournerO(O, "Spine", 0, 1, 0, -.26 * s * pas);
-    tournerO(O, "Chest", 0, 1, 0, -.08 * s * pas);
-    tournerO(O, "Head", 1, 0, 0, -.1 * course - .04 * Math.abs(c) * pas); tournerO(O, "Head", 0, 1, 0, .1 * s * pas);
-  } else {   // à l'arrêt : respiration, regard qui se promène, petit balancement
-    const t = horloge.t, resp = Math.sin(t * 2.2);
-    tournerO(O, "Chest", 1, 0, 0, -.03 * resp); tournerO(O, "Spine", 0, 0, 1, .03 * Math.sin(t * .7));
-    tournerO(O, "Head", 0, 1, 0, .5 * Math.sin(t * .45) * Math.sin(t * .17)); tournerO(O, "Head", 1, 0, 0, -.06 * Math.sin(t * .6));
-    for (const [S, sg] of [["L", 1], ["R", -1]]) { tournerO(O, "UpperArm" + S, 0, 0, 1, sg * (.12 + .02 * resp)); tournerO(O, "LowerArm" + S, 1, 0, 0, -.2); }
-    bond = .008 * resp;
+    if (M.air > .01) {   // saut : jambes repliées, bras levés pour l'équilibre
+      const k = lisse(-3, 5, M.vy || 0), A = M.air;
+      tournerO(O, "Thigh" + S, 1, 0, 0, A * (-.6 - .5 * k * (sg > 0 ? 1 : .55)));
+      tournerO(O, "Shin" + S, 1, 0, 0, A * (.8 + .7 * k * (sg > 0 ? 1 : .7)));
+      tournerO(O, "Foot" + S, 1, 0, 0, A * .3);
+      tournerO(O, "UpperArm" + S, 0, 0, 1, sg * A * (.7 + .9 * k)); tournerO(O, "UpperArm" + S, 1, 0, 0, -.35 * A); tournerO(O, "LowerArm" + S, 1, 0, 0, -.55 * A);
+    }
+    if (M.reception > .01) {   // réception : on plie les genoux, les bras s'écartent
+      const R = Math.sin(Math.min(1, M.reception) * Math.PI * .5) * M.reception;
+      tournerO(O, "Thigh" + S, 1, 0, 0, -.55 * R); tournerO(O, "Shin" + S, 1, 0, 0, 1.05 * R); tournerO(O, "Foot" + S, 1, 0, 0, -.45 * R);
+      tournerO(O, "UpperArm" + S, 0, 0, 1, sg * .35 * R);
+    }
   }
+  if (w > .01) {
+    tournerO(O, "Hips", 0, 1, 0, .17 * s * w); tournerO(O, "Hips", 0, 0, 1, .06 * Math.cos(ph) * w * (1 - .5 * course));
+    tournerO(O, "Spine", 1, 0, 0, w * (.05 + .3 * course) + .035 * M.elan * sol); tournerO(O, "Spine", 0, 1, 0, -.24 * s * w);
+    tournerO(O, "Chest", 0, 1, 0, -.1 * s * w); tournerO(O, "Chest", 1, 0, 0, -.03 * c2 * w);
+    tournerO(O, "Head", 1, 0, 0, -w * (.08 * course + .02) - .03 * M.elan * sol + .03 * c2 * w); tournerO(O, "Head", 0, 1, 0, .14 * s * w);
+    bond += w * ((1 - course) * .032 * c2 + course * (-.06 * c2 - .045));
+  }
+  if (iw > .01) {
+    const sh = Math.sin(t * .42), r = Math.sin(t * 2.1), regard = Math.sin(t * .43) * Math.sin(t * .17 + 1) * 1.6;
+    tournerO(O, "Hips", 0, 0, 1, .045 * sh * iw); tournerO(O, "Spine", 0, 0, 1, -.06 * sh * iw); tournerO(O, "Chest", 1, 0, 0, -.035 * r * iw);
+    tournerO(O, "Head", 0, 1, 0, iw * .5 * Math.max(-1, Math.min(1, regard))); tournerO(O, "Head", 1, 0, 0, -iw * .06 * Math.sin(t * .6)); tournerO(O, "Head", 0, 0, 1, .03 * sh * iw);
+    bond += iw * (.006 * r - .012 * Math.abs(sh));
+  }
+  if (M.air > .01) { const k = lisse(-3, 5, M.vy || 0); tournerO(O, "Spine", 1, 0, 0, .15 * (1 - k) * M.air); tournerO(O, "Head", 1, 0, 0, -.15 * k * M.air); }
+  if (M.reception > .01) { const R = Math.sin(Math.min(1, M.reception) * Math.PI * .5) * M.reception; tournerO(O, "Spine", 1, 0, 0, .3 * R); tournerO(O, "Head", 1, 0, 0, -.2 * R); bond -= .2 * R; }
+  tournerO(O, "Head", 0, 1, 0, .22 * vir * sol);   // on regarde où l'on tourne
   modele.position.y = bond;
-  modele.rotation.z = -M.virage * .12 * course;
+  modele.rotation.z = -vir * (.05 + .1 * course) * sol;
 }
 
 const H_POSE = 3.1;   // hauteur du corps du dragon posé au-dessus du sol
@@ -2657,7 +2712,7 @@ function majPied(dt) {
   // la caméra revient doucement derrière quand on avance
   if (marche.libre > 0) marche.libre -= dt;
   else if (marche.vitesse > .5 && reglCam.verrou) { let dd = marche.yaw - marche.camYaw; while (dd > Math.PI) dd -= Math.PI * 2; while (dd < -Math.PI) dd += Math.PI * 2; marche.camYaw += dd * (1 - Math.exp(-1.6 * dt)); }
-  animerPieton(dt);
+  animerPieton(dt); animerCoup();
 }
 function majCameraPied(dt) {
   const dist = (dedans ? 3.4 : 5.2) * reglCam.recul, y0 = marche.pos.y + 1.3;
@@ -3172,6 +3227,9 @@ const son = (() => {
     rugissement() { if (!AC) return; const o = AC.createOscillator(), o2 = AC.createOscillator(), g = AC.createGain(), f = AC.createBiquadFilter(); o.type = "sawtooth"; o2.type = "sawtooth"; o.frequency.setValueAtTime(130, t0()); o.frequency.exponentialRampToValueAtTime(70, t0() + 1.6); o2.frequency.setValueAtTime(97, t0()); o2.frequency.exponentialRampToValueAtTime(55, t0() + 1.6);
       f.type = "bandpass"; f.frequency.value = 700; f.Q.value = 1.2; o.connect(f); o2.connect(f); f.connect(g); g.connect(maitre); env(g, .15, 1.5, .5); o.start(); o2.start(); o.stop(t0() + 1.8); o2.stop(t0() + 1.8); souffle(900, .7, .1, 1.4, .4); },
     clic() { if (!AC) return; osc("triangle", 660, .003, .12, .12); },
+    epee() { if (!AC) return; souffle(2400, 1.4, .03, .2, .4, "bandpass"); osc("triangle", 1400, .005, .12, .03, maitre, 2600); },
+    aie() { if (!AC) return; osc("square", 340, .005, .22, .07, maitre, 150); souffle(500, .7, .005, .15, .3); },
+    pouf() { if (!AC) return; souffle(900, .6, .01, .5, .4); [0, 5, 9].forEach((s, i) => setTimeout(() => osc("sine", mid(79 + s), .005, .35, .08), i * 60)); },
     mouette() { if (!AC) return; const f = 1200 + Math.random() * 500; for (let k = 0; k < 2 + (Math.random() * 3 | 0); k++) setTimeout(() => osc("sawtooth", f, .01, .22, .025, maitre, f * .6), k * 260); },
   };
 })();
@@ -3188,8 +3246,9 @@ addEventListener("keydown", e => {
     else if (e.code === "KeyM") basculerSon();
     else if (e.code === "KeyQ" && !e.ctrlKey && !e.metaKey) ouvrirEcran("quetes");
     else if (e.code === "KeyL" && !etat.sol) sePoser();
+    else if ((e.code === "KeyX" || e.code === "KeyL") && etat.sol === "pied" && BRAISES.epee) frapper();
     else if (enDialogue && (e.code === "KeyE" || e.code === "Enter" || e.code === "Space")) suiteDialogue();
-    else if ((e.code === "KeyE" || e.code === "KeyF" || e.code === "Enter") && etat.sol === "pied") { if (portePres) entrer(portePres); else if (villageoisPres && e.code !== "KeyF") parler(villageoisPres); else monterOuAppeler(); }
+    else if ((e.code === "KeyE" || e.code === "KeyF" || e.code === "Enter") && etat.sol === "pied") { if (portePres) entrer(portePres); else if (actionPres && e.code !== "KeyF") actionPres.faire(); else if (villageoisPres && e.code !== "KeyF") parler(villageoisPres); else monterOuAppeler(); }
   } else if (e.code === "Escape") retour();
   else if (etat.mode === "pause" && e.code === "KeyP") fermerEcrans();
   else if (etat.mode === "titre" && e.code === "Enter") jouer();
@@ -3208,7 +3267,8 @@ addEventListener("blur", () => { entree.touches.clear(); entree.ailes = entree.f
   addEventListener("blur", () => fin({ pointerId: id }));
   $("btPoser").addEventListener("pointerdown", e => { e.preventDefault(); sePoser(); });
   $("btEntrer").addEventListener("pointerdown", e => { e.preventDefault(); if (portePres) entrer(portePres); });
-  $("btParler").addEventListener("pointerdown", e => { e.preventDefault(); if (villageoisPres) parler(villageoisPres); });
+  $("btEpee").addEventListener("pointerdown", e => { e.preventDefault(); frapper(); });
+  $("btParler").addEventListener("pointerdown", e => { e.preventDefault(); if (actionPres) actionPres.faire(); else if (villageoisPres) parler(villageoisPres); });
   for (const [bid, cle] of [["btFeu", "feu"], ["btAiles", "ailes"]]) {
     const b = $(bid);
     b.addEventListener("pointerdown", e => { e.preventDefault(); if (cle === "feu" && etat.sol === "pied") { monterOuAppeler(); return; } entree[cle] = true; b.classList.add("appui"); b.setPointerCapture(e.pointerId); });
@@ -3371,7 +3431,7 @@ function image(now, dtForce) {
   animerDragon(dt);
   if (etat.sol === "pied" || etat.sol === "appel") majCameraPied(dt); else majCamera(dt, auto);
   if (!auto) { if (!etat.sol) verifierAnneaux(); majHud(dt); majMiniCarte(dt); }
-  majVillages(dt, camera.position.x, camera.position.z); if (etat.sol === "pied" || dedans) majPortes(dt); majSauvages(dt); majAnimaux(dt); majVillageois(dt); majCascades(dt); majHistoire(dt);
+  majVillages(dt, camera.position.x, camera.position.z); if (etat.sol === "pied" || dedans) majPortes(dt); majSauvages(dt); majAnimaux(dt); majVillageois(dt); majCascades(dt); majHistoire(dt); majCaverne(dt); majEnnemis(dt); majCoeurs();
   if (!etat.sol && !auto) { const c = dansUnRect(etat.pos.x, etat.pos.z, 4); if (c && c.haut && etat.pos.y < c.haut + 3) etat.pos.y += (c.haut + 3 - etat.pos.y) * Math.min(1, dt * 8); }   // le dragon passe au-dessus des toits
   majAnneaux(); majFeuxAllumes(dt); majPeche(dt); majHutte(dt); animerBebes(dt); majMouettes();
   if (!auto) { const ok = !etat.sol && peutSePoser(); $("btPoser").hidden = !TACTILE || !ok; if (etat.sol !== "pied") { if (!$("indice").hidden !== (!TACTILE && ok)) $("indice").innerHTML = `${ico("atterrir")} <b>L</b>&nbsp;to land`; $("indice").hidden = TACTILE || !ok; } }
@@ -3380,7 +3440,11 @@ function image(now, dtForce) {
   majTerrain();
   mer.position.set(Math.round(camera.position.x / 30) * 30, 0, Math.round(camera.position.z / 30) * 30);
   const centreOmbre = etat.sol === "pied" ? marche.pos : etat.pos;
-  soleil.position.copy(centreOmbre).addScaledVector(SOLEIL, 300); soleil.target.position.copy(centreOmbre);
+  // à pied, le cadre des ombres se resserre autour du héros : ombres deux fois plus fines, sans coût de plus
+  const tO = etat.sol === "pied" || dedans ? 12 : 26, sc = soleil.shadow.camera;
+  if (sc.right !== tO) { sc.left = sc.bottom = -tO; sc.right = sc.top = tO; sc.updateProjectionMatrix(); soleil.shadow.normalBias = tO < 20 ? .025 : .04; }
+  const pas0 = 2 * tO / Q.ombre; _cO.set(Math.round(centreOmbre.x / pas0) * pas0, centreOmbre.y, Math.round(centreOmbre.z / pas0) * pas0);   // pas de scintillement en marchant
+  soleil.position.copy(_cO).addScaledVector(SOLEIL, 300); soleil.target.position.copy(_cO);
   if ((triT -= dt) < 0) { triT = .25; trierNuages(); majArbres(); }
   majHerbe();
   const nuage = dansNuage(); $("voile").style.opacity = nuage.toFixed(2);
@@ -3399,6 +3463,7 @@ function image(now, dtForce) {
     mesureT = 0; mesureN = 0; mesurePire = 0;
   }
 }
+const _cO = new THREE.Vector3();
 function rendre() { renderer.render(scene, camera); }
 function ico(n) { return `<svg class="ico"><use href="#i-${n}"/></svg>`; }
 
@@ -3831,9 +3896,10 @@ function majVillageois(dt) {
   }
   villageoisPres = proche;
   if (interlocuteur && !enDialogue && ((repliqueT -= dt) < 0 || !pied || Math.hypot(interlocuteur.M.pos.x - marche.pos.x, interlocuteur.M.pos.z - marche.pos.z) > 4)) { interlocuteur = null; $("dialogue").hidden = true; }
-  if (enDialogue && (!pied || (interlocuteur && Math.hypot(interlocuteur.M.pos.x - marche.pos.x, interlocuteur.M.pos.z - marche.pos.z) > 6))) { enDialogue = null; $("dialogue").hidden = true; $("dialogue").classList.remove("histoire"); $("dialogueSuite").hidden = true; }
-  $("btParler").hidden = !TACTILE || !villageoisPres || !!portePres;
-  if (!TACTILE && villageoisPres && !portePres && etat.sol === "pied") { $("indice").hidden = false; $("indice").innerHTML = `${ico("bulle")} <b>E</b>&nbsp;to talk`; }
+  if (enDialogue && (etat.sol !== "pied" || (interlocuteur && Math.hypot(interlocuteur.M.pos.x - marche.pos.x, interlocuteur.M.pos.z - marche.pos.z) > 6))) { enDialogue = null; $("dialogue").hidden = true; $("dialogue").classList.remove("histoire"); $("dialogueSuite").hidden = true; }
+  $("btParler").hidden = !TACTILE || (!villageoisPres && !actionPres) || !!portePres;
+  if (!TACTILE && actionPres && !portePres && etat.sol === "pied") { $("indice").hidden = false; $("indice").innerHTML = `${ico(actionPres.ico)} <b>E</b>&nbsp;${actionPres.texte}`; }
+  else if (!TACTILE && villageoisPres && !portePres && etat.sol === "pied") { $("indice").hidden = false; $("indice").innerHTML = `${ico("bulle")} <b>E</b>&nbsp;to talk`; }
 }
 let villageoisPres = null;
 function parler(p) {
@@ -3860,7 +3926,9 @@ const ETAPES = [
       return p ? [p.M.pos.x, p.M.pos.y + 2, p.M.pos.z, "The fisher"] : null; } },
   { obj: "Read the old runestones", cible: () => CERCLE && [CERCLE.x, hauteur(CERCLE.x, CERCLE.z) + 3, CERCLE.z, "Runestones"] },
   { obj: "Go back to Runa", cible: () => RUNA && [RUNA.M.pos.x, RUNA.M.pos.y + 2, RUNA.M.pos.z, "Runa"] },
-  { obj: "Find the Ember Cavern, in the north (soon!)", cible: () => null },
+  { obj: "Find the Ember Cavern, in the north", cible: () => ENTREE_BRAISES && [ENTREE_BRAISES.x, ENTREE_BRAISES.y + 4, ENTREE_BRAISES.z, "Ember Cavern"] },
+  { obj: "Show the Ember Sword to Runa", cible: () => RUNA && [RUNA.M.pos.x, RUNA.M.pos.y + 2, RUNA.M.pos.z, "Runa"] },
+  { obj: "The Tide Cavern, in the west (soon!)", cible: () => null },
 ];
 function troupeauMoutons() { const v = VILLAGES.find(q => q.nom === "Fernhollow"); const L = ANIMAUX.filter(a => a.esp === "mouton" && v && Math.hypot(a.mx - v.place.x, a.mz - v.place.z) < 200); return L.length ? { x: L[0].mx, z: L[0].mz } : null; }
 const DIALOGUES = {
@@ -3870,7 +3938,10 @@ const DIALOGUES = {
   3: ["On the high plateau stands a circle of old stones. Their runes hide a message."],
   4: ["You read the runes! They speak of the Grey Mist...", "Long ago, the first riders pushed it back with four Stones of Knowledge.", "Numbers, Logic, Words and Stars. The mist is rising again.",
       "The first Stone sleeps in the Ember Cavern, in the north. Train well, apprentice!"],
-  5: ["Train your mind with the Journal's Knowledge page. The Ember Cavern will open soon."],
+  5: ["The Ember Cavern sleeps in the mountains of the north. Follow your compass and land by its door.", "Inside, the first riders left puzzles of numbers. Take your time and think!"],
+  6: ["The Ember Sword! Look: the Stone of Numbers glows in its hilt.", "You calmed the guardian instead of fighting it. That is the way of a true rider.",
+      "The second Stone sleeps in the Tide Cavern, in the west. Its door will open soon. Train your logic!"],
+  7: ["The Tide Cavern will open soon. Practise your logic in the Journal!"],
 };
 let enDialogue = null;
 function dialogueHistoire(nom, lignes, puis) {
@@ -3889,8 +3960,8 @@ function avancer(etape, titre, petit) {
 }
 function gagner(or) { HIST.sac.or = (HIST.sac.or || 0) + or; sauverHistoire(); }
 function parlerRuna() {
-  const e = HIST.etape, L = DIALOGUES[Math.min(e, 5)];
-  dialogueHistoire("Runa, dragon master", L, () => { if (e === 0) avancer(1); else if (e === 4) { gagner(20); avancer(5, "The legend of the Stones", "+20 gold"); } });
+  const e = HIST.etape, L = DIALOGUES[Math.min(e, 7)];
+  dialogueHistoire("Runa, dragon master", L, () => { if (e === 0) avancer(1); else if (e === 4) { gagner(20); avancer(5, "The legend of the Stones", "+20 gold"); } else if (e === 6) { gagner(30); avancer(7, "Runa is proud of you!", "+30 gold"); } });
 }
 let defiPause = 0;
 function majHistoire(dt) {
@@ -3997,7 +4068,7 @@ function dessinerJournal() {
   ETAPES.forEach((e, i) => { if (i > HIST.etape) return; const d = document.createElement("div"); d.className = "etape" + (i < HIST.etape ? " fait" : " actuelle");
     d.innerHTML = `${ico(i < HIST.etape ? "etoile" : "rouleau")}<span></span>`; d.lastChild.textContent = e.obj; L.append(d); });
   const S = $("grilleSac"); S.innerHTML = "";
-  const objets = [["piece", "Gold", HIST.sac.or || 0], ["poisson", "Fish", nbPoissons], ["rune", "Runestones", HIST.etape >= 4 ? 1 : 0], ["etoile", "Stones", 0], ["?", "Sword", 0], ["?", "Shield", 0], ["cor", "Horn", 0], ["phare", "Lantern", 0]];
+  const objets = [["piece", "Gold", HIST.sac.or || 0], ["poisson", "Fish", nbPoissons], ["rune", "Runestones", HIST.etape >= 4 ? 1 : 0], ["etoile", "Stones", HIST.sac.pierres || 0], [BRAISES.epee ? "epee" : "?", "Sword", BRAISES.epee ? 1 : 0], ["?", "Shield", 0], ["cor", "Horn", 0], ["phare", "Lantern", 0]];
   for (const [ic, nom, n] of objets) { const c = document.createElement("div"); c.className = "case-sac" + (n ? "" : " vide");
     c.innerHTML = ic === "?" ? `<b>?</b><span></span>` : `${ico(ic)}<b>${n || ""}</b><span></span>`; c.lastChild.textContent = n || ic !== "?" ? nom : "???"; S.append(c); }
   const K = $("listeSavoir"); K.innerHTML = "";
@@ -4009,6 +4080,432 @@ function dessinerJournal() {
   }
 }
 function cibleHistoire() { const e = ETAPES[HIST.etape]; return e && e.cible ? e.cible() : null; }
+
+// ------------------------------------------------------------------ la Caverne des Braises (Blender : blender/dragonflyer/caverne.py → assets/caverne.glb)
+// L'entrée est dans la montagne du nord ; la galerie est un intérieur sous le monde, en trois salles :
+// 1. les braseros : allumer ceux dont les nombres font le total gravé sur la grille ;
+// 2. les dalles : marcher sur les nombres qui continuent la suite ;
+// 3. le gardien (un jeune Emberback effrayé) : le calmer par un défi, puis prendre l'Épée de Braise.
+// La lumière de la caverne est cuite dans les couleurs (MeshBasicMaterial) : rien à calculer pendant qu'on joue.
+const BRAISES = Object.assign({ porte1: false, porte2: false, gardien: false, epee: false }, memoire.lire("braises", {}));
+const sauverBraises = () => memoire.ecrire("braises", BRAISES);
+let CAVE = null, ENTREE_BRAISES = null, actionPres = null, CAVE_K = null;
+function plaque(l, h, dessin) {   // texte gravé sur une petite plaque (canvas → texture), redessinée seulement quand elle change
+  const cv = document.createElement("canvas"); cv.width = 256; cv.height = Math.round(256 * h / l);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(l, h), new THREE.MeshBasicMaterial({ map: tex, transparent: true, fog: false }));
+  m.userData.dessiner = (...a) => { const c = cv.getContext("2d"); c.clearRect(0, 0, cv.width, cv.height); dessin(c, cv.width, cv.height, ...a); tex.needsUpdate = true; };
+  return m;
+}
+function graver(c, w, h, texte, allume, taille = .62) {
+  c.fillStyle = allume ? "rgba(70,24,8,.92)" : "rgba(38,30,28,.9)"; c.strokeStyle = allume ? "#ffb04a" : "#8a7a6a"; c.lineWidth = 6;
+  c.beginPath(); c.roundRect(6, 6, w - 12, h - 12, 18); c.fill(); c.stroke();
+  c.font = `${Math.round(h * taille)}px "Almendra SC", serif`; c.textAlign = "center"; c.textBaseline = "middle";
+  if (allume) { c.shadowColor = "#ff7a1a"; c.shadowBlur = 24; }
+  c.fillStyle = allume ? "#ffd27a" : "#d8c8b0"; c.fillText(texte, w / 2, h / 2 + h * .04); c.shadowBlur = 0;
+}
+async function creerCaverne() {
+  const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+  const gltf = await loader.loadAsync("assets/caverne.glb"); gltf.scene.updateMatrixWorld(true);
+  const K = {};
+  gltf.scene.traverse(o => { if (!o.isMesh) return;
+    const g = o.geometry.clone(), p = g.attributes.position, v = new THREE.Vector3(), t = new Float32Array(p.count * 3);
+    for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld); t.set([v.x, v.y, v.z], i * 3); }
+    g.setAttribute("position", new THREE.BufferAttribute(t, 3)); g.computeBoundingSphere(); K[o.name] = g; });
+  const cuit = new THREE.MeshBasicMaterial({ vertexColors: true, fog: false });                     // lumière cuite
+  const objets = new THREE.MeshBasicMaterial({ vertexColors: true, fog: false, color: 0xd09878 });  // objets : occlusion × lueur de la lave
+  const lave = new THREE.ShaderMaterial({ vertexColors: true, uniforms: { uTemps: U_TEMPS },
+    vertexShader: "varying vec3 vC; varying vec3 vP; void main() { vC = color.rgb; vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+    fragmentShader: `uniform float uTemps; varying vec3 vC; varying vec3 vP;
+      void main() { float n = (sin(vP.z * 1.3 + uTemps * 1.4 + sin(vP.x * 2.1)) * .5 + .5) * (sin(vP.x * 3.1 - uTemps * .8 + vP.z * .45) * .5 + .5);
+        float f = vP.y > .2 ? fract(vP.y * .35 + uTemps * .6) : 0.0;
+        gl_FragColor = vec4(vC * (0.8 + 0.9 * n + 0.5 * f), 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }` });
+  const flamme = new THREE.MeshBasicMaterial({ vertexColors: true, fog: false, transparent: true, opacity: .92, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending });
+  // ---- l'entrée, dans la montagne du nord : un replat au pied d'une pente forte, loin des villages
+  let best = null;
+  for (let z = -MONDE / 2 + 300; z < -MONDE * .08; z += 24) for (let x = -MONDE / 2 + 300; x < MONDE / 2 - 300; x += 24) {
+    const h = hauteur(x, z); if (h < 25 || h > 170 || pente(x, z) > .2) continue;
+    const gx = hauteur(x + 6, z) - hauteur(x - 6, z), gz = hauteur(x, z + 6) - hauteur(x, z - 6), gl = Math.hypot(gx, gz); if (gl < .1) continue;
+    const dx = -gx / gl, dz = -gz / gl;   // vers le bas de la pente
+    if (hauteur(x - dx * 14, z - dz * 14) < h + 5 || !zonePlate(x + dx * 12, z + dz * 12) || !VILLAGES.every(v => Math.hypot(v.place.x - x, v.place.z - z) > 450)) continue;
+    const sc = -z * .4 + (hauteur(x - dx * 30, z - dz * 30) - h) * 2 - pente(x, z) * 300; if (!best || sc > best.sc) best = { x, z, dx, dz, sc };
+  }
+  if (best) {
+    const { x, z, dx, dz } = best, yaw = Math.atan2(dx, dz), y = hauteurFine(x, z) - .15;
+    const ge = new THREE.Group(); ge.position.set(x, y, z); ge.rotation.y = yaw; scene.add(ge);
+    const me = new THREE.Mesh(K.C_entree, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .9 })); me.castShadow = me.receiveShadow = true; ge.add(me);
+    ge.add(new THREE.Mesh(K.C_entree_l, new THREE.MeshBasicMaterial({ vertexColors: true, fog: false, side: THREE.DoubleSide })));
+    for (const s of [-1, 1]) {
+      const b = new THREE.Mesh(K.C_brasero, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .8 })); b.position.set(s * 3.4, 0, 2.2); b.castShadow = true; ge.add(b);
+      const f = new THREE.Mesh(K.C_flamme, flamme); f.position.set(s * 3.4, 1.2, 2.2); ge.add(f); (ge.userData.flammes = ge.userData.flammes || []).push(f);
+    }
+    const porte = { x: x + dx * 1.2, y: hauteurFine(x + dx * 1.2, z + dz * 1.2), z: z + dz * 1.2, yaw, interieur: "braises" };
+    PORTES.push(porte);
+    ajouterCollision({ x: x - dx * 4.5, z: z - dz * 4.5, yaw, hx: 6, hz: 3.6, haut: y + 9 });
+    for (const s of [-1, 1]) ajouterCollision({ x: x + Math.cos(yaw) * s * 3.4 + dx * 2.2, z: z - Math.sin(yaw) * s * 3.4 + dz * 2.2, yaw, hx: .5, hz: .5, haut: y + 1.3 });
+    LIBRES.push({ x, z, r: 16 });
+    ENTREE_BRAISES = { x, y, z, yaw, g: ge, porte };
+  }
+  // ---- la galerie
+  const g = new THREE.Group(); g.position.set(200, -800, 0); g.visible = false; scene.add(g);
+  for (const n of ["C_grotte", "C_murs", "C_cristaux", "C_jour"]) g.add(new THREE.Mesh(K[n], cuit));
+  g.add(new THREE.Mesh(K.C_lave, lave));
+  const grilles = [9, -9].map(zg => { const m = new THREE.Mesh(K.C_grille, objets); m.position.set(0, 0, zg); g.add(m); return m; });
+  // salle 1 : quatre braseros numérotés
+  const braseros = [[-3.6, 21], [3.6, 21], [-3.6, 14.5], [3.6, 14.5]].map(([bx, bz]) => {
+    const m = new THREE.Mesh(K.C_brasero, objets); m.position.set(bx, 0, bz); g.add(m);
+    const f = new THREE.Mesh(K.C_flamme, flamme); f.position.set(bx, 1.2, bz); f.visible = false; g.add(f);
+    const p = plaque(.34, .34, (c, w, h, t, a) => graver(c, w, h, t, a, .66)); p.position.set(bx, .58, bz + .26); g.add(p);
+    return { x: bx, z: bz, m, f, p, n: 0, allume: false };
+  });
+  const plaque1 = plaque(1.7, 1.0, (c, w, h, t, a, sous) => { graver(c, w, h, "", a); c.font = `${h * .46 | 0}px "Almendra SC", serif`; c.fillStyle = a ? "#ffd27a" : "#e8d8c0"; c.fillText(t, w / 2, h * .42);
+    c.font = `${h * .2 | 0}px "Almendra SC", serif`; c.fillStyle = "#c8b098"; c.fillText(sous, w / 2, h * .8); });
+  plaque1.position.set(0, 4.75, 9.72); g.add(plaque1);
+  // salle 2 : neuf dalles numérotées
+  const dalles = [];
+  for (let i = 0; i < 9; i++) {
+    const dx = ((i % 3) - 1) * 2.4, dz = (((i / 3) | 0) - 1) * 2.4, m = new THREE.Mesh(K.C_dalle, objets); m.position.set(dx, 0, dz); g.add(m);
+    const p = plaque(1.1, 1.1, (c, w, h, t, a) => graver(c, w, h, t, a, .6)); p.rotation.x = -Math.PI / 2; p.position.set(dx, .2, dz); g.add(p);
+    dalles.push({ x: dx, z: dz, p, n: 0, ok: false });
+  }
+  const plaque2 = plaque(2.2, 1.0, (c, w, h, t, a) => graver(c, w, h, t, a, .42)); plaque2.position.set(0, 4.75, -8.28); g.add(plaque2);
+  // salle 3 : le socle et l'Épée de Braise
+  const socle = new THREE.Mesh(K.C_socle, objets); socle.position.set(0, 0, -22); g.add(socle);
+  const epee = new THREE.Group(); epee.add(new THREE.Mesh(K.C_epee, new THREE.MeshStandardMaterial({ vertexColors: true, metalness: .6, roughness: .35 })), new THREE.Mesh(K.C_epee_l, cuit));
+  epee.position.set(0, 2.28, -22); epee.rotation.y = .5; g.add(epee); epee.visible = !BRAISES.epee;
+  // l'épée du héros, dans son dos
+  const epeeDos = new THREE.Group(); epeeDos.add(new THREE.Mesh(K.C_epee, epee.children[0].material), new THREE.Mesh(K.C_epee_l, cuit));
+  epeeDos.children.forEach(m => m.castShadow = true);
+  // le gardien : un jeune dragon de braise, sans cavalier
+  const { clone } = await import("three/addons/utils/SkeletonUtils.js");
+  const gg = new THREE.Group(), gm = clone(modele); gg.add(gm);
+  const enlever = []; gm.traverse(o => { if (/^Rider/.test(o.name)) enlever.push(o); }); for (const o of enlever) o.parent.remove(o);
+  const os = {}; gm.traverse(o => { if (OS[o.name] && o.isBone) os[o.name] = o; });
+  const gmat = matEcailles.clone(); teindre(gmat, 2); gm.traverse(o => { if (o.isMesh) { o.frustumCulled = false; if (o.material.name === "Scales") o.material = gmat; } });
+  gg.scale.setScalar(.62); gg.position.set(0, H_POSE * .62, -14.5); g.add(gg);
+  const gardien = { g: gg, m: gm, os, ph: 0, calme: BRAISES.gardien ? 1 : 0, regard: 0, souffle: 2 };
+  if (BRAISES.gardien) gg.position.set(-4.2, H_POSE * .62, -17), gg.rotation.y = 1.1;
+  CAVE_K = { K, objets, cuit };
+  INTERIEURS.braises = { g, l: 12.2, p: 55, h: 7.6, porte: new THREE.Vector3(0, 0, 24.2), foyer: new THREE.Vector3(0, 3, 24), grotte: true, bloquer: bloquerCaverne };
+  CAVE = { g, grilles, braseros, plaque1, dalles, plaque2, epee, epeeDos, gardien, socle, ouv: [BRAISES.porte1 ? 1 : 0, BRAISES.porte2 ? 1 : 0], prise: 0, K: CAVE_K.K, matObjets: CAVE_K.objets, matCuit: CAVE_K.cuit };
+  preparerBraseros(); preparerDalles(); majEpeeDos();
+}
+// ---- murs, grilles et obstacles de la galerie (en coordonnées de la galerie)
+function bloquerCaverne(p, marge) {
+  const o = CAVE.g.position; let x = p.x - o.x, z = p.z - o.z;
+  for (const [zm, ouvert] of [[9, BRAISES.porte1], [-9, BRAISES.porte2]]) {
+    if (Math.abs(z - zm) < .75 && !(ouvert && Math.abs(x) < 1.55 - marge)) z = zm + Math.sign(z - zm || 1) * .75;
+  }
+  if (!BRAISES.gardien && z < -11.2 && z > -14) z = -11.2;   // le gardien barre le passage
+  const obst = [[0, -22, 1.35], [CAVE.gardien.g.position.x, CAVE.gardien.g.position.z, BRAISES.gardien ? 2.2 : 0], ...CAVE.braseros.map(b => [b.x, b.z, .55])];
+  for (const [ox, oz, r] of obst) { const dx = x - ox, dz = z - oz, d = Math.hypot(dx, dz), rr = r + marge * .6; if (r && d < rr) { x = ox + dx / (d || 1) * rr; z = oz + dz / (d || 1) * rr; } }
+  p.x = o.x + x; p.z = o.z + z;
+}
+// ---- salle 1 : les braseros
+function preparerBraseros() {
+  const niv = HIST.savoirs.nombres || 1, max = niv === 1 ? 5 : niv === 2 ? 9 : 14, S = new Set();
+  while (S.size < 4) S.add(hasard(niv === 3 ? 3 : 1, max));
+  const L = melanger([...S]); L.forEach((n, i) => CAVE.braseros[i].n = n);
+  const k = niv === 1 ? 2 : niv === 2 ? hasard(2, 3) : 3, choix = melanger([0, 1, 2, 3]).slice(0, k);
+  CAVE.total = choix.reduce((s, i) => s + L[i], 0);
+  for (const b of CAVE.braseros) { b.allume = BRAISES.porte1; b.f.visible = b.allume; }
+  dessinerBraseros();
+}
+function dessinerBraseros() {
+  const somme = CAVE.braseros.reduce((s, b) => s + (b.allume ? b.n : 0), 0);
+  for (const b of CAVE.braseros) b.p.userData.dessiner(String(b.n), b.allume);
+  CAVE.plaque1.userData.dessiner(BRAISES.porte1 ? "✓" : "= " + CAVE.total, BRAISES.porte1, BRAISES.porte1 ? "The gate is open" : `Fire: ${somme}`);
+}
+function toucherBrasero(b) {
+  if (BRAISES.porte1) return;
+  b.allume = !b.allume; b.f.visible = b.allume; son.clic();
+  if (b.allume) for (let i = 0; i < 14; i++) flammes.emettre(CAVE.g.position.x + b.x, CAVE.g.position.y + 1.3, CAVE.g.position.z + b.z, (Math.random() - .5) * 2, 2 + Math.random() * 2, (Math.random() - .5) * 2, .6, .5);
+  const somme = CAVE.braseros.reduce((s, x) => s + (x.allume ? x.n : 0), 0);
+  if (somme === CAVE.total) {
+    BRAISES.porte1 = true; sauverBraises(); HIST.reussis.nombres++; sauverHistoire(); son.feuAllume(); afficher("The gate opens!", `${CAVE.braseros.filter(x => x.allume).map(x => x.n).join(" + ")} = ${CAVE.total}`);
+  } else if (CAVE.braseros.every(x => x.allume) || somme > CAVE.total) afficher(somme > CAVE.total ? "Too much fire!" : "Not quite", `You have ${somme}. You need ${CAVE.total}.`);
+  dessinerBraseros();
+}
+// ---- salle 2 : les dalles de la suite
+function preparerDalles() {
+  const niv = HIST.savoirs.logique || 1, pas = niv === 1 ? hasard(1, 2) : niv === 2 ? [3, 4, 5, 10][hasard(0, 3)] : hasard(6, 9), d = hasard(1, niv === 3 ? 9 : 5);
+  const L = niv === 3 && Math.random() < .5 ? [1, 2, 4, 8, 16].map(v => v * hasard(1, 3)) : [0, 1, 2, 3, 4].map(i => d + i * pas);
+  CAVE.suite = L; CAVE.etapeSuite = BRAISES.porte2 ? 3 : 0; CAVE.surDalle = -1;
+  const autres = new Set(); while (autres.size < 6) { const v = Math.max(1, L[hasard(0, 4)] + hasard(-pas - 2, pas + 2)); if (!L.includes(v)) autres.add(v); }
+  const nombres = melanger([L[2], L[3], L[4], ...autres]);
+  CAVE.dalles.forEach((t, i) => { t.n = nombres[i]; t.ok = BRAISES.porte2 && L.slice(2).includes(t.n); });
+  dessinerDalles();
+}
+function dessinerDalles() {
+  for (const t of CAVE.dalles) t.p.userData.dessiner(String(t.n), t.ok);
+  const L = CAVE.suite; CAVE.plaque2.userData.dessiner(BRAISES.porte2 ? "✓" : `${L[0]}, ${L[1]}, ?, ?, ?`, BRAISES.porte2);
+}
+function majDalles(x, z) {
+  if (BRAISES.porte2) return;
+  const i = CAVE.dalles.findIndex(t => Math.abs(t.x - x) < .85 && Math.abs(t.z - z) < .85);
+  if (i === CAVE.surDalle) return; CAVE.surDalle = i; if (i < 0) return;
+  const t = CAVE.dalles[i], voulu = CAVE.suite[2 + CAVE.etapeSuite];
+  if (t.ok) return;
+  if (t.n === voulu) {
+    t.ok = true; CAVE.etapeSuite++; son.battement(1); for (let k = 0; k < 10; k++) flammes.emettre(CAVE.g.position.x + t.x, CAVE.g.position.y + .3, CAVE.g.position.z + t.z, (Math.random() - .5) * 2, 1.5 + Math.random(), (Math.random() - .5) * 2, .5, .4);
+    if (CAVE.etapeSuite >= 3) { BRAISES.porte2 = true; sauverBraises(); HIST.reussis.logique++; sauverHistoire(); son.feuAllume(); afficher("The second gate opens!", CAVE.suite.join(", ")); }
+  } else {
+    for (const d of CAVE.dalles) d.ok = false; CAVE.etapeSuite = 0; son.clic();
+    afficher("The stones go dark", `Look at the jump: ${CAVE.suite[0]} → ${CAVE.suite[1]}`);
+  }
+  dessinerDalles();
+}
+// ---- salle 3 : le gardien et l'épée
+function calmerGardien() {
+  dialogueHistoire("The guardian", ["The young Emberback growls and blocks the way. It is not mean: it is scared.", "Runa said: a dragon trusts those who understand it. Show it you can count like a true rider!"],
+    () => lancerDefi("balance", 3, "Calm the guardian", () => {
+      BRAISES.gardien = true; sauverBraises(); gagner(15); afficher("The guardian is calm!", "It lets you pass · +15 gold"); son.feuAllume();
+    }));
+}
+function prendreEpee() {
+  if (BRAISES.epee || CAVE.prise) return;
+  CAVE.prise = .001; son.feuAllume();
+}
+function majEpeeDos() {
+  const e = CAVE && CAVE.epeeDos; if (!e) return;
+  if (BRAISES.epee && !e.parent && pietonModele) {   // en travers du dos, la poignée au-dessus de l'épaule droite
+    const chest = pietonModele.getObjectByName("Chest") || pietonModele;
+    pieton.add(e); e.position.set(.12, 1.32, -.2); e.rotation.set(0, 0, -.5); e.scale.setScalar(.8);
+    pieton.updateMatrixWorld(true); chest.attach(e);
+  }
+  e.visible = BRAISES.epee;
+}
+const _gq = new THREE.Quaternion();
+function majCaverne(dt) {
+  if (ENTREE_BRAISES) for (const f of ENTREE_BRAISES.g.userData.flammes) { f.scale.set(1 + .15 * Math.sin(horloge.t * 13 + f.position.x), .9 + .25 * Math.sin(horloge.t * 9.7 + f.position.x * 2), 1); f.rotation.y += dt * 2; }
+  actionPres = null;
+  if (!CAVE || !dedans || !dedans.I.grotte) return;
+  const o = CAVE.g.position, x = marche.pos.x - o.x, z = marche.pos.z - o.z, t = horloge.t;
+  lumiereFeu.position.set(marche.pos.x, o.y + 3, marche.pos.z + 1); lumiereFeu.intensity = 18 * (.85 + .3 * Math.random());
+  for (const b of CAVE.braseros) { if (b.allume) { b.f.scale.set(1 + .15 * Math.sin(t * 13 + b.x), .9 + .3 * Math.sin(t * 9 + b.z), 1); b.f.rotation.y += dt * 2; }
+    if (!BRAISES.porte1 && Math.hypot(b.x - x, b.z - z) < 1.6) actionPres = { texte: b.allume ? "to put out" : "to light", ico: "feu", faire: () => toucherBrasero(b) }; }
+  CAVE.grilles.forEach((gr, i) => { const ouv = i ? BRAISES.porte2 : BRAISES.porte1; CAVE.ouv[i] += ((ouv ? 1 : 0) - CAVE.ouv[i]) * Math.min(1, dt * 1.2); gr.position.y = -3.7 * CAVE.ouv[i] + (ouv && CAVE.ouv[i] < .97 ? Math.sin(t * 40) * .02 : 0); });
+  majDalles(x, z);
+  // le gardien : debout et inquiet, puis couché sur le côté
+  const G = CAVE.gardien, d = G.g; G.ph += dt;
+  if (BRAISES.gardien) { G.calme = Math.min(1, G.calme + dt * .5); const k = lisse(0, 1, G.calme); d.position.x = -4.2 * k; d.position.z = -14.5 - 2.5 * k; d.rotation.y = 1.1 * k; }
+  for (const n in G.os) G.os[n].quaternion.copy(OS[n].rest);
+  const reveil = BRAISES.gardien ? 0 : lisse(9, 4, Math.hypot(x - d.position.x, z - d.position.z));
+  for (const [n, ax, ay, az, a] of POSE_SOL.corps) tournerAv(G, n, ax, ay, az, a);
+  tournerAv(G, "Neck1", 1, 0, 0, .25 * G.calme + .2 * reveil); tournerAv(G, "Head", 1, 0, 0, .25 * G.calme + .1 * Math.sin(G.ph * 1.3));
+  tournerAv(G, "Neck2", 0, 1, 0, (1 - G.calme) * Math.sin(G.ph * .7) * .3);
+  for (let i = 1; i <= 8; i++) tournerAv(G, "Tail" + i, 0, 1, 0, (.12 + .2 * reveil) * Math.sin(G.ph * (1.2 + reveil * 2) - i * .6));
+  tournerAv(G, "Jaw", 1, 0, 0, reveil * .25 * (.5 + .5 * Math.sin(G.ph * 3)));
+  d.updateMatrixWorld(true); G.m.getWorldQuaternion(_qm);
+  for (const [S, sg] of [["L", 1], ["R", -1]]) for (const [n, ax, ay, az] of POSE_SOL.dirs) { const b = G.os[n + S]; if (b) orienter({ b }, sg * ax, ay, az, 1); }
+  G.m.position.y = Math.sin(G.ph * (BRAISES.gardien ? 1.2 : 2.2)) * .05;
+  if (reveil > .5 && (G.souffle -= dt) < 0) {   // il souffle un peu de fumée et d'étincelles, sans toucher le héros
+    G.souffle = 2.5 + Math.random() * 2; son.rugissement();
+    const hx = o.x + d.position.x, hz = o.z + d.position.z + 2.6;
+    for (let i = 0; i < 26; i++) flammes.emettre(hx, o.y + 2.1, hz, (Math.random() - .5) * 2, 1 + Math.random() * 2, 2 + Math.random() * 2, .5, .45);
+  }
+  if (!BRAISES.gardien && z < -8.5 && reveil > .3 && !enDialogue && !DEFI && defiPause <= 0) { defiPause = 6; calmerGardien(); }
+  // l'épée
+  if (!BRAISES.epee) {
+    CAVE.epee.rotation.y += dt * .3;
+    if (BRAISES.gardien && Math.hypot(x, z + 22) < 2.4) actionPres = { texte: "to take the sword", ico: "epee", faire: prendreEpee };
+    if (CAVE.prise) {
+      CAVE.prise += dt; CAVE.epee.position.y = 2.28 + lisse(0, 1.5, CAVE.prise) * 1.2; CAVE.epee.rotation.y += dt * 6 * Math.min(1, CAVE.prise);
+      if (Math.random() < .6) flammes.emettre(o.x + (Math.random() - .5) * .3, o.y + CAVE.epee.position.y - .5, o.z - 22, (Math.random() - .5), 1, (Math.random() - .5), .6, .3);
+      if (CAVE.prise > 2) { BRAISES.epee = true; sauverBraises(); CAVE.epee.visible = false; HIST.sac.pierres = Math.max(1, HIST.sac.pierres || 0); majEpeeDos(); avancer(6, "The Ember Sword!", "And the Stone of Numbers · Show them to Runa"); }
+    }
+  }
+  // l'objectif de la salle
+  const obj = !BRAISES.porte1 ? `Light braziers that make ${CAVE.total}` : !BRAISES.porte2 ? `Walk on the stones that continue ${CAVE.suite[0]}, ${CAVE.suite[1]}…` : !BRAISES.gardien ? "Calm the guardian" : !BRAISES.epee ? "Take the Ember Sword" : "Go back outside";
+  $("objectifTexte").textContent = obj; $("objectif").hidden = false;
+}
+
+// ------------------------------------------------------------------ ennemis : feux follets de la Brume Grise (dehors) et rampants de braise (cavernes)
+// Pas de combat cruel : un coup d'épée (ou le feu du dragon) dissout la brume, renvoie le rampant dans la lave.
+// Le héros a trois cœurs ; s'il les perd, il se réveille à l'abri, sans rien perdre. Tout est créé au chargement.
+const VIE = { max: 6, pv: 6, invul: 0, repos: 0, recul: new THREE.Vector3(), aff: -1 };
+const COUP = { t: 0, touche: false };
+const FOLLETS = [], RAMPANTS = [];
+let follets = null, yeuxFollets = null, follT = 0, epeeMain = null, trainee = null, rampantsReveilles = false;
+function creerFollets() {
+  const mat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { uTemps: U_TEMPS },
+    vertexShader: `uniform float uTemps; varying vec3 vN; varying vec3 vV; varying float vR;
+      void main() { vec4 ip = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0); float ph = ip.x * 0.37 + ip.z * 0.21; vec3 p = position;
+        float n = sin(p.x * 5.0 + uTemps * 3.0 + ph) * sin(p.y * 4.0 - uTemps * 2.3) * sin(p.z * 5.0 + uTemps * 2.7 + ph);
+        p += normal * n * 0.2; p.xz *= 1.0 + max(0.0, -p.y) * 0.5 * sin(uTemps * 5.0 + p.y * 7.0 + ph);
+        vec4 w = modelMatrix * instanceMatrix * vec4(p, 1.0); vN = normalize(mat3(modelMatrix * instanceMatrix) * normal); vV = normalize(cameraPosition - w.xyz); vR = n;
+        gl_Position = projectionMatrix * viewMatrix * w; }`,
+    fragmentShader: `varying vec3 vN; varying vec3 vV; varying float vR;
+      void main() { float f = 1.0 - abs(dot(normalize(vN), vV));
+        vec3 c = mix(vec3(0.3, 0.29, 0.4), vec3(0.6, 0.9, 1.0), pow(f, 2.2)) + vR * 0.08;
+        gl_FragColor = vec4(c, 0.16 + 0.6 * pow(f, 1.6));
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }` });
+  const N = 6;
+  follets = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.55, 3).scale(1, 1.25, 1), mat, N); follets.frustumCulled = false; follets.renderOrder = 5;
+  yeuxFollets = new THREE.InstancedMesh(new THREE.SphereGeometry(.075, 10, 6).scale(1, 1.4, .6), new THREE.MeshBasicMaterial({ color: 0xb8faff, fog: false }), N * 2); yeuxFollets.frustumCulled = false;
+  const zero = new THREE.Matrix4().makeScale(0, 0, 0);
+  for (let i = 0; i < N; i++) { follets.setMatrixAt(i, zero); yeuxFollets.setMatrixAt(i * 2, zero); yeuxFollets.setMatrixAt(i * 2 + 1, zero);
+    FOLLETS.push({ actif: false, pos: new THREE.Vector3(), cible: new THREE.Vector3(), yaw: 0, etat: "libre", t: 0, ph: Math.random() * 9, ech: 0 }); }
+  scene.add(follets, yeuxFollets);
+}
+function creerRampants() {
+  const K = CAVE && CAVE.K; if (!K || !K.C_rampant) return;
+  const objets = CAVE.matObjets, lueur = CAVE.matCuit;
+  const zones = [[0, 17, 5, true], [0, 1, 5, true], [-3, -16, 4, false], [3, -19, 4, false], [0, -12, 4, false]];   // [x, z, rayon, avant l'épée]
+  for (const [x, z, r, avant] of zones) {
+    const g = new THREE.Group(); g.add(new THREE.Mesh(K.C_rampant, objets), new THREE.Mesh(K.C_rampant_l, lueur));
+    const pattes = [];
+    for (const sg of [1, -1]) for (const pz of [.25, 0, -.25]) { const pv = new THREE.Group(); pv.position.set(sg * .3, .26, pz); pv.rotation.order = "YZX";
+      const m = new THREE.Mesh(K.C_patte, objets); if (sg < 0) m.rotation.y = Math.PI; pv.add(m); g.add(pv); pattes.push({ pv, sg, groupe: (sg > 0) === (pz !== 0) ? 0 : 1 }); }
+    g.scale.setScalar(1.15); g.position.set(x, 0, z); CAVE.g.add(g);
+    RAMPANTS.push({ g, pattes, maison: new THREE.Vector2(x, z), r, avant, vie: true, t: 0, ph: Math.random() * 9, cible: new THREE.Vector2(x, z), yaw: 0, retour: 0, saut: 0 });
+  }
+}
+function creerEpeeMain() {
+  if (!CAVE || !CAVE.epeeDos) return;
+  epeeMain = CAVE.epeeDos.clone(); epeeMain.visible = false;
+  const main = pietonModele.getObjectByName("HandR") || pietonModele; main.add(epeeMain);
+  trainee = new THREE.Mesh(new THREE.RingGeometry(1.15, 1.6, 28, 1, 0, 2.2), new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+  trainee.rotation.x = -Math.PI / 2; trainee.position.y = 1.05; trainee.visible = false; pieton.add(trainee);
+}
+function frapper() {
+  if (!BRAISES.epee || COUP.t > 0 || etat.sol !== "pied" || enDialogue) return;
+  COUP.t = .001; COUP.touche = false; son.epee();
+}
+function blesser(n, dx, dz) {
+  if (VIE.invul > 0 || VIE.pv <= 0) return;
+  VIE.pv = Math.max(0, VIE.pv - n); VIE.invul = 1.3; VIE.repos = 0; son.aie();
+  const l = Math.hypot(dx, dz) || 1; VIE.recul.set(dx / l * 7, 0, dz / l * 7); marche.vitesse = 0;
+  $("fondu").classList.add("aie"); setTimeout(() => $("fondu").classList.remove("aie"), 180);
+  if (VIE.pv <= 0) fonduNoir(() => {   // on se réveille à l'abri
+    if (dedans && dedans.I.grotte) { const o = dedans.I.g.position; marche.pos.set(o.x, o.y, o.z + 24); marche.yaw = Math.PI; marche.camYaw = Math.PI; }
+    else if (!dedans) { const v = VILLAGES.reduce((a, b) => Math.hypot(b.place.x - marche.pos.x, b.place.z - marche.pos.z) < Math.hypot(a.place.x - marche.pos.x, a.place.z - marche.pos.z) ? b : a, VILLAGES[0]);
+      if (v) { marche.pos.set(v.place.x + 3, hauteurFine(v.place.x + 3, v.place.z), v.place.z); } }
+    VIE.pv = VIE.max; VIE.recul.set(0, 0, 0); for (const f of FOLLETS) if (f.actif) f.etat = "meurt";
+    afficher("You fainted…", "Your dragon carried you to safety");
+  });
+}
+function majCoeurs() {
+  const voir = etat.mode === "vol" && (etat.sol === "pied" || VIE.pv < VIE.max) && !$("hud").hidden;
+  $("coeurs").hidden = !voir; const be = !TACTILE || !BRAISES.epee || etat.sol !== "pied" || etat.mode !== "vol"; if ($("btEpee").hidden !== be) $("btEpee").hidden = be; if (!voir || VIE.aff === VIE.pv) return; VIE.aff = VIE.pv;
+  let h = ""; for (let i = 0; i < VIE.max / 2; i++) { const a = VIE.pv >= i * 2 + 1, b = VIE.pv >= i * 2 + 2;
+    h += `<svg viewBox="0 0 32 32"><path class="${a ? "on" : ""}" d="M16 28C10 23 3 18 3 11a6.5 6.5 0 0 1 13-2z"/><path class="${b ? "on" : ""}" d="M16 28c6-5 13-10 13-17a6.5 6.5 0 0 0-13-2z"/><path class="t" d="M16 28C10 23 3 18 3 11a6.5 6.5 0 0 1 13-2 6.5 6.5 0 0 1 13 2c0 7-7 12-13 17z"/></svg>`; }
+  $("coeurs").innerHTML = h;
+}
+const _mF = new THREE.Matrix4(), _qF = new THREE.Quaternion(), _sF = new THREE.Vector3(), _pF = new THREE.Vector3(), _fF = new THREE.Vector3(), _Yf = new THREE.Vector3(0, 1, 0);
+function dansLeCoup(dx, dz, portee) {   // l'ennemi est-il devant le héros, à portée d'épée ?
+  const d = Math.hypot(dx, dz); if (d > portee) return false;
+  let a = Math.atan2(dx, dz) - marche.yaw; a = Math.atan2(Math.sin(a), Math.cos(a)); return Math.abs(a) < 1.3 || d < .9;
+}
+function majEnnemis(dt) {
+  const pied = etat.sol === "pied", auto = etat.mode === "titre", t = horloge.t;
+  VIE.invul -= dt;
+  if (VIE.recul.lengthSq() > .01) { marche.pos.addScaledVector(VIE.recul, dt); VIE.recul.multiplyScalar(Math.exp(-7 * dt)); if (dedans) garderDansPiece(marche.pos); else pousserHors(marche.pos); }
+  if ((VIE.repos += dt) > 15 && VIE.pv < VIE.max) { VIE.pv++; VIE.repos = 0; }
+  if (COUP.t > 0) {
+    COUP.t += dt;
+    if (COUP.t > .12 && !COUP.touche) { COUP.touche = true; toucherEnnemis(); }
+    if (COUP.t > .45) COUP.t = 0;
+  }
+  // ---- feux follets (dehors, à partir de la première leçon)
+  if (follets) {
+    const nuit = MONDE_T.heure < .25 || MONDE_T.heure > .8, voulu = auto || dedans || HIST.etape < 1 ? 0 : (nuit ? 4 : 2), hero = pied ? marche.pos : etat.pos;
+    if ((follT -= dt) < 0) { follT = 2.5;
+      if (FOLLETS.filter(f => f.actif).length < voulu) { const f = FOLLETS.find(f => !f.actif), a = Math.random() * 6.28, d = 28 + Math.random() * 14, x = hero.x + Math.sin(a) * d, z = hero.z + Math.cos(a) * d;
+        if (f && hauteur(x, z) > 1.5 && VILLAGES.every(v => Math.hypot(v.place.x - x, v.place.z - z) > v.rayon + 70)) { Object.assign(f, { actif: true, etat: "nait", t: 0, ech: 0 }); f.pos.set(x, hauteurFine(x, z) + 1.2, z); f.cible.copy(f.pos); } } }
+    let n = 0;
+    for (let i = 0; i < FOLLETS.length; i++) {
+      const f = FOLLETS[i];
+      if (!f.actif) continue;
+      f.t += dt; const dx = marche.pos.x - f.pos.x, dz = marche.pos.z - f.pos.z, d = Math.hypot(dx, dz);
+      if (Math.hypot(hero.x - f.pos.x, hero.z - f.pos.z) > 90 || (dedans && f.etat !== "meurt")) { f.actif = false; continue; }
+      let v = 0, vx = 0, vz = 0;
+      if (f.etat === "nait") { f.ech = Math.min(1, f.t / 1.2); if (f.t > 1.2) f.etat = "libre"; }
+      else if (f.etat === "meurt") { f.ech = Math.max(0, 1 - f.t / .5); if (f.t > .5) { f.actif = false; continue; } }
+      else if (f.etat === "recule") { v = 3; vx = -dx / (d || 1); vz = -dz / (d || 1); if (f.t > 2.5) f.etat = "libre"; }
+      else if (pied && !dedans && d < 14) { f.etat = "chasse"; v = 2.5; vx = dx / d; vz = dz / d;
+        if (d < .95 && marche.auSol !== false) { blesser(1, dx, dz); f.etat = "recule"; f.t = 0; } }
+      else { f.etat = "libre"; if (f.pos.distanceTo(f.cible) < 1 || Math.random() < dt * .2) { const a = Math.random() * 6.28; f.cible.set(f.pos.x + Math.sin(a) * 8, 0, f.pos.z + Math.cos(a) * 8); f.cible.y = f.pos.y; }
+        v = 1; vx = (f.cible.x - f.pos.x); vz = (f.cible.z - f.pos.z); const l = Math.hypot(vx, vz) || 1; vx /= l; vz /= l; }
+      if (v) { f.pos.x += vx * v * dt; f.pos.z += vz * v * dt; let dd = Math.atan2(vx, vz) - f.yaw; f.yaw += Math.atan2(Math.sin(dd), Math.cos(dd)) * Math.min(1, dt * 4); }
+      if (f.etat === "chasse") { let dd = Math.atan2(dx, dz) - f.yaw; f.yaw += Math.atan2(Math.sin(dd), Math.cos(dd)) * Math.min(1, dt * 6); }
+      f.pos.y += (hauteurFine(f.pos.x, f.pos.z) + 1.25 + .25 * Math.sin(t * 2 + f.ph) - f.pos.y) * Math.min(1, dt * 3);
+      // le feu du dragon dissout la brume
+      if (!etat.sol && etat.feu && f.etat !== "meurt") { avant(etat.yaw, etat.pitch, _fF); _pF.copy(f.pos).sub(etat.pos); const k = _pF.dot(_fF); if (k > 0 && k < 40 && _pF.addScaledVector(_fF, -k).length() < 5) dissoudre(f); }
+      if (Math.random() < dt * 6) fumee.emettre(f.pos.x + (Math.random() - .5) * .6, f.pos.y - .5, f.pos.z + (Math.random() - .5) * .6, 0, .4, 0, 1.4, 1.2);
+      const e = f.ech * (1 + .06 * Math.sin(t * 7 + f.ph)); _qF.setFromAxisAngle(_Yf, f.yaw);
+      _mF.compose(f.pos, _qF, _sF.setScalar(e)); follets.setMatrixAt(i, _mF); n++;
+      for (const s of [-1, 1]) { _pF.set(s * .17, .12, .5).multiplyScalar(e).applyQuaternion(_qF).add(f.pos); _mF.compose(_pF, _qF, _sF.setScalar(e)); yeuxFollets.setMatrixAt(i * 2 + (s > 0), _mF); }
+    }
+    for (let i = 0; i < FOLLETS.length; i++) if (!FOLLETS[i].actif) { _mF.makeScale(0, 0, 0); follets.setMatrixAt(i, _mF); yeuxFollets.setMatrixAt(i * 2, _mF); yeuxFollets.setMatrixAt(i * 2 + 1, _mF); }
+    follets.instanceMatrix.needsUpdate = yeuxFollets.instanceMatrix.needsUpdate = true; follets.visible = yeuxFollets.visible = n > 0;
+  }
+  // ---- rampants de braise (dans la caverne)
+  if (CAVE && dedans && dedans.I.grotte) {
+    if (BRAISES.epee && !rampantsReveilles) { rampantsReveilles = true; afficher("The cavern wakes up!", TACTILE ? "Tap the sword button to swing" : "Press X to swing your sword"); }
+    const o = CAVE.g.position, hx = marche.pos.x - o.x, hz = marche.pos.z - o.z;
+    for (const R of RAMPANTS) {
+      const actif = R.avant ? true : BRAISES.epee; R.g.visible = actif && (R.vie || R.saut > 0); if (!actif) continue;
+      R.t += dt;
+      if (!R.vie) {   // renvoyé dans la lave : un saut, puis il revient plus tard
+        if (R.saut > 0) { R.saut -= dt; const k = 1 - R.saut / .8; R.g.position.y = Math.sin(k * Math.PI) * 1.6 - k * .8; R.g.rotation.x += dt * 9; if (R.saut <= 0) R.g.visible = false; }
+        if ((R.retour -= dt) < 0) { R.vie = true; R.g.rotation.x = 0; R.g.position.set(R.maison.x, 0, R.maison.y); }
+        continue;
+      }
+      const dx = hx - R.g.position.x, dz = hz - R.g.position.z, d = Math.hypot(dx, dz), loinMaison = Math.hypot(R.g.position.x - R.maison.x, R.g.position.z - R.maison.y);
+      let vx = 0, vz = 0, v = 0;
+      const feu = CAVE.braseros.find(b => b.allume && Math.hypot(b.x - R.g.position.x, b.z - R.g.position.z) < 3);
+      if (feu) { vx = R.g.position.x - feu.x; vz = R.g.position.z - feu.z; v = 2.2; }                               // le feu les fait reculer
+      else if (d < 6.5 && loinMaison < R.r + 2) { vx = dx; vz = dz; v = 2.1; }                                       // il fonce sur le héros
+      else { if (Math.hypot(R.cible.x - R.g.position.x, R.cible.y - R.g.position.z) < .5 || Math.random() < dt * .3) { const a = Math.random() * 6.28, r = Math.random() * R.r; R.cible.set(R.maison.x + Math.sin(a) * r, R.maison.y + Math.cos(a) * r); }
+        vx = R.cible.x - R.g.position.x; vz = R.cible.y - R.g.position.z; v = 1.1; }
+      const l = Math.hypot(vx, vz) || 1; R.g.position.x += vx / l * v * dt; R.g.position.z += vz / l * v * dt;
+      R.g.position.x = Math.max(-5.6, Math.min(5.6, R.g.position.x)); R.g.position.z = Math.max(-26, Math.min(25, R.g.position.z));
+      let dd = Math.atan2(vx, vz) - R.yaw; R.yaw += Math.atan2(Math.sin(dd), Math.cos(dd)) * Math.min(1, dt * 7); R.g.rotation.y = R.yaw;
+      R.ph += dt * (4 + v * 5);
+      for (const P of R.pattes) { const a = Math.sin(R.ph + P.groupe * Math.PI); P.pv.rotation.y = P.sg * a * .45; P.pv.rotation.z = P.sg * Math.max(0, Math.cos(R.ph + P.groupe * Math.PI)) * .45; }
+      R.g.position.y = Math.abs(Math.sin(R.ph * 2)) * .03;
+      if (d < .95 && marche.auSol !== false) blesser(1, dx, dz);   // on peut l'éviter en sautant
+    }
+  }
+}
+function dissoudre(f) {
+  f.etat = "meurt"; f.t = 0; son.pouf(); gagner(1);
+  for (let k = 0; k < 18; k++) fumee.emettre(f.pos.x, f.pos.y, f.pos.z, (Math.random() - .5) * 5, Math.random() * 3, (Math.random() - .5) * 5, 1, 1.4);
+  for (let k = 0; k < 10; k++) flammes.emettre(f.pos.x, f.pos.y, f.pos.z, (Math.random() - .5) * 4, Math.random() * 4, (Math.random() - .5) * 4, .5, .25);
+}
+function toucherEnnemis() {
+  for (const f of FOLLETS) if (f.actif && f.etat !== "meurt" && f.etat !== "nait" && !dedans && dansLeCoup(f.pos.x - marche.pos.x, f.pos.z - marche.pos.z, 2.6)) dissoudre(f);
+  if (CAVE && dedans && dedans.I.grotte) { const o = CAVE.g.position;
+    for (const R of RAMPANTS) if (R.vie && R.g.visible && dansLeCoup(R.g.position.x + o.x - marche.pos.x, R.g.position.z + o.z - marche.pos.z, 2.4)) {
+      R.vie = false; R.saut = .8; R.retour = 45; son.pouf(); gagner(1);
+      for (let k = 0; k < 16; k++) flammes.emettre(o.x + R.g.position.x, o.y + .4, o.z + R.g.position.z, (Math.random() - .5) * 4, 2 + Math.random() * 3, (Math.random() - .5) * 4, .6, .35); } }
+}
+const _qH = new THREE.Quaternion(), _qB = new THREE.Quaternion(), _vB = new THREE.Vector3(), _vH = new THREE.Vector3(), _mB = new THREE.Vector3(0, -1, 0), _wsB = new THREE.Vector3();
+function animerCoup() {   // coup d'épée : on arme à droite, on balaie vers la gauche, on revient
+  const k = COUP.t > 0 ? COUP.t / .45 : 0, dos = CAVE && CAVE.epeeDos;
+  if (dos) dos.visible = BRAISES.epee && !k;
+  if (!epeeMain) return;
+  epeeMain.visible = k > 0; if (trainee) { trainee.visible = k > .2 && k < .7; trainee.material.opacity = Math.sin(lisse(.2, .7, k) * Math.PI) * .4; trainee.rotation.z = -1.1 - (k - .2) * 2.2; }
+  if (!k) return;
+  const arme = lisse(0, .25, k) * (1 - lisse(.75, 1, k)), balai = lisse(.22, .6, k);
+  tournerP("UpperArmR", 1, 0, 0, -1.35 * arme); tournerP("UpperArmR", 0, 0, 1, -.5 * arme); tournerP("LowerArmR", 1, 0, 0, -.35 * arme);
+  tournerP("Chest", 0, 1, 0, (-.55 + 1.2 * balai) * arme); tournerP("Spine", 0, 1, 0, (-.3 + .6 * balai) * arme); tournerP("Head", 0, 1, 0, (.4 - .8 * balai) * arme);
+  // la lame : orientée dans le monde (indépendant des axes de l'os), dans la main
+  pietonModele.updateMatrixWorld(true);
+  const ang = marche.yaw + (-1.3 + 2.5 * balai) * arme;
+  _vB.set(Math.sin(ang), -.15 + .5 * (1 - arme), Math.cos(ang)).normalize();
+  _qB.setFromUnitVectors(_mB, _vB);
+  const main = epeeMain.parent; main.getWorldQuaternion(_qH); main.getWorldPosition(_vH);
+  epeeMain.quaternion.copy(_qH.invert().multiply(_qB));
+  _vH.addScaledVector(_vB, -.2); main.worldToLocal(epeeMain.position.copy(_vH));
+  main.getWorldScale(_wsB); epeeMain.scale.setScalar(.85 / _wsB.x);
+}
 
 // ------------------------------------------------------------------ dragons sauvages dans le ciel
 // Deux groupes de trois, de couleurs différentes, tournent autour des montagnes ; préparés au chargement.
@@ -4147,7 +4644,7 @@ async function demarrer() {
     await progression(.68, "Building the villages…");
     await chargerKit();
     VILLAGES = creerVillages(); creerInterieurs(); creerHalos();
-    await creerPaysages();
+    await creerPaysages(); await creerCaverne(); creerFollets(); creerRampants(); creerEpeeMain();
     await progression(.76, "Planting the forests…");
     creerArbres();
     creerFeux(); creerAnneaux(); creerNid(); creerHutte(); creerPeche(); creerMouettes(); await creerBebes(); await creerSauvages(); await creerAnimaux(); await creerVillageois();
@@ -4155,7 +4652,11 @@ async function demarrer() {
     await progression(.85, "Mixing the colours…");
     majVol(.016, true); animerDragon(.016); majCamera(1, true); majTerrain(); trierNuages(); majArbres(); majHerbe();
     pieton.visible = true; pieton.position.copy(camera.position).add(new THREE.Vector3(0, -2, -8));
+    // tout ce qui est caché au départ (caverne, intérieurs, ennemis, épée) est compilé maintenant : pas d'à-coup en jouant
+    const caches = [CAVE && CAVE.g, follets, yeuxFollets, epeeMain, trainee, CAVE && CAVE.epeeDos, pieton, ...Object.values(INTERIEURS).map(I => I.g), ...RAMPANTS.map(R => R.g)].filter(o => o && !o.visible);
+    for (const o of caches) o.visible = true;
     await renderer.compileAsync(scene, camera);
+    for (const o of caches) o.visible = false;
     for (const p of renderer.info.programs) p.getUniforms();
     await progression(.95, "Almost ready…");
     for (let i = 0; i < 3; i++) { rendre(); await pause0(); }
@@ -4172,7 +4673,7 @@ async function demarrer() {
 window.__df = { camera, renderer, scene, etat, get dragon() { return dragon; }, hauteur, FEUX, ANNEAUX, NIVEAUX, entree, majTerrain, rendre,
   vue(x, y, z, tx, ty, tz) { camera.position.set(x, y, z); camera.lookAt(tx, ty, tz); camera.near = Math.min(camera.near, .1); camera.updateProjectionMatrix(); camera.updateMatrixWorld(); majTerrain(); trierNuages(); majArbres(); mer.position.set(x, 0, z); },
   POSE_SOL, poseTest(p) { if (p) Object.assign(POSE_SOL, p); etat.pose = 1; etat.ampl = 0; etat.pitch = etat.roll = 0; animerDragon(0); },
-  jouer, allumerFeu, sePoser, monterOuAppeler, marche, get VILLAGES() { return VILLAGES; }, PORTES, entrer, sortir, get dedans() { return dedans; }, get portePres() { return portePres; }, MONDE_T, majHeure, SAUVAGES, majSauvages, ANIMAUX, majAnimaux, VILLAGEOIS, majVillageois, parler, CASCADES, LIBRES, HIST, lancerDefi, get RUNA() { return RUNA; }, suiteDialogue, dessinerJournal, majVillagesTest() { majVillages(0, camera.position.x, camera.position.z); }, get NID() { return NID; }, get HUTTE() { return HUTTE; }, BANCS,
+  jouer, allumerFeu, sePoser, BRAISES, HIST, get CAVE() { return CAVE; }, get ENTREE_BRAISES() { return ENTREE_BRAISES; }, toucherBrasero, get actionPres() { return actionPres; }, majEpeeDos, FOLLETS, RAMPANTS, VIE, frapper, COUP, lancerDefi, suiteDialogue, get DEFI() { return DEFI; }, repondre, monterOuAppeler, marche, get VILLAGES() { return VILLAGES; }, PORTES, entrer, sortir, get dedans() { return dedans; }, get portePres() { return portePres; }, MONDE_T, majHeure, SAUVAGES, majSauvages, ANIMAUX, majAnimaux, VILLAGEOIS, majVillageois, parler, CASCADES, LIBRES, HIST, lancerDefi, get RUNA() { return RUNA; }, suiteDialogue, dessinerJournal, majVillagesTest() { majVillages(0, camera.position.x, camera.position.z); }, get NID() { return NID; }, get HUTTE() { return HUTTE; }, BANCS,
   pas(n = 1, dt = 1 / 30) { sansRendu = true; for (let i = 0; i < n; i++) image(performance.now(), dt); sansRendu = false; image(performance.now(), dt); } };
 demarrer();
 </script>
@@ -4234,7 +4735,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
 })();
 </script>
 <script>
-window.DRAGONFLYER_VERSION = "2026.10.30-14"; // à changer à chaque modification du jeu
+window.DRAGONFLYER_VERSION = "2026.10.30-16"; // à changer à chaque modification du jeu
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
