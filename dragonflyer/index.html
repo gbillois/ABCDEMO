@@ -242,6 +242,11 @@ input,textarea,select{font-size:max(16px,1em)}
   #btAiles { right: max(124px, calc(env(safe-area-inset-right) + 104px)); bottom: max(44px, calc(env(safe-area-inset-bottom) + 18px)); width: 76px; height: 76px; font-size: 32px; }
   #btEntrer { right: max(20px, env(safe-area-inset-right)); bottom: max(138px, calc(env(safe-area-inset-bottom) + 122px)); width: 72px; height: 72px; }
   #fondu { position: fixed; inset: 0; z-index: 9; background: #000; opacity: 0; pointer-events: none; transition: opacity .35s; } #fondu.noir { opacity: 1; }
+  #btParler { right: max(20px, env(safe-area-inset-right)); bottom: max(138px, calc(env(safe-area-inset-bottom) + 122px)); width: 72px; height: 72px; }
+  #dialogue { position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 8; width: min(560px, 86vw); padding: 12px 20px 14px;
+    background: radial-gradient(ellipse at 50% 30%, rgba(255,252,236,.7), transparent 70%), var(--parch) center / 300px; border-radius: 8px; color: #2e1a0a;
+    box-shadow: inset 0 0 0 2px #c99a5c, inset 0 0 0 3.5px #4e2e12, 0 0 0 2px #2a1606, 0 8px 20px rgba(0,0,0,.5); pointer-events: none; }
+  #dialogue b { font: 400 15px var(--tete); color: #6b3c14; } #dialogue p { margin: 4px 0 0; font: 400 18px/1.35 var(--texte); }
   #btPoser { right: max(20px, env(safe-area-inset-right)); bottom: max(138px, calc(env(safe-area-inset-bottom) + 122px)); width: 72px; height: 72px; font-size: 30px; }
   #indice { position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 6; pointer-events: none; font: 700 16px var(--tete); }
   .bt.appui { transform: translateY(3px); filter: brightness(1.25); }
@@ -381,9 +386,11 @@ input,textarea,select{font-size:max(16px,1em)}
   <button class="bt bouclier" id="btFeu" aria-label="Fire"><span><svg class="ico"><use href="#i-feu"/></svg></span></button>
   <button class="bt bouclier" id="btPoser" aria-label="Land" hidden><span><svg class="ico"><use href="#i-atterrir"/></svg></span></button>
   <button class="bt bouclier" id="btEntrer" aria-label="Go in" hidden><span><svg class="ico"><use href="#i-maison"/></svg></span></button>
+  <button class="bt bouclier" id="btParler" aria-label="Talk" hidden><span><svg class="ico"><use href="#i-bulle"/></svg></span></button>
 </div>
 <div id="bulles" aria-live="polite"></div>
 <div id="fondu"></div>
+<div id="dialogue" hidden><b id="dialogueNom"></b><p id="dialogueTexte"></p></div>
 <div id="indice" class="bandeau" hidden><svg class="ico"><use href="#i-atterrir"/></svg> <b>L</b>&nbsp;to land</div>
 
 <div id="quetes" class="ecran" hidden>
@@ -2279,6 +2286,7 @@ function majHerbe() {
 let pieton = null, pietonModele = null;
 const OSP = {};
 const marche = { pos: new THREE.Vector3(), yaw: 0, vy: 0, auSol: true, vitesse: 0, phase: 0, camYaw: 0, camTangage: .25, saut: 0, virage: 0, libre: 0 };
+function tournerO(O, nom, ax, ay, az, angle) { const o = O[nom]; if (!o || angle === 0) return; _a.set(ax, ay, az).applyQuaternion(o.inv); _q.setFromAxisAngle(_a, angle); o.b.quaternion.multiply(_q); }
 function tournerP(nom, ax, ay, az, angle) { const o = OSP[nom]; if (!o || angle === 0) return; _a.set(ax, ay, az).applyQuaternion(o.inv); _q.setFromAxisAngle(_a, angle); o.b.quaternion.multiply(_q); }
 async function chargerPieton() {
   const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
@@ -2296,44 +2304,44 @@ async function chargerPieton() {
   }
   pieton = new THREE.Group(); pieton.add(pietonModele); pieton.visible = false; scene.add(pieton);
 }
-function animerPieton(dt) {
-  for (const k in OSP) { OSP[k].b.quaternion.copy(OSP[k].rest); OSP[k].b.position.copy(OSP[k].pos); }
-  const v = marche.vitesse, course = lisse(3.6, 6.5, v), pas = Math.min(1, v / 1.2);
-  marche.phase += dt * Math.PI * 2 * (v / (1.25 + .75 * course) + (1 - pas) * .0);
-  const ph = marche.phase, s = Math.sin(ph), c = Math.cos(ph);
+function animerPieton(dt, O = OSP, M = marche, modele = modele) {
+  for (const k in O) { O[k].b.quaternion.copy(O[k].rest); O[k].b.position.copy(O[k].pos); }
+  const v = M.vitesse, course = lisse(3.6, 6.5, v), pas = Math.min(1, v / 1.2);
+  M.phase += dt * Math.PI * 2 * (v / (1.25 + .75 * course) + (1 - pas) * .0);
+  const ph = M.phase, s = Math.sin(ph), c = Math.cos(ph);
   let bond = 0;
-  if (!marche.auSol) {   // saut : jambes repliées, bras levés
-    const k = lisse(-3, 5, marche.vy);
+  if (!M.auSol) {   // saut : jambes repliées, bras levés
+    const k = lisse(-3, 5, M.vy);
     for (const [S, sg] of [["L", 1], ["R", -1]]) {
-      tournerP("Thigh" + S, 1, 0, 0, -.7 - .5 * k * (sg > 0 ? 1 : .6)); tournerP("Shin" + S, 1, 0, 0, .9 + .7 * k);
-      tournerP("UpperArm" + S, 0, 0, 1, sg * (.9 + 1.0 * k)); tournerP("UpperArm" + S, 1, 0, 0, -.4); tournerP("LowerArm" + S, 1, 0, 0, -.6);
+      tournerO(O, "Thigh" + S, 1, 0, 0, -.7 - .5 * k * (sg > 0 ? 1 : .6)); tournerO(O, "Shin" + S, 1, 0, 0, .9 + .7 * k);
+      tournerO(O, "UpperArm" + S, 0, 0, 1, sg * (.9 + 1.0 * k)); tournerO(O, "UpperArm" + S, 1, 0, 0, -.4); tournerO(O, "LowerArm" + S, 1, 0, 0, -.6);
     }
-    tournerP("Spine", 1, 0, 0, .15 * (1 - k)); tournerP("Head", 1, 0, 0, -.15 * k);
+    tournerO(O, "Spine", 1, 0, 0, .15 * (1 - k)); tournerO(O, "Head", 1, 0, 0, -.15 * k);
   } else if (pas > .02) {
     const ampJ = (.5 + .35 * course) * pas, ampB = (.55 + .35 * course) * pas, genou = (.8 + .9 * course) * pas;
     for (const [S, sg] of [["L", 1], ["R", -1]]) {
       const a = sg * s, swing = Math.max(0, sg * c);          // swing : la jambe revient vers l'avant
-      tournerP("Thigh" + S, 1, 0, 0, -ampJ * a - .12 * course);
-      tournerP("Shin" + S, 1, 0, 0, genou * Math.pow(swing, .8) + .12 * pas + .25 * course);
-      tournerP("Foot" + S, 1, 0, 0, (-.35 * a + .25 * swing) * pas);
-      tournerP("UpperArm" + S, 1, 0, 0, ampB * a);
-      tournerP("UpperArm" + S, 0, 0, 1, sg * (.14 + .2 * course));
-      tournerP("LowerArm" + S, 1, 0, 0, -(.3 + 1.2 * course) * pas - .25 * Math.max(0, -a) * pas);
+      tournerO(O, "Thigh" + S, 1, 0, 0, -ampJ * a - .12 * course);
+      tournerO(O, "Shin" + S, 1, 0, 0, genou * Math.pow(swing, .8) + .12 * pas + .25 * course);
+      tournerO(O, "Foot" + S, 1, 0, 0, (-.35 * a + .25 * swing) * pas);
+      tournerO(O, "UpperArm" + S, 1, 0, 0, ampB * a);
+      tournerO(O, "UpperArm" + S, 0, 0, 1, sg * (.14 + .2 * course));
+      tournerO(O, "LowerArm" + S, 1, 0, 0, -(.3 + 1.2 * course) * pas - .25 * Math.max(0, -a) * pas);
     }
     bond = (Math.abs(c) * (.05 + .06 * course) - .03 * course) * pas;
-    tournerP("Hips", 0, 1, 0, .16 * s * pas); tournerP("Hips", 0, 0, 1, .05 * c * pas);
-    tournerP("Spine", 1, 0, 0, .06 * pas + .28 * course); tournerP("Spine", 0, 1, 0, -.26 * s * pas);
-    tournerP("Chest", 0, 1, 0, -.08 * s * pas);
-    tournerP("Head", 1, 0, 0, -.1 * course - .04 * Math.abs(c) * pas); tournerP("Head", 0, 1, 0, .1 * s * pas);
+    tournerO(O, "Hips", 0, 1, 0, .16 * s * pas); tournerO(O, "Hips", 0, 0, 1, .05 * c * pas);
+    tournerO(O, "Spine", 1, 0, 0, .06 * pas + .28 * course); tournerO(O, "Spine", 0, 1, 0, -.26 * s * pas);
+    tournerO(O, "Chest", 0, 1, 0, -.08 * s * pas);
+    tournerO(O, "Head", 1, 0, 0, -.1 * course - .04 * Math.abs(c) * pas); tournerO(O, "Head", 0, 1, 0, .1 * s * pas);
   } else {   // à l'arrêt : respiration, regard qui se promène, petit balancement
     const t = horloge.t, resp = Math.sin(t * 2.2);
-    tournerP("Chest", 1, 0, 0, -.03 * resp); tournerP("Spine", 0, 0, 1, .03 * Math.sin(t * .7));
-    tournerP("Head", 0, 1, 0, .5 * Math.sin(t * .45) * Math.sin(t * .17)); tournerP("Head", 1, 0, 0, -.06 * Math.sin(t * .6));
-    for (const [S, sg] of [["L", 1], ["R", -1]]) { tournerP("UpperArm" + S, 0, 0, 1, sg * (.12 + .02 * resp)); tournerP("LowerArm" + S, 1, 0, 0, -.2); }
+    tournerO(O, "Chest", 1, 0, 0, -.03 * resp); tournerO(O, "Spine", 0, 0, 1, .03 * Math.sin(t * .7));
+    tournerO(O, "Head", 0, 1, 0, .5 * Math.sin(t * .45) * Math.sin(t * .17)); tournerO(O, "Head", 1, 0, 0, -.06 * Math.sin(t * .6));
+    for (const [S, sg] of [["L", 1], ["R", -1]]) { tournerO(O, "UpperArm" + S, 0, 0, 1, sg * (.12 + .02 * resp)); tournerO(O, "LowerArm" + S, 1, 0, 0, -.2); }
     bond = .008 * resp;
   }
-  pietonModele.position.y = bond;
-  pietonModele.rotation.z = -marche.virage * .12 * course;
+  modele.position.y = bond;
+  modele.rotation.z = -M.virage * .12 * course;
 }
 
 const H_POSE = 3.1;   // hauteur du corps du dragon posé au-dessus du sol
@@ -2965,7 +2973,7 @@ addEventListener("keydown", e => {
     else if (e.code === "KeyM") basculerSon();
     else if (e.code === "KeyQ" && !e.ctrlKey && !e.metaKey) ouvrirEcran("quetes");
     else if (e.code === "KeyL" && !etat.sol) sePoser();
-    else if ((e.code === "KeyE" || e.code === "KeyF" || e.code === "Enter") && etat.sol === "pied") { if (portePres) entrer(portePres); else monterOuAppeler(); }
+    else if ((e.code === "KeyE" || e.code === "KeyF" || e.code === "Enter") && etat.sol === "pied") { if (portePres) entrer(portePres); else if (villageoisPres && e.code !== "KeyF") parler(villageoisPres); else monterOuAppeler(); }
   } else if (e.code === "Escape") retour();
   else if (etat.mode === "pause" && e.code === "KeyP") fermerEcrans();
   else if (etat.mode === "titre" && e.code === "Enter") jouer();
@@ -2984,6 +2992,7 @@ addEventListener("blur", () => { entree.touches.clear(); entree.ailes = entree.f
   addEventListener("blur", () => fin({ pointerId: id }));
   $("btPoser").addEventListener("pointerdown", e => { e.preventDefault(); sePoser(); });
   $("btEntrer").addEventListener("pointerdown", e => { e.preventDefault(); if (portePres) entrer(portePres); });
+  $("btParler").addEventListener("pointerdown", e => { e.preventDefault(); if (villageoisPres) parler(villageoisPres); });
   for (const [bid, cle] of [["btFeu", "feu"], ["btAiles", "ailes"]]) {
     const b = $(bid);
     b.addEventListener("pointerdown", e => { e.preventDefault(); if (cle === "feu" && etat.sol === "pied") { monterOuAppeler(); return; } entree[cle] = true; b.classList.add("appui"); b.setPointerCapture(e.pointerId); });
@@ -3146,10 +3155,10 @@ function image(now, dtForce) {
   animerDragon(dt);
   if (etat.sol === "pied" || etat.sol === "appel") majCameraPied(dt); else majCamera(dt, auto);
   if (!auto) { if (!etat.sol) verifierAnneaux(); majHud(dt); majMiniCarte(dt); }
-  majVillages(dt, camera.position.x, camera.position.z); if (etat.sol === "pied" || dedans) majPortes(dt); majSauvages(dt); majAnimaux(dt);
+  majVillages(dt, camera.position.x, camera.position.z); if (etat.sol === "pied" || dedans) majPortes(dt); majSauvages(dt); majAnimaux(dt); majVillageois(dt);
   if (!etat.sol && !auto) { const c = dansUnRect(etat.pos.x, etat.pos.z, 4); if (c && c.haut && etat.pos.y < c.haut + 3) etat.pos.y += (c.haut + 3 - etat.pos.y) * Math.min(1, dt * 8); }   // le dragon passe au-dessus des toits
   majAnneaux(); majFeuxAllumes(dt); majPeche(dt); majHutte(dt); animerBebes(dt); majMouettes();
-  if (!auto) { const ok = !etat.sol && peutSePoser(); $("btPoser").hidden = !TACTILE || !ok; $("indice").hidden = TACTILE || !ok; }
+  if (!auto) { const ok = !etat.sol && peutSePoser(); $("btPoser").hidden = !TACTILE || !ok; if (etat.sol !== "pied") { if (!$("indice").hidden !== (!TACTILE && ok)) $("indice").innerHTML = `${ico("atterrir")} <b>L</b>&nbsp;to land`; $("indice").hidden = TACTILE || !ok; } }
   flammes.maj(dt, 2.2, 6, 2.2); fumee.maj(dt, .4, 2, 2.5); gouttes.maj(dt, .5, -14, .5);
   for (const b of BATEAUX) { if (!BATEAUX.mesh) break; }
   majTerrain();
@@ -3527,6 +3536,88 @@ function majAnimaux(dt) {
   }
 }
 
+// ------------------------------------------------------------------ villageois (pieton.py --variante : même squelette que le héros)
+// Le jour, ils vont et viennent entre la place, les étals et leur porte ; le soir, ils rentrent chez eux.
+// On leur parle (E, ou le bouton bulle) : quelques répliques par métier, qui annoncent l'histoire.
+const METIERS = ["fermier", "fermiere", "ancien", "forgeron", "pecheuse", "chef"];
+const REPLIQUES = {
+  fermier: ["Good morning, apprentice! The sheep love the meadow by the mill.", "My cows give the best milk in the isles. Dragons love it too!", "Count the sheep for me? I always lose one."],
+  fermiere: ["Have you seen the windmill? It grinds our flour.", "The Grey Mist came close last night. The hens were scared.", "Bread is better with honey. Your dragon prefers fish!"],
+  ancien: ["Long ago, the first riders pushed back the Grey Mist...", "They hid four Stones of Knowledge: Numbers, Logic, Words and Stars.", "Learn, apprentice. A rider who thinks is stronger than fire."],
+  forgeron: ["A true rider needs a sword. One sleeps in the Ember Cavern, up north.", "My forge is hot! Do not touch the anvil.", "Bring me iron one day, and I will make your shield stronger."],
+  pecheuse: ["The fish jump high at sunset. Your dragon could catch some!", "The Tide Cavern opens only when the sea goes down.", "My nets are full today. Want a herring?"],
+  chef: ["Welcome to our village, young rider!", "Runa says you have a gift with dragons.", "Keep the mountain fires burning. They guide the lost ones home."],
+};
+const VILLAGEOIS = [];
+let interlocuteur = null, repliqueT = 0;
+async function creerVillageois() {
+  const { clone } = await import("three/addons/utils/SkeletonUtils.js");
+  const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+  const modeles = {};
+  for (const m of METIERS) {
+    try { const g = await loader.loadAsync(`assets/villageois_${m}.glb`); g.scene.traverse(o => { if (o.isMesh) { o.frustumCulled = false; o.castShadow = true; o.material = matHeros(o.material.name === "RiderFace" ? VISAGE : null); } }); modeles[m] = g.scene; } catch (e) { console.warn("villageois", m, e); }
+  }
+  const qui = { Mistholm: ["chef", "fermier", "fermiere", "forgeron", "ancien", "fermiere", "pecheuse", "fermier"], Saltcliff: ["pecheuse", "pecheuse", "fermier", "ancien", "pecheuse"],
+    Fernhollow: ["fermier", "fermiere", "fermier", "fermiere", "ancien"], Stonebrook: ["forgeron", "chef", "fermier", "ancien", "fermiere"] };
+  const r = alea(555);
+  for (const v of VILLAGES) {
+    const portes = PORTES.filter(p => Math.hypot(p.x - v.place.x, p.z - v.place.z) < v.rayon + 25);
+    for (const metier of qui[v.nom] || ["fermier", "fermiere"]) {
+      const base = modeles[metier]; if (!base || !portes.length) continue;
+      const modele = clone(base); const g = new THREE.Group(); g.add(modele); g.scale.setScalar(metier === "ancien" ? 1.12 : 1.18); g.visible = false; scene.add(g);
+      const O = {}; modele.traverse(o => { if (o.isBone && OSP[o.name]) O[o.name] = { b: o, rest: OSP[o.name].rest, inv: OSP[o.name].inv, pos: OSP[o.name].pos }; });
+      const maison = portes[(r() * portes.length) | 0];
+      const M = { pos: new THREE.Vector3(maison.x, maison.y, maison.z), yaw: 0, vy: 0, auSol: true, vitesse: 0, phase: r() * 6, virage: 0 };
+      VILLAGEOIS.push({ metier, v, g, modele, O, M, maison, cible: null, attente: r() * 6, dehors: true, replique: (r() * 3) | 0 });
+    }
+  }
+}
+function lieuDuJour(p, r) {   // la place, un étal, une porte voisine
+  const v = p.v, a = r * 6.28;
+  if (r < .5) return { x: v.place.x + Math.cos(a) * (3 + r * 9), z: v.place.z + Math.sin(a) * (3 + r * 9) };
+  const pt = PORTES[(r * 9973 | 0) % PORTES.length]; return Math.hypot(pt.x - v.place.x, pt.z - v.place.z) < v.rayon + 25 ? { x: pt.x + Math.sin(pt.yaw) * 2, z: pt.z + Math.cos(pt.yaw) * 2 } : { x: v.place.x, z: v.place.z };
+}
+function majVillageois(dt) {
+  const h = MONDE_T.heure, jour = h > .27 && h < .83, cx = camera.position.x, cz = camera.position.z, pied = etat.sol === "pied" && !dedans;
+  let proche = null, dProche = 2.4;
+  for (const p of VILLAGEOIS) {
+    const loin = Math.hypot(p.M.pos.x - cx, p.M.pos.z - cz) > 220 || dedans;
+    const chezSoi = { x: p.maison.x + Math.sin(p.maison.yaw) * 1.2, z: p.maison.z + Math.cos(p.maison.yaw) * 1.2 };
+    if (!jour && p.dehors && !p.rentre) { p.rentre = true; p.cible = chezSoi; }
+    if (jour && !p.dehors) { p.dehors = true; p.rentre = false; p.M.pos.set(chezSoi.x, p.maison.y, chezSoi.z); p.attente = Math.random() * 4; }
+    if (!p.dehors) { p.g.visible = false; continue; }
+    if (loin) { p.g.visible = false; if (p.rentre) { p.dehors = false; } continue; }   // loin : on ne calcule rien
+    p.g.visible = true;
+    const parle = interlocuteur === p;
+    if (!p.cible && !parle) { p.attente -= dt; if (p.attente < 0) p.cible = lieuDuJour(p, Math.random()); }
+    let v = 0;
+    if (p.cible && !parle) {
+      const dx = p.cible.x - p.M.pos.x, dz = p.cible.z - p.M.pos.z, d = Math.hypot(dx, dz);
+      if (d < .6) { p.cible = null; p.attente = 2 + Math.random() * 8; if (p.rentre) { p.dehors = false; p.g.visible = false; continue; } }
+      else { let dd = Math.atan2(dx, dz) - p.M.yaw; dd = Math.atan2(Math.sin(dd), Math.cos(dd)); p.M.yaw += dd * Math.min(1, dt * 4); v = 1.35; }
+    }
+    if (parle && pied) { const dd0 = Math.atan2(marche.pos.x - p.M.pos.x, marche.pos.z - p.M.pos.z) - p.M.yaw; p.M.yaw += Math.atan2(Math.sin(dd0), Math.cos(dd0)) * Math.min(1, dt * 5); }
+    p.M.vitesse += (v - p.M.vitesse) * Math.min(1, dt * 5);
+    p.M.pos.x += Math.sin(p.M.yaw) * p.M.vitesse * dt; p.M.pos.z += Math.cos(p.M.yaw) * p.M.vitesse * dt;
+    pousserHors(p.M.pos, .35);
+    p.M.pos.y += (hauteurFine(p.M.pos.x, p.M.pos.z) - p.M.pos.y) * Math.min(1, dt * 10);
+    p.g.position.copy(p.M.pos); p.g.rotation.y = p.M.yaw;
+    animerPieton(dt, p.O, p.M, p.modele);
+    if (pied) { const d = Math.hypot(p.M.pos.x - marche.pos.x, p.M.pos.z - marche.pos.z); if (d < dProche) { dProche = d; proche = p; } }
+  }
+  villageoisPres = proche;
+  if (interlocuteur && ((repliqueT -= dt) < 0 || !pied || Math.hypot(interlocuteur.M.pos.x - marche.pos.x, interlocuteur.M.pos.z - marche.pos.z) > 4)) { interlocuteur = null; $("dialogue").hidden = true; }
+  $("btParler").hidden = !TACTILE || !villageoisPres || !!portePres;
+  if (!TACTILE && villageoisPres && !portePres && etat.sol === "pied") { $("indice").hidden = false; $("indice").innerHTML = `${ico("bulle")} <b>E</b>&nbsp;to talk`; }
+}
+let villageoisPres = null;
+function parler(p) {
+  if (!p) return; interlocuteur = p; repliqueT = 6;
+  const L = REPLIQUES[p.metier]; const t = L[p.replique++ % L.length];
+  $("dialogueNom").textContent = { fermier: "Farmer", fermiere: "Farmer", ancien: "Elder", forgeron: "Blacksmith", pecheuse: "Fisher", chef: "Chief" }[p.metier] + " of " + p.v.nom;
+  $("dialogueTexte").textContent = t; $("dialogue").hidden = false; son.clic();
+}
+
 // ------------------------------------------------------------------ dragons sauvages dans le ciel
 // Deux groupes de trois, de couleurs différentes, tournent autour des montagnes ; préparés au chargement.
 const SAUVAGES = [];
@@ -3666,7 +3757,7 @@ async function demarrer() {
     VILLAGES = creerVillages(); creerInterieurs(); creerHalos();
     await progression(.76, "Planting the forests…");
     creerArbres();
-    creerFeux(); creerAnneaux(); creerNid(); creerHutte(); creerPeche(); creerMouettes(); await creerBebes(); await creerSauvages(); await creerAnimaux();
+    creerFeux(); creerAnneaux(); creerNid(); creerHutte(); creerPeche(); creerMouettes(); await creerBebes(); await creerSauvages(); await creerAnimaux(); await creerVillageois();
     majBandeau(); dessinerCarte();
     await progression(.85, "Mixing the colours…");
     majVol(.016, true); animerDragon(.016); majCamera(1, true); majTerrain(); trierNuages(); majArbres(); majHerbe();
@@ -3688,7 +3779,7 @@ async function demarrer() {
 window.__df = { camera, renderer, scene, etat, get dragon() { return dragon; }, hauteur, FEUX, ANNEAUX, NIVEAUX, entree, majTerrain, rendre,
   vue(x, y, z, tx, ty, tz) { camera.position.set(x, y, z); camera.lookAt(tx, ty, tz); camera.near = Math.min(camera.near, .1); camera.updateProjectionMatrix(); camera.updateMatrixWorld(); majTerrain(); trierNuages(); majArbres(); mer.position.set(x, 0, z); },
   POSE_SOL, poseTest(p) { if (p) Object.assign(POSE_SOL, p); etat.pose = 1; etat.ampl = 0; etat.pitch = etat.roll = 0; animerDragon(0); },
-  jouer, allumerFeu, sePoser, monterOuAppeler, marche, get VILLAGES() { return VILLAGES; }, PORTES, entrer, sortir, get dedans() { return dedans; }, get portePres() { return portePres; }, MONDE_T, majHeure, SAUVAGES, majSauvages, ANIMAUX, majAnimaux, majVillagesTest() { majVillages(0, camera.position.x, camera.position.z); }, get NID() { return NID; }, get HUTTE() { return HUTTE; }, BANCS,
+  jouer, allumerFeu, sePoser, monterOuAppeler, marche, get VILLAGES() { return VILLAGES; }, PORTES, entrer, sortir, get dedans() { return dedans; }, get portePres() { return portePres; }, MONDE_T, majHeure, SAUVAGES, majSauvages, ANIMAUX, majAnimaux, VILLAGEOIS, majVillageois, parler, majVillagesTest() { majVillages(0, camera.position.x, camera.position.z); }, get NID() { return NID; }, get HUTTE() { return HUTTE; }, BANCS,
   pas(n = 1, dt = 1 / 30) { sansRendu = true; for (let i = 0; i < n; i++) image(performance.now(), dt); sansRendu = false; image(performance.now(), dt); } };
 demarrer();
 </script>
@@ -3750,7 +3841,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
 })();
 </script>
 <script>
-window.DRAGONFLYER_VERSION = "2026.10.30-11"; // à changer à chaque modification du jeu
+window.DRAGONFLYER_VERSION = "2026.10.30-12"; // à changer à chaque modification du jeu
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
