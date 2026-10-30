@@ -7914,7 +7914,8 @@ function updateCrowd(dt) {
   youpiT -= dt;
   for (const sl of slides) if (sl.queue.length && !sl.busy) { const a = sl.queue[0], [qx, qz] = sl.slot(0); if (Math.hypot(a.x - qx, a.z - qz) < .25) { sl.queue.shift(); a.st = "climb"; a.t = 0; sl.busy = 1; } }
   for (const a of crowd) {
-    const g = a.g; let mode = "idle", spd = 0; g.rotation.x = 0;
+    const g = a.g; let mode = "idle", spd = 0; // (pas de g.rotation.x = 0 ici : animPerson pose l'inclinaison du corps ; les baigneurs loin
+    // de la caméra ne sont animés qu'une image sur deux ou trois, et les nageurs se remettaient debout entre deux : ils clignotaient)
     if (a.kind === "slide") {
       const sl = a.sl;
       if (a.st === "queue") { const [qx, qz] = sl.slot(sl.queue.indexOf(a)); if (!stepTo(a, qx, qz, 1.2, dt)) { mode = "walk"; spd = 1.2; } else a.face = Math.atan2(-sl.qd[0], -sl.qd[1]); a.y = 0; }
@@ -7936,8 +7937,11 @@ function updateCrowd(dt) {
       if (!stepTo(a, a.tx, a.tz, 1.8, dt)) { mode = "walk"; spd = 2.4; } }
     else if (a.kind === "lounge") { g.rotation.x = -1.5; a.face = a.rot; }
     g.position.set(a.x, a.y, a.z); g.rotation.y = a.face;
-    if (mode === "walk") a.wt += dt * 3.5 * Math.max(1, spd); if (aAnimer(a, a.x, a.z)) animPerson(g, a.kind === "lounge" ? "lie" : mode, mode === "walk" ? a.wt : mode === "swim" ? time * 4 + a.wt : mode === "climb" ? time * 9 : time, mode === "walk" ? spd : undefined); if (a.kind === "lounge") g.rotation.x = -1.5;
-    liveFace(g, dt);
+    if (mode === "walk") a.wt += dt * 3.5 * Math.max(1, spd);
+    // loin de la caméra, on n'anime qu'une image sur deux ou trois ; le visage aussi (sinon liveFace remettait la pose « debout »
+    // entre deux images de nage : les nageurs se relevaient sans arrêt)
+    if (aAnimer(a, a.x, a.z)) { animPerson(g, a.kind === "lounge" ? "lie" : mode, mode === "walk" ? a.wt : mode === "swim" ? time * 4 + a.wt : mode === "climb" ? time * 9 : time, mode === "walk" ? spd : undefined); liveFace(g, dt); }
+    if (a.kind === "lounge") g.rotation.x = -1.5;
   }
 }
 
@@ -10515,7 +10519,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.29-21"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.10.30-1"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
