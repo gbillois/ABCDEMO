@@ -1,13 +1,13 @@
 # Règles habituelles des jeux de Théo
 
-Ce que le propriétaire applique d'un jeu à l'autre (Domaine des Pins, The Dragon Learner Chronicles…).
+Ce que le propriétaire applique d'un jeu à l'autre (Domaine des Pins, The Dragon Apprentice Chronicles…).
 À relire avant de créer ou de modifier un jeu. Les règles techniques du dépôt restent dans `CLAUDE.md`.
 
 ## 1. Publication et versions
 
 - Chaque modification : commit, push sur la branche de travail **et** sur `main` (GitHub Pages), puis republier l'artefact.
 - Un gros jeu devient une **application installable** (PWA) dans son propre dossier : `manifest.webmanifest`, `sw.js`
-  (cache d'abord, le jeu marche hors ligne), icônes PNG, nom court lisible sur l'écran d'accueil (13 caractères au plus).
+  (cache d'abord, le jeu marche hors ligne), icônes PNG, nom court lisible sur l'écran d'accueil (sur iPhone, au-delà d'environ 13 caractères la fin est coupée).
 - Le jeu ne change que lorsqu'on appuie sur **« Update »** (écran titre et réglages). Un numéro de version
   (`window.<JEU>_VERSION`) change à chaque modification ; toujours rappeler à l'utilisateur d'appuyer sur « Update ».
 - Tout fichier ajouté (texture, module three.js, son) va dans la liste `FICHIERS` du service worker.
@@ -76,7 +76,7 @@ Ce que le propriétaire applique d'un jeu à l'autre (Domaine des Pins, The Drag
 
 - Images et modèles faits maison (code, Blender en script, numpy), sauf les images fournies par le propriétaire.
 - Sons synthétisés (Web Audio) ; fichiers audio seulement avec l'accord écrit dans `CLAUDE.md`.
-- Langue : français pour les jeux de Théo, **anglais** pour The Dragon Learner Chronicles (demande du propriétaire).
+- Langue : français pour les jeux de Théo, **anglais** pour The Dragon Apprentice Chronicles (demande du propriétaire).
 - Textes simples pour un enfant ; jeux éducatifs : défis de calcul, de logique, de langue intégrés au jeu.
 
 ## 7. Performances

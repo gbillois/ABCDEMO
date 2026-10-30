@@ -1,4 +1,4 @@
-// Relais multijoueur de The Dragon Learner Chronicles (Cloudflare Worker + Durable Object).
+// Relais multijoueur de The Dragon Apprentice Chronicles (Cloudflare Worker + Durable Object).
 //
 // Une partie à plusieurs = un code (8 caractères) = une « salle » en mémoire (Durable Object).
 // Le relais ne fait que transmettre les positions des dragons (et des cavaliers à pied), les profils
@@ -42,7 +42,7 @@ export default {
     const origines = (env.ORIGINES || "").split(",").map(s => s.trim()).filter(Boolean);
     const origine = request.headers.get("Origin") || "";
 
-    if (url.pathname === "/") return new Response("Relais de The Dragon Learner Chronicles : OK\n", { headers: { "content-type": "text/plain; charset=utf-8" } });
+    if (url.pathname === "/") return new Response("Relais de The Dragon Apprentice Chronicles : OK\n", { headers: { "content-type": "text/plain; charset=utf-8" } });
 
     const t = url.pathname.match(TRANSFERT);
     if (t) {

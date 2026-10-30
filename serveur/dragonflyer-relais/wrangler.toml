@@ -1,4 +1,4 @@
-# Relais multijoueur de The Dragon Learner Chronicles (Cloudflare Worker + Durable Object).
+# Relais multijoueur de The Dragon Apprentice Chronicles (Cloudflare Worker + Durable Object).
 name = "dragonflyer-relais"
 main = "src/index.js"
 compatibility_date = "2026-09-01"

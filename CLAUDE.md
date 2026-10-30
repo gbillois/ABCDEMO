@@ -116,7 +116,7 @@ comme le Domaine des Pins (`manifest.webmanifest`, `sw.js`, bouton « Update » 
 - `jeux/dragonflyer.html` ne fait que rediriger vers `../dragonflyer/`.
 - Le jeu est en anglais (demande du propriétaire).
 - L'icône et le blason (`icone-*.png`, `apple-touch-icon.png`, `blason.webp`) viennent d'une image fournie par le propriétaire.
-- Nom affiché : « The Dragon Learner Chronicles » (sur l'écran d'accueil : « Dragon Learner ») ; le dossier reste `dragonflyer/`. Menus en grimoire : `ui-cuir.webp`, `ui-parchemin.webp`, `ui-gravure.webp`
+- Nom affiché : « The Dragon Apprentice Chronicles » (sur l'écran d'accueil : « Dragon Apprentice ») ; le dossier reste `dragonflyer/`. Menus en grimoire : `ui-cuir.webp`, `ui-parchemin.webp`, `ui-gravure.webp`
   sont faits par les scripts `grimoire_*.py` de `blender/dragonflyer/` (à ajouter à `FICHIERS` de `sw.js` s'il y en a d'autres).
 - `window.DRAGONFLYER_VERSION` (en bas de `dragonflyer/index.html`) est à changer à chaque modification ;
   penser à dire à l'utilisateur d'appuyer sur « Update ». Si on ajoute un module three.js, l'ajouter à `FICHIERS` de `sw.js`.

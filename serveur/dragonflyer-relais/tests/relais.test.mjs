@@ -1,4 +1,4 @@
-// Tests du relais de The Dragon Learner Chronicles : node --test serveur/dragonflyer-relais/tests/
+// Tests du relais de The Dragon Apprentice Chronicles : node --test serveur/dragonflyer-relais/tests/
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
