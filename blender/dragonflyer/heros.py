@@ -11,7 +11,7 @@ def srgb(h):
     return tuple(x / 12.92 if x <= .04045 else ((x + .055) / 1.055) ** 2.4 for x in c)
 
 SKIN, TUNIC, TUNIC2, VEST = srgb("#efc09a"), srgb("#5f7a48"), srgb("#4a6038"), srgb("#5a3820")   # tunique verte, gilet de cuir
-FUR, PANTS, BOOT, BELT = srgb("#a08462"), srgb("#4a3a2c"), srgb("#4e3220"), srgb("#2e1e12")      # fourrure, pantalon, bottes
+FUR, PANTS, BOOT, BELT = srgb("#6f6252"), srgb("#4a3a2c"), srgb("#4e3220"), srgb("#2e1e12")      # fourrure, pantalon, bottes
 BRACER, SOLE, IRON, HAIR = srgb("#6a4428"), srgb("#2a1c12"), srgb("#8a8478"), srgb("#64301a")   # cheveux auburn
 
 def nrm(v): v = np.array(v, float); return v / np.linalg.norm(v)
@@ -64,6 +64,20 @@ class Maillage:
             s.V.append(p); s.C.append(cols[j]); s.T.append(tags[j] if tags else None)
         s.F.extend([[i + o for i in p.vertices] for p in m2.polygons])
         bpy.data.objects.remove(ob); bpy.data.meshes.remove(m2)
+
+def fourrure(M, boucle, r, tag=None, graine=1):
+    """Col (ou revers) de fourrure : un boudin gris-brun le long d'une boucle fermée, hérissé de petites mèches de poil."""
+    rng = np.random.default_rng(graine); P = [np.array(p, float) for p in boucle]; n = len(P)
+    ctr = sum(P) / n
+    M.tube(P + [P[0]], [r] * (n + 1), FUR, 12, tag)
+    for i in range(n):
+        a, b = P[i], P[(i + 1) % n]
+        for k in range(6):
+            c = a + (b - a) * (k + rng.random()) / 6
+            out = nrm(c - ctr); d = nrm(out * .8 + np.array([0, 0, .7]) + rng.normal(0, .35, 3))
+            base = c + d * r * .55; ln = r * (.9 + .7 * rng.random())
+            col = tuple(x * (.8 + .35 * rng.random()) for x in FUR)
+            M.tube([base, base + d * ln * .5, base + d * ln], [r * .32, r * .2, r * .02], col, 6, tag)
 
 def main(M, wrist, fwd, up, side_sign, pose, tag=None):
     """Main à quatre doigts et un pouce : « poing » (fermé) ou « plat » (doigts tendus), brassard de cuir."""
@@ -121,6 +135,8 @@ def tete(piv):
         for i in range(nu):
             a, b = j * (nu + 1) + i, j * (nu + 1) + i + 1; H.F.append([a, a + nu + 1, b + nu + 1, b])
     nface = len(H.F)
+    # cou attaché à la tête : il descend jusque dans le col, la tête ne flotte plus
+    H.tube([piv + np.array([0, .012, -.085]), piv + np.array([0, .0, .02]), hc + np.array([0, .02, -.06])], [.054, .052, .05], SKIN, 16, "Head")
     def sur(d, lift=0.0):
         d = nrm(d); p = forme(d, R); return hc + p + d * lift, d
     for sx in (1, -1):   # oreilles
