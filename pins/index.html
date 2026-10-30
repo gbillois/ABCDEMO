@@ -527,7 +527,7 @@ html.app .site{display:none!important}
       <h3>Mes parties sur un autre appareil</h3>
       <p class="small">Transférer, recevoir, exporter ou importer une partie : sur l'écran de départ, touche <b>Gérer</b>.</p>
       <h3>Qualité des images</h3>
-      <div class="themes" role="group" aria-label="Qualité des images"><button class="btn" data-qual="eco">⚡ Fluide</button><button class="btn" data-qual="auto">✨ Auto</button><button class="btn" data-qual="belle">🌟 Belle</button></div>
+      <div class="themes" role="group" aria-label="Qualité des images"><button class="btn" data-qual="eco">⚡ Fluide</button><button class="btn" data-qual="auto">✨ Auto</button><button class="btn" data-qual="belle">🌟 Belle</button><button class="btn" data-qual="ultra">💎 Ultra</button></div>
       <p id="qualTxt" class="small"></p>
       <h3>Autres réglages</h3>
       <div class="grille">
@@ -1002,9 +1002,10 @@ function changerDePartie(id) { PARTIES.id = id; sauverParties(); chargementEnCou
 function creerPartie() { const id = nouveauNumero(PARTIES.liste.map(p => p.id)); PARTIES.liste.unshift({ id, nom: "Nouvelle partie", maj: Date.now() }); PARTIES.id = id; sauverParties(); try { LS_VRAI.setItem("pins-nouvelle", "1"); } catch (e) {} chargementEnCours = true; location.reload(); }
 function oublierPartie(id) { try { const cles = []; for (let i = 0; i < LS_VRAI.length; i++) { const k = LS_VRAI.key(i); if (k && k.startsWith(`pins@${id}:`)) cles.push(k); } for (const k of cles) LS_VRAI.removeItem(k); } catch (e) {} }
 // qualité des images, choisie dans Réglages → Plus (réglage de l'appareil) : « eco » (Fluide), « auto », « belle »
-const QUAL = (() => { try { const q = LS_VRAI.getItem("pins-qualite"); return q === "eco" || q === "belle" ? q : "auto"; } catch (e) { return "auto"; } })();
+const QUAL = (() => { try { const q = LS_VRAI.getItem("pins-qualite"); return ["eco", "belle", "ultra"].includes(q) ? q : "auto"; } catch (e) { return "auto"; } })();
+const ULTRA = QUAL === "ultra"; // ordinateur puissant : ombres dans les coins (occlusion), relief sur tous les murs, personnages détaillés
 const TACTILE = matchMedia("(pointer: coarse)").matches;
-const LOWQ = QUAL === "eco" ? true : QUAL === "belle" ? false : TACTILE; // tablettes et téléphones (en Auto) : un peu moins de détails
+const LOWQ = QUAL === "eco" ? true : QUAL === "belle" || ULTRA ? false : TACTILE; // tablettes et téléphones (en Auto) : un peu moins de détails
 // Chargement par étapes : entre deux étapes, on laisse l'écran se redessiner (la barre avance, rien ne semble bloqué)
 const souffle = (p, txt) => { $("chargeBar").style.width = p + "%"; if (txt) $("chargeTxt").textContent = txt;
   return new Promise(r => { let fait = false; const ok = () => { if (!fait) { fait = true; r(); } }; requestAnimationFrame(() => setTimeout(ok, 0)); setTimeout(ok, 150); }); };
@@ -1021,7 +1022,7 @@ const renderer = new THREE.WebGLRenderer({ antialias: !LOWQ, powerPreference: "h
 addEventListener("error", e => { const d = document.getElementById("bugView"); if (!d || !d.hidden) return; document.getElementById("bugMsg").textContent = String(e.message || e.error || "?").slice(0, 160); d.hidden = false; });
 // téléphones et tablettes : un peu moins de pixels (l'écran est petit, la différence ne se voit pas, le jeu reste fluide)
 const PETIT = LOWQ && Math.min(screen.width, screen.height) < 500;
-renderer.setPixelRatio(Math.min(devicePixelRatio, QUAL === "eco" ? 1 : QUAL === "belle" ? 2 : PETIT ? 1.25 : LOWQ ? 1.3 : 1.75));
+renderer.setPixelRatio(Math.min(devicePixelRatio, QUAL === "eco" ? 1 : QUAL === "belle" || ULTRA ? 2 : PETIT ? 1.25 : LOWQ ? 1.3 : 1.75));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.85;
 renderer.shadowMap.enabled = QUAL !== "eco"; // Fluide : pas d'ombres
@@ -1029,7 +1030,29 @@ renderer.shadowMap.type = LOWQ ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap; //
 $("game").appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(58, 1, 0.25, 3000); // près = 0,25 m (et pas 0,1) : 2,5 fois plus de précision de profondeur, plus de surfaces qui « clignotent » (iPhone)
-function resize() { const h = Math.max(innerHeight, $("game").clientHeight); renderer.setSize(innerWidth, h); camera.aspect = innerWidth / h; camera.updateProjectionMatrix(); } // toute la hauteur de l'écran (pas de bande en bas)
+// Ultra : l'image est retouchée avant d'être montrée : ombres douces dans les coins et sous les objets (occlusion ambiante GTAO).
+// Les modules ne sont chargés que dans ce mode (gardés hors ligne par sw.js) ; s'ils manquent, on dessine comme d'habitude.
+let COMPO = null;
+if (ULTRA) try {
+  const [{ EffectComposer }, { RenderPass }, { GTAOPass }, { OutputPass }] = await Promise.all(["EffectComposer", "RenderPass", "GTAOPass", "OutputPass"].map(n => import(`three/addons/postprocessing/${n}.js`)));
+  // l'occlusion ne regarde que les objets pleins (calque 2, posé à la fin du chargement par calquesAO) : ni les noms, ni les
+  // bulles, ni le verre du dôme ou l'eau (sinon : des rectangles sombres autour des étiquettes)
+  const camAO = new THREE.PerspectiveCamera(); camAO.layers.set(2);
+  COMPO = new EffectComposer(renderer); COMPO.addPass(new RenderPass(scene, camera));
+  const ao = new GTAOPass(scene, camAO, innerWidth, innerHeight); ao.updateGtaoMaterial({ radius: 1, distanceExponent: 1.5, thickness: 1.5, scale: 1.4 }); ao.blendIntensity = 1;
+  COMPO.addPass(ao); COMPO.addPass(new OutputPass());
+  const rendre = COMPO.render.bind(COMPO);
+  // les noms et panneaux (sprites, calque 31) sont dessinés après, par-dessus, sans l'occlusion (sinon l'ombre des arbres derrière
+  // se voyait à travers) : d'abord la profondeur des objets pleins, puis eux. Les ombres du soleil ne sont calculées qu'une fois par image.
+  const PROFONDEUR = new THREE.MeshBasicMaterial({ colorWrite: false });
+  COMPO.render = () => { camAO.position.copy(camera.position); camAO.quaternion.copy(camera.quaternion); camAO.near = camera.near; camAO.far = camera.far;
+    camAO.projectionMatrix.copy(camera.projectionMatrix); camAO.projectionMatrixInverse.copy(camera.projectionMatrixInverse); camAO.updateMatrixWorld();
+    renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true; rendre();
+    renderer.autoClear = false; renderer.clearDepth(); scene.overrideMaterial = PROFONDEUR; renderer.render(scene, camAO); scene.overrideMaterial = null;
+    camAO.layers.set(31); renderer.render(scene, camAO); camAO.layers.set(2); renderer.autoClear = true; };
+} catch (e) { COMPO = null; }
+function calquesAO() { if (!COMPO) return; scene.traverse(o => { if (o.isSprite) { o.layers.set(31); return; } if (!o.isMesh || o.material?.uniforms?.mirrorSampler) return; /* (le lac à reflets : pas dans l'occlusion) */ const ms = [].concat(o.material); if (ms.every(m => m && m.visible !== false && (!m.transparent || m.opacity >= .99) && !m.alphaTest && !m.alphaMap)) o.layers.enable(2); /* (feuillages découpés : non, leur forme serait un carré plein) */ }); } // (panneaux opaques compris ; verre et eau : non)
+function resize() { const h = Math.max(innerHeight, $("game").clientHeight); renderer.setSize(innerWidth, h); if (COMPO) COMPO.setSize(innerWidth, h); camera.aspect = innerWidth / h; camera.updateProjectionMatrix(); } // toute la hauteur de l'écran (pas de bande en bas)
 addEventListener("resize", resize); resize();
 
 // Ciel réaliste + lumière
@@ -1053,7 +1076,7 @@ scene.fog = new THREE.Fog(0xc2d8e6, 90, 290);
 const hemi = new THREE.HemisphereLight(0xd6eaff, 0x5f7f3e, 0.7); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff0d6, 3.0);
 sun.castShadow = true;
-sun.shadow.mapSize.setScalar(LOWQ ? 1024 : 2048);
+sun.shadow.mapSize.setScalar(LOWQ ? 1024 : ULTRA ? 4096 : 2048);
 // ombres : une boîte serrée autour du joueur (le soleil est à 120 m) ; seuls les objets de cette boîte sont redessinés pour l'ombre
 const OMB = LOWQ ? 30 : 40;
 Object.assign(sun.shadow.camera, { left: -OMB, right: OMB, top: OMB, bottom: -OMB, near: 60, far: 180 });
@@ -1080,7 +1103,7 @@ function tex(size, draw, rx = 1, ry = rx) {
   const c = document.createElement("canvas"); c.width = c.height = size;
   draw(c.getContext("2d", { willReadFrequently: true }), size); // dessin en mémoire : plus rapide pour des milliers de petits traits, et relu sans attendre la carte graphique
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); t.repeat.set(rx, ry); return t;
+  t.anisotropy = Math.min(ULTRA ? 16 : 8, renderer.capabilities.getMaxAnisotropy()); t.repeat.set(rx, ry); return t;
 }
 // UV d'une boîte en unités du monde (pour que les textures ne soient pas étirées)
 // relief : carte de normales tirée de la luminosité d'une texture peinte
@@ -1191,7 +1214,7 @@ function label(text, bg = "#fffdf4", fg = "#1d3b2a", scale = 1) {
   x.fillStyle = bg; x.beginPath(); x.roundRect((W - w) / 2, 14, w, 100, 40); x.fill();
   x.fillStyle = fg; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(text, W / 2, 68, w - 50);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false, toneMapped: false })); s.scale.set(4 * scale * W / 512, scale, 1); return s;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false, toneMapped: false })); s.scale.set(4 * scale * W / 512, scale, 1); if (ULTRA) s.layers.set(31); return s;
 }
 
 /* ================= Maillots de bain ================= */
@@ -6302,7 +6325,7 @@ const M_materiaux = (() => {
 const { INDEX_OS } = M_squelette;
 
 const PART = o => { o.userData.partage = true; return o; };
-const ANISO = LOWQ ? 2 : 8;
+const ANISO = LOWQ ? 2 : ULTRA ? 16 : 8;
 const lin = c => new THREE.Color(c); // couleur du jeu (sRGB) → linéaire
 const fus = (a, b) => { const r = { ...a }; for (const k in b) if (b[k] !== undefined) r[k] = b[k]; return r; }; // options : les « undefined » ne comptent pas
 
@@ -6524,7 +6547,7 @@ const F_PEAU_GRAIN = `#ifdef P_GRAIN
 // réglages par défaut de la peau (exportés pour les essais)
 const PEAU = { rough: .56, w: [.46, .23, .15], pen: [.6, 1, 1.2], spec: .6, chaud: .9, rouge: [1, .88, .86], forceRouge: .5, grain: 55, relief: .00011 };
 function matPeau(color = 0xf1c6a0, opts = {}) {
-  const P = fus(PEAU, opts), grain = !!opts.grain && !LOWQ && P.relief > 0; // grain : seulement sur demande (style lisse, façon Mii)
+  const P = fus(PEAU, opts), grain = !!(opts.grain ?? ULTRA) && !LOWQ && P.relief > 0; // grain : seulement sur demande (style lisse, façon Mii)
   const m = new THREE.MeshStandardMaterial({ color, roughness: P.rough, map: opts.map || null, ...(opts.extra || {}) });
   retoucher(m, { cle: "pmat-peau-1" + (grain ? "g" : ""), defines: grain ? { P_GRAIN: "" } : null, style: style(opts),
     unif: { uPW: { value: new THREE.Vector3(...P.w) }, uPPen: { value: new THREE.Vector3(...P.pen) }, uPReg: { value: new THREE.Vector4(P.spec, P.chaud, P.forceRouge, 0) },
@@ -6571,7 +6594,7 @@ const F_TISSU_MAPS = `#ifdef USE_NORMALMAP_TANGENTSPACE
 diffuseColor.rgb = max( mix( vec3( pLum( diffuseColor.rgb ) ), diffuseColor.rgb, uTLum.w ), 0. );`;
 function matTissu(color = 0xffffff, opts = {}) {
   const sorte = TISSUS[opts.sorte] ? opts.sorte : "coton", P = fus(TISSUS[sorte], opts), e = typeof P.echelle === "number" ? [P.echelle, P.echelle] : P.echelle || [1, 1];
-  const fin = typeof opts.bump === "number" ? P.fin * opts.bump : P.fin, detail = !!opts.detail && !LOWQ;
+  const fin = typeof opts.bump === "number" ? P.fin * opts.bump : P.fin, detail = !!(opts.detail ?? ULTRA) && !LOWQ;
   const m = new THREE.MeshStandardMaterial({ color, roughness: P.rough, metalness: P.metal ?? 0, map: opts.map || null, normalMap: detail ? texTissu(P.tex || sorte) : null, normalScale: new THREE.Vector2(fin, fin), ...(opts.extra || {}) });
   const fil = lin(sorte === "jean" ? 0xd9dde4 : 0xffffff);
   retoucher(m, { cle: "pmat-tissu-1", style: style(opts, { lift: .85, rim: .85 }),
@@ -7809,7 +7832,7 @@ function corpsLeger(cle, geo, pieces, meta) {
 // ---- le personnage
 const ZONE_PERSO = new THREE.Sphere(new THREE.Vector3(0, 1.1, 0), 1.9);
 function personBrut(o) {
-  const type = typeDe(o), lite = !!o.lite, qualite = lite ? "leger" : "plein", { geo, meta } = construireCorps(type, qualite, "chausse"), { os, skeleton } = squelette(type);
+  const type = typeDe(o), lite = !!o.lite && !ULTRA, qualite = lite ? "leger" : "plein", { geo, meta } = construireCorps(type, qualite, "chausse"), { os, skeleton } = squelette(type);
   const g = new THREE.Group(); g.add(os.corps);
   const R = mulberry(o.seed ?? Math.floor(rnd() * 1e6)), skin = o.skin ?? 0xf1c6a0, hair = o.hair ?? 0x5a3a22, U = uniformesHabits(meta);
   U.uHYeux.value.setHex(o.eyes ?? 0x6b4424).multiplyScalar(.8); U.uHSourcil.value.setHex(hair).multiplyScalar(.8);
@@ -8946,7 +8969,7 @@ function bulle(text) {
   x.fillStyle = "#1d3b2a"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(text, 512, 78, w - 60);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false, depthTest: false, toneMapped: false })); sp.scale.set(5.6, 5.6 * 200 / 1024, 1); sp.renderOrder = 10;
-  sp.position.y = 3.75; return sp;
+  sp.position.y = 3.75; if (ULTRA) sp.layers.set(31); return sp;
 }
 function poserBulle(o, g, text) {
   if (o.bub) { g.remove(o.bub); o.bub.material.map.dispose(); o.bub.material.dispose(); }
@@ -9670,7 +9693,8 @@ for (const [id, k] of [["volGen", "gen"], ["volMus", "mus"], ["volFx", "fx"]]) {
   r.addEventListener("change", () => { if (k !== "mus") sfx.click(); }); }
 // les thèmes (pour l'instant : normal ou Halloween)
 // la qualité des images : le jeu redémarre pour la changer (la partie est gardée)
-{ const DIT = { eco: "Fluide : moins de détails et pas d'ombres, pour les tablettes qui rament.", auto: "Auto : le jeu choisit selon l'appareil.", belle: "Belle : plus d'herbe, d'arbres et de reflets, des ombres douces. Pour un ordinateur ou un iPad récent." };
+{ const DIT = { eco: "Fluide : moins de détails et pas d'ombres, pour les tablettes qui rament.", auto: "Auto : le jeu choisit selon l'appareil.", belle: "Belle : plus d'herbe, d'arbres et de reflets, des ombres douces. Pour un ordinateur ou un iPad récent.",
+    ultra: "Ultra : ombres dans les coins, relief sur tous les murs, personnages très détaillés. Pour un ordinateur puissant." };
   document.querySelectorAll("[data-qual]").forEach(b => { b.setAttribute("aria-pressed", b.dataset.qual === QUAL ? "true" : "false");
     b.onclick = () => { sfx.click(); const q = b.dataset.qual; if (q === QUAL) return;
       demander("Changer la qualité des images ?", "Le jeu va redémarrer. Ta partie est gardée.", "Oui, redémarrer", () => { try { LS_VRAI.setItem("pins-qualite", q); } catch (e) {} sauverPartie(false); chargementEnCours = true; location.reload(); }); }; });
@@ -9881,6 +9905,9 @@ const clock = new THREE.Clock(); let walkT = 0, time = 0, stepAcc = 0, lastWhere
 let camDedans = -9; // dernier moment où la caméra était dans un bâtiment
 const tv = new THREE.Vector3(), camO = new THREE.Vector3(), camDir = new THREE.Vector3(), prev = { x: 0, z: 0 };
 player.position.set(SPAWN.x, 0, SPAWN.z);
+// Ultra : toutes les images peintes des bâtiments (murs, sols, toits, bois…) reçoivent aussi leur relief
+if (ULTRA) { const vues = new Set(); scene.traverse(o => { if (!o.isMesh || o.isSkinnedMesh) return; for (const m of [].concat(o.material)) { const im = m && m.isMeshStandardMaterial && !m.transparent && !m.normalMap && m.map && m.map.image;
+  if (im && im instanceof HTMLCanvasElement && im.width >= 64 && !NMAP.has(im) && !vues.has(im)) { vues.add(im); try { withRelief(m.map, 2.5); } catch (e) {} } } }); }
 applyRelief();
 function setBtn(el, txt) { if (txt) { if (el.dataset.t !== txt) { el.dataset.t = txt; el.textContent = txt; } el.hidden = false; } else el.hidden = true; } // on compare au texte d'origine (l'émoticône devient une icône à l'écran)
 function inPoolRect(x, z, m = .35) { return x > POOL.x1 + m && x < POOL.x2 - m && z > POOL.z1 + m && z < POOL.z2 - m || x > PPOOL.x1 + m && x < PPOOL.x2 - m && z > PPOOL.z1 + m && z < PPOOL.z2 - m; }
@@ -10504,12 +10531,13 @@ function loop() {
     camera.setViewOffset(W, Hh, W / 2 - cxv, Hh / 2 - cyv, W, Hh); myLbl.visible = false;
   } else if (camera.view?.enabled) { camera.clearViewOffset(); myLbl.visible = true; }
   document.body.classList.toggle("crea-on", creaOn);
-  voituresTick(dt); trier(dt); suivreFeux(dt); majInterieurs(); if (!paused) majObjectif(dt); if (dejaVu) adapterResolution();
-  suivreVitres(); gel(); renderer.render(scene, camera); dejaVu = true; majPerf();
+  voituresTick(dt); trier(dt); suivreFeux(dt); majInterieurs(); if (!paused) majObjectif(dt); if (dejaVu && !ULTRA) adapterResolution(); // (Ultra : netteté fixe)
+  suivreVitres(); gel(); if (COMPO) COMPO.render(); else renderer.render(scene, camera); dejaVu = true; majPerf();
 }
 window.__pins = { ouvrirCrea, openBook, lvTourner, toast, MANOR, get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; }, get pitch() { return pitch; }, get camDedans() { return camDedans; } };
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
 // (jusqu'à 6 s sur iPad) : la barre continue d'avancer doucement et les messages changent, pour qu'on voie que ça avance
+calquesAO(); // (après les regroupements d'objets du chargement : les groupes faits à la fin comptent aussi)
 await souffle(96, "Les maîtres-nageurs arrivent…");
 const compiler = () => Promise.race([renderer.compileAsync(scene, camera), new Promise(r => setTimeout(r, 6000))]).catch(() => {});
 { let pc = 96, n = 0; const MOTS = ["Les maîtres-nageurs arrivent…", "On gonfle les ballons…", "Le soleil se lève sur le domaine…", "On ouvre les portes…"];
@@ -10543,7 +10571,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.30-5"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.10.30-6"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
