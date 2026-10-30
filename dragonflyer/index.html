@@ -240,6 +240,8 @@ input,textarea,select{font-size:max(16px,1em)}
   .bt { position: absolute; pointer-events: auto; width: 90px; height: 90px; font-size: 38px; }
   #btFeu { right: max(20px, env(safe-area-inset-right)); bottom: max(26px, env(safe-area-inset-bottom)); }
   #btAiles { right: max(124px, calc(env(safe-area-inset-right) + 104px)); bottom: max(44px, calc(env(safe-area-inset-bottom) + 18px)); width: 76px; height: 76px; font-size: 32px; }
+  #btEntrer { right: max(20px, env(safe-area-inset-right)); bottom: max(138px, calc(env(safe-area-inset-bottom) + 122px)); width: 72px; height: 72px; }
+  #fondu { position: fixed; inset: 0; z-index: 9; background: #000; opacity: 0; pointer-events: none; transition: opacity .35s; } #fondu.noir { opacity: 1; }
   #btPoser { right: max(20px, env(safe-area-inset-right)); bottom: max(138px, calc(env(safe-area-inset-bottom) + 122px)); width: 72px; height: 72px; font-size: 30px; }
   #indice { position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 6; pointer-events: none; font: 700 16px var(--tete); }
   .bt.appui { transform: translateY(3px); filter: brightness(1.25); }
@@ -378,8 +380,10 @@ input,textarea,select{font-size:max(16px,1em)}
   <button class="bt bouclier" id="btAiles" aria-label="Flap"><span><svg class="ico"><use href="#i-aile"/></svg></span></button>
   <button class="bt bouclier" id="btFeu" aria-label="Fire"><span><svg class="ico"><use href="#i-feu"/></svg></span></button>
   <button class="bt bouclier" id="btPoser" aria-label="Land" hidden><span><svg class="ico"><use href="#i-atterrir"/></svg></span></button>
+  <button class="bt bouclier" id="btEntrer" aria-label="Go in" hidden><span><svg class="ico"><use href="#i-maison"/></svg></span></button>
 </div>
 <div id="bulles" aria-live="polite"></div>
+<div id="fondu"></div>
 <div id="indice" class="bandeau" hidden><svg class="ico"><use href="#i-atterrir"/></svg> <b>L</b>&nbsp;to land</div>
 
 <div id="quetes" class="ecran" hidden>
@@ -1314,6 +1318,7 @@ function creerArbres() {
     const pe = pente(px, pz); if (pe > .2) continue;
     const foret = bruitCPU(px, pz, 2300, "a") * .65 + bruitCPU(px, pz, 600, "b") * .35 + humidite(px, pz) * .5;
     if (foret < .66 + h / 900 || r() > .75) continue;
+    if (horsVillage(px, pz)) continue;
     const t = h > 160 || r() < .55 ? 0 : 1, sc = (.75 + r() * .7) * (t ? 1.1 : 1.25);
     const a = { x: px, y: hauteurFine(px, pz) - .3, z: pz, t, sc, sy: sc * (.9 + r() * .3), rot: r() * 6.28, c: new THREE.Color().setHSL(.22 + (r() - .5) * .08, .25 + r() * .25, t ? .38 + r() * .2 : .5 + r() * .25) };
     ARBRES.liste.push(a);
@@ -1365,6 +1370,232 @@ function majArbres() {
   for (const t of [0, 1]) { const im = ARBRES.pres[t]; im.count = n[t]; im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; }
 }
 
+// ------------------------------------------------------------------ kit de village (Blender : blender/dragonflyer/maisons.py → assets/village.glb)
+// M_<maison> (murs, toits…), W_<maison> (vitres qui s'éclairent la nuit), A_moulin (ailes), P_<accessoire>, I_<intérieur>,
+// IL_<intérieur> (ce qui brille dedans). Extras : « pied » (emprise au sol), « porte » (seuil), « interieur ».
+const KIT = {};
+let MAT_VILLAGE, MAT_VITRES, MAT_LUEUR;
+async function chargerKit() {
+  const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+  const gltf = await loader.loadAsync("assets/village.glb");
+  MAT_VILLAGE = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .86 });
+  MAT_VITRES = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .25, metalness: .1, emissive: 0xffb04a, emissiveIntensity: 0 });
+  MAT_LUEUR = new THREE.MeshBasicMaterial({ vertexColors: true });
+  gltf.scene.updateMatrixWorld(true);
+  // la compression range les sommets entre -1 et 1 et met l'échelle dans le nœud : on remet tout en mètres, en flottants
+  const aplatir = (o, decal) => {
+    const g = o.geometry.clone(), p = g.attributes.position, v = new THREE.Vector3(), t = new Float32Array(p.count * 3);
+    for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld); if (decal) v.sub(decal); t[i * 3] = v.x; t[i * 3 + 1] = v.y; t[i * 3 + 2] = v.z; }
+    g.setAttribute("position", new THREE.BufferAttribute(t, 3)); g.computeBoundingSphere(); return g;
+  };
+  gltf.scene.traverse(o => {
+    if (!o.isMesh) return;
+    const u = o.userData || {}, B = (v, d) => Array.isArray(v) ? v : d;
+    const porte = B(u.porte, null), pied = B(u.pied, null), axe = B(u.axe, null);
+    const pivot = axe ? new THREE.Vector3(axe[0], axe[2], -axe[1]) : null;
+    KIT[o.name] = { geo: aplatir(o, pivot), pos: pivot || new THREE.Vector3(), pied: pied && { hx: pied[0] / 2, hz: pied[1] / 2 },
+      porte: porte && new THREE.Vector3(porte[0], porte[2], -porte[1]), interieur: u.interieur || "", taille: B(u.taille, null) };
+  });
+}
+// Les quatre villages : nom, maisons, accessoires
+const STYLES_VILLAGES = [
+  { nom: "Mistholm", maisons: ["longere", "colombage", "colombage", "chaumiere", "colombage", "chaumiere", "forge", "chaumiere", "colombage", "chaumiere", "colombage"],
+    props: { puits: 1, etal: 3, tonneau: 8, caisse: 6, charrette: 1, lanterne: 8 } },
+  { nom: "Saltcliff", maisons: ["pecheur", "pecheur", "pecheur", "pecheur", "pecheur", "pecheur", "pecheur", "pecheur", "chaumiere", "chaumiere"],
+    props: { ponton: 3, tonneau: 8, caisse: 5, lanterne: 5 } },
+  { nom: "Fernhollow", maisons: ["moulin", "chaumiere", "chaumiere", "colombage", "chaumiere", "chaumiere", "colombage", "chaumiere"],
+    props: { foin: 8, cloture: 14, charrette: 2, puits: 1, lanterne: 4 } },
+  { nom: "Stonebrook", maisons: ["longere", "pierre", "pierre", "pierre", "forge", "pierre", "pierre", "pierre", "pierre"],
+    props: { puits: 1, tonneau: 5, caisse: 5, lanterne: 5 } },
+];
+// collisions (rectangles tournés, pour le cavalier à pied), rangées dans une grille de 32 m
+const COLLISIONS = new Map(), PORTES = [], MOULINS = [];
+const cleC = (i, j) => i * 100003 + j;
+function ajouterCollision(c) {
+  const R = Math.hypot(c.hx, c.hz);
+  for (let i = Math.floor((c.x - R) / 32); i <= Math.floor((c.x + R) / 32); i++) for (let j = Math.floor((c.z - R) / 32); j <= Math.floor((c.z + R) / 32); j++) {
+    const k = cleC(i, j); if (!COLLISIONS.has(k)) COLLISIONS.set(k, []); COLLISIONS.get(k).push(c);
+  }
+}
+function dansUnRect(x, z, marge = 0) {
+  const L = COLLISIONS.get(cleC(Math.floor(x / 32), Math.floor(z / 32))); if (!L) return null;
+  for (const c of L) { const dx = x - c.x, dz = z - c.z, cs = Math.cos(c.yaw), sn = Math.sin(c.yaw), lx = dx * cs - dz * sn, lz = dx * sn + dz * cs;
+    if (Math.abs(lx) < c.hx + marge && Math.abs(lz) < c.hz + marge) return c; }
+  return null;
+}
+function pousserHors(p, rayon = .35) {
+  const L = COLLISIONS.get(cleC(Math.floor(p.x / 32), Math.floor(p.z / 32))); if (!L) return;
+  for (const c of L) {
+    const dx = p.x - c.x, dz = p.z - c.z, cs = Math.cos(c.yaw), sn = Math.sin(c.yaw);
+    let lx = dx * cs - dz * sn, lz = dx * sn + dz * cs; const ex = c.hx + rayon, ez = c.hz + rayon;
+    if (Math.abs(lx) >= ex || Math.abs(lz) >= ez) continue;
+    if (ex - Math.abs(lx) < ez - Math.abs(lz)) lx = Math.sign(lx || 1) * ex; else lz = Math.sign(lz || 1) * ez;
+    p.x = c.x + lx * cs + lz * sn; p.z = c.z - lx * sn + lz * cs;
+  }
+}
+// emprise : hauteurs du terrain aux coins et au centre
+function terrainSous(x, z, yaw, hx, hz) {
+  let mn = 1e9, mx = -1e9; const cs = Math.cos(yaw), sn = Math.sin(yaw);
+  for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 0], [0, 1], [0, -1], [1, 0], [-1, 0]]) {
+    const lx = a * hx, lz = b * hz, h = hauteur(x + lx * cs + lz * sn, z - lx * sn + lz * cs); mn = Math.min(mn, h); mx = Math.max(mx, h);
+  }
+  return [mn, mx];
+}
+function batirVillage(v, r) {
+  const nl = Math.hypot(v.mx, v.mz) || 1, mx = v.mx / nl, mz = v.mz / nl, lx = -mz, lz = mx;
+  const C = { x: v.x - mx * 38, z: v.z - mz * 38 }; v.place = C; v.maisons = [];
+  const pris = [];   // rectangles déjà posés (avec marge) pour ne pas se chevaucher
+  const libre = (x, z, yaw, hx, hz, marge = 2.2) => {
+    for (const o of pris) { if (Math.hypot(o.x - x, o.z - z) < Math.hypot(o.hx, o.hz) + Math.hypot(hx, hz) + marge) {
+      // test simple par cercles inscrits puis par coins
+      const cs = Math.cos(yaw), sn = Math.sin(yaw);
+      for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 0]]) { const px = x + a * hx * cs + b * hz * sn, pz = z - a * hx * sn + b * hz * cs;
+        const dx = px - o.x, dz = pz - o.z, c2 = Math.cos(o.yaw), s2 = Math.sin(o.yaw);
+        if (Math.abs(dx * c2 - dz * s2) < o.hx + marge && Math.abs(dx * s2 + dz * c2) < o.hz + marge) return false; }
+      if (Math.hypot(o.x - x, o.z - z) < Math.min(o.hx, o.hz) + Math.min(hx, hz) + marge) return false; } }
+    return Math.hypot(x - C.x, z - C.z) > 9 + Math.max(hx, hz);
+  };
+  const poser = (type, x, z, y, yaw) => {
+    const k = KIT["M_" + type]; const o = { type, x, y, z, yaw, hx: k.pied.hx, hz: k.pied.hz };
+    if (!k.geo.boundingBox) k.geo.computeBoundingBox();
+    pris.push(o); v.maisons.push(o); ajouterCollision({ x, z, yaw, hx: k.pied.hx, hz: k.pied.hz, haut: y + k.geo.boundingBox.max.y });
+    if (k.porte && k.interieur) { const cs = Math.cos(yaw), sn = Math.sin(yaw), p = k.porte;
+      PORTES.push({ x: x + p.x * cs + p.z * sn, z: z - p.x * sn + p.z * cs, y: y + p.y, yaw, interieur: k.interieur, maison: o }); }
+    if (type === "moulin") MOULINS.push(o);
+    return o;
+  };
+  for (const type of v.style.maisons) {
+    const k = KIT["M_" + type]; if (!k) continue; let fait = false;
+    for (let essai = 0; essai < 140 && !fait; essai++) {
+      if (type === "pecheur") {   // sur pilotis, le long du rivage, porte vers la terre
+        const along = (r() - .5) * 150, out = -6 + r() * 26, x = v.x + lx * along + mx * out, z = v.z + lz * along + mz * out, h = hauteur(x, z);
+        if (h < -2.6 || h > .6) continue;
+        const yaw = Math.atan2(-mx, -mz) + (r() - .5) * .3; if (!libre(x, z, yaw, k.pied.hx, k.pied.hz, 3)) continue;
+        poser(type, x, z, .2, yaw); fait = true;
+      } else {
+        const a = r() * Math.PI * 2, d = 14 + essai * .45 + r() * 10, x = C.x + Math.cos(a) * d, z = C.z + Math.sin(a) * d;
+        const yaw = Math.atan2(C.x - x, C.z - z) + (r() - .5) * .25;
+        const [mn, mxh] = terrainSous(x, z, yaw, k.pied.hx, k.pied.hz);
+        if (mn < 1.2 || mxh - mn > (type === "pecheur" ? 1.1 : 2.4) || mxh > 90) continue;   // le soubassement de pierre descend de 2,8 m
+        if (!libre(x, z, yaw, k.pied.hx, k.pied.hz)) continue;
+        poser(type, x, z, mxh - .12, yaw); fait = true;
+      }
+    }
+  }
+  // accessoires autour de la place
+  v.props = [];
+  for (const [nom, n] of Object.entries(v.style.props)) {
+    const k = KIT["P_" + nom]; if (!k) continue;
+    for (let i = 0; i < n; i++) for (let essai = 0; essai < 60; essai++) {
+      let x, z, yaw;
+      if (nom === "puits" && i === 0) { x = C.x; z = C.z; yaw = r() * 6.28; }
+      else if (nom === "ponton") { const along = (r() - .5) * 120, x0 = v.x + lx * along, z0 = v.z + lz * along; if (hauteur(x0, z0) > 1.2 || hauteur(x0, z0) < -.8) continue; x = x0; z = z0; yaw = Math.atan2(-mx, -mz); }
+      else if (nom === "etal") { const a = r() * 6.28; x = C.x + Math.cos(a) * 7.5; z = C.z + Math.sin(a) * 7.5; yaw = Math.atan2(C.x - x, C.z - z); }
+      else if (nom === "cloture" || nom === "foin") { const a = r() * 6.28, d = 30 + r() * 45; x = C.x + Math.cos(a) * d; z = C.z + Math.sin(a) * d; yaw = nom === "cloture" ? a + Math.PI / 2 : r() * 6.28; }
+      else { const o = v.maisons[(r() * v.maisons.length) | 0], a = r() * 6.28, d = 3 + r() * 5; if (!o) break; x = o.x + Math.cos(a) * (Math.max(o.hx, o.hz) + d); z = o.z + Math.sin(a) * (Math.max(o.hx, o.hz) + d); yaw = r() * 6.28; }
+      const h = hauteur(x, z); if (nom !== "ponton" && (h < 1 || pente(x, z) > .35)) continue;
+      const hx = k.pied ? k.pied.hx : .3, hz = k.pied ? k.pied.hz : .3;
+      if (nom !== "ponton" && nom !== "puits" && !libreProp(x, z)) continue;
+      const y = nom === "ponton" ? 0 : terrainSous(x, z, yaw, hx, hz)[0] - .05;
+      v.props.push({ nom, x, y, z, yaw }); if (k.pied && nom !== "ponton") ajouterCollision({ x, z, yaw, hx, hz });
+      break;
+    }
+  }
+  function libreProp(x, z) { for (const o of pris) { const dx = x - o.x, dz = z - o.z, cs = Math.cos(o.yaw), sn = Math.sin(o.yaw); if (Math.abs(dx * cs - dz * sn) < o.hx + 1.2 && Math.abs(dx * sn + dz * cs) < o.hz + 1.2) return false; }
+    for (const p of v.props) if (Math.hypot(p.x - x, p.z - z) < 1.6) return false; return true; }
+  v.rayon = 30 + Math.max(0, ...v.maisons.map(o => Math.hypot(o.x - C.x, o.z - C.z)));
+  // les maillages : un InstancedMesh par type et par village (le village entier disparaît quand il est loin)
+  v.groupe = new THREE.Group(); scene.add(v.groupe);
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), un = new THREE.Vector3(1, 1, 1), p = new THREE.Vector3(), Y = new THREE.Vector3(0, 1, 0);
+  const instancier = (geo, mat, liste, ombre = true) => {
+    if (!geo || !liste.length) return;
+    const im = new THREE.InstancedMesh(geo, mat, liste.length);
+    liste.forEach((o, i) => { m4.compose(p.set(o.x, o.y, o.z), q.setFromAxisAngle(Y, o.yaw), un); im.setMatrixAt(i, m4); });
+    im.castShadow = ombre; im.receiveShadow = true; im.computeBoundingSphere(); v.groupe.add(im);
+  };
+  const types = [...new Set(v.maisons.map(o => o.type))];
+  for (const t of types) { const L = v.maisons.filter(o => o.type === t); instancier(KIT["M_" + t]?.geo, MAT_VILLAGE, L); instancier(KIT["W_" + t]?.geo, MAT_VITRES, L, false); }
+  for (const nom of Object.keys(v.style.props)) instancier(KIT["P_" + nom]?.geo, MAT_VILLAGE, v.props.filter(o => o.nom === nom));
+  for (const o of v.maisons.filter(o => o.type === "moulin")) {   // ailes du moulin, qui tournent
+    const k = KIT.A_moulin; if (!k) continue; const pivot = new THREE.Group(); pivot.position.set(o.x, o.y, o.z); pivot.rotation.y = o.yaw;
+    const ailes = new THREE.Mesh(k.geo, MAT_VILLAGE); ailes.position.copy(k.pos); ailes.castShadow = true; pivot.add(ailes); v.groupe.add(pivot); o.ailes = ailes;
+  }
+}
+// pas d'arbre sur la place ni contre une maison
+function horsVillage(x, z) {
+  for (const v of VILLAGES) if (v.place && Math.hypot(x - v.place.x, z - v.place.z) < v.rayon) {
+    if (Math.hypot(x - v.place.x, z - v.place.z) < 22) return true;
+    for (const o of v.maisons) if (Math.hypot(x - o.x, z - o.z) < Math.max(o.hx, o.hz) + 6) return true;
+  }
+  return false;
+}
+function majVillages(dt, cx, cz) {
+  for (const v of VILLAGES) if (v.groupe) v.groupe.visible = Math.hypot(v.place.x - cx, v.place.z - cz) < Q.dist * .75;
+  for (const o of MOULINS) if (o.ailes) o.ailes.rotation.z += dt * .5;
+}
+
+// ------------------------------------------------------------------ portes et intérieurs
+// Chaque intérieur est une pièce fermée posée sous le monde (rien ne la montre de l'extérieur).
+// On entre par une porte (E, ou le bouton porte), fondu au noir, et on ressort en marchant jusqu'à la porte.
+const INTERIEURS = {};
+let dedans = null, portePres = null, fondu = 0;
+function creerInterieurs() {
+  let x = 0;
+  for (const nom of ["maison", "halle"]) {
+    const k = KIT["I_" + nom]; if (!k) continue;
+    const g = new THREE.Group(); g.position.set(x, -800, 0); x += 60;
+    const m = new THREE.Mesh(k.geo, MAT_VILLAGE); m.castShadow = m.receiveShadow = true; g.add(m);
+    const kl = KIT["IL_" + nom]; if (kl) g.add(new THREE.Mesh(kl.geo, MAT_LUEUR));
+    g.visible = false; scene.add(g);
+    const [l, p, h] = k.taille || [7, 6, 3];
+    INTERIEURS[nom] = { g, l, p, h, porte: k.porte, foyer: nom === "maison" ? new THREE.Vector3(0, .6, -(p / 2 - .7)) : new THREE.Vector3(0, .6, 0) };
+  }
+}
+function fonduNoir(puis) {
+  const f = $("fondu"); f.classList.add("noir"); fondu = 1;
+  setTimeout(() => { puis(); setTimeout(() => { f.classList.remove("noir"); fondu = 0; }, 120); }, 380);
+}
+function entrer(pt) {
+  const I = INTERIEURS[pt.interieur]; if (!I || dedans) return;
+  son.clic(); sauverProgression();
+  fonduNoir(() => {
+    dedans = { I, porte: pt };
+    I.g.visible = true;
+    const o = I.g.position; marche.pos.set(o.x + I.porte.x, o.y, o.z + I.porte.z - .2); marche.yaw = Math.PI; marche.camYaw = Math.PI; marche.camTangage = .3; marche.vitesse = 0;
+    camera.position.set(marche.pos.x, marche.pos.y + 2.2, marche.pos.z + 2.5);
+    lumiereFeu.position.copy(o).add(I.foyer);
+  });
+}
+function sortir() {
+  if (!dedans) return; const pt = dedans.porte, I = dedans.I;
+  son.clic();
+  fonduNoir(() => {
+    dedans = null; I.g.visible = false; lumiereFeu.intensity = 0;
+    marche.pos.set(pt.x + Math.sin(pt.yaw) * 1.6, pt.y, pt.z + Math.cos(pt.yaw) * 1.6); marche.yaw = pt.yaw; marche.camYaw = pt.yaw; marche.vitesse = 0;
+    camera.position.set(marche.pos.x - Math.sin(pt.yaw) * 5, marche.pos.y + 2.5, marche.pos.z - Math.cos(pt.yaw) * 5);
+  });
+}
+function majPortes(dt) {
+  portePres = null;
+  if (etat.sol === "pied" && !dedans && !fondu) {
+    let best = 2.2;
+    for (const pt of PORTES) { const d = Math.hypot(pt.x - marche.pos.x, pt.z - marche.pos.z); if (d < best && Math.abs(pt.y - marche.pos.y) < 2.5) { best = d; portePres = pt; } }
+  }
+  if (dedans) {   // le foyer vacille ; on sort en marchant jusqu'à la porte
+    lumiereFeu.intensity = 35 * (.85 + .3 * Math.random());
+    const o = dedans.I.g.position, p = dedans.I.porte;
+    if (!fondu && Math.hypot(marche.pos.x - (o.x + p.x), marche.pos.z - (o.z + p.z - .45)) < .55 && Math.cos(marche.yaw) < -.3 && marche.vitesse > .5) sortir();
+  }
+  $("btEntrer").hidden = !TACTILE || !portePres;
+  if (!TACTILE && etat.sol === "pied") { $("indice").hidden = !portePres; if (portePres) $("indice").innerHTML = `${ico("maison")} <b>E</b>&nbsp;to go in`; }
+}
+const solPied = (x, z) => dedans ? dedans.I.g.position.y : hauteurFine(x, z);
+function garderDansPiece(p, marge = .45) {
+  const I = dedans.I, o = I.g.position;
+  p.x = Math.max(o.x - I.l / 2 + marge, Math.min(o.x + I.l / 2 - marge, p.x));
+  p.z = Math.max(o.z - I.p / 2 + marge, Math.min(o.z + I.p / 2 - marge, p.z));
+}
+
 // ------------------------------------------------------------------ villages de pêcheurs (maisons rouges sur pilotis), phare, bateaux
 const BATEAUX = [];
 let phare = null, VILLAGES = [];
@@ -1384,52 +1615,22 @@ function sitesCotiers() {
 function creerVillages() {
   const sites = sitesCotiers(), choisis = [];
   for (const s of sites) { if (choisis.length >= 4) break; if (choisis.every(c => Math.hypot(c.x - s.x, c.z - s.z) > 1300)) choisis.push(s); }
-  const murs = [], toits = [], pilotis = [], r = alea(12);
-  const COULEURS = [0x8e1b17, 0x8e1b17, 0x9c2a1c, 0xc98a2a, 0xe6dfcf, 0x8e1b17];
-  for (const v of choisis) {
-    const nl = Math.hypot(v.mx, v.mz) || 1, mx = v.mx / nl, mz = v.mz / nl, lx = -mz, lz = mx, yaw = Math.atan2(mx, mz);
-    for (let i = -6; i <= 6; i++) {
-      for (let rang = 0; rang < 2; rang++) {
-        if (r() < .25) continue;
-        const along = i * 13 + (r() - .5) * 4, out = rang === 0 ? 4 + r() * 6 : -14 - r() * 10;
-        const x = v.x + lx * along + mx * out, z = v.z + lz * along + mz * out, h = hauteur(x, z);
-        if (h < -6 || h > 14) continue;
-        const sol0 = Math.max(h, 0) + (h < 1 ? 1.4 : 0);
-        const w = 6 + r() * 2.5, d = 8 + r() * 3, hm = 3.6 + r() * 1.4;
-        murs.push({ x, y: sol0, z, w, d, h: hm, yaw, c: COULEURS[(r() * COULEURS.length) | 0] });
-        toits.push({ x, y: sol0 + hm, z, w: w * 1.08, d: d * 1.05, h: w * .38, yaw, c: r() < .7 ? 0x2a2a2a : 0x3d5a2a });
-        if (h < 1.5) for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
-          const px = x + Math.cos(yaw) * a * w * .45 + Math.sin(yaw) * b * d * .45, pz = z - Math.sin(yaw) * a * w * .45 + Math.cos(yaw) * b * d * .45;
-          pilotis.push({ x: px, z: pz, y0: Math.min(h, -1) - 2, y1: sol0 });
-        }
-      }
-    }
-    // bateaux devant le village
+  const r = alea(12);
+  choisis.forEach((v, i) => { v.style = STYLES_VILLAGES[i % STYLES_VILLAGES.length]; v.nom = v.style.nom; batirVillage(v, r); });
+  for (const v of choisis) {   // bateaux devant le village
+    const nl = Math.hypot(v.mx, v.mz) || 1, mx = v.mx / nl, mz = v.mz / nl, lx = -mz, lz = mx;
     for (let k = 0; k < 3; k++) {
       const x = v.x + mx * (45 + r() * 40) + lx * (r() - .5) * 120, z = v.z + mz * (45 + r() * 40) + lz * (r() - .5) * 120;
       if (hauteur(x, z) < -1.5) BATEAUX.push({ x, z, yaw: r() * 6.28, ph: r() * 6.28, c: [0xe8e2d6, 0x2a5aa8, 0xc8302a][k] });
     }
   }
-  // maisons : murs (boîte) + toit à deux pentes (prisme)
-  const boite = new THREE.BoxGeometry(1, 1, 1).translate(0, .5, 0);
-  const prisme = new THREE.BufferGeometry();
-  prisme.setAttribute("position", new THREE.Float32BufferAttribute([-.5, 0, -.5, .5, 0, -.5, 0, 1, -.5, -.5, 0, .5, .5, 0, .5, 0, 1, .5], 3));
-  prisme.setIndex([0, 2, 1, 3, 4, 5, 0, 3, 5, 0, 5, 2, 1, 2, 5, 1, 5, 4, 0, 1, 4, 0, 4, 3]);
-  const prismeNI = prisme.toNonIndexed(); prismeNI.computeVertexNormals();
+  const up = new THREE.Vector3(0, 1, 0);
   const placer = (geo, liste, mat, f) => {
     const im = new THREE.InstancedMesh(geo, mat, Math.max(1, liste.length)); im.count = liste.length;
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), c = new THREE.Color();
     liste.forEach((o, i) => { f(o, p, q, s); m4.compose(p, q, s); im.setMatrixAt(i, m4); if (o.c != null) im.setColorAt(i, c.setHex(o.c)); });
     im.castShadow = true; im.receiveShadow = true; im.computeBoundingSphere(); im.matrixAutoUpdate = false; scene.add(im); return im;
   };
-  const up = new THREE.Vector3(0, 1, 0);
-  placer(boite, murs, new THREE.MeshStandardMaterial({ roughness: .8 }), (o, p, q, s) => { p.set(o.x, o.y, o.z); q.setFromAxisAngle(up, o.yaw); s.set(o.w, o.h, o.d); });
-  placer(prismeNI, toits, new THREE.MeshStandardMaterial({ roughness: .9 }), (o, p, q, s) => { p.set(o.x, o.y, o.z); q.setFromAxisAngle(up, o.yaw); s.set(o.w, o.h, o.d); });
-  placer(boite, pilotis, new THREE.MeshStandardMaterial({ color: 0x3a2a1c, roughness: .95 }), (o, p, q, s) => { p.set(o.x, o.y0, o.z); q.identity(); s.set(.35, o.y1 - o.y0, .35); });
-  // fenêtres blanches : petits panneaux devant les murs
-  const fen = [];
-  for (const o of murs) for (const a of [-.25, .25]) fen.push({ x: o.x + Math.sin(o.yaw) * (o.d / 2 + .05) + Math.cos(o.yaw) * a * o.w, y: o.y + o.h * .45, z: o.z + Math.cos(o.yaw) * (o.d / 2 + .05) - Math.sin(o.yaw) * a * o.w, yaw: o.yaw });
-  placer(new THREE.BoxGeometry(1.1, 1.2, .1), fen, new THREE.MeshStandardMaterial({ color: 0xf2efe6, roughness: .6, emissive: 0x332a18 }), (o, p, q, s) => { p.set(o.x, o.y, o.z); q.setFromAxisAngle(up, o.yaw); s.set(1, 1, 1); });
   // bateaux
   const coque = new THREE.BoxGeometry(2.4, 1.2, 7).translate(0, .3, 0);
   const bateaux = placer(coque, BATEAUX, new THREE.MeshStandardMaterial({ roughness: .6 }), (o, p, q, s) => { p.set(o.x, 0, o.z); q.setFromAxisAngle(up, o.yaw); s.set(1, 1, 1); });
@@ -2134,6 +2335,7 @@ function descendre() {
 }
 function monterOuAppeler() {
   if (etat.sol !== "pied") return;
+  if (dedans) { afficher("Go outside first", "Your dragon is waiting"); return; }
   const d = Math.hypot(marche.pos.x - etat.pos.x, marche.pos.z - etat.pos.z);
   if (d < 9) {   // en selle et on décolle
     pieton.visible = false; if (rider) rider.visible = true;
@@ -2178,11 +2380,12 @@ function majPied(dt) {
     marche.virage += ((marche.yaw - avantYaw) / Math.max(dt, 1e-3) - marche.virage) * (1 - Math.exp(-8 * dt));
   } else marche.virage *= Math.exp(-6 * dt);
   const nx = marche.pos.x + Math.sin(marche.yaw) * marche.vitesse * dt, nz = marche.pos.z + Math.cos(marche.yaw) * marche.vitesse * dt;
-  const hN = hauteurFine(nx, nz), h0 = hauteurFine(marche.pos.x, marche.pos.z);
-  const trop = (hN - h0) / Math.max(.001, marche.vitesse * dt) > 1.25 || hN < -.75;   // trop raide ou eau trop profonde
+  const hN = solPied(nx, nz), h0 = solPied(marche.pos.x, marche.pos.z);
+  const trop = !dedans && ((hN - h0) / Math.max(.001, marche.vitesse * dt) > 1.25 || hN < -.75);   // trop raide ou eau trop profonde
   if (!trop) { marche.pos.x = nx; marche.pos.z = nz; } else marche.vitesse *= .5;
+  if (dedans) garderDansPiece(marche.pos); else pousserHors(marche.pos);   // murs des maisons et accessoires
   if ((T.has("Space") || entree.ailes) && marche.auSol) { marche.vy = 7.5; marche.auSol = false; son.clic(); }
-  const hs = Math.max(hauteurFine(marche.pos.x, marche.pos.z), -.75);
+  const hs = dedans ? solPied() : Math.max(hauteurFine(marche.pos.x, marche.pos.z), -.75);
   if (!marche.auSol) { marche.vy -= 22 * dt; marche.pos.y += marche.vy * dt; if (marche.pos.y <= hs) { marche.pos.y = hs; marche.auSol = true; marche.vy = 0; } }
   else marche.pos.y += (hs - marche.pos.y) * Math.min(1, dt * 18);
   if (hs < -.05 && marche.vitesse > 1 && Math.random() < .5) gouttes.emettre(marche.pos.x, .1, marche.pos.z, (Math.random() - .5) * 2, 2 + Math.random() * 2, (Math.random() - .5) * 2, .6, .35);
@@ -2193,11 +2396,18 @@ function majPied(dt) {
   animerPieton(dt);
 }
 function majCameraPied(dt) {
-  const dist = 5.2 * reglCam.recul, y0 = marche.pos.y + 1.3;
+  const dist = (dedans ? 3.4 : 5.2) * reglCam.recul, y0 = marche.pos.y + 1.3;
   camCible.set(marche.pos.x - Math.sin(marche.camYaw) * dist * Math.cos(marche.camTangage), y0 + Math.sin(marche.camTangage) * dist + .6, marche.pos.z - Math.cos(marche.camYaw) * dist * Math.cos(marche.camTangage));
+  if (dedans) {   // la caméra reste dans la pièce
+    garderDansPiece(camCible, .3); const o = dedans.I.g.position; camCible.y = Math.max(o.y + .6, Math.min(o.y + dedans.I.h - .35, camCible.y));
+    camera.position.lerp(camCible, 1 - Math.exp(-10 * dt)); garderDansPiece(camera.position, .25);
+    camera.position.y = Math.max(o.y + .5, Math.min(o.y + dedans.I.h - .3, camera.position.y));
+  } else {
   const hs = hauteurFine(camCible.x, camCible.z); if (camCible.y < hs + .6) camCible.y = hs + .6;
+  const mc = dansUnRect(camCible.x, camCible.z, .3); if (mc && camCible.y < mc.haut) camCible.y = Math.max(camCible.y, mc.haut);   // pas dans les murs
   camera.position.lerp(camCible, 1 - Math.exp(-6 * dt));
   const hc = Math.max(hauteurFine(camera.position.x, camera.position.z), -.5); if (camera.position.y < hc + .5) camera.position.y = hc + .5;
+  }
   camera.lookAt(marche.pos.x, y0 + .3, marche.pos.z);
   camera.fov += (55 - camera.fov) * (1 - Math.exp(-3 * dt)); camera.near = .2; camera.updateProjectionMatrix();
 }
@@ -2458,7 +2668,7 @@ function dessinerCarte() {
   if (HUTTE) LIEUX.push({ ic: "maison", nom: "Home", x: HUTTE.x, y: HUTTE.y + 3, z: HUTTE.z });
   if (NID) LIEUX.push({ ic: "nid", nom: "Nest", x: NID.x, y: NID.y + 4, z: NID.z });
   if (phare) LIEUX.push({ ic: "phare", nom: "Lighthouse", x: phare.position.x, y: phare.position.y + 20, z: phare.position.z });
-  VILLAGES.forEach((v, i) => LIEUX.push({ ic: "village", nom: "Village " + (i + 1), x: v.x, y: 10, z: v.z }));
+  VILLAGES.forEach((v, i) => LIEUX.push({ ic: "village", nom: v.nom || "Village " + (i + 1), x: v.place ? v.place.x : v.x, y: 10, z: v.place ? v.place.z : v.z }));
   FEUX.forEach((f, i) => LIEUX.push({ ic: "pic", nom: "Peak " + (i + 1), x: f.x, y: f.y, z: f.z, petit: true }));
   const boite = $("lieux"); boite.innerHTML = "";
   for (const L of LIEUX) {
@@ -2622,7 +2832,7 @@ function majHud(dt) {
   else if (etat.quete === "anneaux" && prochainAnneau < ANNEAUX.length) { const a = ANNEAUX[prochainAnneau].p; essai(a.x, a.y, a.z, `Ring ${prochainAnneau + 1}`); }
   else if (etat.quete === "feux") { for (const f of FEUX) if (!f.allume) essai(f.x, f.y, f.z, "Beacon"); }
   else if (etat.quete === "peche") { for (const b of BANCS) if (b.attente <= 0) essai(b.x, 0, b.z, "Fish"); }
-  $("boussole").hidden = !cible;
+  $("boussole").hidden = !cible || !!dedans;
   if (!cible) return;
   camera.getWorldDirection(_f);
   const ang = Math.atan2(cible.x - camera.position.x, cible.z - camera.position.z) - Math.atan2(_f.x, _f.z);
@@ -2712,7 +2922,7 @@ addEventListener("keydown", e => {
     else if (e.code === "KeyM") basculerSon();
     else if (e.code === "KeyQ" && !e.ctrlKey && !e.metaKey) ouvrirEcran("quetes");
     else if (e.code === "KeyL" && !etat.sol) sePoser();
-    else if ((e.code === "KeyE" || e.code === "KeyF" || e.code === "Enter") && etat.sol === "pied") monterOuAppeler();
+    else if ((e.code === "KeyE" || e.code === "KeyF" || e.code === "Enter") && etat.sol === "pied") { if (portePres) entrer(portePres); else monterOuAppeler(); }
   } else if (e.code === "Escape") retour();
   else if (etat.mode === "pause" && e.code === "KeyP") fermerEcrans();
   else if (etat.mode === "titre" && e.code === "Enter") jouer();
@@ -2730,6 +2940,7 @@ addEventListener("blur", () => { entree.touches.clear(); entree.ailes = entree.f
   zone.addEventListener("pointerup", fin); zone.addEventListener("pointercancel", fin); zone.addEventListener("lostpointercapture", fin);
   addEventListener("blur", () => fin({ pointerId: id }));
   $("btPoser").addEventListener("pointerdown", e => { e.preventDefault(); sePoser(); });
+  $("btEntrer").addEventListener("pointerdown", e => { e.preventDefault(); if (portePres) entrer(portePres); });
   for (const [bid, cle] of [["btFeu", "feu"], ["btAiles", "ailes"]]) {
     const b = $(bid);
     b.addEventListener("pointerdown", e => { e.preventDefault(); if (cle === "feu" && etat.sol === "pied") { monterOuAppeler(); return; } entree[cle] = true; b.classList.add("appui"); b.setPointerCapture(e.pointerId); });
@@ -2754,7 +2965,6 @@ function majBoutonsJeu() {
   $("btFeu").firstChild.innerHTML = ico(pied ? "dragon" : "feu"); $("btFeu").setAttribute("aria-label", pied ? "Ride the dragon" : "Breathe fire");
   $("btAiles").firstChild.innerHTML = ico(pied ? "saut" : "aile"); $("btAiles").setAttribute("aria-label", pied ? "Jump" : "Flap");
 }
-function ico(n) { return `<svg class="ico"><use href="#i-${n}"/></svg>`; }
 function aideCommandes() {
   const L = TACTILE
     ? [[ico("croix"), "Steer"], [ico("aile"), "Flap"], [ico("feu"), "Fire"], [ico("atterrir"), "Land"], [ico("dragon"), "Ride"]]
@@ -2820,7 +3030,7 @@ function remettreAZero() {
 let sauveT = 10;
 function sauverProgression() {
   if (etat.mode === "titre" || !FEUX.length) return;
-  const p = etat.sol === "pied" ? marche.pos : etat.pos, enVol = !etat.sol;
+  const p = dedans ? dedans.porte : etat.sol === "pied" ? marche.pos : etat.pos, enVol = !etat.sol;
   memoire.ecrire("progression", { pos: [Math.round(p.x), Math.round(enVol ? p.y : Math.max(p.y + 60, hauteur(p.x, p.z) + 80)), Math.round(p.z)],
     yaw: +(etat.sol === "pied" ? marche.yaw : etat.yaw).toFixed(2), feux: FEUX.map((f, i) => f.allume ? i : -1).filter(i => i >= 0),
     poissons: nbPoissons, quete: etat.quete === "anneaux" ? null : etat.quete });
@@ -2892,6 +3102,8 @@ function image(now, dtForce) {
   animerDragon(dt);
   if (etat.sol === "pied" || etat.sol === "appel") majCameraPied(dt); else majCamera(dt, auto);
   if (!auto) { if (!etat.sol) verifierAnneaux(); majHud(dt); majMiniCarte(dt); }
+  majVillages(dt, camera.position.x, camera.position.z); if (etat.sol === "pied" || dedans) majPortes(dt);
+  if (!etat.sol && !auto) { const c = dansUnRect(etat.pos.x, etat.pos.z, 4); if (c && c.haut && etat.pos.y < c.haut + 3) etat.pos.y += (c.haut + 3 - etat.pos.y) * Math.min(1, dt * 8); }   // le dragon passe au-dessus des toits
   majAnneaux(); majFeuxAllumes(dt); majPeche(dt); majHutte(dt); animerBebes(dt); majMouettes();
   if (!auto) { const ok = !etat.sol && peutSePoser(); $("btPoser").hidden = !TACTILE || !ok; $("indice").hidden = TACTILE || !ok; }
   flammes.maj(dt, 2.2, 6, 2.2); fumee.maj(dt, .4, 2, 2.5); gouttes.maj(dt, .5, -14, .5);
@@ -2919,6 +3131,7 @@ function image(now, dtForce) {
   }
 }
 function rendre() { renderer.render(scene, camera); }
+function ico(n) { return `<svg class="ico"><use href="#i-${n}"/></svg>`; }
 
 // ------------------------------------------------------------------ manette Bluetooth en jeu : sticks analogiques
 // Stick gauche : voler / marcher (progressif) ; stick droit : tourner la caméra ; gâchettes : souffler le feu ;
@@ -3286,10 +3499,12 @@ async function demarrer() {
     creerTerrain(); creerMer();
     await progression(.6, "Blowing the clouds…");
     creerNuages(); creerParticules(); creerHerbe();
-    await progression(.7, "Planting the forests…");
+    await progression(.68, "Building the villages…");
+    await chargerKit();
+    VILLAGES = creerVillages(); creerInterieurs();
+    await progression(.76, "Planting the forests…");
     creerArbres();
-    await progression(.78, "Building the villages…");
-    VILLAGES = creerVillages(); creerFeux(); creerAnneaux(); creerNid(); creerHutte(); creerPeche(); creerMouettes(); await creerBebes();
+    creerFeux(); creerAnneaux(); creerNid(); creerHutte(); creerPeche(); creerMouettes(); await creerBebes();
     majBandeau(); dessinerCarte();
     await progression(.85, "Mixing the colours…");
     majVol(.016, true); animerDragon(.016); majCamera(1, true); majTerrain(); trierNuages(); majArbres(); majHerbe();
@@ -3311,7 +3526,7 @@ async function demarrer() {
 window.__df = { camera, renderer, scene, etat, get dragon() { return dragon; }, hauteur, FEUX, ANNEAUX, NIVEAUX, entree, majTerrain, rendre,
   vue(x, y, z, tx, ty, tz) { camera.position.set(x, y, z); camera.lookAt(tx, ty, tz); camera.near = Math.min(camera.near, .1); camera.updateProjectionMatrix(); camera.updateMatrixWorld(); majTerrain(); trierNuages(); majArbres(); mer.position.set(x, 0, z); },
   POSE_SOL, poseTest(p) { if (p) Object.assign(POSE_SOL, p); etat.pose = 1; etat.ampl = 0; etat.pitch = etat.roll = 0; animerDragon(0); },
-  jouer, allumerFeu, sePoser, monterOuAppeler, marche, get NID() { return NID; }, get HUTTE() { return HUTTE; }, BANCS,
+  jouer, allumerFeu, sePoser, monterOuAppeler, marche, get VILLAGES() { return VILLAGES; }, PORTES, entrer, sortir, get dedans() { return dedans; }, get portePres() { return portePres; }, majVillagesTest() { majVillages(0, camera.position.x, camera.position.z); }, get NID() { return NID; }, get HUTTE() { return HUTTE; }, BANCS,
   pas(n = 1, dt = 1 / 30) { sansRendu = true; for (let i = 0; i < n; i++) image(performance.now(), dt); sansRendu = false; image(performance.now(), dt); } };
 demarrer();
 </script>
@@ -3373,7 +3588,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
 })();
 </script>
 <script>
-window.DRAGONFLYER_VERSION = "2026.10.30-8"; // à changer à chaque modification du jeu
+window.DRAGONFLYER_VERSION = "2026.10.30-9"; // à changer à chaque modification du jeu
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
