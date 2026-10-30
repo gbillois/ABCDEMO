@@ -124,6 +124,13 @@ comme le Domaine des Pins (`manifest.webmanifest`, `sw.js`, bouton « Update » 
   penser à dire à l'utilisateur d'appuyer sur « Update ». Si on ajoute un module three.js, l'ajouter à `FICHIERS` de `sw.js`.
 - Pour l'instant, le jeu n'est pas dans le menu des jeux (`index.html`), à la demande du propriétaire.
 
+## Exception : animations des personnages de DragonFlyer
+
+Accord du propriétaire (octobre 2026) : les mouvements du héros et des villageois (`dragonflyer/assets/animations.glb`)
+viennent de la « Universal Animation Library » de Quaternius (CC0, usage commercial libre), transférés sur notre squelette
+par `blender/dragonflyer/animations.py`. Seulement des mouvements calmes ; aucun personnage de la bibliothèque.
+Source et licence dans `dragonflyer/assets/SOURCES.md` (à tenir à jour). Tout le reste reste fait maison.
+
 ## Exception : DragonFlyer à plusieurs et transfert de partie
 
 Accord du propriétaire (octobre 2026) : `dragonflyer/index.html` peut se connecter à son relais WebSocket Cloudflare

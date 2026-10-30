@@ -728,7 +728,7 @@ function fichier(url) {
   if (!PRECHARGE.has(url)) PRECHARGE.set(url, fetch(url).then(r => { if (!r.ok) throw new Error(url + " " + r.status); return r.arrayBuffer(); }));
   return PRECHARGE.get(url);
 }
-for (const u of ["village", "paysages", "caverne", "animaux", ...["fermier", "fermiere", "ancien", "forgeron", "pecheuse", "chef", "runa"].map(m => "villageois_" + m)])
+for (const u of ["animations", "village", "paysages", "caverne", "animaux", ...["fermier", "fermiere", "ancien", "forgeron", "pecheuse", "chef", "runa"].map(m => "villageois_" + m)])
   fichier(`assets/${u}.glb`).catch(() => {});
 // chaque étape du chargement est chronométrée (gardée dans window.__etapes et dans le Perf log)
 const ETAPES_CH = []; let etapeCh = null; window.__etapes = ETAPES_CH;
@@ -2562,12 +2562,66 @@ async function chargerPieton() {
   }
   pieton = new THREE.Group(); pieton.add(pietonModele); pieton.visible = false; scene.add(pieton);
 }
+// ---- animations du héros et des villageois : clips transférés (Blender, blender/dragonflyer/animations.py) depuis la
+// « Universal Animation Library » de Quaternius (CC0). Repos, marche, trot et course sont mélangés selon la vitesse, sur une
+// phase commune (les pieds se posent ensemble) ; saut, réception, coup d'épée (haut du corps) et parler s'y ajoutent.
+// Sans ce fichier, l'animation faite en code (plus bas) prend le relais.
+let ANIMS = null;
+const LOCO = ["repos", "marche", "trot", "course"], DUREE_COUP = .6;
+async function chargerAnimations() {
+  try {
+    const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+    const g = await loader.parseAsync(await fichier("assets/animations.glb"), "");
+    const clips = {}; for (const c of g.animations) clips[c.name] = c;
+    const haut = /^(Spine|Chest|Head|UpperArm|LowerArm|Hand)/;
+    if (clips.epee) clips.epeeHaut = new THREE.AnimationClip("epeeHaut", clips.epee.duration, clips.epee.tracks.filter(t => haut.test(t.name)));
+    let vit = {}; g.scene.traverse(o => { if (o.userData && o.userData.vitesses) vit = o.userData.vitesses; });
+    ANIMS = { clips, vit };
+  } catch (e) { console.warn("animations", e); }
+}
+function animateur(modele) {
+  const mx = new THREE.AnimationMixer(modele), A = {};
+  for (const n of [...LOCO, "saut_air", "saut_fin", "epeeHaut", "parle"]) {
+    const c = ANIMS.clips[n]; if (!c) continue; const a = mx.clipAction(c); a.play(); a.setEffectiveWeight(0); a.timeScale = 0; A[n] = a;
+  }
+  return { mx, A, phase: 0, t: Math.random() * 10, tFin: 9, air: 0, wParle: 0, etaitAir: false };
+}
+const poids = (a, w) => { if (a) a.setEffectiveWeight(w); };
+const temps = (a, t, boucle = true) => { if (a) { const d = a.getClip().duration; a.time = boucle ? t % d : Math.min(d - 1e-3, t); } };
+function animerClips(dt, M, modele) {
+  const X = M.anim || (M.anim = animateur(modele)), A = X.A, V = ANIMS.vit, v = M.vitesse || 0;
+  const w = [1 - lisse(.06, .45, v), lisse(.06, .45, v) * (1 - lisse(1.1, 1.9, v)), lisse(1.1, 1.9, v) * (1 - lisse(3.3, 4.6, v)), lisse(3.3, 4.6, v)];
+  let cad = 0, ws = 0;
+  for (let i = 1; i < 4; i++) { const a = A[LOCO[i]]; if (!a || !w[i]) continue; cad += w[i] * Math.min(1.8, Math.max(.7, v / (V[LOCO[i]] || 1))) / a.getClip().duration; ws += w[i]; }
+  if (ws > 0) X.phase = (X.phase + dt * cad / ws) % 1;
+  for (let i = 1; i < 4; i++) temps(A[LOCO[i]], X.phase * (A[LOCO[i]] ? A[LOCO[i]].getClip().duration : 0));
+  X.t += dt; temps(A.repos, X.t); temps(A.parle, X.t); temps(A.saut_air, X.t);
+  const enAir = M.auSol === false;
+  if (!enAir && X.etaitAir) X.tFin = 0; X.etaitAir = enAir; X.tFin += dt;
+  X.air += ((enAir ? 1 : 0) - X.air) * Math.min(1, dt * 10);
+  X.wParle += ((M.parle ? 1 : 0) - X.wParle) * Math.min(1, dt * 4);
+  const fin = X.tFin < .5 ? 1 - X.tFin / .5 : 0; temps(A.saut_fin, X.tFin * 1.6, false);
+  const base = (1 - X.air) * (1 - fin * .8);
+  poids(A.repos, base * w[0] * (1 - X.wParle)); poids(A.parle, base * w[0] * X.wParle);
+  for (let i = 1; i < 4; i++) poids(A[LOCO[i]], base * w[i]);
+  poids(A.saut_air, X.air); poids(A.saut_fin, (1 - X.air) * fin * .8);
+  if (A.epeeHaut) { const k = M === marche && COUP.t > 0 ? Math.min(1, COUP.t / DUREE_COUP) : -1;   // le coup d'épée prend le haut du corps
+    poids(A.epeeHaut, k >= 0 ? 6 * Math.sin(Math.min(1, k * 1.15) * Math.PI * .5 + (k > .8 ? 0 : 0)) * (1 - lisse(.85, 1, k)) : 0); temps(A.epeeHaut, Math.max(0, k) * A.epeeHaut.getClip().duration, false); }
+  X.mx.update(0);
+}
 // Marche, course, repos et saut sont des couches mélangées (pas de changement de pose brutal).
 // Le cycle avance avec la distance parcourue (les pieds ne glissent pas) ; principes des animateurs :
 // talon qui attaque puis déroulé du pied, bassin qui monte au milieu du pas et bascule, buste qui compense,
 // bras en léger retard (chevauchement), tête stabilisée, inclinaison à l'accélération, réception amortie.
 function animerPieton(dt, O = OSP, M = marche, modele = pietonModele) {
   for (const k in O) { O[k].b.quaternion.copy(O[k].rest); O[k].b.position.copy(O[k].pos); }
+  if (ANIMS) {   // clips + deux touches faites en code : la tête regarde où l'on tourne, le corps se penche dans les virages
+    animerClips(dt, M, modele);
+    const vir = Math.max(-2, Math.min(2, M.virage || 0)), course = lisse(3.4, 6.8, M.vitesse || 0);
+    tournerO(O, "Head", 0, 1, 0, .2 * vir * (M.auSol === false ? 0 : 1));
+    modele.position.y = 0; modele.rotation.z = -vir * (.04 + .08 * course);
+    return;
+  }
   const v = M.vitesse, course = lisse(3.4, 6.8, v), k6 = 1 - Math.exp(-6 * dt);
   if (M.decal === undefined) M.decal = Math.random() * 100;
   M.poids = (M.poids || 0) + (lisse(.05, 1.1, v) - (M.poids || 0)) * k6;
@@ -2712,7 +2766,7 @@ function majPied(dt) {
   if (enDialogue) ax = ay = 0;   // on écoute
   const l = Math.hypot(ax, ay); if (l > 1) { ax /= l; ay /= l; }
   const court = T.has("ShiftLeft") || T.has("ShiftRight") || Math.hypot(entree.joyX + entree.padX, entree.joyY + entree.padY) > .9;
-  const vmax = court ? 7.5 : 3.4, voulu = Math.min(1, Math.hypot(ax, ay)) * vmax;
+  const vmax = court ? 5.2 : 2.7, voulu = Math.min(1, Math.hypot(ax, ay)) * vmax;
   marche.vitesse += (voulu - marche.vitesse) * (1 - Math.exp(-8 * dt));
   if (voulu > .1) {   // on avance dans la direction choisie, vue depuis la caméra (avant = haut, droite = droite)
     const cy = marche.camYaw, dx = Math.sin(cy) * ay - Math.cos(cy) * ax, dz = Math.cos(cy) * ay + Math.sin(cy) * ax;
@@ -3914,7 +3968,7 @@ function majVillageois(dt) {
     pousserHors(p.M.pos, .35);
     p.M.pos.y += (hauteurFine(p.M.pos.x, p.M.pos.z) - p.M.pos.y) * Math.min(1, dt * 10);
     p.g.position.copy(p.M.pos); p.g.rotation.y = p.M.yaw;
-    animerPieton(dt, p.O, p.M, p.modele);
+    p.M.parle = parle; animerPieton(dt, p.O, p.M, p.modele);
     if (pied) { const d = Math.hypot(p.M.pos.x - marche.pos.x, p.M.pos.z - marche.pos.z); if (d < dProche) { dProche = d; proche = p; } }
   }
   villageoisPres = proche;
@@ -4442,8 +4496,8 @@ function majEnnemis(dt) {
   if ((VIE.repos += dt) > 15 && VIE.pv < VIE.max) { VIE.pv++; VIE.repos = 0; }
   if (COUP.t > 0) {
     COUP.t += dt;
-    if (COUP.t > .12 && !COUP.touche) { COUP.touche = true; toucherEnnemis(); }
-    if (COUP.t > .45) COUP.t = 0;
+    if (COUP.t > DUREE_COUP * .42 && !COUP.touche) { COUP.touche = true; toucherEnnemis(); }
+    if (COUP.t > DUREE_COUP) COUP.t = 0;
   }
   // ---- feux follets (dehors, à partir de la première leçon)
   if (follets) {
@@ -4521,12 +4575,20 @@ function toucherEnnemis() {
 }
 const _qH = new THREE.Quaternion(), _qB = new THREE.Quaternion(), _vB = new THREE.Vector3(), _vH = new THREE.Vector3(), _mB = new THREE.Vector3(0, -1, 0), _wsB = new THREE.Vector3();
 function animerCoup() {   // coup d'épée : on arme à droite, on balaie vers la gauche, on revient
-  const k = COUP.t > 0 ? COUP.t / .45 : 0, dos = CAVE && CAVE.epeeDos;
+  const k = COUP.t > 0 ? COUP.t / DUREE_COUP : 0, dos = CAVE && CAVE.epeeDos;
   if (dos) { dos.visible = BRAISES.epee; dos.userData.lame.visible = !k; }   // le fourreau reste, l'épée sort
   if (!epeeMain) return;
   epeeMain.visible = k > 0; if (trainee) { trainee.visible = k > .2 && k < .7; trainee.material.opacity = Math.sin(lisse(.2, .7, k) * Math.PI) * .4; trainee.rotation.z = -1.1 - (k - .2) * 2.2; }
   if (!k) return;
   const arme = lisse(0, .25, k) * (1 - lisse(.75, 1, k)), balai = lisse(.22, .6, k);
+  if (ANIMS) {   // le bras vient du clip : la lame prolonge la ligne épaule → main, un peu relevée
+    pietonModele.updateMatrixWorld(true);
+    const main = epeeMain.parent, epaule = OSP.UpperArmR.b; epaule.getWorldPosition(_vB); main.getWorldPosition(_vH);
+    _vB.subVectors(_vH, _vB).normalize(); _vB.y += .35; _vB.normalize();
+    _qB.setFromUnitVectors(_mB, _vB); main.getWorldQuaternion(_qH); epeeMain.quaternion.copy(_qH.invert().multiply(_qB));
+    _vH.addScaledVector(_vB, -.14); main.worldToLocal(epeeMain.position.copy(_vH)); main.getWorldScale(_wsB); epeeMain.scale.setScalar(.62 / _wsB.x);
+    return;
+  }
   tournerP("UpperArmR", 1, 0, 0, -1.35 * arme); tournerP("UpperArmR", 0, 0, 1, -.5 * arme); tournerP("LowerArmR", 1, 0, 0, -.35 * arme);
   tournerP("Chest", 0, 1, 0, (-.55 + 1.2 * balai) * arme); tournerP("Spine", 0, 1, 0, (-.3 + .6 * balai) * arme); tournerP("Head", 0, 1, 0, (.4 - .8 * balai) * arme);
   // la lame : orientée dans le monde (indépendant des axes de l'os), dans la main
@@ -4668,7 +4730,7 @@ async function demarrer() {
     texturesProcedurales();
     texturesRelief();
     await progression(.35, "Waking the dragon…");
-    await chargerDragon(); await chargerPieton();
+    await chargerDragon(); await chargerPieton(); await chargerAnimations();
     await progression(.5, "Filling the sea…");
     scene.add(creerCiel(false));
     creerLumieres();
@@ -4770,7 +4832,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
 })();
 </script>
 <script>
-window.DRAGONFLYER_VERSION = "2026.10.30-18"; // à changer à chaque modification du jeu
+window.DRAGONFLYER_VERSION = "2026.10.30-19"; // à changer à chaque modification du jeu
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
