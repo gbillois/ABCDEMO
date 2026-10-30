@@ -89,15 +89,26 @@ def forme(d, R):
     if d[2] < 0:
         p[0] *= 1 - .3 * (-d[2]) ** 2
         p[1] -= .1 * R * (-d[2]) * max(0, -d[1])
+    if d[1] < -.5:   # nez sculpté dans le crâne : arête fine, bout un peu retroussé, petites ailes
+        u, w = d[0], d[2]
+        if -.32 < w < .14:
+            t = min(1, max(0, (.12 - w) / .32))                      # 0 en haut de l'arête, 1 au bout
+            haut = min(1, max(0, (.14 - w) / .1))
+            prof = (.22 + .78 * t ** 1.6) * haut if w > -.2 else math.exp(-((w + .2) / .045) ** 2)
+            sx = .055 + .05 * t
+            h = prof * math.exp(-(u / sx) ** 2) + .32 * math.exp(-((abs(u) - .1) / .04) ** 2 - ((w + .235) / .035) ** 2)
+            f = min(1, (-d[1] - .5) / .3)
+            p[1] -= .2 * R * h * f
+            p[2] += .025 * R * h * f * t                                  # bout légèrement relevé
     return p
 
 def tete(piv):
-    """Tête du jeune Viking : crâne (UV de face pour le visage dessiné), oreilles, nez, cheveux auburn en mèches
+    """Tête du jeune Viking : crâne avec le nez sculpté (UV de face pour le visage dessiné), oreilles, cheveux auburn en mèches
     désordonnées, frange de côté, petite tresse. Renvoie (Maillage, uv, nb faces du visage)."""
     H = Maillage(); rng = np.random.default_rng(3)
     R = .148; hc = piv + np.array([0, -.03, .165])
     ez = np.array([0, 0, 1.0]); ey = np.array([0, 1.0, 0])
-    nu, nv = 44, 30; uv = []
+    nu, nv = 110, 76; uv = []          # assez fin pour sculpter le nez
     for j in range(nv + 1):
         th = math.pi * j / nv
         for i in range(nu + 1):
@@ -114,10 +125,6 @@ def tete(piv):
         d = nrm(d); p = forme(d, R); return hc + p + d * lift, d
     for sx in (1, -1):   # oreilles
         po, no = sur((sx, .1, -.02), -.006); H.ellipsoid(po, no * .02, ey * .03, ez * .042, SKIN, 12, 8, "Head")
-    # nez : arête et bout arrondi
-    p0, _ = sur((0, -1, .06), -.006); p1, n1 = sur((0, -1, -.2), .016)
-    H.tube([p0, (p0 + p1) / 2 + n1 * .01, p1], [.014, .017, .019], SKIN, 10, "Head")
-    H.ellipsoid(p1, np.array([.021, 0, 0]), n1 * .017, ez * .017, SKIN, 10, 6, "Head")
     # calotte de cheveux : haut et arrière, front dégagé, tempes plus basses
     o = len(H.V); keep = []; nu2, nv2 = 36, 22
     for j in range(nv2 + 1):
