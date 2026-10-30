@@ -7,13 +7,13 @@ dans `dragonflyer/index.html`, qui reste un seul fichier.
 |---|---|
 | `dragon.py` | Blender 4.2 : dragon (corps lofté, ailes en carreaux de Coons, pattes Skin), squelette, poids, textures d'écailles cuites (couleur, relief, occlusion), cavalier assis → `dragon.glb` |
 | `heros.py` | le jeune Viking (tête, cheveux auburn, mains, tenue, couleurs), partagé par le cavalier et le marcheur |
-| `pieton.py` | Blender 4.2 : le héros debout, avec squelette (marche, course, saut animés dans le jeu) → `pieton.glb` ; avec une variante (`-- sortie/ fermier`, `fermiere`, `ancien`, `forgeron`, `pecheuse`, `chef`) → `villageois_<variante>.glb` (même squelette) |
+| `pieton.py` | Blender 4.2 : le héros debout (galons, bourse, grain du tissu, ombre de contact cuite), avec squelette (marche, course, saut animés dans le jeu) → `pieton.glb` ; avec une variante (`-- sortie/ fermier`, `fermiere`, `ancien`, `forgeron`, `pecheuse`, `chef`) → `villageois_<variante>.glb` (même squelette) |
 | `relief.py` | numpy : îles, modèle « stream power » (FastScape) pour les vallées, érosion par gouttes et thermique → `relief.webp` (hauteur 16 bits + humidité) |
 | `integrer.py` | met les trois fichiers en base64 dans le jeu |
 | `maisons.py` | Blender : kit de village (7 maisons, accessoires, 2 intérieurs meublés), occlusion cuite dans les couleurs → `village.glb` (puis meshopt → `dragonflyer/assets/village.glb`) |
-| `animaux.py` | Blender : mouton, chèvre, poule, cerf, vache ; attribut `_TAG` (pattes, tête) animé dans le jeu → `animaux.glb` |
+| `animaux.py` | Blender : mouton, chèvre, poule, cerf, vache, en corps organiques de metaballs fondues (toison bouclée, encolure, croupe), allégés, coloriés par régions, yeux, cornes, bois et sabots sculptés ; attribut `_TAG` (pattes, tête) animé dans le jeu → `animaux.glb` |
 | `paysages.py` | Blender : rochers, arche et tour en ruine, menhir, épave, barque, bois flotté, chou, fleurs → `paysages.glb` (le blé est en cartes dessinées dans le jeu) |
-| `caverne.py` | Blender : la Caverne des Braises (galerie en trois salles, lave, cristaux, entrée dans la montagne), grille, brasero, flamme, dalle, socle, Épée de Braise, rampant de braise (ennemi) ; lumière de lave cuite dans les couleurs → `caverne.glb` (puis meshopt → `dragonflyer/assets/caverne.glb`) |
+| `caverne.py` | Blender : la Caverne des Braises (galerie en trois salles, lave, cristaux, entrée dans la montagne), grille, brasero, flamme, dalle, socle, Épée de Braise, fourreau et baudrier, rampant de braise (ennemi) ; lumière de lave cuite dans les couleurs → `caverne.glb` (puis meshopt → `dragonflyer/assets/caverne.glb`) |
 | `grimoire_icones.py` | les icônes gravées des menus (SVG) |
 | `grimoire_gravure.py` | Blender : le dragon en vol, ailes levées, en blanc avec traits Freestyle (pour les menus) |
 | `grimoire_encre.py` | transforme ce rendu en gravure à l'encre brune (traits, hachures, lavis) → `ui-gravure.webp` (estompée à 30 %) |

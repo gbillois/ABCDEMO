@@ -265,7 +265,44 @@ def rampant():   # ennemi des cavernes : un scarabée de braise (corps, lueurs, 
     J.cyl((0, 0, 0), (.28, 0, .14), .045, .035, BASALTE, n=5); J.cyl((.28, 0, .14), (.5, 0, -.24), .035, .012, FER2, n=5)
     return ob, lu, J.objet()
 
-objs = [galerie(), murs(), lave(), cristaux(), sortie(), grille(), brasero(), flamme(), dalle(), socle(), *epee(), *entree(), *rampant()]
+def fourreau():   # le fourreau de l'Épée de Braise (même repère que l'épée : garde en 0, lame vers -z) et le baudrier du héros
+    P = Piece("C_fourreau"); CUIR2, CUIR3, BRONZE, BRONZE2 = lin("#4a2c1a"), lin("#6a4428"), lin("#b8863a"), lin("#7a5424")
+    def ovale(z0, z1, r0, r1, col, k=.42, n=14):
+        vs = P.cyl((0, 0, z0), (0, 0, z1), r0, r1, col, n=n)
+        for v in vs: v.co.y *= k
+        return vs
+    zs = list(np.linspace(-.04, -1.0, 13))
+    for a, b in zip(zs, zs[1:]):   # corps de cuir, qui s'affine ; bandes claires et foncées alternées (cuir repoussé)
+        t0, t1 = (-a - .04) / .96, (-b - .04) / .96
+        ovale(a, b, .088 - .03 * t0, .088 - .03 * t1, varie(CUIR2 if int(-a * 13) % 2 else CUIR3, .05))
+    for v in P.bm.verts: v.co.x *= 1 + .05 * math.sin(v.co.z * 60) * (abs(v.co.y) < .01)
+    ovale(-.02, -.15, .098, .094, BRONZE, .48)                 # embouchure de bronze
+    ovale(-.05, -.12, .101, .099, BRONZE2, .5)                 # liseré gravé
+    for z in (-.36, -.62):                                      # bagues et anneaux du baudrier
+        ovale(z + .025, z - .025, .084 - .03 * (-z / 1), .084 - .03 * (-z / 1), BRONZE, .5)
+        for sx in (-1, 1): P.cyl((sx * (.09 - .03 * -z), 0, z + .03), (sx * (.12 - .03 * -z), 0, z - .03), .012, .012, BRONZE2, n=6)
+    ovale(-.96, -1.06, .062, .045, BRONZE, .5)                  # bouterolle
+    ovale(-1.06, -1.14, .045, .006, BRONZE, .5)
+    for k in range(5): P.sphere((0, -.04, -.22 - k * .14), .012, BRONZE, (1, .5, 1), sub=1)   # rivets décoratifs
+    ob = P.objet(lisse=True)
+    # baudrier : une sangle de cuir qui passe sur l'épaule droite et sous le bras gauche (repère du héros, tourné vers -Y)
+    B = Piece("C_baudrier"); bm = B.bm
+    u, w, c, Ru, Rw, demi = Vector((.48, 0, -.88)).normalized(), Vector((0, 1, 0)), Vector((.02, 0, .79)), .27, .168, .022
+    v_ = Vector((.88, 0, .48)).normalized(); N = 48; prev = None
+    for i in range(N + 1):
+        t = i / N * math.tau; p = c + u * Ru * math.cos(t) + w * Rw * math.sin(t)
+        if math.cos(t) < -.8: p.z += .03 * (math.cos(t) + .8) / -.2   # passe bien sur l'épaule
+        out = (p - Vector((0, 0, p.z))).normalized()
+        ring = [bm.verts.new(p + v_ * demi * sx + out * e) for (sx, e) in ((-1, 0), (1, 0), (1, .007), (-1, .007))]
+        for v in ring: v[B.col] = (*varie(CUIR3, .03), 1)
+        if prev:
+            for k in range(4): bm.faces.new((prev[k], prev[(k + 1) % 4], ring[(k + 1) % 4], ring[k]))
+        prev = ring
+    for (cx, cy, cz) in ((-.06, -.172, .94), (.11, -.172, .63)):   # boucles de bronze devant
+        B.boite((cx, cy, cz), (.05, .012, .055), BRONZE, rz=0, bev=.006); B.boite((cx, cy - .006, cz), (.03, .012, .035), CUIR2, bev=0)
+    return ob, B.objet()
+
+objs = [galerie(), murs(), lave(), cristaux(), sortie(), grille(), brasero(), flamme(), dalle(), socle(), *epee(), *fourreau(), *entree(), *rampant()]
 LUEURS = ("C_rampant_l", "C_lave", "C_cristaux", "C_jour", "C_flamme", "C_epee_l", "C_entree_l")
 
 # ------------------------------------------------------------------ occlusion (Cycles) × lumière de lave
