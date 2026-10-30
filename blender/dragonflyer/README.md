@@ -11,6 +11,7 @@ dans `dragonflyer/index.html`, qui reste un seul fichier.
 | `relief.py` | numpy : îles, modèle « stream power » (FastScape) pour les vallées, érosion par gouttes et thermique → `relief.webp` (hauteur 16 bits + humidité) |
 | `integrer.py` | met les trois fichiers en base64 dans le jeu |
 | `maisons.py` | Blender : kit de village (7 maisons, accessoires, 2 intérieurs meublés), occlusion cuite dans les couleurs → `village.glb` (puis meshopt → `dragonflyer/assets/village.glb`) |
+| `animaux.py` | Blender : mouton, chèvre, poule, cerf, vache ; attribut `_TAG` (pattes, tête) animé dans le jeu → `animaux.glb` |
 | `grimoire_icones.py` | les icônes gravées des menus (SVG) |
 | `grimoire_gravure.py` | Blender : le dragon en vol, ailes levées, en blanc avec traits Freestyle (pour les menus) |
 | `grimoire_encre.py` | transforme ce rendu en gravure à l'encre brune (traits, hachures, lavis) → `ui-gravure.webp` (estompée à 30 %) |
