@@ -1,5 +1,5 @@
 # Le petit héros de manga (style Toriyama, années 80), commun au cavalier (dragon.py) et au marcheur (pieton.py).
-# Grosse tête ronde, cheveux noirs en grosses mèches pointues, kimono orange, ceinture blanche nouée, maillot bleu,
+# Grosse tête ronde, cheveux roux clair en grosses mèches pointues, tunique bleue, ceinture blanche nouée,
 # bracelets rouges. Le visage (yeux, bouche) est dessiné dans le jeu sur une texture (matériau « RiderFace », UV de face).
 import bpy, bmesh, math
 import numpy as np
@@ -9,8 +9,8 @@ def srgb(h):
     h = h.lstrip("#"); c = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
     return tuple(x / 12.92 if x <= .04045 else ((x + .055) / 1.055) ** 2.4 for x in c)
 
-SKIN, GI, SASH, UNDER = srgb("#f8c9a0"), srgb("#f5862c"), srgb("#f6f3ea"), srgb("#2f5fb8")
-BAND, SHOE, SOLE, HAIR = srgb("#d92f2a"), srgb("#2c3f86"), srgb("#e9e4d6"), srgb("#15161f")
+SKIN, GI, SASH, UNDER = srgb("#f8c9a0"), srgb("#2f6fd0"), srgb("#f6f3ea"), srgb("#183a7a")   # tunique bleue
+BAND, SHOE, SOLE, HAIR = srgb("#d92f2a"), srgb("#6b3f22"), srgb("#e9e4d6"), srgb("#d0703a")   # cheveux roux clair
 
 def nrm(v): v = np.array(v, float); return v / np.linalg.norm(v)
 

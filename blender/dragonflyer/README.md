@@ -1,7 +1,7 @@
 # DragonFlyer : fabrication du dragon, du héros et des îles
 
 Tout est fabriqué par le code (aucun modèle, image ou son téléchargé). Les résultats sont embarqués en base64
-dans `jeux/dragonflyer.html`, qui reste un seul fichier.
+dans `dragonflyer/index.html`, qui reste un seul fichier.
 
 | fichier | rôle |
 |---|---|
