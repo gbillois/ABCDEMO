@@ -64,14 +64,14 @@ for s_, sx in (("L", 1), ("R", -1)):
     a = A([sx * .115, 0, .05])
     M.ellipsoid(a + A([0, -.055, -.005]), A([.066, 0, 0]), A([0, .12, 0]), A([0, 0, .058]), BOOT, 16, 10, "jambe" + s_)   # botte
     M.ellipsoid(a + A([0, -.06, -.042]), A([.068, 0, 0]), A([0, .124, 0]), A([0, 0, .016]), SOLE, 16, 8, "jambe" + s_)
-    M.tube([A([sx * .112, 0, .17]), A([sx * .112, 0, .21])], [.088, .088], FUR, 14, "jambe" + s_)                     # revers de fourrure
+    heros.fourrure(M, [A([sx * .112 + .08 * math.cos(a), .08 * math.sin(a), .19]) for a in np.linspace(0, 2 * math.pi, 7)[:-1]], .032, "jambe" + s_, 2)   # revers de fourrure
     for z in (.27, .37): M.tube([A([sx * .108, -.015, z]), A([sx * .108, -.015, z + .018])], [.074, .074], BELT, 12, "jambe" + s_)  # lanières
     heros.main(M, nodes[POIGNETS[s_]], [0, -.15, -1], [sx, 0, 0], -sx, "poing", "bras" + s_)
 # bas de tunique évasé sous la ceinture
 M.tube([A([0, -.005, .67]), A([0, -.01, .58]), A([0, -.015, .48])], [.138, .155, .17], TUNIC, 20, "corps")
 # ouverture du gilet : la tunique se voit devant ; col de fourrure ; boucle de ceinture
 M.ellipsoid(A([0, -.105, .86]), A([.045, 0, 0]), A([0, .03, 0]), A([0, 0, .13]), TUNIC2, 12, 8, "corps")
-M.tube([A([.11, -.04, 1.0]), A([0, .07, 1.0]), A([-.11, -.04, 1.0]), A([-.05, -.11, .985]), A([.05, -.11, .985]), A([.11, -.04, 1.0])], [.042] * 6, FUR, 10, "corps")
+heros.fourrure(M, [A([.11, -.04, 1.0]), A([.08, .06, 1.0]), A([0, .085, 1.0]), A([-.08, .06, 1.0]), A([-.11, -.04, 1.0]), A([-.05, -.11, .985]), A([.05, -.11, .985])], .04, "corps")
 M.ellipsoid(A([0, -.128, .69]), A([.032, 0, 0]), A([0, .012, 0]), A([0, 0, .026]), IRON, 10, 6, "corps")
 for sx in (1, -1):   # épaulettes de cuir
     M.ellipsoid(A([sx * .17, 0, .96]), A([.07, 0, 0]), A([0, .075, 0]), A([0, 0, .035]), VEST, 12, 8, "bras" + ("L" if sx > 0 else "R"))
