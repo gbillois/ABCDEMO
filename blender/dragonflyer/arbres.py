@@ -72,9 +72,10 @@ for nom, src, haut in ESPECES:
         md = ob.modifiers.new("d", "DECIMATE"); md.ratio = ratio; md.use_collapse_triangulate = True
         bpy.context.view_layer.objects.active = ob; bpy.ops.object.modifier_apply(modifier="d")
     print("arbre", ob.name, n, "->", len(ob.data.polygons), "faces, hauteur", haut)
+    ob["matieres"] = [m.name.split("_")[0] for m in ob.data.materials]   # noms des matières, dans l'ordre des morceaux (l'export n'en garde pas)
     objs.append(ob); bpy.data.objects.remove(base)
 for o in scene.objects: o.select_set(o in objs)
-bpy.ops.export_scene.gltf(filepath=os.path.join(OUT, "arbres.glb"), export_format="GLB", use_selection=True, export_materials="PLACEHOLDER",
+bpy.ops.export_scene.gltf(filepath=os.path.join(OUT, "arbres.glb"), export_format="GLB", use_selection=True, export_materials="PLACEHOLDER", export_extras=True,
                           export_yup=True, export_apply=True, export_animations=False)
 # textures réduites (WebP, enregistrées par Blender) : écorce, aiguilles, feuilles, imposteurs
 for src, dst, taille in [(os.path.join(SRC, "Bark_NormalTree.png"), "arbres_ecorce.webp", 512), (os.path.join(SRC, "Leaf_Pine_C.png"), "arbres_pin.webp", 1024),
