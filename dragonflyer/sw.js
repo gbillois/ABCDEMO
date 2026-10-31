@@ -1,7 +1,7 @@
 // Service worker de DragonFlyer.
 // Le jeu est gardé sur l'appareil et marche sans réseau. Il ne change que lorsqu'on appuie
 // sur « Update » (écran titre ou réglages).
-const CACHE = "dragonflyer-v8";
+const CACHE = "dragonflyer-v9";
 const BASE = "https://cdn.jsdelivr.net/npm/three@0.170.0/";
 const FICHIERS = [
   "./", "./manifest.webmanifest", "./icone-192.png", "./icone-512.png", "./apple-touch-icon.png", "./blason.webp",
@@ -12,8 +12,8 @@ const FICHIERS = [
   BASE + "examples/jsm/utils/BufferGeometryUtils.js",
   BASE + "examples/jsm/utils/SkeletonUtils.js",
   ...["postprocessing/EffectComposer.js", "postprocessing/RenderPass.js", "postprocessing/UnrealBloomPass.js", "postprocessing/OutputPass.js", "postprocessing/ShaderPass.js",
-    "postprocessing/Pass.js", "postprocessing/MaskPass.js", "postprocessing/GTAOPass.js", "shaders/CopyShader.js", "shaders/LuminosityHighPassShader.js",
-    "shaders/OutputShader.js", "shaders/GTAOShader.js", "shaders/PoissonDenoiseShader.js", "math/SimplexNoise.js"].map(f => BASE + "examples/jsm/" + f),
+    "postprocessing/Pass.js", "postprocessing/MaskPass.js", "shaders/CopyShader.js", "shaders/LuminosityHighPassShader.js",
+    "shaders/OutputShader.js"].map(f => BASE + "examples/jsm/" + f),
 ];
 // Ce qu'on garde aussi au passage : la bibliothèque 3D et les polices.
 const EXTERIEURS = ["https://cdn.jsdelivr.net/npm/", "https://fonts.googleapis.com/", "https://fonts.gstatic.com/"];

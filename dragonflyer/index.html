@@ -3840,10 +3840,10 @@ function image(now, dtForce) {
 const _cO = new THREE.Vector3();
 function rendre() { if (composer) composer.render(); else renderer.render(scene, camera); }
 // ------------------------------------------------------------------ effets d'image (qualité Haute et Ultra)
-// L'image est rendue dans une cible HDR (multi-échantillonnée), puis : ombres de contact (GTAO, Ultra sur ordinateur),
-// halo des lumières fortes (feu, lave, fenêtres, soleil), étalonnage léger et vignettage, enfin tons et sRGB (OutputPass).
-let composer = null, passeBloom = null, passeAO = null;
-const POST = { actif: nomQualite === "haute" || nomQualite === "ultra", ao: nomQualite === "ultra" && !TACTILE };
+// L'image est rendue dans une cible HDR (multi-échantillonnée), puis : halo des lumières fortes (feu, lave, fenêtres, soleil), étalonnage léger et vignettage, enfin tons et sRGB (OutputPass).
+let composer = null, passeBloom = null;
+// Pas de GTAO : il ne voit pas la transparence des arbres (rectangles noirs) et se perd sur les grandes distances (Mac, Ultra).
+const POST = { actif: nomQualite === "haute" || nomQualite === "ultra" };
 async function creerPostEffets() {
   if (!POST.actif) return;
   try {
@@ -3853,12 +3853,6 @@ async function creerPostEffets() {
     const cible = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: TACTILE ? 2 : 4 });
     composer = new EffectComposer(renderer, cible); composer.setPixelRatio(pixelRatio); composer.setSize(innerWidth, innerHeight);
     composer.addPass(new RenderPass(scene, camera));
-    if (POST.ao) {
-      const { GTAOPass } = await import("three/addons/postprocessing/GTAOPass.js");
-      passeAO = new GTAOPass(scene, camera, innerWidth, innerHeight); passeAO.blendIntensity = .75;
-      passeAO.updateGtaoMaterial({ radius: .8, distanceExponent: 1.4, thickness: 1.2, scale: 1, samples: 12 });
-      composer.addPass(passeAO);
-    }
     passeBloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), .32, .55, .92);   // force, rayon, seuil (lumière linéaire)
     composer.addPass(passeBloom);
     composer.addPass(new ShaderPass({
@@ -5187,7 +5181,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
 })();
 </script>
 <script>
-window.DRAGONFLYER_VERSION = "2026.10.31-5"; // à changer à chaque modification du jeu
+window.DRAGONFLYER_VERSION = "2026.10.31-6"; // à changer à chaque modification du jeu
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
