@@ -1,11 +1,11 @@
 // Service worker de DragonFlyer.
 // Le jeu est gardé sur l'appareil et marche sans réseau. Il ne change que lorsqu'on appuie
 // sur « Update » (écran titre ou réglages).
-const CACHE = "dragonflyer-v6";
+const CACHE = "dragonflyer-v7";
 const BASE = "https://cdn.jsdelivr.net/npm/three@0.170.0/";
 const FICHIERS = [
   "./", "./manifest.webmanifest", "./icone-192.png", "./icone-512.png", "./apple-touch-icon.png", "./blason.webp",
-  "./ui-cuir.webp", "./ui-parchemin.webp", "./ui-gravure.webp", "./assets/village.glb", "./assets/animaux.glb", "./assets/paysages.glb", "./assets/caverne.glb", "./assets/animations.glb", "./assets/arbres.glb", ...["ecorce", "pin", "feuilles", "loin_pin", "loin_feuillu"].map(n => `./assets/arbres_${n}.webp`), ...["fermier", "fermiere", "ancien", "forgeron", "pecheuse", "chef", "runa"].map(m => `./assets/villageois_${m}.glb`),
+  "./ui-cuir.webp", "./ui-parchemin.webp", "./ui-gravure.webp", "./assets/village.glb", "./assets/animaux.glb", "./assets/paysages.glb", "./assets/caverne.glb", "./assets/animations.glb", "./assets/arbres.glb", "./assets/nature.glb", ...["feuilles", "fleurs", "herbes", "roche", "chemin", "champignons"].map(n => `./assets/nature_${n}.webp`), ...["ecorce", "pin", "feuilles", "loin_pin", "loin_feuillu"].map(n => `./assets/arbres_${n}.webp`), ...["fermier", "fermiere", "ancien", "forgeron", "pecheuse", "chef", "runa"].map(m => `./assets/villageois_${m}.glb`),
   BASE + "build/three.module.js",
   BASE + "examples/jsm/loaders/GLTFLoader.js",
   BASE + "examples/jsm/libs/meshopt_decoder.module.js",
