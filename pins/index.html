@@ -7886,7 +7886,7 @@ return M_index;
 })();
 const { apercuVisage, animPerson, liveFace, person, setOutfit, putGlasses, putterPoints, gGr, gTe, HANCHES_ANCIEN, ZIP_MAINS } = ATELIER_PERSOS;
 let player = person({ shirt: 0x2e86de, pants: 0xf39c12, shorts: true, cap: 0xff5a4e, shoe: 0xff5a4e, scale: .6 }); scene.add(player);
-const pLbl = label("Théo", "#2e86de", "#ffffff", .8); pLbl.position.y = 2.75; player.add(pLbl);
+const pLbl = label("Théo", "#2e86de", "#ffffff", .8); pLbl.position.y = 2.75; // pas posée sur le joueur : elle cachait les spectacles
 const SPAWN = { x: -16, z: 33 };
 
 const npcs = [
@@ -8183,7 +8183,7 @@ function updateTraffic(dt) {
     c.g.position.set(c.x, 0, c.z); c.g.rotation.y = c.dir > 0 ? Math.PI / 2 : -Math.PI / 2; if (aAnimer(c, c.x, c.z)) animPerson(c.rider, "bike", c.ca); }
 }
 // ---------- la terrasse : manger et bronzer ----------
-function lieDome(L) { seatT = { dome: L, kind: "lie", t: 0 }; $("dialog").hidden = true; talking = null; const [wx, wz] = lzW(L, 0, .78); player.position.set(wx, .8, wz); player.rotation.set(0, L.ry, 0); state = "lie"; toast("Ahhh… un petit repos au bord de la piscine 😎 (bouge pour te lever)", 2600); }
+function lieDome(L) { seatT = { dome: L, kind: "lie", t: 0 }; $("dialog").hidden = true; talking = null; const [wx, wz] = lzW(L, 0, .78); player.position.set(wx, .6, wz); player.rotation.set(0, L.ry, 0); state = "lie"; toast("Ahhh… un petit repos au bord de la piscine 😎 (bouge pour te lever)", 2600); }
 function sitDown(c, kind, k) {
   seatT = { c, kind, k, t: 0, done: false }; $("dialog").hidden = true; talking = null;
   if (kind === "eat") { const [lx, lz, a] = TERR.chairs[k], [wx, wz] = c.toWorld(lx, lz), [tx, tz] = TERR.table, [px, pz] = c.toWorld(tx + Math.sin(a) * .45, tz + Math.cos(a) * .45);
@@ -8489,7 +8489,8 @@ stick.addEventListener("pointermove", e => { if (e.pointerId === jid) moveStick(
 let yaw = Math.PI, pitch = .38, cid = null, lx = 0, ly = 0;
 const cv = renderer.domElement;
 cv.addEventListener("pointerdown", e => { cid = e.pointerId; lx = e.clientX; ly = e.clientY; cv.setPointerCapture(cid); });
-cv.addEventListener("pointermove", e => { if (e.pointerId !== cid) return; yaw -= (e.clientX - lx) * .008; pitch = Math.max(.06, Math.min(1.2, pitch + (e.clientY - ly) * .005)); lx = e.clientX; ly = e.clientY; });
+let camMain = -9, marcheT = 0; // dernière fois qu'on a tourné la caméra (en s) ; depuis quand on marche
+cv.addEventListener("pointermove", e => { if (e.pointerId !== cid) return; camMain = performance.now() / 1000; yaw -= (e.clientX - lx) * .008; pitch = Math.max(.06, Math.min(1.2, pitch + (e.clientY - ly) * .005)); lx = e.clientX; ly = e.clientY; });
 ["pointerup", "pointercancel"].forEach(ev => cv.addEventListener(ev, e => { if (e.pointerId === cid) cid = null; }));
 const keys = {}; addEventListener("keydown", e => { keys[e.key.toLowerCase()] = true; if (e.key === "Escape" && !paused) $("pauseBtn").click();
   if (!paused && !e.repeat) { const k = e.key.toLowerCase(); if (k === "e" || k === " ") { e.preventDefault(); doAct(act1 || act2); } if (k === "f") doAct(act2); if (k === "t" || k === "enter") $("talkBtn").click(); } }); addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
@@ -8800,7 +8801,7 @@ function sauverPersos() { try { localStorage.setItem("pins-persos", JSON.stringi
 function appliquerPerso() {
   const p = monPerso(), o = optsDePerso(p), ancien = player;
   player = person(o); player.position.copy(ancien.position); player.rotation.copy(ancien.rotation);
-  ancien.remove(myLbl); player.add(myLbl); scene.add(player); scene.remove(ancien); libererPersonnage(ancien);
+  ancien.remove(myLbl); scene.add(player); scene.remove(ancien); libererPersonnage(ancien);
   putGlasses(player, o.lunettes); setOutfit(player, wearing); nommer(p.nom);
   $("multiPerso").textContent = (p.sexe === "f" ? "👧 " : "👦 ") + monNom;
 }
@@ -9000,7 +9001,7 @@ function retirer(s, annonce) {
 // En partie, on porte la couleur de son animal (comme les autres nous voient).
 function monLabel(text, bg, shirt) {
   player.remove(myLbl); if (myLbl !== pLbl) effacerLabel(myLbl);
-  myLbl = text ? label(text, bg, "#ffffff", .6) : pLbl; myLbl.position.y = 2.95; player.add(myLbl);
+  myLbl = text ? label(text, bg, "#ffffff", .6) : pLbl; myLbl.position.y = 2.95; // (on ne la pose plus sur le joueur)
 }
 // repère 📍 au-dessus du lieu du rendez-vous (et sur la carte), pendant une minute et demie
 function poserRdv(r) {
@@ -9887,7 +9888,7 @@ function manette() {
     if (enChoix && appui(1)) poserFocus(null);
     const mx = sx, my = sy;
     if (jid === null) { if (mx || my) { const L = Math.max(1, Math.hypot(mx, my)); jx = mx / L; jy = my / L; GP.moved = true; } else if (GP.moved) { jx = jy = 0; GP.moved = false; } }
-    const cx = ax(2), cy = ax(3); if (cx || cy) { yaw -= cx * dt * 2.8; pitch = Math.max(.06, Math.min(1.2, pitch + cy * dt * 1.6)); }
+    const cx = ax(2), cy = ax(3); if (cx || cy) { camMain = performance.now() / 1000; yaw -= cx * dt * 2.8; pitch = Math.max(.06, Math.min(1.2, pitch + cy * dt * 1.6)); }
     const court = B(4) || B(5) || B(6) || B(7) || B(10); if (court !== GP.court) { keys["shift"] = court; GP.court = court; }
     if (enChoix) { /* A et B servent au bouton choisi */ }
     else if (G3.on) { if (appui(0) || appui(1)) g3Charge(true); if ((!B(0) && GP.prec[0]) || (!B(1) && GP.prec[1])) g3Charge(false); }
@@ -10320,7 +10321,7 @@ function loop() {
 
   if (state === "walk" || state === "top") {
     if (player.rotation.x || player.rotation.z) { player.rotation.x = player.rotation.z = 0; seatT = null; } if (!pLbl.visible) pLbl.visible = true; // jamais couché en marchant
-    const [ix, iy] = inp();
+    const [ix, iy] = inp(); if (Math.hypot(ix, iy) <= .08) marcheT = 0;
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
     let mvx = fx * -iy + rx * ix, mvz = fz * -iy + rz * ix; const L = Math.hypot(mvx, mvz);
     swimming = state === "walk" && inPoolRect(P.x, P.z);
@@ -10328,6 +10329,9 @@ function loop() {
     if (!swimming) swimFast = false; const sp = (swimming ? (swimFast ? 4.4 : 1.8) : inKids(P.x, P.z) ? 3 : (runOn || keys["shift"] ? 7.5 : 4.2)) * (boostT > 0 ? 1.1 : 1); // marcher 4,2 m/s (avant 6,5 : on aurait dit qu'il courait), courir 7,5
     if (L > .08) { const s = Math.min(L, 1); mvx /= L; mvz /= L; P.x += mvx * sp * s * dt; P.z += mvz * sp * s * dt;
       const target = Math.atan2(mvx, mvz); let d = target - player.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); player.rotation.y += d * Math.min(1, dt * 12); walkT += dt * 9 * s * (!swimming && (runOn || keys["shift"]) ? 1.5 : 1);
+      // on marche longtemps (devant ou en biais, pas de côté ni en arrière) sans toucher la caméra : elle revient doucement derrière
+      marcheT = Math.abs(Math.atan2(ix, -iy)) < 1.1 ? marcheT + dt : 0;
+      if (marcheT > 1.5 && state === "walk" && performance.now() / 1000 - camMain > 2) { let dy = player.rotation.y + Math.PI - yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yaw += dy * Math.min(1, dt * .6); }
       if (!swimming && state === "walk") { stepAcc += dt * s; if (stepAcc > .32) { stepAcc = 0; if (inCottage || inDome) sfx.step(); } }
     }
     if (state === "top") { const t = tower, dx = P.x - t.cx, dz = P.z - t.cz, d = Math.hypot(dx, dz); if (d > 2.25) { P.x = t.cx + dx / d * 2.25; P.z = t.cz + dz / d * 2.25; } if (d < 1e-3) P.x += .01; P.y = 9.95; }
@@ -10378,6 +10382,7 @@ function loop() {
     // autour de soi (glisser le doigt) ; les murs l'arrêtent comme dehors
     const dedans = inCottage || inAq || inBalo || inGT || inBF || inShop || MANOR.inside || FETE.inside || CINE.inside || BOWL.inside;
     // plus on baisse la caméra, plus elle se rapproche (elle reste dans la pièce) ; une entrée ne compte qu'après 0,6 s dehors
+    if (!dedans && marcheT > 1.5 && state === "walk" && performance.now() / 1000 - camMain > 2) pitch += (.38 - pitch) * Math.min(1, dt * .6); // et à sa hauteur habituelle
     if (dedans) { if (time - camDedans > .6 && pitch < 1) pitch = 1; minPitch = .35; camDist = 3.2 + 4.3 * Math.min(1, Math.max(0, (pitch - .35) / .55)); camDedans = time; }
     if (seatT && seatT.show) { camDist = 4.2; let dy = seatT.show.ry + Math.PI - yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yaw += dy * Math.min(1, dt * 2); pitch += (.12 - pitch) * Math.min(1, dt * 2); minPitch = .05; } if (state === "bowl") { camDist = 4.6; minPitch = .32; } if (inLock) { camDist = 6.5; minPitch = 1.05; } if (state === "golf") { camDist = 5; minPitch = .45; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
     const pt = Math.min(1.3, Math.max(pitch, minPitch) + (minPitch < .9 && !dedans ? CAMMUR.lift : 0)); const baseY = state === "top" ? 9.95 : state === "boat" ? .6 : Math.max(P.y, 0), FP = state === "bowl" ? BOWL.cam : P;
@@ -10573,7 +10578,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.31-1"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.10.31-2"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
