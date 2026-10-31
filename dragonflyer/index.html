@@ -1317,8 +1317,8 @@ function avecBoule(m, c, r, k = .8, coeur = .5) {
     prev && prev(sh);
     Object.assign(sh.uniforms, { uBC: { value: c }, uBR: { value: r }, uBK: { value: k }, uBCoeur: { value: coeur } });
     sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform vec3 uBC, uBR; uniform float uBK; varying float vBoule;")
-      .replace("#include <beginnormal_vertex>", `vec3 bq = (position - uBC) / uBR; vec3 bN = normalize(bq / uBR); vBoule = clamp(length(bq), 0.0, 1.0);
-        vec3 objectNormal = normalize(mix(normal * sign(dot(normal, bN) + 1e-4), bN, uBK));`);
+      .replace("#include <beginnormal_vertex>", `vec3 bq = (position - uBC) / uBR; vec3 bN = normalize(bq / uBR + vec3(0.0, 1e-3, 0.0)); vBoule = clamp(length(bq), 0.0, 1.0);
+        vec3 objectNormal = mix(normal * sign(dot(normal, bN) + 1e-4), bN, uBK); objectNormal = objectNormal / max(length(objectNormal), 1e-4);`);
     sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform float uBCoeur; varying float vBoule;")
       .replace("#include <map_fragment>", "#include <map_fragment>\n diffuseColor.rgb *= mix(uBCoeur, 1.0, smoothstep(0.15, 0.95, vBoule));");
   };
@@ -1331,7 +1331,7 @@ function avecApparition(m, rayon) {
     sh.uniforms.uRayonA = { value: rayon };
     sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float uRayonA;")
       .replace("#include <begin_vertex>", `#include <begin_vertex>
-        transformed *= smoothstep(uRayonA, uRayonA * 0.8, distance((modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz, cameraPosition));`);
+        transformed *= 1.0 - smoothstep(uRayonA * 0.8, uRayonA, distance((modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz, cameraPosition));`);
   };
 }
 
@@ -4668,7 +4668,8 @@ function preparerDalles() {
   const niv = HIST.savoirs.logique || 1, pas = niv === 1 ? hasard(1, 2) : niv === 2 ? [3, 4, 5, 10][hasard(0, 3)] : hasard(6, 9), d = hasard(1, niv === 3 ? 9 : 5);
   const L = niv === 3 && Math.random() < .5 ? [1, 2, 4, 8, 16].map(v => v * hasard(1, 3)) : [0, 1, 2, 3, 4].map(i => d + i * pas);
   CAVE.suite = L; CAVE.etapeSuite = BRAISES.porte2 ? 3 : 0; CAVE.surDalle = -1;
-  const autres = new Set(); while (autres.size < 6) { const v = Math.max(1, L[hasard(0, 4)] + hasard(-pas - 2, pas + 2)); if (!L.includes(v)) autres.add(v); }
+  // six faux nombres proches de la suite ; l'écart grandit s'il n'y en a pas assez (ex. 1, 2, 3, 4, 5) : jamais de boucle sans fin
+  const autres = new Set(); for (let k = 0; autres.size < 6; k++) { const e = pas + 2 + (k >> 4); const v = Math.max(1, L[hasard(0, 4)] + hasard(-e, e)); if (!L.includes(v)) autres.add(v); }
   const nombres = melanger([L[2], L[3], L[4], ...autres]);
   CAVE.dalles.forEach((t, i) => { t.n = nombres[i]; t.ok = BRAISES.porte2 && L.slice(2).includes(t.n); });
   dessinerDalles();
@@ -5097,7 +5098,7 @@ async function demarrer() {
     VILLAGES.slice(0, 4).forEach((v, i) => herbe.material.uniforms.uVillages.value[i].set(v.place.x, v.place.z, Math.max(25, (v.rayon || 50) - 12), 0));
     chrono("paysages"); await creerPaysages(); chrono("caverne"); await creerCaverne(); creerFollets(); creerRampants(); creerEpeeMain();
     await progression(.76, "Planting the forests…");
-    await chargerArbresKit(); creerArbres(); await chargerNature(); semerNature(); ombresPeintes();
+    chrono("arbresKit"); await chargerArbresKit(); chrono("creerArbres"); creerArbres(); chrono("chargerNature"); await chargerNature(); chrono("semerNature"); semerNature(); chrono("ombresPeintes"); ombresPeintes();
     chrono("arbres+feux"); creerFeux(); creerAnneaux(); creerNid(); creerHutte(); creerPeche(); creerMouettes(); chrono("bebes+sauvages"); await creerBebes(); await creerSauvages(); chrono("animaux"); await creerAnimaux(); chrono("villageois"); await creerVillageois(); chrono("carte");
     majBandeau(); dessinerCarte();
     await progression(.85, "Mixing the colours…");
@@ -5186,7 +5187,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
 })();
 </script>
 <script>
-window.DRAGONFLYER_VERSION = "2026.10.31-4"; // à changer à chaque modification du jeu
+window.DRAGONFLYER_VERSION = "2026.10.31-5"; // à changer à chaque modification du jeu
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
@@ -5208,9 +5209,14 @@ window.DRAGONFLYER_VERSION = "2026.10.31-4"; // à changer à chaque modificatio
       if (!installer) { btns.forEach(b => b.classList.add("neuf")); info.textContent = "A new version is ready!"; return; }
       info.textContent = "Installing the new version…";
       await c.put(ici, neuf);
-      for (const f of ["manifest.webmanifest", "icone-192.png", "icone-512.png", "apple-touch-icon.png", "blason.webp"]) {
-        try { const r = await frais(f); if (r.ok) await c.put(new URL(f, ici).href, r); } catch (e) {}
-      }
+      // tous les fichiers du jeu gardés sur l'appareil (modèles, textures, icônes) sont repris, pas seulement la page :
+      // sinon une nouvelle page tournerait avec d'anciens modèles
+      const gardes = (await c.keys()).map(r => r.url).filter(u => u.startsWith(ici) && u !== ici);
+      let fait = 0;
+      await Promise.all(gardes.map(async u => {
+        try { const r = await frais(u); if (r.ok) await c.put(u, r); } catch (e) {}
+        info.textContent = `Installing the new version… ${Math.round(++fait / gardes.length * 100)}%`;
+      }));
       const reg = await navigator.serviceWorker.getRegistration(); if (reg) await reg.update().catch(() => {});
       location.reload();
     } catch (e) { if (installer) info.textContent = "No connection: try again when online."; }

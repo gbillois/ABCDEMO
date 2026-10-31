@@ -1,7 +1,7 @@
 // Service worker de DragonFlyer.
 // Le jeu est gardé sur l'appareil et marche sans réseau. Il ne change que lorsqu'on appuie
 // sur « Update » (écran titre ou réglages).
-const CACHE = "dragonflyer-v7";
+const CACHE = "dragonflyer-v8";
 const BASE = "https://cdn.jsdelivr.net/npm/three@0.170.0/";
 const FICHIERS = [
   "./", "./manifest.webmanifest", "./icone-192.png", "./icone-512.png", "./apple-touch-icon.png", "./blason.webp",
@@ -19,7 +19,7 @@ const FICHIERS = [
 const EXTERIEURS = ["https://cdn.jsdelivr.net/npm/", "https://fonts.googleapis.com/", "https://fonts.gstatic.com/"];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FICHIERS)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FICHIERS.map(f => new Request(f, { cache: "reload" })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", e => {
