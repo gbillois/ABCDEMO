@@ -40,7 +40,7 @@
 .txtIco .ic,.ic{width:1.25em;height:1.25em;vertical-align:-.28em;flex:none;display:inline-block;overflow:visible}
 .menuJeu{max-width:520px}
 /* Le sac à dos : un vrai sac (rabat, boucle, coutures), des cases avec le dessin de chaque objet */
-.sac{position:relative;width:min(94vw,540px);max-height:calc(100vh - 40px);display:flex;flex-direction:column;filter:drop-shadow(0 14px 24px rgba(0,0,0,.35))}
+.sac{position:relative;width:min(94vw,540px);max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px);display:flex;flex-direction:column;filter:drop-shadow(0 14px 24px rgba(0,0,0,.35))}
 .sacAnse{width:120px;height:34px;margin:0 auto -6px;border:9px solid #a8501a;border-bottom:0;border-radius:60px 60px 0 0}
 .sacRabat{position:relative;background:linear-gradient(#ff9d45,#f07f22);border-radius:38px 38px 22px 22px;padding:12px 18px 18px;border:4px solid #a8501a;z-index:1}
 .sacRabat h1{margin:0;color:#fff;font-size:26px;text-shadow:0 2px 0 #a8501a}
@@ -69,7 +69,7 @@
 .tpConf .btn .ic{width:1.3em;height:1.3em}
 
 /* Réglages en onglets */
-.card.reglages{max-width:540px;padding:0 0 16px;overflow:hidden auto;max-height:calc(100vh - 32px)}
+.card.reglages{max-width:540px;padding:0 0 16px;overflow:hidden auto;max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px)}
 .reglages .regTete{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 8px 20px;background:linear-gradient(#3fae6e,#2f8f5b);color:#fff;position:sticky;top:0;z-index:1}
 .reglages .regTete h1{margin:0;font-size:26px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.2)}
 .reglages .regOnglets{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:8px 10px;background:#f3ead2;position:sticky;top:60px;z-index:1}
@@ -222,7 +222,7 @@ body.combat-on #actions,body.golf-on #moveBtns,body.golf-on #actions,body.crea-o
 .crea{align-items:flex-end;background:transparent;pointer-events:none}.crea .card{pointer-events:auto;margin:auto 0 0;max-height:56vh;overflow:auto;max-width:560px;padding:14px;background:rgba(255,253,244,.96)}
 .crea{align-items:center;justify-content:center;padding:10px}
 body.crea-on #toast{display:none!important}
-.crea .card.creaCarte{display:grid;grid-template-rows:auto minmax(150px,38%) minmax(0,1fr) auto;grid-template-columns:100%;margin:auto;width:min(94vw,560px);max-width:none;height:calc(100vh - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));max-height:none;overflow:hidden;padding:0;background:transparent;border-radius:26px}
+.crea .card.creaCarte{display:grid;grid-template-rows:auto minmax(150px,38%) minmax(0,1fr) auto;grid-template-columns:100%;margin:auto;width:min(94vw,560px);max-width:none;height:calc(100vh - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));max-height:none;height:calc(100dvh - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:hidden;padding:0;background:transparent;border-radius:26px}
 .crea .creaCarte>h1{margin:0;display:block;max-width:none;border-radius:0;text-align:center;font-size:22px;padding:8px 12px}
 .creaVue{position:relative;pointer-events:none;border-top:4px solid #ffc93c;border-bottom:4px solid #ffc93c;background:radial-gradient(ellipse at 50% 85%,rgba(255,255,255,.18),rgba(255,255,255,0) 60%);box-shadow:inset 0 0 30px rgba(0,0,0,.25)}
 .creaVue span{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);white-space:nowrap;font-weight:800;font-size:12px;color:#fff;background:rgba(0,0,0,.35);border-radius:999px;padding:2px 10px}
