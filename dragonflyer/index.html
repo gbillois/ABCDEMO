@@ -312,7 +312,6 @@ input,textarea,select{font-size:max(16px,1em)}
 <body>
 <canvas id="c" tabindex="0"></canvas>
 <div id="vignette"></div>
-<div id="vignette"></div>
 <div id="voile"></div>
 
 <svg class="defs" aria-hidden="true">
@@ -732,7 +731,7 @@ function fichier(url) {
   if (!PRECHARGE.has(url)) PRECHARGE.set(url, fetch(url).then(r => { if (!r.ok) throw new Error(url + " " + r.status); return r.arrayBuffer(); }));
   return PRECHARGE.get(url);
 }
-for (const u of ["animations", "village", "paysages", "caverne", "animaux", ...["fermier", "fermiere", "ancien", "forgeron", "pecheuse", "chef", "runa"].map(m => "villageois_" + m)])
+for (const u of ["animations", "arbres", "village", "paysages", "caverne", "animaux", ...["fermier", "fermiere", "ancien", "forgeron", "pecheuse", "chef", "runa"].map(m => "villageois_" + m)])
   fichier(`assets/${u}.glb`).catch(() => {});
 // chaque étape du chargement est chronométrée (gardée dans window.__etapes et dans le Perf log)
 const ETAPES_CH = []; let etapeCh = null; window.__etapes = ETAPES_CH;
@@ -1411,6 +1410,48 @@ function geoArbres() {
   return [[sous(0, 0), sous(0, 1)], [sous(1, 0), sous(1, 1)]];
 }
 const LOD_ARBRES = 480;
+// Arbres du « Stylized Nature MegaKit » (Quaternius, CC0), préparés par blender/dragonflyer/arbres.py : sapin et feuillu détaillés
+// (~2 000 faces) près du joueur, imposteurs (trois plans croisés portant l'image de l'arbre) au loin. Sans ces fichiers, les arbres
+// faits en code (geoArbres) servent. Les couleurs suivent la palette du jeu (teinte de chaque arbre, sur les feuilles).
+let rayonPres = LOD_ARBRES, KIT_ARBRES = null;
+async function chargerArbresKit() {
+  try {
+    const loader = new GLTFLoader(), tl = new THREE.TextureLoader();
+    const [g, ...tex] = await Promise.all([loader.parseAsync(await fichier("assets/arbres.glb"), ""),
+      ...["ecorce", "pin", "feuilles", "loin_pin", "loin_feuillu"].map(n => tl.loadAsync(`assets/arbres_${n}.webp`))]);
+    for (const t of tex) { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; t.flipY = false; t.needsUpdate = true; }   // coordonnées de texture à la mode glTF (image non retournée)
+    const [tEcorce, tPin, tFeuilles, tLoinPin, tLoinFeuillu] = tex;
+    g.scene.updateMatrixWorld(true);
+    const geo = nom => {   // les morceaux d'un objet (une partie par matière), fusionnés en une géométrie à groupes
+      const o = g.scene.getObjectByName(nom), parts = [];
+      o.traverse(m => { if (m.isMesh) { const gg = m.geometry.clone(); gg.applyMatrix4(m.matrixWorld); for (const k of Object.keys(gg.attributes)) if (!["position", "normal", "uv"].includes(k)) gg.deleteAttribute(k); parts.push({ gg, nom: m.material.name || "" }); } });
+      parts.sort((a, b) => (/Ecorce/.test(a.nom) ? 0 : 1) - (/Ecorce/.test(b.nom) ? 0 : 1));   // écorce puis feuilles
+      return parts.length > 1 ? BUFU.mergeGeometries(parts.map(p => p.gg), true) : parts[0].gg;
+    };
+    rayonPres = TACTILE ? 70 : 95;
+    const ecorce = new THREE.MeshStandardMaterial({ map: tEcorce, roughness: .95 });
+    ecorce.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace("#include <color_fragment>", ""); };   // l'écorce garde sa couleur
+    avecVent(ecorce, .006); ecorce.customProgramCacheKey = () => "ecorce";
+    const feuilles = map => {
+      const m = new THREE.MeshStandardMaterial({ map, roughness: .85, alphaTest: .5, side: THREE.DoubleSide, alphaToCoverage: true });
+      m.onBeforeCompile = sh => {
+        sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", THREE.ShaderChunk.normal_fragment_begin.replace("normal *= faceDirection;", ""))
+          .replace("#include <lights_fragment_end>", `#include <lights_fragment_end>
+            { vec3 Vw = normalize(vFogW - cameraPosition); totalEmissiveRadiance += diffuseColor.rgb * SUN_COL * pow(max(dot(Vw, SUN_DIR), 0.0), 4.0) * 1.2; }`);   // lumière à travers les feuilles
+      };
+      avecVent(m, .012); return m;
+    };
+    const loin = map => {   // imposteur : caché près du joueur (l'arbre détaillé prend le relais)
+      const m = new THREE.MeshStandardMaterial({ map, roughness: 1, alphaTest: .5, side: THREE.DoubleSide });
+      m.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
+        { float dA = distance((modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz, cameraPosition);
+          if (dA < ${(rayonPres - 6).toFixed(1)} || dA > ${(Q.dist + 200).toFixed(1)}) transformed = vec3(0.0); }`); };
+      avecVent(m, .006); return m;
+    };
+    KIT_ARBRES = { pres: [geo("T_pin_0"), geo("T_feuillu_0")], loin: [geo("T_pin_1"), geo("T_feuillu_1")],
+      matPres: [[ecorce, feuilles(tPin)], [ecorce, feuilles(tFeuilles)]], matLoin: [loin(tLoinPin), loin(tLoinFeuillu)] };
+  } catch (e) { console.warn("arbres", e); KIT_ARBRES = null; rayonPres = LOD_ARBRES; }
+}
 // Tous les arbres lointains : un dessin par espèce (version légère, cachée de près).
 // Les arbres proches (détaillés) sont regroupés à la volée depuis une grille quand la caméra a bougé.
 const ARBRES = { liste: [], grille: new Map(), loin: [], pres: [], dernier: new THREE.Vector3(1e9, 0, 0) };
@@ -1425,7 +1466,9 @@ function creerArbres() {
     if (foret < .66 + h / 900 || r() > .75) continue;
     if (horsVillage(px, pz)) continue;
     const t = h > 160 || r() < .55 ? 0 : 1, sc = (.75 + r() * .7) * (t ? 1.1 : 1.25);
-    const a = { x: px, y: hauteurFine(px, pz) - .3, z: pz, t, sc, sy: sc * (.9 + r() * .3), rot: r() * 6.28, c: new THREE.Color().setHSL(.22 + (r() - .5) * .08, .25 + r() * .25, t ? .38 + r() * .2 : .5 + r() * .25) };
+    const c = KIT_ARBRES ? new THREE.Color().setHSL(.2 + (r() - .5) * .1, .35, .8 + r() * .15)   // arbres du kit : légère teinte (la texture porte la couleur)
+                         : new THREE.Color().setHSL(.22 + (r() - .5) * .08, .25 + r() * .25, t ? .38 + r() * .2 : .5 + r() * .25);
+    const a = { x: px, y: hauteurFine(px, pz) - .3, z: pz, t, sc, sy: sc * (.9 + r() * .3), rot: r() * 6.28, c };
     ARBRES.liste.push(a);
     const k = Math.floor(px / CASE_A) + "," + Math.floor(pz / CASE_A);
     if (!ARBRES.grille.has(k)) ARBRES.grille.set(k, []); ARBRES.grille.get(k).push(a);
@@ -1447,11 +1490,12 @@ function creerArbres() {
   const mPres = matiere(true), mLoin = matiere(false);
   const m4 = new THREE.Matrix4();
   for (const t of [0, 1]) {
-    const liste = ARBRES.liste.filter(a => a.t === t);
-    const loin = new THREE.InstancedMesh(geos[t][1], mLoin, Math.max(1, liste.length)); loin.count = liste.length;
+    const liste = ARBRES.liste.filter(a => a.t === t), K = KIT_ARBRES;
+    const loin = new THREE.InstancedMesh(K ? K.loin[t] : geos[t][1], K ? K.matLoin[t] : mLoin, Math.max(1, liste.length)); loin.count = liste.length;
     liste.forEach((a, i) => { loin.setMatrixAt(i, matArbre(a, m4)); loin.setColorAt(i, a.c); });
     loin.frustumCulled = false; loin.matrixAutoUpdate = false; scene.add(loin); ARBRES.loin.push(loin);
-    const pres = new THREE.InstancedMesh(geos[t][0], mPres, 4000); pres.count = 0; pres.frustumCulled = false; pres.matrixAutoUpdate = false;
+    const pres = new THREE.InstancedMesh(K ? K.pres[t] : geos[t][0], K ? K.matPres[t] : mPres, K ? 1500 : 4000); pres.count = 0; pres.frustumCulled = false; pres.matrixAutoUpdate = false;
+    if (K) pres.castShadow = true;
     pres.setColorAt(0, new THREE.Color()); scene.add(pres); ARBRES.pres.push(pres);
   }
   return ARBRES.liste.length;
@@ -1462,13 +1506,13 @@ function majArbres() {
   const cp = camera.position;
   if (ARBRES.dernier.distanceToSquared(cp) < 400) return;
   ARBRES.dernier.copy(cp);
-  const m4 = new THREE.Matrix4(), R = LOD_ARBRES, n = [0, 0], r2 = R * R;
+  const m4 = new THREE.Matrix4(), R = rayonPres, n = [0, 0], r2 = R * R, max = KIT_ARBRES ? 1500 : 4000;
   const i0 = Math.floor((cp.x - R) / CASE_A), i1 = Math.floor((cp.x + R) / CASE_A), j0 = Math.floor((cp.z - R) / CASE_A), j1 = Math.floor((cp.z + R) / CASE_A);
   for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
     const L = ARBRES.grille.get(i + "," + j); if (!L) continue;
     for (const a of L) {
       const dx = a.x - cp.x, dy = a.y - cp.y, dz = a.z - cp.z; if (dx * dx + dy * dy + dz * dz > r2) continue;
-      const im = ARBRES.pres[a.t]; if (n[a.t] >= 4000) continue;
+      const im = ARBRES.pres[a.t]; if (n[a.t] >= max) continue;
       im.setMatrixAt(n[a.t], matArbre(a, m4)); im.setColorAt(n[a.t], a.c); n[a.t]++;
     }
   }
@@ -3541,7 +3585,7 @@ $("bInverser").addEventListener("click", () => { etat.invert = !etat.invert; mem
 $("bRejouer").addEventListener("click", () => { fermerEcrans(); sauverProgression(); const pr = memoire.lire("progression", null); if (pr) { pr.pos = null; memoire.ecrire("progression", pr); } jouer(); });
 $("bContinuer").addEventListener("click", () => { $("bravo").hidden = true; etat.mode = "vol"; if (TACTILE) $("tactile").hidden = false; });
 addEventListener("resize", () => {
-  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); if (composer) composer.setSize(innerWidth, innerHeight);
   for (const p of [flammes, fumee, gouttes]) if (p) p.mat.uniforms.uEchelle.value = innerHeight * pixelRatio * .9;
 });
 document.addEventListener("visibilitychange", () => { if (typeof noterEvenement === "function") noterEvenement(document.hidden ? "cache" : "visible"); if (document.hidden) sauverProgression(); if (document.hidden && etat.mode === "vol") ouvrirPause(); });
@@ -3593,12 +3637,47 @@ function image(now, dtForce) {
   if (mesureT > 2) {
     const moy = mesureT / mesureN;
     if (perf.visible) $("mesure").textContent = `${(1 / moy).toFixed(0)} fps · worst ${(mesurePire * 1000).toFixed(0)} ms\ncalls ${renderer.info.render.calls} · triangles ${(renderer.info.render.triangles / 1000).toFixed(0)} k\nprograms ${renderer.info.programs.length} · ${nomQualite} ×${pixelRatio.toFixed(2)}`;
-    if (moy > 1 / 38 && moy < .25 && baisses < 3 && pixelRatio > 1) { if (++lent >= 2) { pixelRatio = Math.max(1, pixelRatio - .25); renderer.setPixelRatio(pixelRatio); baisses++; lent = 0; noterEvenement("resolution", { pixelRatio }); } } else lent = 0;
+    if (moy > 1 / 38 && moy < .25 && baisses < 3 && pixelRatio > 1) { if (++lent >= 2) { pixelRatio = Math.max(1, pixelRatio - .25); renderer.setPixelRatio(pixelRatio); if (composer) { composer.setPixelRatio(pixelRatio); composer.setSize(innerWidth, innerHeight); } baisses++; lent = 0; noterEvenement("resolution", { pixelRatio }); } } else lent = 0;
     mesureT = 0; mesureN = 0; mesurePire = 0;
   }
 }
 const _cO = new THREE.Vector3();
-function rendre() { renderer.render(scene, camera); }
+function rendre() { if (composer) composer.render(); else renderer.render(scene, camera); }
+// ------------------------------------------------------------------ effets d'image (qualité Haute et Ultra)
+// L'image est rendue dans une cible HDR (multi-échantillonnée), puis : ombres de contact (GTAO, Ultra sur ordinateur),
+// halo des lumières fortes (feu, lave, fenêtres, soleil), étalonnage léger et vignettage, enfin tons et sRGB (OutputPass).
+let composer = null, passeBloom = null, passeAO = null;
+const POST = { actif: nomQualite === "haute" || nomQualite === "ultra", ao: nomQualite === "ultra" && !TACTILE };
+async function creerPostEffets() {
+  if (!POST.actif) return;
+  try {
+    const [{ EffectComposer }, { RenderPass }, { UnrealBloomPass }, { OutputPass }, { ShaderPass }] = await Promise.all([
+      import("three/addons/postprocessing/EffectComposer.js"), import("three/addons/postprocessing/RenderPass.js"),
+      import("three/addons/postprocessing/UnrealBloomPass.js"), import("three/addons/postprocessing/OutputPass.js"), import("three/addons/postprocessing/ShaderPass.js")]);
+    const cible = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: TACTILE ? 2 : 4 });
+    composer = new EffectComposer(renderer, cible); composer.setPixelRatio(pixelRatio); composer.setSize(innerWidth, innerHeight);
+    composer.addPass(new RenderPass(scene, camera));
+    if (POST.ao) {
+      const { GTAOPass } = await import("three/addons/postprocessing/GTAOPass.js");
+      passeAO = new GTAOPass(scene, camera, innerWidth, innerHeight); passeAO.blendIntensity = .75;
+      passeAO.updateGtaoMaterial({ radius: .8, distanceExponent: 1.4, thickness: 1.2, scale: 1, samples: 12 });
+      composer.addPass(passeAO);
+    }
+    passeBloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), .32, .55, .92);   // force, rayon, seuil (lumière linéaire)
+    composer.addPass(passeBloom);
+    composer.addPass(new ShaderPass({
+      uniforms: { tDiffuse: { value: null }, uSat: { value: 1.1 }, uVig: { value: .28 } },
+      vertexShader: "varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+      fragmentShader: `uniform sampler2D tDiffuse; uniform float uSat, uVig; varying vec2 vUv;
+        void main() { vec4 c = texture2D(tDiffuse, vUv); float l = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));
+          c.rgb = max(mix(vec3(l), c.rgb, uSat), 0.0);                          // couleurs un peu plus franches
+          c.rgb *= vec3(1.02, 1.0, 0.97);                                        // très légèrement chaud
+          vec2 d = vUv - 0.5; c.rgb *= 1.0 - uVig * smoothstep(0.3, 0.85, length(d * vec2(1.1, 1.0)));   // vignettage
+          gl_FragColor = c; }` }));
+    composer.addPass(new OutputPass());
+    $("vignette").hidden = true;   // remplacé par le vignettage de l'image
+  } catch (e) { console.warn("effets d'image", e); composer = null; }
+}
 function ico(n) { return `<svg class="ico"><use href="#i-${n}"/></svg>`; }
 
 // ------------------------------------------------------------------ manette Bluetooth en jeu : sticks analogiques
@@ -4811,7 +4890,7 @@ async function demarrer() {
     await chargerDragon(); await chargerPieton(); await chargerAnimations();
     await progression(.5, "Filling the sea…");
     scene.add(creerCiel(false));
-    creerLumieres();
+    creerLumieres(); await creerPostEffets();
     creerTerrain(); creerMer();
     await progression(.6, "Blowing the clouds…");
     creerNuages(); creerParticules(); creerHerbe();
@@ -4822,7 +4901,7 @@ async function demarrer() {
     VILLAGES.slice(0, 4).forEach((v, i) => herbe.material.uniforms.uVillages.value[i].set(v.place.x, v.place.z, Math.max(25, (v.rayon || 50) - 12), 0));
     chrono("paysages"); await creerPaysages(); chrono("caverne"); await creerCaverne(); creerFollets(); creerRampants(); creerEpeeMain();
     await progression(.76, "Planting the forests…");
-    creerArbres();
+    await chargerArbresKit(); creerArbres();
     chrono("arbres+feux"); creerFeux(); creerAnneaux(); creerNid(); creerHutte(); creerPeche(); creerMouettes(); chrono("bebes+sauvages"); await creerBebes(); await creerSauvages(); chrono("animaux"); await creerAnimaux(); chrono("villageois"); await creerVillageois(); chrono("carte");
     majBandeau(); dessinerCarte();
     await progression(.85, "Mixing the colours…");
@@ -4846,7 +4925,7 @@ async function demarrer() {
     $("texteCh").textContent = "Oops, the dragon could not wake up: " + (err && err.message || err);
   }
 }
-window.__df = { camera, renderer, scene, etat, get dragon() { return dragon; }, hauteur, FEUX, ANNEAUX, NIVEAUX, entree, majTerrain, rendre,
+window.__df = { camera, renderer, scene, etat, ARBRES, get composer() { return composer; }, get dragon() { return dragon; }, hauteur, FEUX, ANNEAUX, NIVEAUX, entree, majTerrain, rendre,
   vue(x, y, z, tx, ty, tz) { camera.position.set(x, y, z); camera.lookAt(tx, ty, tz); camera.near = Math.min(camera.near, .1); camera.updateProjectionMatrix(); camera.updateMatrixWorld(); majTerrain(); trierNuages(); majArbres(); mer.position.set(x, 0, z); },
   POSE_SOL, poseTest(p) { if (p) Object.assign(POSE_SOL, p); etat.pose = 1; etat.ampl = 0; etat.pitch = etat.roll = 0; animerDragon(0); },
   jouer, allumerFeu, sePoser, BRAISES, HIST, get CAVE() { return CAVE; }, get ENTREE_BRAISES() { return ENTREE_BRAISES; }, toucherBrasero, get actionPres() { return actionPres; }, majEpeeDos, FOLLETS, RAMPANTS, VIE, frapper, COUP, lancerDefi, suiteDialogue, get DEFI() { return DEFI; }, repondre, monterOuAppeler, marche, get VILLAGES() { return VILLAGES; }, PORTES, entrer, sortir, get dedans() { return dedans; }, get portePres() { return portePres; }, MONDE_T, majHeure, SAUVAGES, majSauvages, ANIMAUX, majAnimaux, VILLAGEOIS, majVillageois, parler, CASCADES, LIBRES, HIST, lancerDefi, get RUNA() { return RUNA; }, suiteDialogue, dessinerJournal, majVillagesTest() { majVillages(0, camera.position.x, camera.position.z); }, get NID() { return NID; }, get HUTTE() { return HUTTE; }, BANCS,
@@ -4911,7 +4990,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
 })();
 </script>
 <script>
-window.DRAGONFLYER_VERSION = "2026.10.31-1"; // à changer à chaque modification du jeu
+window.DRAGONFLYER_VERSION = "2026.10.31-2"; // à changer à chaque modification du jeu
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
