@@ -1,6 +1,6 @@
 # The Dragon Apprentice Chronicles : arbres de la forêt, préparés à partir du « Stylized Nature MegaKit » de Quaternius
 # (CC0, domaine public : https://opengameart.org/content/stylized-nature-megakit). Deux espèces (sapin, feuillu), chacune en
-# deux niveaux de détail : près (~2 000 faces) et loin : un « imposteur » (trois plans croisés portant une image de l'arbre,
+# deux niveaux de détail : près (écorce simplifiée de moitié, feuilles entières) et loin : un « imposteur » (trois plans croisés portant une image de l'arbre,
 # rendue ici en Cycles), 6 triangles qui gardent la vraie silhouette. Matières « Ecorce » et « Feuilles » ; les textures sont
 # réduites à part (arbres_*.webp) et les couleurs suivent la palette du jeu par la teinte de chaque arbre.
 # Lancer : blender -b -P arbres.py -- <dossier glTF du MegaKit> <dossier de sortie>      Produit : arbres.glb + arbres_*.webp
@@ -12,7 +12,7 @@ os.makedirs(OUT, exist_ok=True)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
 ESPECES = [("pin", "Pine_1", 13.0), ("feuillu", "CommonTree_1", 10.0)]   # nom, modèle source, hauteur voulue (m)
-FACES_PRES = 2000
+ECORCE = .5   # part des faces d'écorce gardée de près
 
 def importer(nom):
     avant = set(scene.objects)
@@ -67,10 +67,20 @@ for nom, src, haut in ESPECES:
     for v in base.data.vertices: v.co = Vector((v.co.x * k, v.co.y * k, (v.co.z - min(zs)) * k))   # pied à l'origine
     imp, chemin = imposteur(base, nom, haut); objs.append(imp); images.append((chemin, f"arbres_loin_{nom}.webp", None))
     ob = base.copy(); ob.data = base.data.copy(); ob.name = f"T_{nom}_0"; scene.collection.objects.link(ob)
-    n = len(ob.data.polygons); ratio = min(1, FACES_PRES / max(1, n))
-    if ratio < 1:
-        md = ob.modifiers.new("d", "DECIMATE"); md.ratio = ratio; md.use_collapse_triangulate = True
-        bpy.context.view_layer.objects.active = ob; bpy.ops.object.modifier_apply(modifier="d")
+    # seule l'écorce est simplifiée (de moitié) : les cartes de feuilles restent entières (simplifiées, elles se déchirent),
+    # et une écorce trop simplifiée se casse en éclats (branches du feuillu, version précédente à 2 000 faces en tout)
+    n = len(ob.data.polygons)
+    for o in scene.objects: o.select_set(o == ob)
+    bpy.context.view_layer.objects.active = ob
+    bpy.ops.object.mode_set(mode="EDIT"); bpy.ops.mesh.separate(type="MATERIAL"); bpy.ops.object.mode_set(mode="OBJECT")
+    morceaux = [o for o in bpy.context.selected_objects]
+    for o in morceaux:
+        if "Ecorce" in o.data.materials[0].name:
+            md = o.modifiers.new("d", "DECIMATE"); md.ratio = ECORCE; md.use_collapse_triangulate = True
+            bpy.context.view_layer.objects.active = o; bpy.ops.object.modifier_apply(modifier="d")
+    for o in scene.objects: o.select_set(o in morceaux)
+    bpy.context.view_layer.objects.active = next(o for o in morceaux if "Ecorce" in o.data.materials[0].name)   # écorce d'abord
+    bpy.ops.object.join(); ob = bpy.context.view_layer.objects.active; ob.name = f"T_{nom}_0"
     print("arbre", ob.name, n, "->", len(ob.data.polygons), "faces, hauteur", haut)
     ob["matieres"] = [m.name.split("_")[0] for m in ob.data.materials]   # noms des matières, dans l'ordre des morceaux (l'export n'en garde pas)
     objs.append(ob); bpy.data.objects.remove(base)
