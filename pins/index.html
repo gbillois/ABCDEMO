@@ -9185,6 +9185,8 @@ function netTick(dt) {
   if (net.rdv) { const r = net.rdv; r.sp.position.y = r.h + Math.sin(time * 3) * .6; if ((r.t -= dt) <= 0) { scene.remove(r.sp); effacerLabel(r.sp); net.rdv = null; } }
   if (net.s < 0 || net.ws.readyState !== 1) return;
   if (net.hote && (net.mondeT -= dt) <= 0) { net.mondeT = 1; net.ws.send(JSON.stringify({ t: "monde", h: Math.round(dayT * 1000) / 1000, th: HALLO.on ? 1 : 0 })); }
+  // invité sans l'heure de l'hôte au bout de 8 s avec lui : le relais est trop ancien (ou l'hôte est parti), on le dit une fois
+  if (!net.hote && !net.invite && net.autres.size && (net.sansMonde = (net.sansMonde || 0) + dt) > 8 && !net.ditSansMonde) { net.ditSansMonde = true; toast("⏰ Ici, chacun garde son heure : le serveur du jeu doit être mis à jour.", 4200); }
   net.hb -= dt; if ((net.sendT -= dt) > 0) return; net.sendT = .1;
   const P = player.position, ry = Math.atan2(Math.sin(player.rotation.y), Math.cos(player.rotation.y));
   const cur = { x: r2(P.x), y: r2(P.y), z: r2(P.z), r: r2(ry) }, L = net.last;
@@ -10571,7 +10573,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.30-6"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.10.31-1"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
