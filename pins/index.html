@@ -1577,6 +1577,8 @@ function lounger(x, z, ry) {
   g.add(frame, cushion, back); for (const sx of [-.3, .3]) for (const sz of [-.8, .8]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .38), metalMat); leg.position.set(sx, .19, sz); g.add(leg); }
   g.position.set(x, 0, z); g.rotation.y = ry; shadowAll(g); scene.add(g); const side = Math.abs(Math.sin(ry)) > .5; boxes.push(side ? { x1: x - 1, x2: x + 1, z1: z - .5, z2: z + .5 } : { x1: x - .5, x2: x + .5, z1: z - 1, z2: z + 1 });
 }
+// là où l'on se promène en maillot : l'Aquaparc et la piscine des anniversaires
+const inSwimZone = (x, z, m) => Math.hypot(x - DOME.x, z - DOME.z) < DOME.r - m || (x > PP.x1 + m && x < PP.x2 - m && z > PP.z1 + m && z < PP.z2 - m);
 const DOME_LOUNGERS = []; // on peut s'y allonger (sauf ceux où un vacancier bronze déjà)
 [-6, -2, 2, 6, 10, 14].forEach(x => { lounger(x, -23.5, Math.PI); if (x !== 6) DOME_LOUNGERS.push({ x, z: -23.5, ry: Math.PI }); }); [-31, -35, -39, -43].forEach(z => { lounger(-15.2, z, Math.PI / 2); if (z !== -35 && z !== -43) DOME_LOUNGERS.push({ x: -15.2, z, ry: Math.PI / 2 }); });
 const lzW = (L, lx, lz) => [L.x + lx * Math.cos(L.ry) + lz * Math.sin(L.ry), L.z - lx * Math.sin(L.ry) + lz * Math.cos(L.ry)];
@@ -8565,7 +8567,8 @@ function renderLocker() {
   for (const id of owned) { const su = SUITS.find(x => x.id === id); L.append(suitCard(su, wearing === id ? "Je le porte ✓" : "Mettre", wearing === id, () => wear(id), su.price ? "Acheté" : "Offert")); }
 }
 function nomMaillot(su) { return player.userData.female ? su.name.replace(/^Short de bain/, "Maillot de bain").replace(/^Short/, "Maillot une pièce") : su.name; }
-function wear(id) { wearing = id; setOutfit(player, id); envoyerProfil(); sfx.click(); whoosh(.4, .06, 800, 300); renderLocker(); toast(id ? "Te voilà en maillot de bain ! Direction l'eau !" : "Tu as remis tes habits.", 2400); }
+let dernierMaillot = null; // pour le remettre en se téléportant à l'Aquaparc
+function wear(id) { if (id) dernierMaillot = id; wearing = id; setOutfit(player, id); envoyerProfil(); sfx.click(); whoosh(.4, .06, 800, 300); renderLocker(); toast(id ? "Te voilà en maillot de bain ! Direction l'eau !" : "Tu as remis tes habits.", 2400); }
 $("shopClose").onclick = () => { sfx.click(); fermer("shopView"); }; $("lockerClose").onclick = () => { sfx.click(); fermer("lockerView"); };
 updMoney();
 let state = "walk", tower = null, climbT = 0, riding = null, swimming = false, inCottage = null, inDome = false;
@@ -8640,7 +8643,7 @@ mc.addEventListener("pointermove", e => { const d = MAPV.drag; if (!d || d.id !=
 mc.addEventListener("pointercancel", () => { MAPV.drag = null; });
 // Points de téléportation (violets sur la carte) ; avant de partir, on demande confirmation
 function pointsTP() { const L = [
-    ["Ton cottage", ...myCottage.toWorld(0, 7)], ["L'accueil et le village", ACCUEIL.x, ACCUEIL.z - ACCUEIL.hz - 2.5], ["L'Aquaparc", 0, 10],
+    ["Ton cottage", ...myCottage.toWorld(0, 7)], ["L'accueil et le village", ACCUEIL.x, ACCUEIL.z - ACCUEIL.hz - 2.5], ["L'Aquaparc", 16, -24],
     ["Le lac", LAKE.x + DOCK.ux * (DOCK.u1 + 2), LAKE.z + DOCK.uz * (DOCK.u1 + 2)], ["Le Multi Parcs", GTW.x, GTW.z + GTW.hz + 2.5], ["Burger Fast", BFW.x, BFW.z + BFW.hz + 2.5],
     ["Le parking", 83, 50], ["Le minigolf", GOLF.kiosk[0], GOLF.kiosk[1] - 2.5], ["L'acrobranche", ACRO.gate[0], ACRO.gate[1] - 2.5], ["Le zoo", (ZOO.x1 + ZOO.x2) / 2, ZOO.z2 + 2.5],
     ["La ferme", (FARM.x1 + FARM.x2) / 2, FARM.z2 + 2.5], ["Le poney club", ARENA.x, ARENA.z - ARENA.rz - 3], ["Le cinéma", (CINE.x1 + CINE.x2) / 2, CINE.z1 - 2.5],
@@ -8660,7 +8663,11 @@ function teleporter(x, z) {
   if (state === "drive") dismount(); if (state === "golf") golf3Stop();
   const P = player.position; P.set(x, 0, z); resolve(P, { x, z }); P.y = floorY({ x: P.x, y: 0, z: P.z }); prev.x = P.x; prev.z = P.z;
   whoosh(.5, .08, 600, 2400); tone(1046, .1, "sine", .08); tone(1568, .14, "sine", .07, 0, .1);
-  mapOpen = false; $("mapView").hidden = true; $("tpConf").hidden = true; toast("Hop ! Te voilà arrivé !", 1800);
+  // on se change en route : en maillot à l'Aquaparc, en habits partout ailleurs
+  const maillot = inSwimZone(P.x, P.z, .3), change = maillot !== !!wearing;
+  if (change) { wearing = maillot ? dernierMaillot || owned[0] : null; setOutfit(player, wearing); envoyerProfil(); renderLocker(); }
+  mapOpen = false; $("mapView").hidden = true; $("tpConf").hidden = true;
+  toast(!change ? "Hop ! Te voilà arrivé !" : maillot ? "Hop ! Te voilà à l'Aquaparc, en maillot de bain ! 🩱" : "Hop ! Te voilà arrivé, avec tes habits ! 👕", 2200);
 }
 let tpVers = null;
 $("tpOui").onclick = () => { if (tpVers) teleporter(tpVers[0], tpVers[1]); tpVers = null; };
@@ -10408,7 +10415,6 @@ function loop() {
 
   // où suis-je ?
   // en maillot de bain, on ne sort pas de l'Aquaparc : il faut d'abord se rhabiller dans une cabine des vestiaires
-  const inSwimZone = (x, z, m) => Math.hypot(x - DOME.x, z - DOME.z) < DOME.r - m || (x > PP.x1 + m && x < PP.x2 - m && z > PP.z1 + m && z < PP.z2 - m);
   if (state === "walk" && wearing && inSwimZone(prev.x, prev.z, .3) && !inSwimZone(P.x, P.z, .3)) { P.x = prev.x; P.z = prev.z; if (time - suitToastT > 4) { suitToastT = time; toast("👕 Pas de maillot de bain dehors ! Va dans une cabine pour remettre tes habits.", 3200); } }
   // la route, c'est pour les voitures : à pied, on ne marche pas dessus
   if (state === "walk" && ((onRoad(P.x, P.z, .3) && P.z > PARK.z2 + .4 && !onRoad(prev.x, prev.z, .3)) || (onRing(P.x, P.z, .3) && !onRing(prev.x, prev.z, .3))) && !onCrossing(P.x, P.z)) { P.x = prev.x; P.z = prev.z; if (time - roadToastT > 4) { roadToastT = time; toast("🚗 La route, c'est pour les voitures ! Monte dans une voiture pour rouler dessus.", 3000); } }
@@ -10606,7 +10612,7 @@ function loop() {
   voituresTick(dt); trier(dt); suivreFeux(dt); majInterieurs(); if (!paused) majObjectif(dt); if (dejaVu && !ULTRA) adapterResolution(); // (Ultra : netteté fixe)
   suivreVitres(); gel(); if (COMPO) COMPO.render(); else renderer.render(scene, camera); dejaVu = true; majPerf();
 }
-window.__pins = { ouvrirCrea, GT_CABS, BOUM, WAVES, tpOuvert, get net() { return net; }, get arc() { return arc; }, openBook, lvTourner, toast, MANOR, get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; }, get pitch() { return pitch; }, get camDedans() { return camDedans; } };
+window.__pins = { teleporter, pointsTP, get wearing() { return wearing; }, ouvrirCrea, GT_CABS, BOUM, WAVES, tpOuvert, get net() { return net; }, get arc() { return arc; }, openBook, lvTourner, toast, MANOR, get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; }, get pitch() { return pitch; }, get camDedans() { return camDedans; } };
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
 // (jusqu'à 6 s sur iPad) : la barre continue d'avancer doucement et les messages changent, pour qu'on voie que ça avance
 calquesAO(); // (après les regroupements d'objets du chargement : les groupes faits à la fin comptent aussi)
@@ -10643,7 +10649,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.31-4"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.10.31-5"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
