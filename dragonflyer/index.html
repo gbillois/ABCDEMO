@@ -681,8 +681,8 @@ vec3 atmo(vec3 col, vec3 wp) {
   vec3 rd = wp - cameraPosition; float dist = length(rd); rd /= max(dist, 1e-3);
   const float b = 1.0 / 380.0;
   float ry = abs(rd.y) < 1e-4 ? 1e-4 : rd.y;
-  float hf = (1.0 / 8500.0) * exp(-max(cameraPosition.y, 0.0) * b) * (1.0 - exp(-dist * ry * b)) / (ry * b);
-  float ext = exp(-(hf + dist / 38000.0));
+  float hf = (1.0 / 10500.0) * exp(-max(cameraPosition.y, 0.0) * b) * (1.0 - exp(-dist * ry * b)) / (ry * b);   // brume un peu plus légère : montagnes moins délavées
+  float ext = exp(-(hf + dist / 46000.0));
   vec3 fc = skyCol(normalize(vec3(rd.x, max(rd.y, 0.0) * 0.25 + 0.02, rd.z)));
   return mix(fc, col, ext);
 }
@@ -717,6 +717,9 @@ const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 1.2, 70
 camera.position.set(0, 300, 2600);
 const horloge = { t: 0 };
 const U_TEMPS = { value: 0 }, U_HEURE = { value: .4 }, U_CONTOUR = { value: new THREE.Color(.4, .38, .34) };
+// ombres des arbres et des maisons, peintes une fois au chargement (ombresPeintes) ; près du héros, la vraie carte d'ombres prend le relais
+const U_CANOPEE = { value: (() => { const t = new THREE.DataTexture(new Uint8Array([0]), 1, 1, THREE.RedFormat); t.needsUpdate = true; return t; })() };
+const U_OMBRE_C = { value: new THREE.Vector3(0, 0, .001) };   // centre (x, z) et rayon du cadre de la vraie carte d'ombres
 
 // ------------------------------------------------------------------ outils
 function alea(graine) {
@@ -1014,7 +1017,7 @@ function materiauTerrain() {
   const m = new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0 });
   m.userData.u = { uS: { value: 1 }, uHalf: { value: 1 }, uC: { value: new THREE.Vector2() }, uInC: { value: new THREE.Vector2() }, uInHalf: { value: -1 } };
   m.onBeforeCompile = function (sh) {
-    Object.assign(sh.uniforms, this.userData.u, { tH: { value: tH }, tTerr: { value: tTerr }, tBruit: { value: tBruit }, tRoche: { value: tRoche }, tHum: { value: tHum }, uTemps: U_TEMPS });
+    Object.assign(sh.uniforms, this.userData.u, { tH: { value: tH }, tTerr: { value: tTerr }, tBruit: { value: tBruit }, tRoche: { value: tRoche }, tHum: { value: tHum }, uTemps: U_TEMPS, tCanopee: U_CANOPEE, uOmbreC: U_OMBRE_C });
     sh.vertexShader = sh.vertexShader
       .replace("#include <common>", `#include <common>
         uniform sampler2D tH, tTerr, tBruit; uniform float uS, uHalf; uniform vec2 uC; varying vec3 vW;
@@ -1032,7 +1035,7 @@ function materiauTerrain() {
         vW = transformed;`);
     sh.fragmentShader = sh.fragmentShader
       .replace("#include <common>", `#include <common>
-        uniform sampler2D tTerr, tBruit, tRoche, tHum; uniform float uInHalf, uTemps; uniform vec2 uInC; varying vec3 vW;
+        uniform sampler2D tTerr, tBruit, tRoche, tHum, tCanopee; uniform float uInHalf, uTemps; uniform vec2 uInC; uniform vec3 uOmbreC; varying vec3 vW;
         const float MONDE = ${MONDE.toFixed(1)};
         float terrSh, terrAO; vec3 terrN, terrAlb; float terrRough;`)
       .replace("#include <clipping_planes_fragment>", `
@@ -1045,6 +1048,9 @@ function materiauTerrain() {
           float hum = texture(tHum, tuv).r;
           float dist = length(vW - cameraPosition);
           terrSh = te.z; terrAO = te.w;
+          { float can = texture(tCanopee, tuv).r;   // ombres peintes des arbres et des maisons (remplacées près du héros par la vraie carte d'ombres)
+            terrAO *= 1.0 - 0.12 * can;
+            terrSh *= 1.0 - 0.5 * can * smoothstep(uOmbreC.z * 0.45, uOmbreC.z * 0.8, length(vW.xz - uOmbreC.xy)); }
           vec4 n1 = texture(tBruit, vW.xz / 1500.0), n2 = texture(tBruit, vW.xz / 270.0), n3 = texture(tBruit, vW.xz / 41.0), n4 = texture(tBruit, vW.xz / 9.0);
           float h = vW.y, pente = 1.0 - nB.y;
           // roche en projection triplanaire (deux échelles)
@@ -1284,20 +1290,48 @@ function dansNuage() {
 }
 
 // ------------------------------------------------------------------ vent dans les matières (arbres)
+// Les retouches de matières (vent, normales arrondies, apparition) passent leurs réglages en uniformes et disent leur nom
+// dans la clé du programme : deux matières aux retouches différentes ne partagent jamais le même programme.
+function cleProgramme(m, k) { m.userData.cle = (m.userData.cle || m.type) + "|" + k; m.customProgramCacheKey = () => m.userData.cle; }
 function avecVent(m, force) {
-  const prev = m.onBeforeCompile;
+  const prev = m.onBeforeCompile; cleProgramme(m, "vent");
   m.onBeforeCompile = sh => {
     prev && prev(sh);
-    sh.uniforms.uTemps = U_TEMPS;
-    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float uTemps;")
+    sh.uniforms.uTemps = U_TEMPS; sh.uniforms.uVent = { value: force };
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float uTemps, uVent;")
       .replace("#include <begin_vertex>", `#include <begin_vertex>
         #ifdef USE_INSTANCING
         float ph = instanceMatrix[3].x * 0.05 + instanceMatrix[3].z * 0.07;
         #else
         float ph = 0.0;
         #endif
-        transformed.x += sin(uTemps * 1.4 + ph) * ${force.toFixed(3)} * max(position.y, 0.0);
-        transformed.z += cos(uTemps * 1.1 + ph * 1.3) * ${(force * .6).toFixed(3)} * max(position.y, 0.0);`);
+        transformed.x += sin(uTemps * 1.4 + ph) * uVent * max(position.y, 0.0);
+        transformed.z += cos(uTemps * 1.1 + ph * 1.3) * uVent * 0.6 * max(position.y, 0.0);`);
+  };
+}
+// Feuillage éclairé comme une boule (ou un cône) : les normales des cartes de feuilles sont tirées vers celles d'un ellipsoïde
+// (centre c, demi-axes r) ; le cœur du feuillage est plus sombre (lumière qui pénètre moins).
+function avecBoule(m, c, r, k = .8, coeur = .5) {
+  const prev = m.onBeforeCompile; cleProgramme(m, "boule");
+  m.onBeforeCompile = sh => {
+    prev && prev(sh);
+    Object.assign(sh.uniforms, { uBC: { value: c }, uBR: { value: r }, uBK: { value: k }, uBCoeur: { value: coeur } });
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform vec3 uBC, uBR; uniform float uBK; varying float vBoule;")
+      .replace("#include <beginnormal_vertex>", `vec3 bq = (position - uBC) / uBR; vec3 bN = normalize(bq / uBR); vBoule = clamp(length(bq), 0.0, 1.0);
+        vec3 objectNormal = normalize(mix(normal * sign(dot(normal, bN) + 1e-4), bN, uBK));`);
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform float uBCoeur; varying float vBoule;")
+      .replace("#include <map_fragment>", "#include <map_fragment>\n diffuseColor.rgb *= mix(uBCoeur, 1.0, smoothstep(0.15, 0.95, vBoule));");
+  };
+}
+// Les petites plantes apparaissent en grandissant au bord de leur rayon d'affichage (pas de « pop »).
+function avecApparition(m, rayon) {
+  const prev = m.onBeforeCompile; cleProgramme(m, "apparition");
+  m.onBeforeCompile = sh => {
+    prev && prev(sh);
+    sh.uniforms.uRayonA = { value: rayon };
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float uRayonA;")
+      .replace("#include <begin_vertex>", `#include <begin_vertex>
+        transformed *= smoothstep(uRayonA, uRayonA * 0.8, distance((modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz, cameraPosition));`);
   };
 }
 
@@ -1433,25 +1467,36 @@ async function chargerArbresKit() {
     const ecorce = new THREE.MeshStandardMaterial({ map: tEcorce, roughness: .95 });
     ecorce.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace("#include <color_fragment>", ""); };   // l'écorce garde sa couleur
     avecVent(ecorce, .006); ecorce.customProgramCacheKey = () => "ecorce";
-    const feuilles = map => {
+    const feuilles = (map, g) => {
       const m = new THREE.MeshStandardMaterial({ map, roughness: .85, alphaTest: .5, side: THREE.DoubleSide, alphaToCoverage: true });
+      cleProgramme(m, "translucide");
       m.onBeforeCompile = sh => {
         sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", THREE.ShaderChunk.normal_fragment_begin.replace("normal *= faceDirection;", ""))
           .replace("#include <lights_fragment_end>", `#include <lights_fragment_end>
             { vec3 Vw = normalize(vFogW - cameraPosition); totalEmissiveRadiance += diffuseColor.rgb * SUN_COL * pow(max(dot(Vw, SUN_DIR), 0.0), 4.0) * 1.2; }`);   // lumière à travers les feuilles
       };
-      avecVent(m, .012); return m;
+      avecVent(m, .012);
+      const b = boiteGroupe(g, 1); avecBoule(m, b.getCenter(new THREE.Vector3()), b.getSize(new THREE.Vector3()).multiplyScalar(.5), .75, .45);
+      return m;
     };
     const loin = map => {   // imposteur : caché près du joueur (l'arbre détaillé prend le relais)
       const m = new THREE.MeshStandardMaterial({ map, roughness: 1, alphaTest: .5, side: THREE.DoubleSide });
+      cleProgramme(m, "imposteur");
       m.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
         { float dA = distance((modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz, cameraPosition);
           if (dA < ${(rayonPres - 6).toFixed(1)} || dA > ${(Q.dist + 200).toFixed(1)}) transformed = vec3(0.0); }`); };
       avecVent(m, .006); return m;
     };
-    KIT_ARBRES = { pres: [geo("T_pin_0"), geo("T_feuillu_0")], loin: [geo("T_pin_1"), geo("T_feuillu_1")],
-      matPres: [[ecorce, feuilles(tPin)], [ecorce, feuilles(tFeuilles)]], matLoin: [loin(tLoinPin), loin(tLoinFeuillu)] };
+    const pres = [geo("T_pin_0"), geo("T_feuillu_0")];
+    KIT_ARBRES = { pres, loin: [geo("T_pin_1"), geo("T_feuillu_1")],
+      matPres: [[ecorce, feuilles(tPin, pres[0])], [ecorce, feuilles(tFeuilles, pres[1])]], matLoin: [loin(tLoinPin), loin(tLoinFeuillu)] };
   } catch (e) { console.warn("arbres", e); KIT_ARBRES = null; rayonPres = LOD_ARBRES; }
+}
+// boîte des sommets d'un groupe (une matière) d'une géométrie fusionnée
+function boiteGroupe(g, gi) {
+  const b = new THREE.Box3(), v = new THREE.Vector3(), P = g.attributes.position, gr = g.groups[gi] || { start: 0, count: g.index ? g.index.count : P.count };
+  for (let i = gr.start; i < gr.start + gr.count; i++) b.expandByPoint(v.fromBufferAttribute(P, g.index ? g.index.getX(i) : i));
+  return b;
 }
 // Tous les arbres lointains : un dessin par espèce (version légère, cachée de près).
 // Les arbres proches (détaillés) sont regroupés à la volée depuis une grille quand la caméra a bougé.
@@ -1477,6 +1522,7 @@ function creerArbres() {
   const atlas = atlasArbres();
   const matiere = (pres) => {
     const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .9, map: atlas, alphaTest: .45, side: pres ? THREE.DoubleSide : THREE.FrontSide, alphaToCoverage: pres });
+    cleProgramme(m, pres ? "atlas-pres" : "atlas-loin");
     m.onBeforeCompile = sh => {
       sh.vertexShader = sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
         float dArbre = distance((modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz, cameraPosition);
@@ -1535,11 +1581,27 @@ async function chargerNature() {
     const T = {}; noms.forEach((n, i) => { const t = tex[i]; t.colorSpace = THREE.SRGBColorSpace; t.flipY = false; t.anisotropy = 4; t.needsUpdate = true; T[n] = t; });
     const PLANTES = { Feuilles: "feuilles", Fleurs: "fleurs", Herbes: "herbes" }, DURS = { Roche: "roche", Chemin: "chemin", Champignons: "champignons" };
     const mats = {};
-    const matiere = (nom, vent) => {
-      const cle = nom + vent; if (mats[cle]) return mats[cle];
+    const BOULE = { buisson: [.75, .5], fougere: [.5, .6], plante: [.5, .65], fleurs1: [.4, .75], fleurs2: [.4, .75], trefle: [.45, .7] };   // arrondi des normales, cœur sombre
+    const matiere = (nom, type, vent, rayon, boite) => {
+      const cle = nom + type; if (mats[cle]) return mats[cle];
       const plante = nom in PLANTES, m = new THREE.MeshStandardMaterial({ map: T[PLANTES[nom] || DURS[nom]], roughness: plante ? .85 : .95,
         alphaTest: plante ? .5 : 0, side: plante ? THREE.DoubleSide : THREE.FrontSide, alphaToCoverage: plante });
       if (vent) avecVent(m, vent);
+      if (plante && BOULE[type]) avecBoule(m, boite.getCenter(new THREE.Vector3()), boite.getSize(new THREE.Vector3()).multiplyScalar(.5).max(new THREE.Vector3(.05, .05, .05)), ...BOULE[type]);
+      if (nom === "Roche" || nom === "Chemin") {   // pierre : texture grise teintée à la couleur de chaque pierre (la texture d'origine est bleutée)
+        const prev = m.onBeforeCompile; cleProgramme(m, "pierre");
+        m.onBeforeCompile = sh => { prev && prev(sh); sh.fragmentShader = sh.fragmentShader.replace("#include <color_fragment>", `#include <color_fragment>
+          #ifdef USE_INSTANCING_COLOR
+          diffuseColor.rgb = vec3(dot(diffuseColor.rgb / max(vColor, vec3(0.01)), vec3(0.3, 0.59, 0.11))) * vColor;
+          #endif`); };
+      }
+      if (nom === "Roche") {   // mousse sur le dessus des rochers, de la couleur des prés
+        const prev = m.onBeforeCompile; cleProgramme(m, "mousse");
+        m.onBeforeCompile = sh => { prev && prev(sh); sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
+          { vec3 nW = inverseTransformDirection(normal, viewMatrix); float tache = sin(vFogW.x * 2.1 + sin(vFogW.z * 1.7)) * sin(vFogW.z * 2.6 + vFogW.y * 1.3) * 0.25;
+            diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.07, 0.12, 0.025), smoothstep(0.5, 0.85, nW.y + tache) * 0.85); }`); };
+      }
+      avecApparition(m, rayon);
       return mats[cle] = m;
     };
     g.scene.updateMatrixWorld(true);
@@ -1549,9 +1611,10 @@ async function chargerNature() {
       const noms = o.userData.matieres || [], parts = []; let i = 0;   // noms des matières, dans l'ordre des morceaux (écrits par nature.py)
       o.traverse(m => { if (m.isMesh) { const gg = m.geometry.clone(); gg.applyMatrix4(m.matrixWorld); for (const k of Object.keys(gg.attributes)) if (!["position", "normal", "uv"].includes(k)) gg.deleteAttribute(k); parts.push({ gg, nom: noms[i++] || "Herbes" }); } });
       const geo = parts.length > 1 ? BUFU.mergeGeometries(parts.map(p => p.gg), true) : parts[0].gg;
-      const im = new THREE.InstancedMesh(geo, parts.length > 1 ? parts.map(p => matiere(p.nom, vent)) : matiere(parts[0].nom, vent), Math.round(max * mobile));
+      geo.computeBoundingBox(); const ray = rayon * (TACTILE ? .75 : 1), mat = n => matiere(n, type, vent, ray, geo.boundingBox);
+      const im = new THREE.InstancedMesh(geo, parts.length > 1 ? parts.map(p => mat(p.nom)) : mat(parts[0].nom), Math.round(max * mobile));
       im.count = 0; im.frustumCulled = false; im.castShadow = ombre; im.receiveShadow = true; im.setColorAt(0, new THREE.Color()); scene.add(im);
-      NATURE.types[type] = { im, rayon: rayon * (TACTILE ? .75 : 1), max: Math.round(max * mobile), liste: [] };
+      NATURE.types[type] = { im, rayon: ray, max: Math.round(max * mobile), liste: [] };
     }
   } catch (e) { console.warn("nature", e); NATURE.types = {}; }
 }
@@ -1581,9 +1644,9 @@ function semerNature() {
     if (pre > .95 && q < .35) mettre(q < .05 ? "fleurs2" : "fleurs1", px, pz, .9 + r() * .7);
     else if (pre > .8 && q < .25) mettre(q < .12 ? "trefle" : "plante", px, pz, .8 + r() * .7);
     if (r() < (pente(px, pz) > .15 ? .05 : .012)) {   // rochers (plus sur les pentes), entourés de galets
-      const t = "rocher" + (1 + ((r() * 3) | 0)), s = .8 + r() * 1.6; mettre(t, px, pz, s, s * (.7 + r() * .5), c.setHSL(.07, .22, .58 + r() * .14));   // pierre chaude, comme les falaises du jeu
+      const t = "rocher" + (1 + ((r() * 3) | 0)), s = .8 + r() * 1.6; mettre(t, px, pz, s, s * (.7 + r() * .5), c.setHSL(.08, .2, .42 + r() * .12));   // pierre chaude, comme les falaises du jeu
       if (s > 1.5) ajouterCollision({ x: px, z: pz, yaw: 0, hx: s * .9, hz: s * .9, haut: h + s * 1.6 });
-      for (let k = 0; k < 4; k++) { const an = r() * 6.28, d = s * 1.4 + r() * 2; mettre(r() < .5 ? "galet1" : "galet2", px + Math.cos(an) * d, pz + Math.sin(an) * d, .5 + r() * .7, .4, c.setHSL(.07, .18, .62 + r() * .14)); }
+      for (let k = 0; k < 4; k++) { const an = r() * 6.28, d = s * 1.4 + r() * 2; mettre(r() < .5 ? "galet1" : "galet2", px + Math.cos(an) * d, pz + Math.sin(an) * d, .5 + r() * .7, .4, c.setHSL(.08, .16, .4 + r() * .12)); }
     }
   }
   // chemins de pierres : de la place du village jusqu'à chaque porte
@@ -1591,7 +1654,7 @@ function semerNature() {
     if (!pt.maison || !v.maisons.includes(pt.maison)) continue;
     const x1 = pt.x + Math.sin(pt.yaw) * 1.6, z1 = pt.z + Math.cos(pt.yaw) * 1.6, x0 = v.place.x, z0 = v.place.z, L = Math.hypot(x1 - x0, z1 - z0);
     for (let d = 3; d < L; d += 1.05) { const t = d / L, ox = (r() - .5) * .8, x = x0 + (x1 - x0) * t - (z1 - z0) / L * ox, z = z0 + (z1 - z0) * t + (x1 - x0) / L * ox;
-      if (dansUnRect(x, z, .2)) continue; mettre(r() < .5 ? "galet1" : "galet2", x, z, 1 + r() * .5, .32, c.setHSL(.08, .1, .72 + r() * .2)); }
+      if (dansUnRect(x, z, .2)) continue; mettre(r() < .5 ? "galet1" : "galet2", x, z, 1 + r() * .5, .32, c.setHSL(.08, .14, .46 + r() * .12)); }
   }
 }
 const _qN = new THREE.Quaternion(), _vN = new THREE.Vector3(), _sN = new THREE.Vector3(), _mN = new THREE.Matrix4();
@@ -1609,6 +1672,45 @@ function majNature() {
     }
   }
   for (const t in NATURE.types) { const im = NATURE.types[t].im; im.count = n[t]; im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; }
+}
+
+// Ombres portées des arbres et des maisons sur tout l'archipel, peintes une fois (le soleil garde sa direction) dans une
+// carte de 3 m par pixel : vues d'en haut, les forêts et les villages ont du relief. Le sol et l'herbe les lisent ;
+// autour du héros, la vraie carte d'ombres (nette) les remplace en fondu.
+function ombresPeintes() {
+  const N = 2048, cv = document.createElement("canvas"); cv.width = cv.height = N; const c = cv.getContext("2d", { willReadFrequently: true });
+  c.fillStyle = "#000"; c.fillRect(0, 0, N, N);
+  const sp = document.createElement("canvas"); sp.width = sp.height = 64; const cs = sp.getContext("2d");
+  const gr = cs.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(.55, "rgba(255,255,255,.75)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+  cs.fillStyle = gr; cs.fillRect(0, 0, 64, 64);
+  const px = N / MONDE, L = Math.hypot(SOLEIL.x, SOLEIL.z), ux = -SOLEIL.x / L, uz = -SOLEIL.z / L, k = L / SOLEIL.y;   // direction de l'ombre au sol, longueur par mètre de hauteur
+  const P = (x, z) => [(x / MONDE + .5) * N, (z / MONDE + .5) * N];
+  c.globalCompositeOperation = "lighter";
+  for (const a of ARBRES.liste) {
+    const H = (a.t ? 10 : 13) * a.sy, larg = (a.t ? 7.5 : 6) * a.sc, debut = (a.t ? .35 : .12) * H, fin = .95 * H;   // feuillu : couronne haute ; sapin : cône depuis le bas
+    const d0 = debut * k, d1 = fin * k, [cx, cy] = P(a.x + ux * (d0 + d1) / 2, a.z + uz * (d0 + d1) / 2), lo = Math.max(larg, (d1 - d0) * (a.t ? .9 : .75)) * px, la = larg * px;
+    c.globalAlpha = a.t ? .5 : .42;
+    c.setTransform(ux * lo, uz * lo, -uz * la, ux * la, cx, cy); c.drawImage(sp, -.5, -.5, 1, 1);
+  }
+  c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = "source-over"; c.fillStyle = "#fff"; c.globalAlpha = .8;
+  const vus = new Set();
+  for (const L of COLLISIONS.values()) for (const o of L) {
+    if (vus.has(o) || !o.haut) continue; vus.add(o);
+    const h = o.haut - hauteur(o.x, o.z); if (h < 1) continue;
+    const cs_ = Math.cos(o.yaw), sn = Math.sin(o.yaw), pts = [];
+    for (const [lx, lz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { const x = o.x + lx * o.hx * cs_ + lz * o.hz * sn, z = o.z - lx * o.hx * sn + lz * o.hz * cs_; pts.push([x, z], [x + ux * h * k * .9, z + uz * h * k * .9]); }
+    pts.sort((p, q) => p[0] - q[0] || p[1] - q[1]);   // enveloppe convexe (chaîne monotone) du pied et de son ombre
+    const cr = (o_, a_, b_) => (a_[0] - o_[0]) * (b_[1] - o_[1]) - (a_[1] - o_[1]) * (b_[0] - o_[0]), bas = [], haut = [];
+    for (const p of pts) { while (bas.length > 1 && cr(bas[bas.length - 2], bas[bas.length - 1], p) <= 0) bas.pop(); bas.push(p); }
+    for (const p of pts.slice().reverse()) { while (haut.length > 1 && cr(haut[haut.length - 2], haut[haut.length - 1], p) <= 0) haut.pop(); haut.push(p); }
+    const env = bas.slice(0, -1).concat(haut.slice(0, -1));
+    c.beginPath(); env.forEach((p, i) => { const [X, Y] = P(p[0], p[1]); i ? c.lineTo(X, Y) : c.moveTo(X, Y); }); c.closePath(); c.fill();
+  }
+  const d = c.getImageData(0, 0, N, N).data, r = new Uint8Array(N * N);
+  for (let i = 0; i < r.length; i++) r[i] = d[i * 4];
+  const t = new THREE.DataTexture(r, N, N, THREE.RedFormat, THREE.UnsignedByteType);
+  t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearMipmapLinearFilter; t.generateMipmaps = true; t.needsUpdate = true;
+  U_CANOPEE.value = t;
 }
 
 // ------------------------------------------------------------------ kit de village (Blender : blender/dragonflyer/maisons.py → assets/village.glb)
@@ -2597,9 +2699,9 @@ function creerHerbe() {
   g.setAttribute("iOff", new THREE.InstancedBufferAttribute(off, 3)); g.instanceCount = N;
   const m = new THREE.ShaderMaterial({
     side: THREE.DoubleSide,
-    uniforms: { tH: { value: tH }, tTerr: { value: tTerr }, tBruit: { value: tBruit }, tHum: { value: tHum }, uTemps: U_TEMPS, uCentre: { value: new THREE.Vector3() }, uR: { value: R }, fogDensity: U_HEURE, uVillages: { value: [0, 1, 2, 3].map(() => new THREE.Vector4(1e6, 1e6, 0, 0)) }, tMasque: { value: null } },
+    uniforms: { tH: { value: tH }, tTerr: { value: tTerr }, tBruit: { value: tBruit }, tHum: { value: tHum }, uTemps: U_TEMPS, uCentre: { value: new THREE.Vector3() }, uR: { value: R }, fogDensity: U_HEURE, uVillages: { value: [0, 1, 2, 3].map(() => new THREE.Vector4(1e6, 1e6, 0, 0)) }, tMasque: { value: null }, tCanopee: U_CANOPEE },
     vertexShader: `
-      uniform sampler2D tH, tTerr, tBruit, tHum; uniform float uTemps, uR; uniform vec3 uCentre; uniform vec4 uVillages[4]; uniform sampler2D tMasque;
+      uniform sampler2D tH, tTerr, tBruit, tHum, tCanopee; uniform float uTemps, uR; uniform vec3 uCentre; uniform vec4 uVillages[4]; uniform sampler2D tMasque;
       attribute vec3 iOff; attribute float aCote, aFleur;
       varying vec3 vW, vCol; varying float vCote, vSh, vFleur;
       ${GLSL_HAUTEUR()}
@@ -2627,7 +2729,7 @@ function creerHerbe() {
         grassC = mix(grassC, vec3(0.03, 0.075, 0.02), hum * 0.7) * (0.75 + 0.5 * n4.r);
         vCol = mix(grassC * 0.8, grassC * 1.35 + vec3(0.02, 0.025, 0.0), aCote) * (0.85 + 0.3 * fract(rnd * 13.0));   // pied des touffes moins noir
         if (fl > 0.5) { float c = fract(rnd * 71.0); vCol = c < 0.3 ? vec3(0.9, 0.85, 0.75) : c < 0.55 ? vec3(0.95, 0.75, 0.1) : c < 0.8 ? vec3(0.85, 0.3, 0.55) : vec3(0.35, 0.45, 0.95); }
-        vCote = aCote; vSh = te.z; vFleur = fl;
+        vCote = aCote; vSh = te.z * (1.0 - 0.5 * textureLod(tCanopee, tuv, 0.0).r); vFleur = fl;
         gl_Position = projectionMatrix * viewMatrix * vec4(vW, 1.0);
       }`,
     fragmentShader: `
@@ -2666,7 +2768,7 @@ function creerHerbe() {
         vec4 te = textureLod(tTerr, (p + MONDE * 0.5) / MONDE, 0.0);
         vec2 nxz = te.xy * 2.0 - 1.0; float pente = 1.0 - sqrt(max(0.0, 1.0 - dot(nxz, nxz)));
         float h = hTerrain(p);
-        float s = (1.0 - smoothstep(uR * 0.6, uR * 0.95, d)) * smoothstep(1.5, 3.0, h) * (1.0 - smoothstep(0.35, 0.5, pente)) * (0.15 + pow(rnd, 4.0) * 1.3);
+        float s = (1.0 - smoothstep(uR * 0.6, uR * 0.95, d)) * smoothstep(1.5, 3.0, h) * (1.0 - smoothstep(0.35, 0.5, pente)) * (0.12 + pow(rnd, 4.0) * 0.9);
         float a = rnd * 50.0; mat2 rt = mat2(cos(a), -sin(a), sin(a), cos(a));
         vec3 q = position * s; q.xz = rt * q.xz; vN = normal; vN.xz = rt * vN.xz;
         vW = vec3(p.x, h - s * 0.25, p.y) + q; vSh = te.z;
@@ -2677,8 +2779,9 @@ function creerHerbe() {
       ${GLSL_ATMO}
       void main() {
         vec3 n = normalize(vN); vec4 t = texture(tRoche, vW.xz * 0.6 + vW.y * 0.3);
-        vec3 alb = mix(vec3(0.09, 0.09, 0.085), vec3(0.32, 0.31, 0.29), t.a) * (0.8 + 0.4 * n.y);
-        vec3 col = alb * (SUN_COL * 3.0 * vSh * max(dot(n, SUN_DIR), 0.0) + SKY_ZEN * 1.5 * (0.6 + 0.4 * n.y) + SKY_HOR * 0.4);
+        vec3 alb = mix(vec3(0.07, 0.065, 0.055), vec3(0.26, 0.23, 0.19), t.a) * (0.8 + 0.4 * n.y);   // pierre chaude, comme les rochers du kit
+        alb = mix(alb, vec3(0.06, 0.1, 0.025), smoothstep(0.6, 0.9, n.y) * 0.6);                   // un peu de mousse sur le dessus
+        vec3 col = alb * (SUN_COL * 3.0 * vSh * max(dot(n, SUN_DIR), 0.0) + SKY_ZEN * 0.8 * (0.6 + 0.4 * n.y) + SKY_HOR * 0.5);
         col = atmo(col, vW);
         gl_FragColor = vec4(col, 1.0);
         #include <tonemapping_fragment>
@@ -3715,6 +3818,7 @@ function image(now, dtForce) {
   if (sc.right !== tO) { sc.left = sc.bottom = -tO; sc.right = sc.top = tO; sc.updateProjectionMatrix(); soleil.shadow.normalBias = tO < 20 ? .025 : .04; }
   const pas0 = 2 * tO / Q.ombre; _cO.set(Math.round(centreOmbre.x / pas0) * pas0, centreOmbre.y, Math.round(centreOmbre.z / pas0) * pas0);   // pas de scintillement en marchant
   soleil.position.copy(_cO).addScaledVector(SOLEIL, 300); soleil.target.position.copy(_cO);
+  U_OMBRE_C.value.set(_cO.x, _cO.z, etat.sol === "pied" || dedans ? tO : .001);   // à pied : les ombres peintes s'effacent là où la vraie carte d'ombres agit
   if ((triT -= dt) < 0) { triT = .25; trierNuages(); majArbres(); majNature(); }
   majHerbe();
   const nuage = dansNuage(); $("voile").style.opacity = nuage.toFixed(2);
@@ -4993,7 +5097,7 @@ async function demarrer() {
     VILLAGES.slice(0, 4).forEach((v, i) => herbe.material.uniforms.uVillages.value[i].set(v.place.x, v.place.z, Math.max(25, (v.rayon || 50) - 12), 0));
     chrono("paysages"); await creerPaysages(); chrono("caverne"); await creerCaverne(); creerFollets(); creerRampants(); creerEpeeMain();
     await progression(.76, "Planting the forests…");
-    await chargerArbresKit(); creerArbres(); await chargerNature(); semerNature();
+    await chargerArbresKit(); creerArbres(); await chargerNature(); semerNature(); ombresPeintes();
     chrono("arbres+feux"); creerFeux(); creerAnneaux(); creerNid(); creerHutte(); creerPeche(); creerMouettes(); chrono("bebes+sauvages"); await creerBebes(); await creerSauvages(); chrono("animaux"); await creerAnimaux(); chrono("villageois"); await creerVillageois(); chrono("carte");
     majBandeau(); dessinerCarte();
     await progression(.85, "Mixing the colours…");
@@ -5082,7 +5186,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
 })();
 </script>
 <script>
-window.DRAGONFLYER_VERSION = "2026.10.31-3"; // à changer à chaque modification du jeu
+window.DRAGONFLYER_VERSION = "2026.10.31-4"; // à changer à chaque modification du jeu
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
