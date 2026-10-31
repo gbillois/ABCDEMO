@@ -11,6 +11,8 @@ const TAILLE_MAX = 220;       // octets par message reçu
 const POS_PAR_SECONDE = 15;   // positions acceptées par joueur et par seconde
 const PHRASE_DELAI_MS = 1500; // délai minimal entre deux phrases d'un même joueur
 const NB_DONS = 64;           // objets qu'on peut se donner : numéros de la liste DONS du jeu
+const VAGUES_DUREE = 300;     // les vagues de la piscine durent 5 minutes
+const VAGUES_DELAI_MS = 1000; // délai minimal entre deux appuis sur le bouton des vagues
 const DON_DELAI_MS = { don: 700, merci: 150 }; // délai minimal entre deux cadeaux (ou deux « merci ») d'un même joueur
 const CODE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/;
 const MODES = 5;              // 0 immobile, 1 marche, 2 nage, 3 échelle, 4 toboggan
@@ -179,12 +181,21 @@ export class Salle {
       const vers = this.ctx.getWebSockets().find(o => this.place(o) === msg.a);
       if (vers) { try { vers.send(JSON.stringify({ t: msg.t, s, o: msg.o })); } catch (e) {} }
     } else if (msg.t === "monde") {
-      // le monde de l'hôte : l'heure du jour (0 à 1) et le thème (0 normal, 1 Halloween) ; rien d'autre
+      // le monde de l'hôte : l'heure du jour (0 à 1), le thème (0 normal, 1 Halloween), la boum de la piscine (0 ou 1)
+      // et où en sont les vagues (−1 : arrêtées, sinon secondes depuis le début, 0 à VAGUES_DUREE) ; rien d'autre
       if (!ws.deserializeAttachment()?.hote || now - (d.monde || 0) < 900) return;
       if (typeof msg.h !== "number" || !Number.isFinite(msg.h) || msg.h < 0 || msg.h > 1 || (msg.th !== 0 && msg.th !== 1)) return;
+      if ((msg.b !== undefined && msg.b !== 0 && msg.b !== 1) || (msg.v !== undefined && (!Number.isInteger(msg.v) || msg.v < -1 || msg.v > VAGUES_DUREE))) return;
       d.monde = now;
       this.monde = { t: "monde", s, h: Math.round(msg.h * 1000) / 1000, th: msg.th };
+      if (msg.b !== undefined) this.monde.b = msg.b;
+      if (msg.v !== undefined) this.monde.v = msg.v;
       this.diffuser(this.monde, ws);
+    } else if (msg.t === "vagues") {
+      // n'importe qui peut appuyer sur le bouton des vagues : 1 pour les lancer, 0 pour les arrêter
+      if ((msg.on !== 0 && msg.on !== 1) || now - (d.vagues || 0) < VAGUES_DELAI_MS) return;
+      d.vagues = now;
+      this.diffuser({ t: "vagues", s, on: msg.on }, ws);
     }
   }
 

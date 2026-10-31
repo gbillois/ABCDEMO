@@ -161,6 +161,29 @@ test("monde de l'hôte : seul l'hôte l'envoie, bornes vérifiées, gardé pour 
   assert.equal(invite.messages.at(-1).hote, undefined, "la marque d'hôte n'est pas diffusée");
 });
 
+test("monde de l'hôte : la boum et les vagues, en liste fermée", async () => {
+  const hote = new Socket(); hote.serializeAttachment({ s: 0, hote: true }); const invite = joueur(1);
+  const salle = salleAvec(hote, invite);
+  await envoyer(salle, hote, { t: 'monde', h: .5, th: 0, b: 2 });
+  await envoyer(salle, hote, { t: 'monde', h: .5, th: 0, v: 12.5 });
+  await envoyer(salle, hote, { t: 'monde', h: .5, th: 0, v: 301 });
+  assert.equal(invite.messages.length, 0, 'boum ou vagues hors bornes refusées');
+  await envoyer(salle, hote, { t: 'monde', h: .5, th: 0, b: 1, v: 42 });
+  assert.deepEqual(invite.messages.at(-1), { t: 'monde', s: 0, h: .5, th: 0, b: 1, v: 42 });
+  assert.deepEqual(salle.monde, { t: 'monde', s: 0, h: .5, th: 0, b: 1, v: 42 }, 'gardé pour les arrivants');
+});
+
+test('bouton des vagues : 0 ou 1, envoyé aux autres, une fois par seconde au plus', async () => {
+  const a = joueur(0), b = joueur(1), salle = salleAvec(a, b);
+  await envoyer(salle, b, { t: 'vagues', on: 'oui' });
+  assert.equal(a.messages.length, 0);
+  await envoyer(salle, b, { t: 'vagues', on: 1, texte: 'coucou' });
+  assert.deepEqual(a.messages.at(-1), { t: 'vagues', s: 1, on: 1 });
+  assert.equal(b.messages.length, 0, "pas renvoyé à celui qui appuie");
+  await envoyer(salle, b, { t: 'vagues', on: 0 });
+  assert.equal(a.messages.length, 1, 'une fois par seconde au plus');
+});
+
 test('se donner un objet : un numéro de la liste, seulement à celui qui le reçoit, merci en retour', async () => {
   const a = joueur(0), b = joueur(1), c = joueur(2), salle = salleAvec(a, b, c);
   await envoyer(salle, a, { t: 'don', a: 1, o: 3, texte: 'non transmis' });

@@ -106,6 +106,8 @@
 .menuJeu .vign{color:var(--ink)}
 .menuJeu .vign span{text-shadow:none}
 #gpPill{display:grid;place-items:center;cursor:default}
+html.clavier #actBtn::after,html.clavier #act2Btn::after,html.manette #actBtn::after,html.manette #act2Btn::after{display:inline-block;margin-left:8px;min-width:20px;padding:0 5px;border-radius:6px;background:rgba(255,255,255,.92);color:#1b1035;font-size:13px;line-height:20px;text-shadow:none;vertical-align:middle}
+html.clavier #actBtn::after{content:"E"}html.clavier #act2Btn::after{content:"F"}html.manette #actBtn::after{content:"A"}html.manette #act2Btn::after{content:"Y"}
 .gp-focus{outline:4px solid var(--sun)!important;outline-offset:3px;box-shadow:0 0 0 7px rgba(255,255,255,.85)!important}
 /* au moins 16 px dans les champs : sinon l'iPhone zoome quand on tape dedans */
 input,textarea,select{font-size:max(16px,1em)}
@@ -545,7 +547,7 @@ html.app .site{display:none!important}
     <div style="position:relative"><canvas id="mapc" width="640" height="640" style="touch-action:none"></canvas>
       <div style="position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px"><button id="mapPlus" class="btn" style="padding:6px 14px;font-size:22px">+</button><button id="mapMinus" class="btn" style="padding:6px 14px;font-size:22px">−</button></div></div>
     <div id="tpConf" class="tpConf" hidden><div><p id="tpTxt"></p><div class="row"><button id="tpOui" class="btn"><i data-ico="teleport"></i> Y aller</button><button id="tpNon" class="btn" style="background:#9aa0b4">Non</button></div></div></div>
-    <p class="small">Touche un <b>point violet</b> (ou n'importe quel endroit) pour t'y téléporter. Bleu : toi · jaune : les canards · violet clair : les personnages. Plus et moins pour zoomer, puis glisse le doigt pour bouger la carte.</p>
+    <p class="small">Touche un <b>point violet</b> pour t'y téléporter. Les points gris <b>?</b> sont des lieux pas encore découverts : va les visiter à pied ! Bleu : toi · jaune : les canards · petits points violets : les personnages. Plus et moins pour zoomer, puis glisse le doigt pour bouger la carte.</p>
     <div class="row"><button id="mapClose" class="btn">Fermer</button></div>
   </div>
 </div>
@@ -1412,6 +1414,7 @@ function updateBoum(dt, time, P, nightK) {
   if (night && !BOUM.wasNight) { BOUM.nights++; try { localStorage.setItem("pins-nuits", String(BOUM.nights)); } catch (e) {}
     BOUM.active = BOUM.nights % 3 === 0; if (BOUM.active && !paused) toast("🎉 Ce soir, c'est la BOUM à l'Aquaparc ! Ballons, bouées et musique : viens danser dans la piscine !", 4200); }
   BOUM.wasNight = night; if (!night) BOUM.active = false;
+  if (net?.invite?.boum !== undefined && BOUM.active !== net.invite.boum) { BOUM.active = net.invite.boum; if (BOUM.active && !paused) toast("🎉 C'est la BOUM à l'Aquaparc ! Viens danser dans la piscine !", 4200); }
   BOUM.g.visible = BOUM.active; BOUM.djBox.off = !BOUM.active;
   // l'Aquaparc est mieux éclairé la nuit (lumière douce dedans, eau qui brille)
   const inD = Math.hypot(P.x - DOME.x, P.z - DOME.z) < DOME.r; if (inD) hemi.intensity += .45 * nightK;
@@ -1435,8 +1438,14 @@ function updateBoum(dt, time, P, nightK) {
 }
 function pressWaves() {
   WAVE_BTN.btn.position.y = 1.07; setTimeout(() => WAVE_BTN.btn.position.y = 1.12, 250); tone(520, .08, "square", .06);
-  if (WAVES.t < 0) { WAVES.t = 0; tone(220, .5, "sawtooth", .07, 0, .1); tone(330, .5, "sawtooth", .07, 0, .6); toast("🌊 C'est parti pour 5 minutes de vagues ! Saute dans la grande piscine !", 3000); }
-  else { WAVES.t = Math.max(WAVES.t, WAVES.dur - 4); toast("Les vagues s'arrêtent… 🌊", 2000); } }
+  const on = WAVES.t < 0; lancerVagues(on);
+  if (net && net.s >= 0 && net.ws.readyState === 1) { net.ws.send(JSON.stringify({ t: "vagues", on: on ? 1 : 0 })); net.vaguesT = performance.now(); net.mondeT = 0; } }
+// lancer (ou arrêter) les vagues : son bouton, ou celui d'un ami de la partie (on ne l'entend que si on est à l'Aquaparc)
+function lancerVagues(on, ami) {
+  if (on === (WAVES.t >= 0) || (!on && WAVES.t >= WAVES.dur - 4)) return;
+  const ici = !ami || Math.hypot(player.position.x - DOME.x, player.position.z - DOME.z) < DOME.r + 10;
+  if (on) { WAVES.t = 0; if (ici) { tone(220, .5, "sawtooth", .07, 0, .1); tone(330, .5, "sawtooth", .07, 0, .6); toast(ami ? "🌊 Un ami a lancé les vagues ! Saute dans la grande piscine !" : "🌊 C'est parti pour 5 minutes de vagues ! Saute dans la grande piscine !", 3000); } }
+  else { WAVES.t = WAVES.dur - 4; if (ici) toast("Les vagues s'arrêtent… 🌊", 2000); } }
 function poolWaveH(x, z) { if (WAVES.amp <= 0) return 0; const ex = Math.min(x - POOL.x1, POOL.x2 - x), ez = Math.min(z - POOL.z1, POOL.z2 - z), edge = Math.max(0, Math.min(1, ex / 1.5, ez / 1.2));
   return .62 * WAVES.amp * edge * Math.sin((x - POOL.x1) * .75 - WAVES.t * 2.1); } // de vraies vagues : plus hautes et plus longues
 function updateWaves(dt, P) {
@@ -2544,10 +2553,10 @@ const gtCarpetTex = tex(256, (x, s) => {
 }
 // les bornes d'arcade : chaque borne lance un des trois mini-jeux
 const GT_GAMES = [
-  { name: "Tape-Taupe", info: "Tape vite les taupes quand elles sortent de leur trou !", col: "#ff4fd8", c3: 0xff4fd8 },
-  { name: "Panier Magique", info: "Touche l'écran (ou Espace) pour lancer le ballon dans le panier qui bouge !", col: "#ffc93c", c3: 0xffc93c },
-  { name: "Attrape-Étoiles", info: "Bouge le panier avec ton doigt (ou les flèches) et attrape les étoiles !", col: "#2fd3ff", c3: 0x2fd3ff },
-  { name: "Tower Defense", info: "Choisis une tour en bas, puis touche l'herbe pour la poser. Touche une tour pour l'améliorer. Arrête les monstres avant ta maison !", col: "#7cff6b", c3: 0x27ae60 },
+  { name: "Tape-Taupe", info: "Tape vite les taupes quand elles sortent de leur trou ! (Clavier : flèches et Espace)", col: "#ff4fd8", c3: 0xff4fd8 },
+  { name: "Panier Magique", info: "Touche l'écran (ou Espace, ou A) pour lancer le ballon dans le panier qui bouge !", col: "#ffc93c", c3: 0xffc93c },
+  { name: "Attrape-Étoiles", info: "Bouge le panier avec ton doigt (ou les flèches, ou le stick) et attrape les étoiles !", col: "#2fd3ff", c3: 0x2fd3ff },
+  { name: "Tower Defense", info: "Choisis une tour en bas, puis touche l'herbe pour la poser. Touche une tour pour l'améliorer. Arrête les monstres avant ta maison ! (Clavier : flèches, Espace pour poser, 1 2 3 pour la tour)", col: "#7cff6b", c3: 0x27ae60 },
 ];
 const gtScreens = GT_GAMES.map(() => { const c = document.createElement("canvas"); c.width = 128; c.height = 96; const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return { c, x: c.getContext("2d"), t }; });
 function drawScreens(time) {
@@ -2819,26 +2828,50 @@ function tdDraw(a, x) {
 const arcCv = $("arcCanvas"), arcX = arcCv.getContext("2d"); let arc = null;
 function openArcade(k) {
   const gm = GT_GAMES[k]; $("arcTitle").textContent = gm.name; $("arcTitle").style.color = gm.col; $("arcInfo").textContent = gm.info;
-  arc = { k, t: 20, score: 0, over: false, last: performance.now(), moles: Array.from({ length: 9 }, () => ({ up: 0, hit: 0 })), spawn: .4, hoopX: 160, hoopV: 90, ball: null, flash: 0, bx: 160, stars: [], starT: 0 };
+  arc = { k, t: 20, score: 0, over: false, last: performance.now(), cur: 4, curL: 0, cc: 0, cr: 0, vu: false, padX: 0, moles: Array.from({ length: 9 }, () => ({ up: 0, hit: 0 })), spawn: .4, hoopX: 160, hoopV: 90, ball: null, flash: 0, bx: 160, stars: [], starT: 0 };
   if (k === 3) tdInit(arc);
   $("arcAgain").hidden = true; ouvrir("arcadeView"); tone(660, .1, "square", .08); tone(990, .12, "square", .08, 0, .1); requestAnimationFrame(arcLoop);
 }
 function arcPos(e) { const r = arcCv.getBoundingClientRect(); return [(e.clientX - r.left) * 320 / r.width, (e.clientY - r.top) * 400 / r.height]; }
-arcCv.addEventListener("pointerdown", e => { if (!arc || arc.over) return; const [x, y] = arcPos(e);
+arcCv.addEventListener("pointerdown", e => { if (!arc) return; if (arc.over) { $("arcAgain").click(); return; } const [x, y] = arcPos(e); arc.vu = false;
+  arcToucher(x, y); if (arc.k === 2) arcCv.setPointerCapture(e.pointerId); });
+function arcToucher(x, y) {
   if (arc.k === 3) { tdClick(arc, x, y); return; }
   if (arc.k === 0) { const i = Math.floor(x / (320 / 3)), j = Math.floor((y - 90) / 100); if (i >= 0 && i < 3 && j >= 0 && j < 3) { const m = arc.moles[j * 3 + i]; if (m.up > 0) { m.up = 0; m.hit = .3; arc.score++; tone(880, .08, "square", .1); tone(1320, .08, "square", .08, 0, .06); } else tone(200, .06, "triangle", .05); } }
   if (arc.k === 1 && !arc.ball) { arc.ball = { x: 160, y: 360 }; whoosh(.3, .05, 500, 1500); }
-  if (arc.k === 2) { arc.bx = x; arcCv.setPointerCapture(e.pointerId); } });
+  if (arc.k === 2) arc.bx = x; }
 arcCv.addEventListener("pointermove", e => { if (arc && arc.k === 2 && e.buttons) arc.bx = arcPos(e)[0]; });
-addEventListener("keydown", e => { if (!arc || arc.over || $("arcadeView").hidden) return; if (arc.k === 1 && e.key === " " && !arc.ball) { arc.ball = { x: 160, y: 360 }; whoosh(.3, .05, 500, 1500); } });
+// au clavier ou à la manette : un curseur (les trous des taupes, les cases et les niveaux du tower defense) et une touche pour agir
+function arcCentre(a) { // là où le curseur « touche »
+  if (a.k === 0) return [53 + (a.cur % 3) * 107, 140 + Math.floor(a.cur / 3) * 100];
+  if (a.k === 3) return a.td.mode === "menu" ? [160, 182 + a.curL * 90] : [a.cc * TD_C + TD_C / 2, TD_TOP + a.cr * TD_C + TD_C / 2];
+  return [160, 200]; }
+function arcBouger(dx, dy) { const a = arc; if (!a || a.over || (a.k !== 0 && a.k !== 3)) return; a.vu = true; tone(700, .03, "square", .03);
+  if (a.k === 0) a.cur = (Math.floor(a.cur / 3) + dy + 3) % 3 * 3 + (a.cur % 3 + dx + 3) % 3;
+  else if (a.td.mode === "menu") a.curL = (a.curL + dy + TD_LEVELS.length) % TD_LEVELS.length;
+  else { a.cc = (a.cc + dx + 8) % 8; a.cr = (a.cr + dy + 8) % 8; } }
+function arcAgir() { const a = arc; if (!a) return; if (a.over) { $("arcAgain").click(); return; } if (a.k === 2) return; if (a.k !== 1) a.vu = true; arcToucher(...arcCentre(a)); }
+function arcTour(i) { const T = arc?.k === 3 && arc.td; if (T && T.mode === "play") { T.sel = (i + 3) % 3; tone(880, .05, "square", .05); } }
+function arcCurseur(a, x) { if (!a.vu || a.over || (a.k !== 0 && a.k !== 3)) return; x.save(); x.strokeStyle = "#ffe066"; x.lineWidth = 4; x.setLineDash([9, 5]); x.beginPath();
+  if (a.k === 0) { const [cx] = arcCentre(a); x.roundRect(cx - 50, 92 + Math.floor(a.cur / 3) * 100, 100, 96, 12); }
+  else if (a.td.mode === "menu") x.roundRect(34, 144 + a.curL * 90, 252, 76, 16);
+  else if (a.td.mode === "play") x.rect(a.cc * TD_C + 2, TD_TOP + a.cr * TD_C + 2, TD_C - 4, TD_C - 4);
+  x.stroke(); x.restore(); }
+const ARC_DIR = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1], q: [-1, 0], a: [-1, 0], d: [1, 0], z: [0, -1], w: [0, -1], s: [0, 1] };
+addEventListener("keydown", e => { if (!arc || $("arcadeView").hidden) return; const k = e.key.toLowerCase(), d = ARC_DIR[k];
+  if (d && arc.k !== 2) { e.preventDefault(); arcBouger(d[0], d[1]); }
+  else if (k === " " || k === "enter" || k === "e") { e.preventDefault(); if (!e.repeat) arcAgir(); }
+  else if (k === "1" || k === "2" || k === "3") arcTour(+k - 1);
+  else if (k === "tab") { e.preventDefault(); if (arc.k === 3) arcTour(arc.td.sel + 1); }
+  else if (k === "escape") $("arcClose").click(); }, true);
 function arcLoop(now) {
   if (!arc || $("arcadeView").hidden) return; const dt = Math.min(.05, (now - arc.last) / 1000); arc.last = now; const a = arc, x = arcX;
-  if (a.k === 3) { tdUpdate(a, dt); tdDraw(a, x); requestAnimationFrame(arcLoop); return; }
+  if (a.k === 3) { tdUpdate(a, dt); tdDraw(a, x); arcCurseur(a, x); requestAnimationFrame(arcLoop); return; }
   if (!a.over) { a.t -= dt;
     if (a.k === 0) { a.spawn -= dt; if (a.spawn < 0) { a.spawn = .45 + Math.random() * .4; const free = a.moles.filter(m => m.up <= 0); if (free.length) free[Math.floor(Math.random() * free.length)].up = .8 + Math.random() * .4; } a.moles.forEach(m => { if (m.up > 0) m.up -= dt; if (m.hit > 0) m.hit -= dt; }); }
     if (a.k === 1) { a.hoopX += a.hoopV * dt; if (a.hoopX < 50 || a.hoopX > 270) { a.hoopV = -a.hoopV; a.hoopX = Math.max(50, Math.min(270, a.hoopX)); }
       if (a.ball) { a.ball.y -= 520 * dt; if (a.ball.y < 95) { if (Math.abs(a.ball.x - a.hoopX) < 26) { a.score++; a.flash = .6; a.hoopV *= 1.12; tone(784, .1, "triangle", .12); tone(1046, .15, "triangle", .12, 0, .1); } else tone(220, .12, "triangle", .06); a.ball = null; } } if (a.flash > 0) a.flash -= dt; }
-    if (a.k === 2) { if (keys["arrowleft"] || keys["q"] || keys["a"]) a.bx -= 260 * dt; if (keys["arrowright"] || keys["d"]) a.bx += 260 * dt; a.bx = Math.max(35, Math.min(285, a.bx));
+    if (a.k === 2) { if (keys["arrowleft"] || keys["q"] || keys["a"]) a.bx -= 260 * dt; if (keys["arrowright"] || keys["d"]) a.bx += 260 * dt; a.bx = Math.max(35, Math.min(285, a.bx + a.padX * 260 * dt));
       a.starT -= dt; if (a.starT < 0) { a.starT = .5 + Math.random() * .4; a.stars.push({ x: 20 + Math.random() * 280, y: 40, v: 110 + Math.random() * 80 + (20 - a.t) * 4, gold: Math.random() < .15 }); }
       a.stars.forEach(s => s.y += s.v * dt); a.stars = a.stars.filter(s => { if (s.y > 355 && s.y < 385 && Math.abs(s.x - a.bx) < 38) { a.score += s.gold ? 3 : 1; tone(s.gold ? 1320 : 1046, .1, "sine", .12); return false; } return s.y < 410; }); }
     if (a.t <= 0) { a.t = 0; a.over = true; a.won = a.k === 2 ? Math.ceil(a.score / 2) : a.score; if (a.won > 0) gtAddTickets(a.won); sfx.win(); $("arcAgain").hidden = false; } }
@@ -2855,6 +2888,7 @@ function arcLoop(now) {
     if (a.flash > 0) { x.fillStyle = "#ffe066"; x.font = "bold 34px sans-serif"; x.fillText("PANIER !", 160, 220); } }
   if (a.k === 2) { a.stars.forEach(s => { x.fillStyle = s.gold ? "#ffb000" : "#ffe066"; x.font = (s.gold ? 40 : 28) + "px sans-serif"; x.fillText("★", s.x, s.y); });
     x.fillStyle = "#2fd3ff"; x.beginPath(); x.roundRect(a.bx - 38, 362, 76, 22, 8); x.fill(); x.fillStyle = "#1b1035"; x.fillRect(a.bx - 30, 366, 60, 6); }
+  arcCurseur(a, x);
   if (a.over) { x.fillStyle = "rgba(11,6,32,.85)"; x.fillRect(0, 130, 320, 140); x.fillStyle = "#ffffff"; x.font = "bold 28px sans-serif"; x.fillText("Bravo ! ⭐ " + a.score, 160, 185); x.fillStyle = "#ffe066"; x.font = "bold 24px sans-serif"; x.fillText("+" + a.won + " tickets 🎟️", 160, 230); }
   requestAnimationFrame(arcLoop);
 }
@@ -8454,7 +8488,7 @@ $("regFermer").onclick = () => $("resumeBtn").click();
 for (const id of ["mapClose", "shopClose", "arcClose", "prizeClose", "bfClose", "buyClose", "golfClose", "lockerClose", "multiClose", "partiesFermer", "sayClose"]) {
   const b = $(id); if (!b) continue; const boite = b.closest(".card"); if (!boite) continue;
   const x = document.createElement("button"); x.className = "xRouge"; x.setAttribute("aria-label", "Fermer"); x.onclick = e => { e.stopPropagation(); b.click(); }; boite.append(x);
-  b.hidden = true; b.style.display = "none"; const r = b.parentElement; if (r && r.classList.contains("row") && ![...r.children].some(c => c !== b && !c.hidden && c.style.display !== "none")) r.style.display = "none"; }
+  b.hidden = true; b.style.display = "none"; const r = b.parentElement; if (r && r.classList.contains("row") && ![...r.children].some(c => c !== b)) r.style.display = "none"; }
 $("resumeBtn").onclick = () => { sfx.click(); $("pauseView").hidden = true; paused = false; };
 function replay() {
   oublierObjectifs();
@@ -8492,7 +8526,8 @@ cv.addEventListener("pointerdown", e => { cid = e.pointerId; lx = e.clientX; ly 
 let camMain = -9, marcheT = 0; // dernière fois qu'on a tourné la caméra (en s) ; depuis quand on marche
 cv.addEventListener("pointermove", e => { if (e.pointerId !== cid) return; camMain = performance.now() / 1000; yaw -= (e.clientX - lx) * .008; pitch = Math.max(.06, Math.min(1.2, pitch + (e.clientY - ly) * .005)); lx = e.clientX; ly = e.clientY; });
 ["pointerup", "pointercancel"].forEach(ev => cv.addEventListener(ev, e => { if (e.pointerId === cid) cid = null; }));
-const keys = {}; addEventListener("keydown", e => { keys[e.key.toLowerCase()] = true; if (e.key === "Escape" && !paused) $("pauseBtn").click();
+if (matchMedia("(pointer: fine)").matches) document.documentElement.classList.add("clavier"); // les touches s'affichent sur les boutons d'action
+const keys = {}; addEventListener("keydown", e => { keys[e.key.toLowerCase()] = true; document.documentElement.classList.add("clavier"); if (e.key === "Escape" && !paused) $("pauseBtn").click();
   if (!paused && !e.repeat) { const k = e.key.toLowerCase(); if (k === "e" || k === " ") { e.preventDefault(); doAct(act1 || act2); } if (k === "f") doAct(act2); if (k === "t" || k === "enter") $("talkBtn").click(); } }); addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
 
 // dialogues
@@ -8611,6 +8646,16 @@ function pointsTP() { const L = [
     ["La ferme", (FARM.x1 + FARM.x2) / 2, FARM.z2 + 2.5], ["Le poney club", ARENA.x, ARENA.z - ARENA.rz - 3], ["Le cinéma", (CINE.x1 + CINE.x2) / 2, CINE.z1 - 2.5],
     ["La salle des fêtes", (FETE.x1 + FETE.x2) / 2, FETE.z2 + 2.5], ["La rivière sauvage", RDOCK.x, RDOCK.z]];
   if (HALLO.on) L.push(["Le manoir hanté", MANOR.x1 - 2.5, MANOR.door]); return L; }
+// Les lieux découverts (on est passé tout près à pied) : on peut s'y téléporter. À plusieurs, tous les lieux sont ouverts.
+const DECOUVERTS = new Set((() => { try { const v = JSON.parse(localStorage.getItem("pins-decouverts") || "[]"); return Array.isArray(v) ? v.filter(n => typeof n === "string") : []; } catch (e) { return []; } })());
+const tpOuvert = n => n === "Ton cottage" || DECOUVERTS.has(n) || !!(net && net.s >= 0);
+let decouvT = 0;
+function decouvrirTick(dt, P) {
+  if ((decouvT -= dt) > 0 || state !== "walk") return; decouvT = .5;
+  for (const [n, x, z] of pointsTP()) if (!DECOUVERTS.has(n) && n !== "Ton cottage" && Math.hypot(P.x - x, P.z - z) < 12) {
+    DECOUVERTS.add(n); try { localStorage.setItem("pins-decouverts", JSON.stringify([...DECOUVERTS])); } catch (e) {}
+    toast(`📍 Nouveau lieu découvert : ${n} ! Avec la carte, tu pourras t'y téléporter.`, 3200); sfx.duck(); }
+}
 function teleporter(x, z) {
   if (state === "drive") dismount(); if (state === "golf") golf3Stop();
   const P = player.position; P.set(x, 0, z); resolve(P, { x, z }); P.y = floorY({ x: P.x, y: 0, z: P.z }); prev.x = P.x; prev.z = P.z;
@@ -8624,11 +8669,11 @@ $("mapc").parentNode.append($("tpConf"));
 mc.addEventListener("pointerup", e => { const d = MAPV.drag; MAPV.drag = null; if (!d || d.moved) return;
   if (state !== "walk" && state !== "drive") { toast("Termine d'abord ce que tu fais, puis réessaie.", 2000); return; }
   const r = mc.getBoundingClientRect(), S = 640, k = mapK(), px = (e.clientX - r.left) * S / r.width, pz = (e.clientY - r.top) * S / r.height;
-  // un point violet tout près ? on va à ce lieu
-  let nom = null, x, z, best = 26; for (const [n, tx, tz] of pointsTP()) { const dd = Math.hypot((tx - MAPV.cx) * k + S / 2 - px, (tz - MAPV.cz) * k + S / 2 - pz); if (dd < best) { best = dd; nom = n; x = tx; z = tz; } }
-  if (!nom) { x = (px - S / 2) / k + MAPV.cx; z = (pz - S / 2) / k + MAPV.cz; x = Math.max(-WORLD + 2, Math.min(WORLD - 2, x)); z = Math.max(-WORLD + 2, Math.min(WORLD - 2, z));
-    if (inWater(x, z) || inPoolRect(x, z, -1) || Math.hypot(x - 120, z - 95) < 9.5) { toast("Là, c'est de l'eau ! Touche un autre endroit sur la carte.", 2200); return; } }
-  sfx.click(); tpVers = [x, z]; $("tpTxt").textContent = nom ? "Aller à : " + nom + " ?" : "Aller à cet endroit ?"; $("tpConf").hidden = false;
+  // on ne se téléporte qu'aux lieux découverts (les points violets) : le plus proche du doigt
+  let nom = null, x, z, best = 30; for (const [n, tx, tz] of pointsTP()) { const dd = Math.hypot((tx - MAPV.cx) * k + S / 2 - px, (tz - MAPV.cz) * k + S / 2 - pz); if (dd < best) { best = dd; nom = n; x = tx; z = tz; } }
+  if (!nom) { toast("Touche un point violet pour t'y téléporter 📍", 2200); return; }
+  if (!tpOuvert(nom)) { toast(`🔒 ${nom} : tu ne l'as pas encore découvert. Va d'abord le visiter à pied !`, 2800); return; }
+  sfx.click(); tpVers = [x, z]; $("tpTxt").textContent = "Aller à : " + nom + " ?"; $("tpConf").hidden = false;
 });
 function drawMap() {
   const S = 640, k = mapK(), X = x => (x - MAPV.cx) * k + S / 2, Z = z => (z - MAPV.cz) * k + S / 2;
@@ -8679,11 +8724,13 @@ function drawMap() {
     const fx = X(o.g.position.x), fz = Z(o.g.position.z); mx.fillStyle = ANIMAUX[s][3]; mx.strokeStyle = "#fff"; mx.lineWidth = 3; mx.beginPath(); mx.arc(fx, fz, 10, 0, 7); mx.fill(); mx.stroke();
     mx.textBaseline = "middle"; mx.font = '13px sans-serif'; mx.fillText(ANIMAUX[s][0], fx, fz + 1); mx.textBaseline = "alphabetic";
     const nm = nomJoueur(s); mx.font = '800 12px "Baloo 2",sans-serif'; mx.lineWidth = 3; mx.strokeStyle = "#fff"; mx.strokeText(nm, fx, fz - 14); mx.fillStyle = ANIMAUX[s][3]; mx.fillText(nm, fx, fz - 14); }
-  // les points de téléportation
-  mx.textAlign = "center"; for (const [n, tx, tz] of pointsTP()) { const qx = X(tx), qz = Z(tz); if (qx < -20 || qx > S + 20 || qz < -20 || qz > S + 20) continue;
-    mx.fillStyle = "#8e44ad"; mx.strokeStyle = "#fff"; mx.lineWidth = 3; mx.beginPath(); mx.arc(qx, qz, 9, 0, 7); mx.fill(); mx.stroke();
-    mx.fillStyle = "#fff"; mx.beginPath(); mx.arc(qx, qz, 3.2, 0, 7); mx.fill();
-    if (MAPV.z > 1.5) { mx.font = '800 13px "Baloo 2",sans-serif'; mx.lineWidth = 4; mx.strokeStyle = "#fff"; mx.strokeText(n, qx, qz - 14); mx.fillStyle = "#5b2a86"; mx.fillText(n, qx, qz - 14); } }
+  // les points de téléportation : gros points violets avec leur nom pour les lieux découverts, petits points gris « ? » pour les autres
+  mx.textAlign = "center"; for (const [n, tx, tz] of pointsTP()) { const qx = X(tx), qz = Z(tz), ok = tpOuvert(n); if (qx < -20 || qx > S + 20 || qz < -20 || qz > S + 20) continue;
+    mx.fillStyle = ok ? "#8e44ad" : "#9aa0b4"; mx.strokeStyle = "#fff"; mx.lineWidth = 3; mx.beginPath(); mx.arc(qx, qz, ok ? 12 : 8, 0, 7); mx.fill(); mx.stroke();
+    mx.fillStyle = "#fff"; mx.textBaseline = "middle";
+    if (ok) { mx.beginPath(); mx.arc(qx, qz, 4.5, 0, 7); mx.fill(); } else { mx.font = '800 11px "Baloo 2",sans-serif'; mx.fillText("?", qx, qz + 1); }
+    mx.textBaseline = "alphabetic";
+    if (ok) { mx.font = `800 ${MAPV.z > 1.5 ? 14 : 12}px "Baloo 2",sans-serif`; mx.lineWidth = 4; mx.strokeStyle = "#fff"; mx.strokeText(n, qx, qz - 17); mx.fillStyle = "#5b2a86"; mx.fillText(n, qx, qz - 17); } }
   const px = X(player.position.x), pz = Z(player.position.z); mx.save(); mx.translate(px, pz); mx.rotate(-player.rotation.y + Math.PI);
   mx.fillStyle = "#2e86de"; mx.strokeStyle = "#fff"; mx.lineWidth = 2; mx.beginPath(); mx.moveTo(0, -11); mx.lineTo(8, 8); mx.lineTo(-8, 8); mx.closePath(); mx.fill(); mx.stroke(); mx.restore();
 }
@@ -8995,7 +9042,7 @@ function ajouter(s, annonce) {
 }
 function retirer(s, annonce) {
   const o = net.autres.get(s); if (!o) return;
-  const nom = nomJoueur(s); scene.remove(o.g); if (o.boat) scene.remove(o.boat); libererPersonnage(o.g); net.autres.delete(s); net.profils.delete(s); majUI();
+  const nom = nomJoueur(s); scene.remove(o.g); if (o.boat) scene.remove(o.boat); if (o.buoy) scene.remove(o.buoy); libererPersonnage(o.g); net.autres.delete(s); net.profils.delete(s); majUI();
   if (annonce) toast(`${ANIMAUX[s][0]} ${nom} est parti.`);
 }
 // En partie, on porte la couleur de son animal (comme les autres nous voient).
@@ -9059,6 +9106,7 @@ function recevoir(data) {
   } else if (d.t === "m" && Number.isInteger(d.i) && d.i >= 0 && d.i < PHRASES.length) dire(d.s, d.i);
   else if (d.t === "don" && Number.isInteger(d.o) && d.o >= 0 && d.o < DONS.length && net.autres.has(d.s)) recevoirDon(d);
   else if (d.t === "merci" && Number.isInteger(d.o)) merciDon(d);
+  else if (d.t === "vagues" && (d.on === 0 || d.on === 1)) { lancerVagues(d.on === 1, true); if (net.hote) net.mondeT = 0; }
   else if (d.t === "monde" && !net.hote && d.s !== net.s && Number.isFinite(d.h) && d.h >= 0 && d.h <= 1) recevoirMonde(d);
 }
 // Jouer à plusieurs : celui qui a lancé la partie (l'hôte) garde son monde (l'heure du jour, le thème) et les invités le voient ;
@@ -9068,16 +9116,20 @@ function recevoirMonde(d) {
   if (net.invite.cible === undefined) dayT = d.h; // en arrivant : tout de suite l'heure de l'hôte ; ensuite updateDayNight la suit en douceur
   net.invite.cible = d.h; dayFF = null;
   const th = d.th === 1; if (th !== HALLO.on) mettreHalloween(th);
+  if (d.b === 0 || d.b === 1) net.invite.boum = d.b === 1; // la boum de la piscine : celle de l'hôte
+  // les vagues : on suit l'hôte (sauf juste après avoir appuyé soi-même, le temps que l'appui lui arrive)
+  if (Number.isInteger(d.v) && d.v >= -1 && d.v <= WAVES.dur && performance.now() - (net.vaguesT || -1e4) > 3000) {
+    if (d.v < 0) lancerVagues(false, true); else { if (WAVES.t < 0) lancerVagues(true, true); if (Math.abs(WAVES.t - d.v) > 2) WAVES.t = d.v; } }
 }
 function quitter() {
   if (!net) return;
   const n = net; net = null; clearTimeout(n.attente);
   try { n.ws.close(1000); } catch (e) {}
-  for (const o of n.autres.values()) { scene.remove(o.g); if (o.boat) scene.remove(o.boat); libererPersonnage(o.g); }
+  for (const o of n.autres.values()) { scene.remove(o.g); if (o.boat) scene.remove(o.boat); if (o.buoy) scene.remove(o.buoy); libererPersonnage(o.g); }
   if (n.moi.bub) { player.remove(n.moi.bub); effacerLabel(n.moi.bub); }
   if (n.rdv) { scene.remove(n.rdv.sp); effacerLabel(n.rdv.sp); }
   for (const d of n.dons) rendreDon(d, false); // un cadeau pas encore arrivé revient dans le sac
-  if (n.invite) { dayT = n.invite.jour; dayFF = null; if (n.invite.hallo !== HALLO.on) mettreHalloween(n.invite.hallo); } // l'invité retrouve son monde
+  if (n.invite) { dayT = n.invite.jour; dayFF = null; if (n.invite.boum !== undefined) BOUM.active = false; if (n.invite.hallo !== HALLO.on) mettreHalloween(n.invite.hallo); } // l'invité retrouve son monde
   monLabel(null); majUI();
 }
 function majUI() {
@@ -9177,22 +9229,28 @@ function netTick(dt) {
       b.rotation.set(Math.sin(time * 1.3 + 1) * .015, h, Math.sin(time * 1.1 + 1) * .02);
       b.userData.wheel.rotation.x -= dt * o.vit * 2.2; b.userData.crank.rotation.x -= dt * o.vit * 2.2;
       animPerson(g, "pedal", b.userData.crank.rotation.x);
-    } else {
+    } else if (o.m === 4 && o.ty < 0) {
+      // sur la rivière sauvage (la seule glissade sous le niveau du sol) : sa bouée sous lui
       if (o.boat) o.boat.visible = false;
+      if (!o.buoy) { o.buoy = makeBuoy(); scene.add(o.buoy); }
+      o.buoy.visible = true; o.buoy.position.set(g.position.x, g.position.y + .3, g.position.z); o.buoy.rotation.y = g.rotation.y;
+      animPerson(g, "buoy", time);
+    } else {
+      if (o.boat) o.boat.visible = false; if (o.buoy) o.buoy.visible = false;
       o.walk += dt * 9; animPerson(g, MODES[o.m], o.m === 2 ? time * 4 : o.m === 3 ? time * 9 : o.walk, o.m === 1 ? o.vit : undefined);
     }
   }
   if (net.moi.bub && (net.moi.bubT -= dt) <= 0) { player.remove(net.moi.bub); net.moi.bub = null; }
   if (net.rdv) { const r = net.rdv; r.sp.position.y = r.h + Math.sin(time * 3) * .6; if ((r.t -= dt) <= 0) { scene.remove(r.sp); effacerLabel(r.sp); net.rdv = null; } }
   if (net.s < 0 || net.ws.readyState !== 1) return;
-  if (net.hote && (net.mondeT -= dt) <= 0) { net.mondeT = 1; net.ws.send(JSON.stringify({ t: "monde", h: Math.round(dayT * 1000) / 1000, th: HALLO.on ? 1 : 0 })); }
+  if (net.hote && (net.mondeT -= dt) <= 0) { net.mondeT = 1; net.ws.send(JSON.stringify({ t: "monde", h: Math.round(dayT * 1000) / 1000, th: HALLO.on ? 1 : 0, b: BOUM.active ? 1 : 0, v: WAVES.t < 0 ? -1 : Math.floor(WAVES.t) })); }
   // invité sans l'heure de l'hôte au bout de 8 s avec lui : le relais est trop ancien (ou l'hôte est parti), on le dit une fois
   if (!net.hote && !net.invite && net.autres.size && (net.sansMonde = (net.sansMonde || 0) + dt) > 8 && !net.ditSansMonde) { net.ditSansMonde = true; toast("⏰ Ici, chacun garde son heure : le serveur du jeu doit être mis à jour.", 4200); }
   net.hb -= dt; if ((net.sendT -= dt) > 0) return; net.sendT = .1;
   const P = player.position, ry = Math.atan2(Math.sin(player.rotation.y), Math.cos(player.rotation.y));
   const cur = { x: r2(P.x), y: r2(P.y), z: r2(P.z), r: r2(ry) }, L = net.last;
   const bouge = L && Math.hypot(cur.x - L.x, cur.z - L.z) > .02;
-  cur.m = state === "ride" || state === "boat" ? 4 : state.startsWith("climb") ? 3 : swimming ? 2 : bouge ? 1 : 0;
+  cur.m = state === "ride" || state === "boat" || state === "river" ? 4 : state.startsWith("climb") ? 3 : swimming ? 2 : bouge ? 1 : 0;
   if (L && L.x === cur.x && L.y === cur.y && L.z === cur.z && L.r === cur.r && L.m === cur.m && net.hb > 0) return;
   net.last = cur; net.hb = 2;
   net.ws.send(JSON.stringify({ t: "p", ...cur }));
@@ -9711,7 +9769,7 @@ $("pauseBtn").addEventListener("click", () => dessinerPersos());
 // le témoin de la manette (en haut et dans le menu)
 let gpNom = null;
 function temoinManette(g) { const n = g ? g.id.replace(/\s*\(.*?\)\s*/g, " ").trim().slice(0, 40) || "manette" : ""; if (n === gpNom) return; gpNom = n;
-  $("gpPill").hidden = !g; $("gpEtat").textContent = g ? "Manette reconnue : " + n : "Pas de manette"; }
+  document.documentElement.classList.toggle("manette", !!g); $("gpPill").hidden = !g; $("gpEtat").textContent = g ? "Manette reconnue : " + n : "Pas de manette"; }
 temoinManette(null);
 // le sac à dos : tout ce qu'on a acheté ou gagné (déjà gardé sur l'appareil : argent, maillots, courses, cadeaux)
 // manger : un aliment du sac donne 10 % de vitesse en plus pendant 2 minutes (marche et nage)
@@ -9866,7 +9924,14 @@ function manette() {
   const B = i => !!g.buttons[i]?.pressed, appui = i => B(i) && !GP.prec[i], ax = i => { const v = g.axes[i] ?? 0; return Math.abs(v) < .2 ? 0 : v; };
   const mx = THREE.MathUtils.clamp(ax(0) + (B(15) ? 1 : 0) - (B(14) ? 1 : 0), -1, 1), my = THREE.MathUtils.clamp(ax(1) + (B(13) ? 1 : 0) - (B(12) ? 1 : 0), -1, 1);
   const o = menuOuvert();
-  if (o) { // dans un menu : on choisit un bouton
+  if (o && o.id === "arcadeView" && arc) { // l'arcade : la croix (ou le stick) bouge le curseur, A agit, X et Y changent de tour, B ferme
+    if (GP.focus) poserFocus(null);
+    const dir = Math.max(Math.abs(mx), Math.abs(my)) > .5 ? (Math.abs(mx) > Math.abs(my) ? (mx > 0 ? "d" : "g") : (my > 0 ? "b" : "h")) : "";
+    if (dir && (dir !== GP.dir || now > GP.rep)) { arcBouger(dir === "d" ? 1 : dir === "g" ? -1 : 0, dir === "b" ? 1 : dir === "h" ? -1 : 0); GP.rep = now + (dir !== GP.dir ? 350 : 150); }
+    GP.dir = dir; arc.padX = arc.k === 2 ? mx : 0;
+    if (appui(0)) arcAgir(); if (appui(2) || appui(5)) arcTour((arc.td?.sel ?? 0) + 1); if (appui(3) || appui(4)) arcTour((arc.td?.sel ?? 0) - 1);
+    if (appui(1)) $("arcClose").click();
+  } else if (o) { // dans un menu : on choisit un bouton
     if (GP.moved && jid === null) { jx = jy = 0; GP.moved = false; }
     if (GP.focus && !o.contains(GP.focus)) poserFocus(null);
     const dir = Math.max(Math.abs(mx), Math.abs(my)) > .5 ? (Math.abs(mx) > Math.abs(my) ? (mx > 0 ? "d" : "g") : (my > 0 ? "b" : "h")) : "";
@@ -10244,7 +10309,7 @@ function majObjectif(dt) {
   fl.hidden = d < 3; const fx = animDir.x, fz = animDir.z, n = Math.hypot(fx, fz) || 1, ang = Math.atan2((dx * -fz + dz * fx) / n, (dx * fx + dz * fz) / n);
   fl.style.transform = `rotate(${(ang * 180 / Math.PI).toFixed(1)}deg)`;
 }
-function oublierObjectifs() { OBJ_FAITS.clear(); sauverObjectifs(); for (const k in ETAPES) delete ETAPES[k]; sauverEtapes(); objId = null; }
+function oublierObjectifs() { DECOUVERTS.clear(); try { localStorage.removeItem("pins-decouverts"); } catch (e) {} OBJ_FAITS.clear(); sauverObjectifs(); for (const k in ETAPES) delete ETAPES[k]; sauverEtapes(); objId = null; }
 // le bouton d'action de l'étape en cours : on avance d'une étape
 function faireEtape() { const o = objectifCourant(), k = etapeDe(o.id), e = o.etapes?.[k]; if (!e) return;
   ETAPES[o.id] = k + 1; sauverEtapes(); toast(typeof e.ok === "function" ? e.ok() : e.ok, 3200); [784, 1046].forEach((f, i) => tone(f, .1, "triangle", .07, 0, i * .09)); }
@@ -10317,7 +10382,7 @@ function loop() {
   if (state === "golf") golf3Tick(dt, time, P);
   if (state === "bowl") bowlTick(dt, time, P);
   updateRoad(dt, P); updateFete(dt, time, P); updateBerger(dt, time, P); updateCine(dt, time, P); BOWL.inside = inBowl(P.x, P.z); if (BOWL.inside !== BOWL.wasIn) { BOWL.wasIn = BOWL.inside; BOWL.roof.visible = !BOWL.inside; } updateCombat(dt, time, P); if (Math.abs(P.x + 126) < 60 && Math.abs(P.z - 120) < 60) updateAcroSwing(time); updatePartyPool(dt, time, P); updateManor(dt, time, P);
-  updateRacks();
+  updateRacks(); decouvrirTick(dt, P);
 
   if (state === "walk" || state === "top") {
     if (player.rotation.x || player.rotation.z) { player.rotation.x = player.rotation.z = 0; seatT = null; } if (!pLbl.visible) pLbl.visible = true; // jamais couché en marchant
@@ -10541,7 +10606,7 @@ function loop() {
   voituresTick(dt); trier(dt); suivreFeux(dt); majInterieurs(); if (!paused) majObjectif(dt); if (dejaVu && !ULTRA) adapterResolution(); // (Ultra : netteté fixe)
   suivreVitres(); gel(); if (COMPO) COMPO.render(); else renderer.render(scene, camera); dejaVu = true; majPerf();
 }
-window.__pins = { ouvrirCrea, openBook, lvTourner, toast, MANOR, get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; }, get pitch() { return pitch; }, get camDedans() { return camDedans; } };
+window.__pins = { ouvrirCrea, GT_CABS, BOUM, WAVES, tpOuvert, get net() { return net; }, get arc() { return arc; }, openBook, lvTourner, toast, MANOR, get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; }, get pitch() { return pitch; }, get camDedans() { return camDedans; } };
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
 // (jusqu'à 6 s sur iPad) : la barre continue d'avancer doucement et les messages changent, pour qu'on voie que ça avance
 calquesAO(); // (après les regroupements d'objets du chargement : les groupes faits à la fin comptent aussi)
@@ -10578,7 +10643,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.31-2"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.10.31-4"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
