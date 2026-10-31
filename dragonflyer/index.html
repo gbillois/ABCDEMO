@@ -2768,7 +2768,7 @@ function creerHerbe() {
         vec4 te = textureLod(tTerr, (p + MONDE * 0.5) / MONDE, 0.0);
         vec2 nxz = te.xy * 2.0 - 1.0; float pente = 1.0 - sqrt(max(0.0, 1.0 - dot(nxz, nxz)));
         float h = hTerrain(p);
-        float s = (1.0 - smoothstep(uR * 0.6, uR * 0.95, d)) * smoothstep(1.5, 3.0, h) * (1.0 - smoothstep(0.35, 0.5, pente)) * (0.15 + pow(rnd, 4.0) * 1.3);
+        float s = (1.0 - smoothstep(uR * 0.6, uR * 0.95, d)) * smoothstep(1.5, 3.0, h) * (1.0 - smoothstep(0.35, 0.5, pente)) * (0.12 + pow(rnd, 4.0) * 0.9);
         float a = rnd * 50.0; mat2 rt = mat2(cos(a), -sin(a), sin(a), cos(a));
         vec3 q = position * s; q.xz = rt * q.xz; vN = normal; vN.xz = rt * vN.xz;
         vW = vec3(p.x, h - s * 0.25, p.y) + q; vSh = te.z;
@@ -2779,8 +2779,9 @@ function creerHerbe() {
       ${GLSL_ATMO}
       void main() {
         vec3 n = normalize(vN); vec4 t = texture(tRoche, vW.xz * 0.6 + vW.y * 0.3);
-        vec3 alb = mix(vec3(0.09, 0.09, 0.085), vec3(0.32, 0.31, 0.29), t.a) * (0.8 + 0.4 * n.y);
-        vec3 col = alb * (SUN_COL * 3.0 * vSh * max(dot(n, SUN_DIR), 0.0) + SKY_ZEN * 1.5 * (0.6 + 0.4 * n.y) + SKY_HOR * 0.4);
+        vec3 alb = mix(vec3(0.07, 0.065, 0.055), vec3(0.26, 0.23, 0.19), t.a) * (0.8 + 0.4 * n.y);   // pierre chaude, comme les rochers du kit
+        alb = mix(alb, vec3(0.06, 0.1, 0.025), smoothstep(0.6, 0.9, n.y) * 0.6);                   // un peu de mousse sur le dessus
+        vec3 col = alb * (SUN_COL * 3.0 * vSh * max(dot(n, SUN_DIR), 0.0) + SKY_ZEN * 0.8 * (0.6 + 0.4 * n.y) + SKY_HOR * 0.5);
         col = atmo(col, vW);
         gl_FragColor = vec4(col, 1.0);
         #include <tonemapping_fragment>
