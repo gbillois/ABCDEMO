@@ -1,25 +1,25 @@
 // Service worker de DragonFlyer.
 // Le jeu est gardé sur l'appareil et marche sans réseau. Il ne change que lorsqu'on appuie
 // sur « Update » (écran titre ou réglages).
-const CACHE = "dragonflyer-v6";
+const CACHE = "dragonflyer-v9";
 const BASE = "https://cdn.jsdelivr.net/npm/three@0.170.0/";
 const FICHIERS = [
   "./", "./manifest.webmanifest", "./icone-192.png", "./icone-512.png", "./apple-touch-icon.png", "./blason.webp",
-  "./ui-cuir.webp", "./ui-parchemin.webp", "./ui-gravure.webp", "./assets/village.glb", "./assets/animaux.glb", "./assets/paysages.glb", "./assets/caverne.glb", "./assets/animations.glb", "./assets/arbres.glb", ...["ecorce", "pin", "feuilles", "loin_pin", "loin_feuillu"].map(n => `./assets/arbres_${n}.webp`), ...["fermier", "fermiere", "ancien", "forgeron", "pecheuse", "chef", "runa"].map(m => `./assets/villageois_${m}.glb`),
+  "./ui-cuir.webp", "./ui-parchemin.webp", "./ui-gravure.webp", "./assets/village.glb", "./assets/animaux.glb", "./assets/paysages.glb", "./assets/caverne.glb", "./assets/animations.glb", "./assets/arbres.glb", "./assets/nature.glb", ...["feuilles", "fleurs", "herbes", "roche", "chemin", "champignons"].map(n => `./assets/nature_${n}.webp`), ...["ecorce", "pin", "feuilles", "loin_pin", "loin_feuillu"].map(n => `./assets/arbres_${n}.webp`), ...["fermier", "fermiere", "ancien", "forgeron", "pecheuse", "chef", "runa"].map(m => `./assets/villageois_${m}.glb`),
   BASE + "build/three.module.js",
   BASE + "examples/jsm/loaders/GLTFLoader.js",
   BASE + "examples/jsm/libs/meshopt_decoder.module.js",
   BASE + "examples/jsm/utils/BufferGeometryUtils.js",
   BASE + "examples/jsm/utils/SkeletonUtils.js",
   ...["postprocessing/EffectComposer.js", "postprocessing/RenderPass.js", "postprocessing/UnrealBloomPass.js", "postprocessing/OutputPass.js", "postprocessing/ShaderPass.js",
-    "postprocessing/Pass.js", "postprocessing/MaskPass.js", "postprocessing/GTAOPass.js", "shaders/CopyShader.js", "shaders/LuminosityHighPassShader.js",
-    "shaders/OutputShader.js", "shaders/GTAOShader.js", "shaders/PoissonDenoiseShader.js", "math/SimplexNoise.js"].map(f => BASE + "examples/jsm/" + f),
+    "postprocessing/Pass.js", "postprocessing/MaskPass.js", "shaders/CopyShader.js", "shaders/LuminosityHighPassShader.js",
+    "shaders/OutputShader.js"].map(f => BASE + "examples/jsm/" + f),
 ];
 // Ce qu'on garde aussi au passage : la bibliothèque 3D et les polices.
 const EXTERIEURS = ["https://cdn.jsdelivr.net/npm/", "https://fonts.googleapis.com/", "https://fonts.gstatic.com/"];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FICHIERS)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FICHIERS.map(f => new Request(f, { cache: "reload" })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", e => {
