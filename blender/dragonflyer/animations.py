@@ -42,6 +42,10 @@ CLIPS = [("repos", "Idle_A"), ("marche", "Walking_A"), ("trot", "Running_B"), ("
          ("saut_debut", "Jump_Start"), ("saut_air", "Jump_Idle"), ("saut_fin", "Jump_Land"),
          ("epee", "Melee_1H_Attack_Slice_Horizontal"), ("parle", "Idle_B"), ("prendre", "PickUp")]
 AVANT = Vector((0, -1, 0))
+HAUT = Vector((0, 0, 1))
+# référence de torsion : l'axe « avant », sauf pour les os qui pointent déjà vers l'avant (les pieds) : là, l'axe vertical.
+# (un axe presque parallèle à l'os donne un repère instable qui bascule d'une image à l'autre : le pied vibrait au repos)
+REF = {n: (HAUT if n.startswith("Foot") else AVANT) for n in BONES}
 HANCHES = "hips"
 SERRE = {"repos": .2, "parle": .15, "marche": .5, "trot": .55, "course": .5, "saut_debut": .3, "saut_air": .25, "saut_fin": .3, "epee": 0, "prendre": .2}   # radians
 ECH = .5 / .406   # hauteur des hanches : héros / source
@@ -74,8 +78,9 @@ for nom, act_nom in CLIPS:
             Rs, ds = rot3(Mw), (src.matrix_world @ pb.tail - src.matrix_world @ pb.head).normalized()
             Rs0, ds0 = Rs_rest[n]
             delta = Rs @ Rs0.inverted()
-            p_src = delta @ (AVANT - ds0 * AVANT.dot(ds0))         # l'axe « avant » de la source, emporté par l'os
-            C0 = cadre(Dt_rest[n], AVANT); C1 = cadre(ds, p_src)
+            ref = REF[n]                                             # axe de référence stable pour la torsion de cet os
+            p_src = delta @ (ref - ds0 * ref.dot(ds0))               # l'axe de référence de la source, emporté par l'os
+            C0 = cadre(Dt_rest[n], ref); C1 = cadre(ds, p_src)
             Rw[n] = (C1 @ C0.transposed()) @ Rt_rest[n]
             if "Arm" in n or n.startswith("Hand"):   # bras ramenés le long du corps (toute la chaîne tourne ensemble autour de l'axe avant)
                 sx = 1 if n.endswith("L") else -1
@@ -90,6 +95,13 @@ for nom, act_nom in CLIPS:
         h = (src.matrix_world @ src.pose.bones[HANCHES].head - hips0) * ECH; h.y = 0
         pb = rig.pose.bones["Hips"]; pb.location = Rt_rest["Hips"].inverted() @ h; pb.keyframe_insert("location", frame=f - f0 + 1)
         pieds.append((src.matrix_world @ src.pose.bones["foot.l"].head).y - (src.matrix_world @ src.pose.bones[HANCHES].head).y)
+    if nom == "repos":   # contrôle : plus grand saut d'orientation d'une image à l'autre, os par os (en degrés)
+        sauts = {}
+        for fc in out.fcurves:
+            if "rotation_quaternion" not in fc.data_path: continue
+            b = fc.data_path.split('"')[1]; k = [p.co[1] for p in fc.keyframe_points]
+            sauts[b] = max(sauts.get(b, 0), max(abs(k[i + 1] - k[i]) for i in range(len(k) - 1)))
+        print("sauts repos", {b: round(v, 3) for b, v in sorted(sauts.items(), key=lambda x: -x[1])[:6]})
     duree = (f1 - f0) / fps
     vitesses[nom] = round(2 * (max(pieds) - min(pieds)) * ECH / max(duree, 1e-3), 2)   # vitesse naturelle du cycle, à l'échelle du héros
     print("clip", nom, f1 - f0 + 1, "images", round(duree, 2), "s, vitesse", vitesses[nom])
