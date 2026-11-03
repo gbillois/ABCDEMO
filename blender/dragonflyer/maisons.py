@@ -329,7 +329,7 @@ MAISONS_PROPS = {}
 sys.path[:0] = [os.path.join(os.path.dirname(os.path.abspath(__file__)), "village"), os.path.join(os.path.dirname(os.path.abspath(__file__)), "village", "maisons"),
                 os.path.join(os.path.dirname(os.path.abspath(__file__)), "village", "objets")]
 import importlib
-NOUVELLES = {"chaumiere"}
+NOUVELLES = {"chaumiere", "colombage"}
 def maison_nouvelle(nom, pied, port, inter, ancienne):
     T, U = Piece("tmp"), Piece("tmp2"); ancienne(T, U); T.bm.free(); U.bm.free()   # même tirage au sort qu'avant pour les autres maisons
     Pn, Vn = importlib.import_module(nom).construire()
