@@ -82,7 +82,14 @@ bois (prisme qui suit le toit), escalier, porte droite à linteau de bois, volet
 ## Implantation des villages (`implantation.js`)
 Outil prêt (12 vues par village dans le jeu + rapport chiffré + planche). Premier constat chiffré à Mistholm : un
 colombage avec le seuil à 2,05 m au-dessus du sol (marches jusqu'à 0,9 m seulement), soubassements découverts jusqu'à
-1,4 m, une porte bouchée. Tour 1 (Mistholm) chez l'inspecteur. Puis Saltcliff, Fernhollow, Stonebrook.
+1,4 m, une porte bouchée. Nouveau plan dans le jeu (batirVillage) : place pavée (9,5 m), trois rues vers le terrain le plus doux,
+jusqu'à six maisons autour de la place (porte vers la place), les autres le long des rues (façade côté rue), relief
+aplani sous les maisons et devant les portes (aplanir, puis texturesRelief refait), maisons d'une rue au profil
+adouci de la rue, carte du sol par village (SOL : terre battue rouge, pavés et dalles vert ; terrain et herbe la
+lisent), accessoires hors des rues et des portes, seuil gardé pour toutes les maisons (forge).
+- Mistholm : tour 1 (2 à 6) → tour 2 (7-8) → tour 3 PASSE (tout à 8). Suggestions : clôtures et potagers, axe
+  d'approche dégagé, palier devant la chaumière n°8, marche de la forge.
+- Saltcliff, Fernhollow, Stonebrook : en contrôle.
 
 ## Héros (agent séparé, worktree `worktree-agent-adb19e9034e46bb45`, voir `blender/dragonflyer/personnages/PASSATION.md` sur cette branche)
 - Tour 1 : proportions 8, visage 8, cheveux et vêtements 6, articulations 7, animations 5, style 8, coût 6 → À REFAIRE.
