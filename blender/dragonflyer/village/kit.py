@@ -99,7 +99,12 @@ def mur_moellons(P, a, b, z0, z1, ouvertures=(), taille=.5, saillie=.07):
                     if o0 > u0: nl.append((u0, o0))
                     if o1 < u1: nl.append((o1, u1))
                 libres = nl
-        pieces = [(-.1, lc0 - .1, True), (L - lc1 + .1, L + .1, True)] + [(u0, u1, False) for (u0, u1) in libres if u1 - u0 > .08]
+        c0, c1 = (-.1, lc0 - .1), (L - lc1 + .1, L + .1)
+        for (o0, o1, oz0, oz1) in ouvertures:   # une pierre d'angle s'arrête aussi au bord d'une ouverture (volets)
+            if oz0 < z + hz - .04 and z + .04 < oz1:
+                if o0 < c0[1] and o1 > c0[0]: c0 = (c0[0], max(c0[0] + .05, o0))
+                if o1 > c1[0] and o0 < c1[1]: c1 = (min(c1[1] - .05, o1), c1[1])
+        pieces = [(u0, u1, True) for (u0, u1) in (c0, c1) if u1 - u0 > .12] + [(u0, u1, False) for (u0, u1) in libres if u1 - u0 > .08]
         for (u0, u1, coin) in pieces:
             k = 1 if coin else max(1, round((u1 - u0) / (taille * 1.3)))
             cuts = sorted([u0, u1] + [u0 + (u1 - u0) * (i + P.R.uniform(-.25, .25)) / k for i in range(1, k)])
@@ -137,69 +142,103 @@ class ToitChaume:
     def dessus(s, x, y):
         z, cr = s.forme(x, y); pente = s.kc if cr else s.k
         d = (s.zf - z) / max(pente, .3)
-        u = y if cr else x; b = math.sin(u * 13.0 + math.sin(u * 3.1) * 2) * .5 + math.sin(u * 5.3 + 1.3) * .5   # mèches : creux et bosses le long de la pente
-        return z - .12 * ((d / .5) % 1.0) + .025 * b, d, cr
-    def construire(s, P, pas=.22, pas_x=.13):
-        R = P.R; cx, cy, X, Y = s.cx, s.cy, s.X, s.Y
-        nx, ny = int(2 * X / pas_x) + 1, int(2 * Y / pas) + 1
-        bandes = [R.uniform(-1, 1) for _ in range(97)]
-        def coord(i, j):
-            x = cx - X + 2 * X * i / (nx - 1); y = cy - Y + 2 * Y * j / (ny - 1)
-            ex, ey = (x - cx) / X, (y - cy) / Y; r = max(abs(ex), abs(ey))
-            if r > 0:   # coins à peine arrondis
-                m = math.sqrt(ex * ex + ey * ey) / r; f = 1 / (1 + (m - 1) * .22); x = cx + (x - cx) * f; y = cy + (y - cy) * f
-            return x, y
-        def teinte(x, y, d, cr):
-            u = y if cr else x                                     # mèches dans le sens de la pente : bandes de 30 cm
-            b = bandes[int((u + 50) / .26) % 97] * .6 + (math.sin(u * 13.0 + math.sin(u * 3.1) * 2) * .5 + math.sin(u * 5.3 + 1.3) * .5) * .4
-            c = melange(M("chaume").teintes[0], M("chaume").teintes[1 if b < 0 else 2], abs(b))
-            c = melange(c, M("chaume_f").teintes[0], .6 * (((d / .5) % 1.0) ** 2.5))    # ombre sous chaque rang
-            c = melange(c, M("chaume_f").teintes[1], .3 * min(1, d / 3.2))              # le haut plus clair, le bas plus vieux
-            c = melange(c, (1, .93, .7), .12 * max(0, 1 - d / 1.2))
-            nn = math.sin(x * 2.3 + y * .7) * math.sin(x * .9 - y * 2.1) + R.uniform(-.1, .1)
-            if nn > .82 and d > 1.2: c = melange(c, M("mousse").teintes[0], .5)            # petites plaques de mousse, rares
-            return c
-        bm, col, ls = P.bm, P.col, P.lisse
+        return z + .06, d, cr   # dessus des rangs de chaume
+    def _contours(s, zc, pas=.1):
+        """Courbes de niveau du dessus lisse à la hauteur zc (carrés de marche), en polylignes."""
+        cx, cy, X, Y = s.cx, s.cy, s.X, s.Y
+        nx, ny = int(2 * X / pas) + 1, int(2 * Y / pas) + 1
+        xs = [cx - X + 2 * X * i / (nx - 1) for i in range(nx)]; ys = [cy - Y + 2 * Y * j / (ny - 1) for j in range(ny)]
+        F = [[s.forme(x, y)[0] - zc for y in ys] for x in xs]
+        segs = []
+        def pt(i0, j0, i1, j1):
+            a, b = F[i0][j0], F[i1][j1]; t = a / (a - b)
+            return (round(xs[i0] + (xs[i1] - xs[i0]) * t, 5), round(ys[j0] + (ys[j1] - ys[j0]) * t, 5))
+        for i in range(nx - 1):
+            for j in range(ny - 1):
+                c = [(i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)]
+                e = []
+                for k in range(4):
+                    (a0, b0), (a1, b1) = c[k], c[(k + 1) % 4]
+                    if (F[a0][b0] > 0) != (F[a1][b1] > 0): e.append(pt(a0, b0, a1, b1))
+                if len(e) == 2: segs.append((e[0], e[1]))
+                elif len(e) == 4: segs += [(e[0], e[1]), (e[2], e[3])]
+        voisins = {}
+        for a, b in segs: voisins.setdefault(a, []).append(b); voisins.setdefault(b, []).append(a)
+        vus, lignes = set(), []
+        for depart in sorted(voisins, key=lambda p: len(voisins[p])):
+            if depart in vus: continue
+            ligne = [depart]; vus.add(depart); cur = depart
+            while True:
+                nxt = [q for q in voisins[cur] if q not in vus]
+                if not nxt: break
+                cur = nxt[0]; ligne.append(cur); vus.add(cur)
+            if len(ligne) > 3: lignes.append(ligne)
+        return lignes
+    def _pente(s, x, y):
+        e = .05; gx = (s.forme(x + e, y)[0] - s.forme(x - e, y)[0]) / (2 * e); gy = (s.forme(x, y + e)[0] - s.forme(x, y - e)[0]) / (2 * e)
+        l = math.hypot(gx, gy) or 1; return -gx / l, -gy / l
+    def dedans(s, x, y): return abs(x - s.cx) <= s.X + 1e-6 and abs(y - s.cy) <= s.Y + 1e-6
+    def construire(s, P, pas=.3, dz=.3, pas_meche=.11):
+        """Coque grossière (forme, dessous, rebord), puis le chaume posé en RANGS : chaque rang suit une courbe de niveau
+        du toit, descend la pente en recouvrant le rang du dessous, et finit en mèches de longueurs inégales.
+        Le rang du bas fait la frange de l'avant-toit."""
+        R = P.R; cx, cy, X, Y = s.cx, s.cy, s.X, s.Y; bm, col, ls = P.bm, P.col, P.lisse
         def quad(a, b, c, d_):
             try: f = bm.faces.new((a, b, c, d_)); f[ls] = 1
             except ValueError: pass
+        # 1. coque : dessus sombre (on ne le voit qu'entre les rangs), dessous en paille, rebord
+        nx, ny = int(2 * X / pas) + 1, int(2 * Y / pas) + 1
         Vd = [[None] * ny for _ in range(nx)]; Vs = [[None] * ny for _ in range(nx)]
         for i in range(nx):
             for j in range(ny):
-                x, y = coord(i, j); z, d, cr = s.dessus(x, y)
-                v = bm.verts.new((x, y, z)); v[col] = (*teinte(x, y, d, cr), 1); Vd[i][j] = v
-                w = bm.verts.new((cx + (x - cx) * .97, cy + (y - cy) * .97, s.forme(x, y)[0] - s.ep)); w[col] = (*M("chaume_f").teintes[0], 1); Vs[i][j] = w
+                x = cx - X + 2 * X * i / (nx - 1); y = cy - Y + 2 * Y * j / (ny - 1); z = s.forme(x, y)[0]
+                v = bm.verts.new((x, y, z - .04)); v[col] = (*M("chaume_f").teintes[1], 1); Vd[i][j] = v
+                w = bm.verts.new((cx + (x - cx) * .97, cy + (y - cy) * .97, z - s.ep)); w[col] = (*M("chaume_f").teintes[0], 1); Vs[i][j] = w
         for i in range(nx - 1):
             for j in range(ny - 1):
                 quad(Vd[i][j], Vd[i + 1][j], Vd[i + 1][j + 1], Vd[i][j + 1]); quad(Vs[i][j], Vs[i][j + 1], Vs[i + 1][j + 1], Vs[i + 1][j])
         tour = [(i, 0) for i in range(nx - 1)] + [(nx - 1, j) for j in range(ny - 1)] + [(i, ny - 1) for i in range(nx - 1, 0, -1)] + [(0, j) for j in range(ny - 1, 0, -1)]
-        # rebord en deux rangs : un premier rang qui déborde, puis un second plus bas et rentré (rang d'égout), dessous fermé
-        r1, r2 = [], []
+        bas = []
         for (i, j) in tour:
-            v = Vd[i][j]; dx, dy = v.co.x - cx, v.co.y - cy; dl = math.hypot(dx, dy) or 1; ox, oy = dx / dl, dy / dl
-            a = bm.verts.new((v.co.x + ox * .05, v.co.y + oy * .05, v.co.z - .2)); a[col] = (*M("chaume_f").teintes[0], 1); r1.append(a)
-            b = bm.verts.new((v.co.x - ox * .02, v.co.y - oy * .02, v.co.z - .26)); b[col] = (*M("chaume").teintes[0], 1)
-            c = bm.verts.new((v.co.x + ox * .12, v.co.y + oy * .12, v.co.z - .42)); c[col] = (*melange(M("chaume").teintes[1], M("chaume_f").teintes[0], .35), 1)
-            r2.append((b, c))
+            v = Vd[i][j]; dx, dy = v.co.x - cx, v.co.y - cy; dl = math.hypot(dx, dy) or 1
+            b = bm.verts.new((v.co.x + dx / dl * .06, v.co.y + dy / dl * .06, v.co.z - .3)); b[col] = (*M("chaume_f").teintes[0], 1); bas.append(b)
         nT = len(tour)
         for t in range(nT):
             (i0, j0), (i1, j1) = tour[t], tour[(t + 1) % nT]; u = (t + 1) % nT
-            quad(Vd[i0][j0], r1[t], r1[u], Vd[i1][j1])
-            quad(r1[t], r2[t][0], r2[u][0], r1[u]); quad(r2[t][0], r2[t][1], r2[u][1], r2[u][0])
-            quad(r2[t][1], Vs[i0][j0], Vs[i1][j1], r2[u][1])
-        # frange : mèches de paille qui pendent sous le rang d'égout, une tous les 35 cm environ
-        t = 0
-        while t < nT:   # mèches groupées par deux ou trois, longueurs et écarts variés
-            c = r2[t][1].co
-            for m in range(R.choice((1, 2, 2, 3))):
-                ox, oy = R.uniform(-.07, .07), R.uniform(-.07, .07)
-                P.cylindre((c.x + ox, c.y + oy, c.z + .05), (c.x + ox + R.uniform(-.04, .04), c.y + oy + R.uniform(-.04, .04), c.z - R.uniform(.04, .2)), R.uniform(.04, .065), .01, M("chaume_f").couleur(R), n=4)
-            t += R.choice((1, 2, 2, 3, 4))
-        # faîtage : boudin tressé posé dans la crête (enfoncé d'un tiers), qui suit la vraie hauteur du toit
-        xs = [cx - s.xr - .35 + k * .45 for k in range(int((2 * s.xr + .7) / .45) + 1)]
-        pts = [Vector((x, cy, s.forme(x, cy)[0] + .07)) for x in xs]
-        for k in range(len(pts) - 1): P.cylindre(pts[k], pts[k + 1] + (pts[k + 1] - pts[k]) * .06, .2, .2, M("chaume_f").couleur(R), n=6)
-        for p in pts[1:-1:2]: P.cylindre(p - Vector((.035, 0, 0)), p + Vector((.035, 0, 0)), .23, .23, M("chene").sombre, n=6)
+            quad(Vd[i0][j0], bas[t], bas[u], Vd[i1][j1]); quad(bas[t], Vs[i0][j0], Vs[i1][j1], bas[u])
+        # 2. rangs de chaume
+        zc = s.zf + .05; rang = 0
+        while zc > s.zb - .3:
+            for ligne in s._contours(zc):
+                # rééchantillonnage régulier le long de la courbe
+                pts = [ligne[0]]; reste = 0.0
+                for a, b in zip(ligne, ligne[1:]):
+                    L = math.hypot(b[0] - a[0], b[1] - a[1]); t = pas_meche - reste
+                    while t < L: pts.append((a[0] + (b[0] - a[0]) * t / L, a[1] + (b[1] - a[1]) * t / L)); t += pas_meche
+                    reste = L - (t - pas_meche)
+                pts.append(ligne[-1])
+                if len(pts) < 3: continue
+                rh, rm, rp = [], [], []
+                for k, (x, y) in enumerate(pts):
+                    gx, gy = s._pente(x, y)
+                    # descendre la pente jusqu'à recouvrir le rang du dessous (ou jusqu'au bord du toit)
+                    bx, by = x, y; n_ = 0
+                    while n_ < 60 and s.dedans(bx + gx * .05, by + gy * .05) and s.forme(bx, by)[0] > zc - dz * 1.25: bx += gx * .05; by += gy * .05; n_ += 1
+                    zb_ = s.forme(bx, by)[0]
+                    lg = R.choice((.05, .09, .13, .17)) * (1.4 if not s.dedans(bx + gx * .06, by + gy * .06) else 1)
+                    teinte = M("chaume").teintes[R.randrange(3)]
+                    h = bm.verts.new((x, y, zc + .02)); h[col] = (*melange(teinte, M("chaume_f").teintes[0], .55), 1)
+                    m = bm.verts.new((bx, by, zb_ + .09)); m[col] = (*melange(teinte, (1, .92, .66), .08 + .1 * (k % 2)), 1)
+                    p = bm.verts.new((bx + gx * lg, by + gy * lg, zb_ + .09 - lg * .9)); p[col] = (*melange(teinte, (1, .95, .75), .22), 1)
+                    rh.append(h); rm.append(m); rp.append(p)
+                for k in range(len(pts) - 1):
+                    quad(rh[k], rm[k], rm[k + 1], rh[k + 1]); quad(rm[k], rp[k], rp[k + 1], rm[k + 1])
+            zc -= dz; rang += 1
+        # 3. faîtage : boudin tressé posé dans la crête (enfoncé d'un tiers), qui suit la vraie hauteur du toit
+        xs = [cx - s.xr - .2 + k * .45 for k in range(int((2 * s.xr + .4) / .45) + 1)]
+        pts = [Vector((x, cy, s.forme(x, cy)[0] + .12)) for x in xs]
+        for k in range(len(pts) - 1): P.cylindre(pts[k], pts[k + 1] + (pts[k + 1] - pts[k]) * .06, .19, .19, M("chaume_f").couleur(R), n=6)
+        for p in pts[1:-1:2]: P.cylindre(p - Vector((.035, 0, 0)), p + Vector((.035, 0, 0)), .22, .22, M("chene").sombre, n=6)
         return s
 
 def chevrons(P, toit, murs, z_mur, pas_=.95):
@@ -222,7 +261,88 @@ def pignon_planches(P, x, y0, y1, z0, toit, sens=1, larg=.3, sauf=()):
         if any(a_ < y < b_ for (a_, b_) in sauf): continue
         zt = toit.forme(x, y)[0] - toit.ep * .6
         if zt - z0 < .08: continue
-        P.boite((x + sens * .02, y, (z0 + zt) / 2), (.1, (y1 - y0) / n * .95, zt - z0), M("chene").couleur(P.R, .12), bev=0)
+        P.boite((x + sens * (.02 + .02 * (i % 2)), y, (z0 + zt) / 2), (.1, (y1 - y0) / n * 1.06, zt - z0), M("chene").couleur(P.R, .16), bev=0)   # planches jointives, un peu chevauchées
+    P.boite((x + sens * .07, (y0 + y1) / 2, z0 + .05), (.12, y1 - y0, .14), M("chene").sombre, bev=0)   # sablière sous les planches
+
+# ------------------------------------------------------------------ 4. ouvertures : porte et fenêtre
+def arc_pierres(P, centre, rayon, profondeur=.3, n=9, rz=0.0):
+    """Arc en claveaux de pierre au-dessus d'une porte (demi-cercle de centre « centre », dans le plan du mur)."""
+    x, y, z = centre; ca, sa = math.cos(rz), math.sin(rz)
+    for i in range(n):
+        a = math.pi * (i + .5) / n; r = rayon + .14
+        px, pz = math.cos(a) * r, math.sin(a) * r
+        P.boite((x + ca * px, y + sa * px, z + pz), (.3, profondeur, rayon * math.pi / n * .92), M("moellon").couleur(P.R, .04), rz=rz, ry=-a, bev=.05, jit=.01)
+
+def porte(P, centre, l=1.15, h=2.0, mat="peint", rz=0.0):
+    """Porte cintrée en planches (bleues), pentures de fer, anneau, seuil de pierre ; arc de claveaux au-dessus.
+    centre = milieu du seuil, sur la face du mur."""
+    x, y, z = centre; r = l / 2; hd = h - r; n = 5
+    for i in range(n):   # planches : le haut suit l'arc
+        u = -r + (i + .5) * l / n; ht = hd + math.sqrt(max(0, r * r - u * u)) * .98
+        P.boite((x + u, y + .02, z + ht / 2), (l / n * .94, .1, ht), M(mat).couleur(P.R, .05), bev=.015)
+    for zz in (.35, hd - .15): P.boite((x - .1, y - .05, z + zz), (l * .8, .04, .09), M("fer").couleur(P.R), bev=0)   # pentures
+    P.cylindre((x + r * .55, y - .08, z + 1.0), (x + r * .55, y - .03, z + 1.0), .07, .07, M("fer").couleur(P.R), n=8)  # anneau
+    for s in (-1, 1): poutre(P, (x + s * (r + .08), y, z), (x + s * (r + .08), y, z + hd), l=.16, h=.24, mat="chene")
+    arc_pierres(P, (x, y - .02, z + hd), r)
+    P.boite((x, y - .34, z + .01), (l + .45, .72, .22), M("moellon").couleur(P.R), bev=.07, jit=.015)   # seuil : une vraie marche (12 cm)
+
+def fenetre(V, P, centre, rz=0.0, l=.75, h=.8, volets=True, jardiniere=True):
+    """Fenêtre à petits carreaux : cadre de poutres, croisillons, appui de pierre, volets bleus, jardinière fleurie.
+    La vitre est dans V (objet W_ qui s'éclaire la nuit). rz : 0 = mur de façade (-Y), ±π/2 = murs de côté."""
+    x, y, z = centre; ca, sa = math.cos(rz), math.sin(rz); ox, oy = sa, -ca   # vers l'extérieur
+    def pt(u, w, dz): return (x + ca * u + ox * w, y + sa * u + oy * w, z + dz)
+    V.boite(pt(0, -.02, 0), (l, .06, h), M("vitre").teintes[0], rz=rz, bev=0)
+    for s in (-1, 1): poutre(P, pt(s * (l / 2 + .07), .02, -h / 2 - .1), pt(s * (l / 2 + .07), .02, h / 2 + .1), l=.14, h=.16)
+    poutre(P, pt(-l / 2 - .2, .03, h / 2 + .12), pt(l / 2 + .2, .03, h / 2 + .12), l=.18, h=.2)   # linteau
+    poutre(P, pt(0, .0, -h / 2), pt(0, .0, h / 2), l=.05, h=.06, mat="chene_c", bev=.01)          # croisillons
+    poutre(P, pt(-l / 2, .0, 0), pt(l / 2, .0, 0), l=.05, h=.06, mat="chene_c", bev=.01)
+    P.boite(pt(0, .1, -h / 2 - .1), (l + .4, .3, .12), M("moellon").couleur(P.R), rz=rz, bev=.04)   # appui
+    if volets:
+        for s in (-1, 1):
+            cs = s * (l / 2 + .12 + l * .25)
+            for k in range(3):
+                P.boite(pt(cs + (k - 1) * l * .5 / 3, .07, 0), (l * .5 / 3 * .95, .06, h + .12), M("peint").couleur(P.R, .05), rz=rz, bev=.012)
+            P.boite(pt(cs, .11, h * .25), (l * .5, .03, .06), M("fer").couleur(P.R), rz=rz, bev=0)
+    if jardiniere:
+        P.boite(pt(0, .3, -h / 2 - .27), (l + .25, .28, .24), M("chene_c").couleur(P.R), rz=rz, bev=.03)
+        for i in range(7):
+            u = -l / 2 + (i + .5) * l / 7 + P.R.uniform(-.04, .04)
+            P.sphere(pt(u, .3 + P.R.uniform(-.06, .06), -h / 2 - .12), .1, M("feuillage").couleur(P.R), (1, 1, .8), sub=1, jit=.02)
+            if i % 2 == 0: P.sphere(pt(u + .03, .26, -h / 2 - .02 + P.R.uniform(0, .05)), .055, M("fleur").couleur(P.R), sub=1)
+
+# ------------------------------------------------------------------ 5. cheminée
+def cheminee(P, x, y, z0, z1, larg=.9, rz=0.0, toit=None, base=1.35, z_epaule=1.7):
+    """Cheminée de moellons collée à un pignon : fondation large posée au sol jusqu'à l'épaulement (z_epaule), deux rangs
+    qui se resserrent, puis le conduit jusqu'à z1 ; chapeau de pierre plate et pot de terre cuite. Si toit est donné,
+    un solin de pierres plates entoure le conduit là où il traverse le chaume."""
+    z = z0; rang = 0
+    while z < z1:
+        hz = P.R.uniform(.3, .38)
+        if z < z_epaule: w = larg * base
+        elif z < z_epaule + .7: w = larg * (base - (base - 1) * (z - z_epaule) / .7)
+        else: w = larg
+        sep = (.18 if rang % 2 else -.18) * w                 # deux pierres par rang, joint décalé d'un rang à l'autre
+        for (u0, u1) in ((-w / 2, sep), (sep, w / 2)):
+            uc = (u0 + u1) / 2
+            P.boite((x + uc * math.cos(rz), y + uc * math.sin(rz), z + hz / 2), (u1 - u0 - .035, w, hz - .035),
+                    M("moellon").couleur(P.R, .1), rz=rz + P.R.uniform(-.03, .03), bev=.06, jit=.012)
+        z += hz; rang += 1
+    P.boite((x, y, z + .06), (larg * 1.12, larg * 1.12, .14), M("moellon").couleur(P.R, .03), rz=rz, bev=.04)
+    P.cylindre((x, y, z + .1), (x, y, z + .5), .17, .14, M("terre").couleur(P.R), n=8)
+    if toit is not None:
+        zr = max(toit.forme(x + dx_, y + dy_)[0] for dx_ in (-larg / 2, larg / 2) for dy_ in (-larg / 2, larg / 2))
+        P.boite((x, y, zr - .02), (larg + .16, larg + .16, .2), M("moellon").couleur(P.R, .03), rz=rz, bev=.05)   # collerette basse serrée sur le conduit
+
+def pignon_planches(P, x, y0, y1, z0, toit, sens=1, larg=.3, sauf=()):
+    """Pignon en planches verticales (bois patiné) entre le haut du mur (z0) et le dessous du toit, sur le plan x ;
+    sens : +1 si l'extérieur est vers +X. sauf : [(y0, y1)] : pas de planche (cheminée). Une planche de rive le borde."""
+    n = int((y1 - y0) / larg)
+    for i in range(n):
+        y = y0 + (i + .5) * (y1 - y0) / n
+        if any(a_ < y < b_ for (a_, b_) in sauf): continue
+        zt = toit.forme(x, y)[0] - toit.ep * .6
+        if zt - z0 < .08: continue
+        P.boite((x + sens * (.02 + .02 * (i % 2)), y, (z0 + zt) / 2), (.1, (y1 - y0) / n * 1.06, zt - z0), M("chene").couleur(P.R, .16), bev=0)   # planches jointives, un peu chevauchées
     P.boite((x + sens * .07, (y0 + y1) / 2, z0 + .05), (.12, y1 - y0, .14), M("chene").sombre, bev=0)   # sablière sous les planches
 
 # ------------------------------------------------------------------ 4. ouvertures : porte et fenêtre

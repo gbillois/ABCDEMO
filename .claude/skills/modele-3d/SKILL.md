@@ -29,6 +29,10 @@ Lire `blender/dragonflyer/village/PASSATION.md` : où on en est, notes des tours
   village), Lisibilité de loin, Passage (la capsule passe la porte), Coût (faces dans le budget, voir le rapport).
 - Passe seulement si tout est à 8 ou plus. Sinon corriger, refaire les 12 rendus, recontrôler.
 - Même défaut 3 tours de suite → changer d'approche (autre construction), ne plus rafistoler.
+- Grille et rôle de l'inspecteur : `inspecteur.md` (à lui donner tel quel). Garder le même inspecteur d'un tour à
+  l'autre (SendMessage) : il vérifie ses corrections une par une et repère les défauts qui reviennent.
+- Un agent lancé en parallèle ne peut pas lancer d'inspecteur : c'est la session principale qui fait le relais
+  (planches → inspecteur → corrections → fabricant).
 
 ## 3. Noter et passer la main
 - Après chaque tour : ajouter à `PASSATION.md` les notes, les corrections faites, ce qui reste.
