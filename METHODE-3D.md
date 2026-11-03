@@ -225,6 +225,9 @@ Les objets validés ne suffisent pas : il faut contrôler **comment ils sont pos
 - Un commentaire ajouté en fin de ligne dans un remplacement automatique peut avaler la suite de la ligne.
 - Le banc de test doit être juste avant le modèle : caméra sous un toit, dans une maison voisine ou dans le sol, mesure
   qui touche une penture au lieu de l'ouverture… se corrigent d'abord.
+- Les rendus Blender dessinent les deux côtés des faces : une pièce dont les faces regardent vers l'intérieur passe le
+  contrôle et apparaît en creux dans le jeu. Recalculer l'orientation des faces par pièce, et faire une capture dans le
+  jeu avant de déclarer un modèle fini.
 - Les marches : le joueur monte 30 cm au plus et la capsule a besoin de 40 cm de giron.
 - Aplanir le terrain sous des maisons voisines à des hauteurs différentes crée des seuils enterrés : fixer la hauteur
   par rue (profil adouci) puis poser chaque plateforme exactement à niveau après le mélange.
