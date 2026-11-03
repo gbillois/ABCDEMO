@@ -15,6 +15,7 @@ from mathutils import Vector, Matrix
 OUT = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else "/tmp/village"
 os.makedirs(OUT, exist_ok=True)
 APERCU = "--sans-apercu" not in sys.argv
+SEULE = sys.argv[sys.argv.index("--seule") + 1] if "--seule" in sys.argv else None   # « --seule chaumiere » : une maison, aperçus sous plusieurs angles (contrôle qualité)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
 R = random.Random(7)
@@ -332,7 +333,8 @@ for nom, pied, port, inter, f in (
     ("pierre", (6.8, 7.6), (0, -4.3, 0), "maison", pierre),
     ("forge", (7.4, 6.4), (0, -3.6, .5), "", forge),
     ("moulin", (6.2, 6.2), (0, -3.6, 0), "", moulin),
-): maison(nom, pied, port, inter, f)
+):
+    if SEULE is None or nom == SEULE: maison(nom, pied, port, inter, f)
 
 # ------------------------------------------------------------------ accessoires (un objet chacun, instanciés dans le jeu)
 def accessoire(nom, f, pied=None):

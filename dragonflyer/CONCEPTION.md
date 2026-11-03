@@ -126,16 +126,32 @@ Ne jamais demander « un village » d'un coup : on avance par étages, et chaque
 1. **Matières d'abord** : écorce, pierre, chaume, bois, tissu… (couleurs de la palette, textures cuites, échelle en mètres).
 2. **Kit de pièces réutilisables** : poutres, murs, toits, portes, fenêtres, marches… chacune avec son pied à l'origine,
    ses dimensions exactes et ses matières. Les objets se construisent à partir du kit, jamais à main levée.
-3. **Un objet à la fois** (une maison, un arbre, un rocher), **un script par objet ou par famille**, puis l'assemblage
-   (village, forêt) seulement quand chaque objet est validé.
+3. **Un objet à la fois** (une maison, une pièce, un arbre, un rocher), puis l'assemblage (village, forêt) seulement
+   quand chaque objet est validé.
+
+**Aucune modélisation à la main** : tout est construit par des scripts Python lancés dans Blender. **Chaque maison et
+chaque objet est son propre fichier** (`blender/dragonflyer/village/maisons/<nom>.py`, `.../objets/<nom>.py`), fait avec
+les pièces du même kit (`village/kit.py`) et les mêmes matières (`village/materiaux.py`) : un métier à tisser est son
+petit script, fait des mêmes poutres que les murs. Chaque fichier se lance seul et fait ses propres aperçus.
 
 **Boucle fabrication → contrôle qualité, avec deux agents séparés.** L'agent qui écrit les scripts Blender ne valide
-pas son propre travail (on est indulgent avec soi-même). Après chaque rendu, un **second agent, d'un autre modèle**,
-sans le contexte du fabricant, joue l'inspecteur exigeant :
-- il reçoit seulement les rendus (plusieurs angles, de près et de loin, de jour, plus une vue dans le jeu) et la grille ;
-- il donne une **note sur 10 par critère** et une **liste de corrections obligatoires**, précises et vérifiables ;
-- le fabricant corrige et refait les rendus ; on recommence **jusqu'à 8/10 au moins partout** (3 tours au plus,
-  sinon on revoit l'approche avec le propriétaire).
+pas son propre travail (on est indulgent avec soi-même). Un **second agent, d'un autre modèle**, sans le contexte du
+fabricant, fait l'essentiel du contrôle :
+- chaque maison est rendue depuis **les mêmes 12 caméras** (`village/apercu.py` : 8 autour à hauteur d'homme et en
+  plongée, 2 de près sur la porte et une fenêtre, 1 de dessus, 1 en contre-plongée sous l'avant-toit) ;
+- l'inspecteur reçoit seulement ces 12 rendus et la grille, donne une **note sur 10 par critère** et une **liste de
+  corrections obligatoires**, précises et vérifiables ;
+- ça ne passe pas tant qu'un critère est **sous 8** ; le fabricant corrige, refait les 12 rendus, et on recommence ;
+- si **le même défaut revient 3 tours de suite**, on ne le rafistole plus : on **change d'approche** (autre construction,
+  autre technique) ;
+- une **capsule de la taille du joueur** (rayon 0,35 m, 1,7 m) marche jusqu'à chaque porte et la franchit
+  (`village/capsule.py`) : une porte bouchée, trop basse ou une marche trop haute est trouvée avant le propriétaire ;
+- **le propriétaire a le dernier mot** : il voit le résultat seulement quand tout est à 8 ou plus.
+
+Ce qui se répète est écrit une fois dans une compétence Claude Code (`.claude/skills/modele-3d/SKILL.md`) : on ne
+réexplique jamais la méthode. Les rendus longs tournent en arrière-plan ; le fichier de passation
+`blender/dragonflyer/village/PASSATION.md` (où on en est, notes de chaque tour, prochaine étape) est tenu à jour à
+chaque étape, pour qu'une nouvelle session reprenne là où la précédente s'est arrêtée.
 
 Grille de l'inspecteur :
 - **Posé** : rien ne flotte, rien ne s'enfonce, pas d'objets qui se traversent, pieds bien sur le sol.
@@ -144,6 +160,19 @@ Grille de l'inspecteur :
   pas de morceaux arrachés par une simplification (cartes de feuilles, branches).
 - **Style** : couleurs de la palette du jeu, lumière cuite cohérente, pas de noir pur ni de blanc brûlé.
 - **Coût** : nombre de faces et de matières dans le budget (`OPTIMISATION-3D.md`), version de loin prévue.
+
+**Personnages : même méthode, plus les postures et les animations.** Étages : matières (peau, tissu, cuir, cheveux),
+kit (tête, mains, tronc, membres, pièces de vêtements), puis un personnage à la fois, chacun son fichier
+(`blender/dragonflyer/personnages/<nom>.py`), tous sur le squelette commun (`squelette.py`, noms d'os lus par le jeu).
+Le contrôle se fait sur trois planches, toujours les mêmes caméras :
+- **12 vues** au repos (comme une maison) ;
+- **postures et articulations** : chaque articulation pliée à ses limites (cou, épaules, coudes, poignets, hanches,
+  genoux, chevilles, colonne) et des poses extrêmes (accroupi, bras levés, torsion) : pas de peau qui traverse,
+  pas de pli « papier de bonbon » au coude ou à l'épaule, pas de vêtement qui passe à travers le corps, volumes gardés ;
+- **animations** : chaque mouvement du jeu (repos, marche, course, saut, coup d'épée, salut…) en images fixes
+  régulières, vues de côté et de face : pieds qui ne glissent pas et ne s'enfoncent pas, rien qui traverse,
+  poids crédible, mouvement calme et lisible.
+Les mêmes notes sur 10 (8 au moins partout), le même inspecteur séparé, le même « 3 fois le même défaut = autre approche ».
 
 **Leçons déjà apprises** (à ajouter à la grille quand une nouvelle erreur passe) :
 - Une simplification automatique casse les feuilles et les branches : simplifier seulement ce qui le supporte, et
