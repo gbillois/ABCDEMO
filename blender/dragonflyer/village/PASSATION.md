@@ -112,8 +112,18 @@ instanciée) : pour varier il faudrait exporter M_pierre_1, M_pierre_2… (à d�
 - Premier jet (pierre0) : joints presque noirs, cheminée du kit en « pile d'assiettes » vue de côté (une pierre par rang
   sur la face latérale), lichen trop régulier, vides sombres autour des fenêtres. Corrigé : cœur en mortier gris-brun,
   `cheminee_pignon`, lichen 3 %, ouvertures serrées au bord des volets et de l'appui.
-- Tour 1 à inspecter : rendus `qc/pierre1/`, 21 371 triangles (ancienne 35 796 : 60 %), capsule PASSE (seuil 12 cm),
-  porte 0,86 × 2,14 m.
+- Tour 1 (`qc/pierre1/`, 21 371 triangles) : posé 8, matières 7, formes 8, style 7, lisibilité 8, passage 9, coût 8
+  → À REFAIRE. Murs d'un seul gris froid, façade austère, faîtage nu et plat, point noir au sommet du pignon, pierres en
+  rouleaux qui dépassent à l'angle de la cheminée, points blancs au bord des ardoises (vue 12).
+  Corrigé : pierre_s en gris chauds, beiges, bruns-ocre (8 teintes), une pierre sur huit nettement plus claire ou plus
+  foncée, pied des murs plus chaud (`teinter`) ; soubassement plus saillant de 12 cm ; paillasson, pot et plante
+  grimpante qui fait le tour de l'arc, seau et balai (objets/seau.py, objets/balai.py), pots sur le banc ; faîtières de
+  pierre (13 cm) sur le faîtage ; épi de bois au sommet du pignon libre ; `cheminee_pignon` refaite : vraies pierres
+  d'angle alternées longue/courte, mêmes assises que les murs, rangs du sol plus saillants ; dernier rang d'ardoises
+  arrêté au bord de la coque (le jour passait entre les ardoises qui dépassaient) ; 5 % d'ardoises teintées vert ou brun.
+  Variantes nommées M_pierre, M_pierre_1, M_pierre_2 ; `pierre.py -- <dossier> --variantes` fait `variantes.png`.
+- Tour 2 à inspecter : `qc/pierre2/` (+ `variantes.png`), 22 247 triangles (62 % de l'ancienne), capsule PASSE, porte
+  0,86 × 2,14 m. Ajout en cours de tour : planche d'égout le long des égouts (`ToitArdoises`), le bord ne brille plus en vue 12.
 
 ## Prochaine étape
 Finir la chaumière (tout à 8+), l'intégrer : `../maisons.py` appelle `village/maisons/chaumiere.py:construire()`,

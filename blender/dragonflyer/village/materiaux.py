@@ -45,7 +45,7 @@ def M(nom): return MATIERES[nom]
 
 # ---- ajouts pierre et moulin (maisons/pierre.py, maisons/moulin.py)
 MATIERES.update({
-    "pierre_s":  Matiere("pierre_s",  ["#7f786e", "#736d65", "#8a8174", "#6e6a63", "#857868"], .07, "#4a4642"),   # pierre sombre de montagne (gris chaud)
+    "pierre_s":  Matiere("pierre_s",  ["#857c70", "#94877a", "#8a7866", "#9c8c74", "#7a7068", "#8e7a62", "#a39888", "#706a64"], .08, "#4c4640"),   # pierre de montagne : gris chauds, beiges, bruns-ocre, quelques sombres
     "ardoise":   Matiere("ardoise",   ["#5f6a76", "#57616d", "#68717c", "#525c68", "#626872"], .05, "#383e48"),   # ardoises bleu-gris
     "ardoise_d": Matiere("ardoise_d", ["#74503a", "#684632", "#7c5840"], .04),                                    # dessous du toit d'ardoises : planches brunes (à l'ombre)
     "lichen":    Matiere("lichen",    ["#a8975c", "#9a9258"], .06),                                               # taches de lichen sur les ardoises
