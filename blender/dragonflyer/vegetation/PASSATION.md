@@ -30,8 +30,20 @@ Commandes (Blender : `/opt/blender-dl/blender-4.2.3-linux-x64/blender`) :
 01-03 hauteur d'homme (0°, 120°, 240°), 04-06 plongée (60°, 180°, 300°), 07 au pied, 08 de près à hauteur d'homme,
 09 de dessus, 10 contre-plongée sous le feuillage, 11 imposteur (à droite) à côté de l'arbre de près, 12 les deux à 75 m.
 
+## Banc d'essai (ce qu'il faut savoir avant de lire les rendus)
+- Les arbres sont éclairés dans les aperçus par leur matière (`materiaux.eclairage_jeu`, en émission) et non par Cycles :
+  vu de dessous, Cycles n'éclaire pas une face par le soleil placé de l'autre côté de sa face, quelle que soit la normale
+  (cartes et dessous des étages sortaient noirs). Le jeu, lui, éclaire selon la normale choisie, des deux côtés, et
+  l'arbre ne reçoit pas d'ombre (il en projette au sol) : les aperçus font pareil. Le soleil de la scène ne sert plus
+  qu'aux ombres au sol.
+- Imposteur : image rendue avec des matières « à plat » (couleur × occlusion × léger relief, `PLAT_GAIN`), le soleil
+  vient ensuite de l'éclairage du jeu (normales vers le haut). Dans le jeu il faudra aussi enlever `normal *= faceDirection`
+  de la matière de loin (sinon la face arrière d'un plan s'assombrit).
+- `create_icosphere(subdivisions=1)` de Blender 4.2 donne 20 faces : les touffes utilisent 2 (80 faces).
+
 ## Tours de contrôle
-(à remplir après chaque inspection)
+- Tour 1 (planches dans `scratchpad/arbres/t1/`) : sapin 1 972 triangles (budget 2 500), feuillu 3 369 (budget 4 000),
+  imposteurs 6 triangles. En attente de l'inspection.
 
 ## Intégration (quand tout est à 8+)
 Prévu : `arbres.glb` (T_pin_0/1, T_feuillu_0/1, matières écorce puis feuillage, `userData.matieres`) et les mêmes
