@@ -9,7 +9,7 @@ import sys, os; sys.path[:0] = [os.path.join(os.path.dirname(os.path.abspath(__f
 import math
 from mathutils import Matrix, Vector
 from kit import Piece, poutre, mur_moellons, ToitTuiles, planches_verticales, dalles, foyer_forge, poteau, cheminee, escalier, eclaircir, aeration, herbe
-from materiaux import M
+from materiaux import M, melange
 import enclume, soufflet, baquet, etabli, ratelier, enseigne, tonneau, pot_fleurs, tas_bois, echelle
 from etabli import fer_a_cheval
 
@@ -64,12 +64,14 @@ def construire(graine=61):
     poutre(P, (-3.72, Y_POT, Z_POUTRE), (3.72, Y_POT, Z_POUTRE), l=.3, h=.32)                     # la poutre traverse les pignons
     fer_a_cheval(P, 0, Y_POT - .17, Z_POUTRE + .07, r=.11, debout=True)                          # fer à cheval porte-bonheur au-dessus de l'enseigne
     poutre(P, (-3.8, 0, toit.zf - .17), (3.8, 0, toit.zf - .17), l=.26, h=.3)                     # panne faîtière (ferme le faîte vu des pignons)
+    for sx in (-1, 1): P.cylindre((sx * (toit.X + .01), 0, toit.zf + .08), (sx * (toit.X + .1), 0, toit.zf + .08), .25, .25, M("chene").couleur(P.R), n=10)   # about de faîtage : ferme l'encoche entre les planches de rive
     for x in (-1.25, 1.25):
         poutre(P, (x, Y_POT, Z_POUTRE - .15), (x, yi + .3, Z_POUTRE - .15), l=.22, h=.26)
         poutre(P, (x, 0, Z_POUTRE - .02), (x, 0, toit.zf - toit.ep - .08), l=.2, h=.2)
     toit.construire(P, cheminees=[(FOYER[0], FOYER[1] + .25, .55)])
     # foyer de forge et hotte : la hotte de pierre pose sur un manteau de bois porté par deux montants
     foyer_forge(V, P, *FOYER, Z_SOL, l=1.8, p=1.2, h=.8)
+    V.boite((FOYER[0], FOYER[1] - .95, Z_SOL + .008), (1.5, .6, .012), melange(M("lueur").teintes[0], M("moellon").teintes[2], .55), bev=0)   # lueur chaude au sol devant le feu
     ym = FOYER[1] - .55
     for s in (-1, 1): poutre(P, (FOYER[0] + s * .8, ym, Z_SOL + .88), (FOYER[0] + s * .8, ym, 2.0), l=.14, h=.14)
     poutre(P, (FOYER[0] - .97, ym, 2.0), (FOYER[0] + .97, ym, 2.0), l=.22, h=.2)

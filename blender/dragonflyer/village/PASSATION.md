@@ -141,6 +141,14 @@ l'ancien `../maisons.py` (le jeu les lit) : longère (7,4 × 14,6), (0, -7.6, 1.
   au-dessus de l'enseigne ; suie en haut de la cheminée ; au pied du mur du fond : tas de bois, tas de charbon et pelle,
   tonneau, herbe. **Pied changé** : 7,4 × 7,6 m (avant 7,4 × 6,4) pour couvrir les objets au pied du mur du fond.
   21 368 triangles (81 % de l'ancienne), capsule passe, côté ouvert 2,22 × 1,95 m. Rendus : `scratchpad/qc/forge2/`.
+- Forge, tour 2 : posé 8, matières 8, formes 7, style 8, lisibilité 8, passage 8, coût 9 → À REFAIRE (formes).
+  Le losange noir à la pointe des pignons revenait (2e fois). Vérifié en agrandissant ses propres rendus 02 et 04 : le
+  jour passait par l'encoche en V entre les deux planches de rive de `ToitTuiles`, sous le bout de la faîtière (la
+  panne, plus bas, ne pouvait pas le fermer). Corrigé : about de faîtage en bois (disque brun) à chaque pignon, qui
+  couvre l'encoche et le bout de la faîtière. Aussi : lueur chaude au sol devant le feu (dans W_).
+  Leçon : vérifier soi-même chaque défaut signalé en agrandissant la zone du rendu avant de le corriger. La maison à
+  colombages a les mêmes planches de rive : à regarder de près si l'inspecteur y voit un jour.
+  21 452 triangles, capsule passe. Rendus : `scratchpad/qc/forge3/`.
 
 ## Héros (agent séparé, worktree `worktree-agent-adb19e9034e46bb45`, voir `blender/dragonflyer/personnages/PASSATION.md` sur cette branche)
 - Tour 1 : proportions 8, visage 8, cheveux et vêtements 6, articulations 7, animations 5, style 8, coût 6 → À REFAIRE.
