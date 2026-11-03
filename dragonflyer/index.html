@@ -1952,8 +1952,8 @@ function batirVillage(v, r) {
         const yaw = Math.atan2(-mx, -mz) + (r() - .5) * .08; if (!libre(x, z, yaw, k.pied.hx, k.pied.hz, 3)) continue;
         { let tx = x, tz = z, n_ = 0; while (n_++ < 30 && hauteur(tx, tz) < .9) { tx -= mx; tz -= mz; }   // la terre derrière la porte doit être douce
           if (Math.abs(hauteur(tx - mx * 3, tz - mz * 3) - hauteur(tx, tz)) > 1.2) continue;
-          const kp = KIT.M_pecheur, dy = (kp && kp.porte) ? kp.porte.z : -4, px_ = x + Math.sin(yaw) * (Math.abs(dy) + 1.5), pz_ = z + Math.cos(yaw) * (Math.abs(dy) + 1.5);
-          if (hauteur(px_, pz_) > 1.25) continue; }   // le sol devant la porte ne doit pas dépasser la terrasse
+          const kp = KIT.M_pecheur, dy = Math.abs((kp && kp.porte) ? kp.porte.z : 4);
+          if ([1, 2, 3].some(e => hauteur(x + Math.sin(yaw) * (dy + e), z + Math.cos(yaw) * (dy + e)) > 1.2)) continue; }   // sur 3 m devant la porte, le sol reste sous la terrasse
         QUAI_PRIS.add(along); poser(type, x, z, .2, yaw); fait = true;
       } else {
         const pl = placeDansLePlan(type, k, essai); if (!pl) break;
@@ -2005,9 +2005,16 @@ function batirVillage(v, r) {
     if (v.maisons.some(o => o.seuil && Math.hypot(o.seuil.x - mx2, o.seuil.z - mz2) < 4.5)) continue;   // ni devant une porte
     v.murets.push({ x: C.x + ex * 10.9, z: C.z + ez * 10.9, yaw: Math.atan2(-ex, -ez), y: hC - .1, sy: Math.min(1.7, Math.max(.6, diff / 1.2)), sx: 2 * Math.PI * 10.9 / 28 / 1.9 });
   }
+  for (const ru of rues) {   // les rues : terrain adouci le long de leur axe (profil moyen), sans bosse ni marche brutale
+    const L_ = Math.max(ru.L + 6, 26), yaw = Math.atan2(ru.dx, ru.dz);
+    for (let s_ = 9; s_ <= L_; s_ += 3) {
+      let t = 0, n = 0; for (let e = -9; e <= 9; e += 3) { t += SOL0(C.x + ru.dx * Math.max(6, s_ + e), C.z + ru.dz * Math.max(6, s_ + e)); n++; }
+      plats.push({ x: C.x + ru.dx * s_, z: C.z + ru.dz * s_, yaw, hx: 1.4, hz: 1.6, y: Math.max(1.5, s_ < 14 ? hC + (t / n - hC) * (s_ - 9) / 5 : t / n), rue: true });
+    }
+  }
   aplanir(plats);
   const rang = q => q.rond ? 0 : q.maison ? 3 : q.palier ? 2 : 1;   // la place d'abord, puis potagers, paliers, et les maisons en dernier (rien ne rogne leur emprise)
-  aplanirExact(plats.slice().sort((a, b) => rang(a) - rang(b)));
+  aplanirExact(plats.filter(q => !q.rue).sort((a, b) => rang(a) - rang(b)));   // les rues restent un mélange doux
   peindreSol(v, [[C.x, C.z]], 19, "rgb(0,255,0)");   // place pavée
   const peche = v.maisons.some(o => o.type === "pecheur");
   for (const ru of rues) {   // les trois rues, toujours (elles sortent du village), et une trouée sans arbres dans leur axe
@@ -2948,7 +2955,7 @@ function creerHerbe() {
         pres *= textureLod(tMasque, tuv, 0.0).r;   // pas d'herbe contre les maisons, les puits, les étals
         for (int i = 0; i < 4; i++) { pres *= smoothstep(uVillages[i].z, uVillages[i].z + 4.0, length(p - uVillages[i].xy));   // place sans hautes herbes
           vec4 sv = uSolV[i]; if (sv.w > 0.5) { vec2 q = (p - sv.xy) / sv.z; if (q.x > 0.0 && q.y > 0.0 && q.x < 1.0 && q.y < 1.0) {
-            vec2 so = textureLod(tSol, (q + vec2(float(i - (i / 2) * 2), float(i / 2))) * 0.5, 0.0).rg; pres *= 1.0 - smoothstep(0.08, 0.4, max(max(so.x, so.y), textureLod(tSol, (q + vec2(float(i - (i / 2) * 2), float(i / 2))) * 0.5, 0.0).b)); } } }   // ni sur les rues et les allées
+            vec2 so = textureLod(tSol, (q + vec2(float(i - (i / 2) * 2), float(i / 2))) * 0.5, 0.0).rg; pres *= 1.0 - smoothstep(0.02, 0.16, max(max(so.x, so.y), textureLod(tSol, (q + vec2(float(i - (i / 2) * 2), float(i / 2))) * 0.5, 0.0).b)); } } }   // plus d'herbe avant même que les pavés commencent   // ni sur les rues et les allées
         float s = (1.0 - smoothstep(uR * 0.72, uR * 0.98, d)) * pres * (0.55 + 0.9 * rnd);
         float fl = aFleur * step(0.93, fract(rnd * 37.0));
         vec3 q = position * vec3(1.0, s, 1.0) * mix(1.0, 0.0, aFleur * (1.0 - fl));
