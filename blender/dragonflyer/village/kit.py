@@ -554,8 +554,9 @@ def mur_clins(P, a, b, z0, z1, ouvertures=(), mat="clin_rouge", larg=.2, toit=No
                     if o0 > u0: nl.append((u0, o0))
                     if o1 < u1: nl.append((o1, u1))
                 libres = nl
-        c = M(mat).couleur(R, .06)
-        if R.random() < .2: c = melange(c, M("blanc").teintes[0], .1)   # quelques planches plus passées
+        c = M(mat).couleur(R, .1); x_ = R.random()
+        if x_ < .25: c = melange(c, M("blanc").teintes[0], R.uniform(.08, .16))   # planches passées au soleil
+        elif x_ < .37: c = melange(c, M(mat).sombre, R.uniform(.15, .25))         # planches plus neuves, plus foncées
         cb = melange(c, M(mat).sombre, .6)
         w_av = lambda u, zz, zb=zb, zt=zt: .036 + (.008 - .036) * (zz - zb) / (zt - zb)
         for (u0, u1) in libres:
@@ -570,17 +571,16 @@ def mur_clins(P, a, b, z0, z1, ouvertures=(), mat="clin_rouge", larg=.2, toit=No
 
 def coin_planches(P, x, y, z0, z1, mat, sx, sy):
     """Planche d'angle peinte qui cache le bout des planches de deux murs (sx, sy : côté extérieur du coin)."""
-    P.boite((x + sx * .03, y + sy * .03, (z0 + z1) / 2), (.2, .2, z1 - z0), M(mat).couleur(P.R), bev=.012)
+    P.boite((x + sx * .03, y + sy * .03, (z0 + z1) / 2), (.2, .2, z1 - z0), M(mat).couleur(P.R), bev=0)
 
 def encadrement(P, centre, rz=0.0, l=.75, h=.8, mat="blanc", cotes=True):
-    """Encadrement peint d'une fenêtre (même repère que fenetre) : deux montants, un fronton et sa bavette."""
+    """Encadrement peint d'une fenêtre (même repère que fenetre) : deux montants et un fronton."""
     x, y, z = centre; ca, sa = math.cos(rz), math.sin(rz); ox, oy = sa, -ca
     def pt(u, w, dz): return (x + ca * u + ox * w, y + sa * u + oy * w, z + dz)
     c = M(mat).couleur(P.R)
     if cotes:
         for s in (-1, 1): P.boite(pt(s * (l / 2 + .21), .05, .03), (.13, .04, h + .5), c, rz=rz, bev=0)
-    P.boite(pt(0, .055, h / 2 + .3), (l + .62, .05, .15), c, rz=rz, bev=0)
-    P.boite(pt(0, .08, h / 2 + .39), (l + .7, .1, .04), melange(c, M(mat).sombre, .25), rz=rz, bev=0)
+    P.boite(pt(0, .06, h / 2 + .3), (l + .66, .07, .16), c, rz=rz, bev=0)
 
 class ToitBardeaux(ToitTuiles):
     """Toit à deux pans (même forme que ToitTuiles) couvert de bardeaux de bois : rangs qui se recouvrent, largeurs
@@ -588,7 +588,7 @@ class ToitBardeaux(ToitTuiles):
     peintes (mat_rive) ; dessous brun chaud."""
     def __init__(s, cx, cy, X, Y, z_bord, z_faite, ep=.26, mat="bardeau", mat_d="bardeau_d", mat_rive="chene"):
         super().__init__(cx, cy, X, Y, z_bord, z_faite, ep); s.mat, s.mat_d, s.mat_rive = mat, mat_d, mat_rive
-    def construire(s, P, rang=.38, cheminees=()):
+    def construire(s, P, rang=.46, cheminees=()):
         R = P.R; cx, cy, X, Y = s.cx, s.cy, s.X, s.Y
         pente = math.hypot(Y, s.zf - s.zb); cosa = Y / pente; ang = math.atan2(s.zf - s.zb, Y)
         for sg in (-1, 1):
@@ -604,7 +604,7 @@ class ToitBardeaux(ToitTuiles):
                     yy = cy + sg * d * cosa; return (cx - X + u, yy, s.zf - s.k * abs(yy - cy) + .03 + h)
                 u = -R.uniform(0, .15)
                 while u < 2 * X:
-                    w = R.uniform(.2, .34); u0, u1 = max(0.0, u), min(2 * X, u + w); u += w
+                    w = R.uniform(.26, .42); u0, u1 = max(0.0, u), min(2 * X, u + w); u += w
                     if u1 - u0 < .06 or trou(*pt((u0 + u1) / 2, (d0 + d1) / 2)[:2]): continue
                     c = M(s.mat).couleur(R, .09); cb = melange(c, cs, .55); e = .035 + R.uniform(-.008, .01)
                     vs = [pt(u0 + .01, d0), pt(u1 - .01, d0), pt(u1 - .01, d1, e), pt(u0 + .01, d1, e), pt(u1 - .01, d1), pt(u0 + .01, d1)]
@@ -620,10 +620,10 @@ class ToitBardeaux(ToitTuiles):
                 P.boite((cx + sx * (X + .03), cy + sg * Y / 2, (s.zf + s.zb) / 2 - .02), (.07, pente + .05, .3), M(s.mat_rive).couleur(R), rx=-sg * ang, bev=.015)
         return s
 
-def pilotis(P, x, y, z_bas, z_haut, r=.16, eau=-.2, n=8):
+def pilotis(P, x, y, z_bas, z_haut, r=.16, eau=-.2, n=6):
     """Pieu rond : bas goudronné, frange d'algues à la ligne d'eau, haut en bois patiné un peu de travers."""
     R = P.R; zg = eau + .35
-    P.cylindre((x, y, z_bas), (x, y, eau - .05), r * 1.05, r * 1.04, M("goudron").couleur(R), n=6)
+    P.cylindre((x, y, z_bas), (x, y, eau - .05), r * 1.05, r * 1.04, M("goudron").couleur(R), n=5)
     for v in P.cylindre((x, y, eau - .05), (x, y, zg), r * 1.04, r * 1.02, M("goudron").couleur(R), n=n):
         if v.co.z < eau: v[P.col] = (*M("algue").couleur(R), 1)
     dx, dy = R.uniform(-.04, .04), R.uniform(-.04, .04)
@@ -646,26 +646,29 @@ def garde_corps(P, a, b, z, haut=.95, pas=1.1, mat="blanc", bouts=(True, True)):
     poutre(P, (a.x, a.y, z + haut), (b.x, b.y, z + haut), l=.12, h=.07, mat=mat)
     poutre(P, (a.x, a.y, z + haut * .5), (b.x, b.y, z + haut * .5), l=.05, h=.07, mat=mat)
 
-def escalier_bois(P, x, y_haut, z_haut, l, marches, prof=.33, z_sol=0.0, mat="chene_c", rampe=None):
-    """Escalier de bois qui descend vers -Y depuis le bord d'un plancher (y_haut, z_haut) jusqu'au sol (z_sol) : marches
-    de planches entre deux limons, dalle de pierre au pied ; rampe : matière des mains courantes (None : sans).
-    Hauteur de marche = (z_haut - z_sol) / (marches + 1) : la garder sous 30 cm (le joueur monte 30 cm au plus)."""
-    hm = (z_haut - z_sol) / (marches + 1); s = hm / prof; R = P.R
+def escalier_bois(P, x, y_haut, z_haut, l, marches, prof=.33, z_sol=0.0, mat="chene_c", rampe=None, haut_rampe=.95):
+    """Escalier qui descend vers -Y depuis le bord d'un plancher (y_haut, z_haut) jusqu'au sol (z_sol) : marches de
+    planches entre deux limons ; la marche du bas est un bloc de pierre posé au sol (enterré de 25 cm : pas de jour sous
+    l'escalier), où s'appuient les limons et les poteaux de la rampe. rampe : matière des mains courantes (None : sans).
+    marches : nombre de marches de bois ; hauteur de marche = (z_haut - z_sol) / (marches + 2) : la garder sous 30 cm."""
+    hm = (z_haut - z_sol) / (marches + 2); s = hm / prof; R = P.R
     for k in range(1, marches + 1):
         zt = z_haut - k * hm
-        P.boite((x + R.uniform(-.01, .01), y_haut - (k - .5) * prof, zt - .035), (l, prof + .02, .07), M(mat).couleur(R, .1), bev=.012)
+        P.boite((x + R.uniform(-.01, .01), y_haut - (k - .5) * prof, zt - .035), (l, prof + .02, .07), M(mat).couleur(R, .1), bev=0)
+    zp = z_sol + hm; yp0 = y_haut - marches * prof                        # la marche de pierre : dessus à zp, de yp0 vers -Y
+    P.boite((x, yp0 - prof / 2 + .02, (zp + z_sol - .25) / 2), (l + .4, prof + .1, zp - z_sol + .25), M("moellon").couleur(R), bev=.05, jit=.01)
+    P.boite((x, yp0 - prof - .2, z_sol - .06), (l + .2, .45, .2), M("moellon").couleur(R), bev=.04, jit=.01)   # dalle d'approche (dessus à 4 cm)
     zl = lambda y: z_haut + (y - y_haut) * s - .15
-    y_bas = y_haut + (z_sol - .05 - z_haut + .15) / s
-    for sx in (-1, 1):   # limons à l'extérieur des marches (les marches sont prises entre eux)
-        xx = x + sx * (l / 2 + .035); poutre(P, (xx, y_haut + .02, zl(y_haut + .02)), (xx, y_bas, z_sol - .05), l=.07, h=.3, mat="chene")
-    P.boite((x, y_haut - marches * prof - .25, z_sol - .04), (l + .35, .7, .2), M("moellon").couleur(R), bev=.05, jit=.01)   # dalle au pied (dessus à 6 cm)
+    y_bas = y_haut + (zp - .05 - z_haut + .15) / s
+    for sx in (-1, 1):   # limons à l'extérieur des marches, posés sur la pierre
+        xx = x + sx * (l / 2 + .035); poutre(P, (xx, y_haut + .02, zl(y_haut + .02)), (xx, y_bas, zp - .05), l=.07, h=.3, mat="chene")
     if rampe:
-        yb = y_haut - marches * prof + .12; zb = z_sol + hm
+        yb = yp0 - .1
         for sx in (-1, 1):
             xx = x + sx * (l / 2 + .12)
-            poutre(P, (xx, yb, z_sol - .05), (xx, yb, zb + 1.0), l=.1, h=.1, mat=rampe)
-            poutre(P, (xx, y_haut + .06, z_haut + .95), (xx, yb, zb + .95), l=.12, h=.07, mat=rampe)
-            poutre(P, (xx, y_haut + .06, z_haut + .47), (xx, yb, zb + .47), l=.05, h=.07, mat=rampe)
+            poutre(P, (xx, yb, zp - .05), (xx, yb, zp + haut_rampe + .05), l=.1, h=.1, mat=rampe)
+            poutre(P, (xx, y_haut + .06, z_haut + haut_rampe), (xx, yb, zp + haut_rampe), l=.12, h=.07, mat=rampe)
+            poutre(P, (xx, y_haut + .06, z_haut + haut_rampe * .5), (xx, yb, zp + haut_rampe * .5), l=.05, h=.07, mat=rampe)
     return hm
 
 def tore(P, centre, R_, r, c, n=12, m=6, axe=(0, 0, 1), bandes=None):

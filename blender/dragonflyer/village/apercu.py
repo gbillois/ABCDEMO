@@ -171,6 +171,18 @@ def plan_eau(z, taille=80):
     bs.inputs["Base Color"].default_value = (*lin("#3e8d9c"), 1); bs.inputs["Roughness"].default_value = .12; bs.inputs["Alpha"].default_value = .72
     me.materials.append(m); return ob
 
+def ouverture_porte(ob, porte, rayon=.35, haut=1.7):
+    """Ouverture de la porte, mesurée à 0,6 m et à 1,4 m au-dessus du plancher (on garde la plus grande : à 1 m, l'anneau
+    de la porte du kit coupait la mesure) ; hauteur sous le linteau."""
+    dg = bpy.context.evaluated_depsgraph_get(); bvh = BVHTree.FromObject(ob, dg); px, py, pz = porte; larg = 0.0
+    for dz in (.6, 1.4):
+        hd = bvh.ray_cast(Vector((px, py, pz + dz)), Vector((0, 1, 0)), 3); yp = (hd[0].y - .02) if hd[0] else py + .5
+        g = bvh.ray_cast(Vector((px, yp, pz + dz)), Vector((-1, 0, 0)), 2); d = bvh.ray_cast(Vector((px, yp, pz + dz)), Vector((1, 0, 0)), 2)
+        if g[0] and d[0]: larg = max(larg, d[0].x - g[0].x)
+    u = bvh.ray_cast(Vector((px, yp - .07, pz + .3)), Vector((0, 0, 1)), 4); hp = (u[0].z - pz) if u[0] else float("nan")
+    ok = larg >= 2 * rayon + .1 and hp >= haut + .1
+    return ok, f"ouverture de la porte : {larg:.2f} m de large (mesures à 0,6 et 1,4 m), {hp:.2f} m sous le linteau → {'assez grande pour la capsule' if ok else 'TROP PETITE pour la capsule'}"
+
 def apercu_maison_eau(objets, nom, taille, haut, porte_seuil, fenetre, eau=-.2, porte_cam=None, **rive):
     """Comme apercu_maison, pour une maison posée au bord de l'eau : l'occlusion est cuite avec un sol au niveau de
     l'eau (dans le jeu, la maison est posée à y = 0,2 au-dessus de la mer, soit l'eau à z = -0,2 dans son repère) ;
@@ -179,6 +191,8 @@ def apercu_maison_eau(objets, nom, taille, haut, porte_seuil, fenetre, eau=-.2, 
     point « porte » est loin du mur (terrasse)."""
     dossier = sortie(); nettoyer_depart()
     ok, lignes = capsule(objets[0], porte_seuil)
+    ok_p, ligne_p = ouverture_porte(objets[0], porte_seuil)
+    lignes = [l for l in lignes if not l.startswith("ouverture de la porte")] + [ligne_p]
     cuire_occlusion(objets, sol_z=eau)
     exporter(objets, os.path.join(dossier, nom + ".glb"))
     f, t = faces(objets); lignes.insert(0, f"{nom} : {f} faces, {t} triangles")

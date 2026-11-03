@@ -8,7 +8,7 @@ from mathutils import Vector
 from kit import Piece, poutre, face_vers
 from materiaux import M, melange
 
-def construire(graine=29, L=2.4, h=1.0, nu=12, nv=6, fil=.032):
+def construire(graine=29, L=2.4, h=1.0, nu=10, nv=5, fil=.034):
     P = Piece("P_filet", graine); R = P.R
     for s in (-1, 1): poutre(P, (s * L / 2, .03, 0), (s * L / 2, -.14, 0), l=.05, h=.05, mat="chene")   # chevilles
     bas = [R.uniform(.85, 1.1) for i in range(nu + 1)]

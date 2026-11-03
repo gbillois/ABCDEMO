@@ -11,12 +11,12 @@ import rame
 
 def construire(graine=31, L=3.0, l=1.15, mat="clin_bleu"):
     P = Piece("P_barque", graine); R = P.R; bm = P.bm
-    ns = 8; ss = [-1 + 2 * i / (ns - 1) for i in range(ns)]; ss[-1] = .985
+    ns = 7; ss = [-1 + 2 * i / (ns - 1) for i in range(ns)]; ss[-1] = .985
     def section(s, dedans=False):
         """Profil d'une tranche (de bâbord à tribord) : plat-bord, bande, bouchain, quille."""
         w = l / 2 * max(.02, 1 - (s if s > 0 else s * .72) ** 2) ** .5
         zt = .3 + .14 * s ** 4; zq = -.28 * max(.05, 1 - s ** 6) ** .5
-        pr = [(-w, zt), (-w * .98, zt - .08), (-w * .82, zt * .35 + zq * .65), (-w * .45, zq * .9), (0, zq)]
+        pr = [(-w, zt), (-w * .98, zt - .08), (-w * .7, zt * .2 + zq * .8), (0, zq)]
         pr = pr + [(-y, z) for (y, z) in reversed(pr[:-1])]
         if dedans: pr = [(y * .86, z + .06) for (y, z) in pr]
         return [Vector((s * L / 2, y, z)) for (y, z) in pr]
@@ -33,7 +33,7 @@ def construire(graine=31, L=3.0, l=1.15, mat="clin_bleu"):
     for j in range(m - 1):
         c = creme if j in (0, m - 2) else peint.couleur(R, .04)
         bande(ext, j, c, 1)
-        bande(inn, j, melange(bois.couleur(R, .08), bois.sombre, .35 if 2 <= j <= m - 4 else 0), -1)
+        bande(inn, j, melange(bois.couleur(R, .08), bois.sombre, .35 if 1 <= j <= m - 3 else 0), -1)
     for i in range(ns - 1):   # plat-bord : entre l'extérieur et l'intérieur
         for (je, ji) in ((0, 0), (m - 1, m - 1)):
             vv = [bm.verts.new(p) for p in (ext[i][je], ext[i + 1][je], inn[i + 1][ji], inn[i][ji])]

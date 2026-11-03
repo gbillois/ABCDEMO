@@ -101,8 +101,22 @@ rouge (bardeaux gris, porte et volets bleus), bleue (tuiles, porte rouge, volets
   caméras 09 et 12 ancrées à 0,6 m devant la porte (le point « porte » est 1,4 m devant, sur la terrasse) ; 14 308 → 12 214 triangles.
 - Premier jet : 12 214 triangles (ancienne : 5 620), capsule PASSE (5 marches de 24 cm), porte 0,86 × 2,06 m mesurés.
   Rendus : scratchpad `qc/pecheur1/` (variantes dans `variante_bleue/`, `variante_verte/`). En attente de l'inspecteur.
-- À la fusion : `../maisons.py` doit appeler `construire()` (ajouter « pecheur » à NOUVELLES) ; pour les variantes,
-  exporter trois maisons (ex. M_pecheur, M_pecheur_b, M_pecheur_c) et les choisir dans batirVillage.
+- Tour 1 (rouge) : posé 6, matières 8, formes 7, style 8, lisibilité 8, passage 8, coût 6 (12 214) → À REFAIRE.
+  Pied d'escalier qui flotte au-dessus du sable, pilotis et escalier mêlés à la plage, décrochage ponton / terrasse,
+  poteau de garde-corps qui cache le seuil en 09, façade arrière et pignon côté mer vides, porte brune de la verte
+  qui se perd, plus de 10 500 triangles.
+  Corrigé : marche du bas en pierre enterrée (kit : escalier_bois, 4 marches de bois + 1 de pierre, 24 cm) et dalle
+  d'approche ; aperçu avec la terre jusque sous la terrasse (y_rive -4,2), pieux de devant sur des plots de pierre,
+  contreventements à 30 cm au-dessus du sable et de l'eau ; ponton avec les mêmes planches de rive que le plancher
+  (dessus au même niveau) ; garde-corps de 80 cm (on voit le seuil par-dessus), bouée déplacée ; côté mer : lanterne,
+  caisse, bouée sur le pignon ; planches plus nuancées (passées, plus foncées) ; porte rouge pour la verte ;
+  allègements (bardeaux et tuiles plus grands, pilotis à 6 pans, rames, barque, corde, bouée, jardinière légère,
+  un tonneau en moins, chevrons tous les 70 cm). Mesure de la porte à 0,6 et 1,4 m dans `apercu_maison_eau`
+  (`ouverture_porte`, même logique que la correction faite ailleurs dans `capsule`).
+- Tour 2 : rouge 10 476, bleue 10 420, verte 10 476 triangles (vitres comprises) ; capsule PASSE, porte 1,20 × 2,05 m.
+  Objets nommés M_pecheur / M_pecheur_b / M_pecheur_c (et W_) ; .glb de chacun dans le dossier de ses rendus
+  (scratchpad `qc/pecheur2/`, `variante_bleue/`, `variante_verte/`). En attente de l'inspecteur.
+- À la fusion : `../maisons.py` doit appeler `construire(variante=0, 1, 2)` pour les trois maisons ; le jeu les répartit.
 
 ## Héros (agent séparé, worktree `worktree-agent-adb19e9034e46bb45`, voir `blender/dragonflyer/personnages/PASSATION.md` sur cette branche)
 - Tour 1 : proportions 8, visage 8, cheveux et vêtements 6, articulations 7, animations 5, style 8, coût 6 → À REFAIRE.

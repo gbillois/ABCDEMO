@@ -8,7 +8,8 @@ from kit import Piece, poutre, pilotis, tore
 from materiaux import M
 import echelle
 
-def construire(graine=17, L=2.6, l=1.4, z=1.45, z_fond=-3.0, eau=-.2, avec_echelle=True):
+def construire(graine=17, L=2.6, l=1.4, z=1.45, z_fond=-3.0, eau=-.2, avec_echelle=True, rive=None):
+    """rive : matière des planches de rive (mêmes que celles du plancher de la maison, pour que les deux se suivent)."""
     P = Piece("P_ponton", graine); R = P.R; xp = l / 2 - .1
     n = max(1, round(L / 1.25))
     for i in range(n + 1):
@@ -19,14 +20,17 @@ def construire(graine=17, L=2.6, l=1.4, z=1.45, z_fond=-3.0, eau=-.2, avec_echel
     k = int(L / .24)
     for i in range(k):   # planches en travers, un peu inégales
         P.boite((R.uniform(-.03, .03), (i + .5) * L / k, z - .035), (l + R.uniform(-.04, .06), L / k - .018, .07), M("chene_c").couleur(R, .12), bev=0)
+    if rive:
+        for sx in (-1, 1): P.boite((sx * (l / 2 + .03), L / 2, z - .13), (.05, L + .02, .22), M(rive).couleur(R), bev=0)
+        P.boite((0, L + .03, z - .13), (l + .1, .05, .22), M(rive).couleur(R), bev=0)
     # poteau d'amarrage au bout (le pieu qui dépasse), corde enroulée
     bx, by = xp, L - .15
-    P.cylindre((bx, by, z - .2), (bx, by, z + .5), .13, .12, M("chene").couleur(R), n=8)
-    P.cylindre((bx, by, z + .5), (bx, by, z + .56), .12, .07, M("chene").couleur(R), n=8)
+    P.cylindre((bx, by, z - .2), (bx, by, z + .5), .13, .12, M("chene").couleur(R), n=6)
+    P.cylindre((bx, by, z + .5), (bx, by, z + .56), .12, .07, M("chene").couleur(R), n=6)
     for j in range(2): tore(P, (bx, by, z + .24 + j * .08), .15, .038, M("corde").couleur(R), n=8, m=4)
     if avec_echelle:
         h = z + .55 - (eau - .7)
-        P.ajouter(echelle.construire(h=h), Matrix.Translation((-l / 4, L + .06, eau - .7)))
+        P.ajouter(echelle.construire(h=h), Matrix.Translation((-l / 4, L + .11, eau - .7)))
     return P
 
 if __name__ == "__main__":
