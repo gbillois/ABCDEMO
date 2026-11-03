@@ -1901,7 +1901,7 @@ function batirVillage(v, r) {
     const profil = (ru, s) => { let t = 0, n = 0; for (let e = -8; e <= 8; e += 2) { t += hauteur(C.x + ru.dx * Math.max(6, s + e), C.z + ru.dz * Math.max(6, s + e)); n++; } return Math.max(1.5, t / n); };
     if (type !== "moulin") for (const an of anneau) if (!an.pris) {   // les premières maisons font le tour de la place, à des distances et des angles variés
       const d = 9.5 + hz + 2.5 + r() * 3, a = an.a + (r() - .5) * .12, x = C.x + Math.cos(a) * d, z = C.z + Math.sin(a) * d, pl = essayer(x, z, Math.atan2(C.x - x, C.z - z) + (r() - .5) * .45, hC);
-      if (pl) { an.pris = true; return pl; }
+      if (pl && Math.abs(pl.y - hC) < .05) { an.pris = true; return pl; }   // autour de la place : exactement au niveau de la place (paliers et place raccord)
     }
     for (let n = 0; n < 6; n++) {   // la rue et le côté les moins avancés
       const cands = []; rues.forEach((ru, i) => [0, 1].forEach(c => cands.push([ru.curseur[c], i, c])));
@@ -1939,7 +1939,7 @@ function batirVillage(v, r) {
     if (type === "moulin") MOULINS.push(o);
     return o;
   };
-  const QUAI = [-40, -30, -20, -10, 0, 10, 20, 30, 40].map(a => a + (r() - .5) * 2), QUAI_PRIS = new Set();
+  const QUAI = [-50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50].map(a => a + (r() - .5) * 1.5), QUAI_PRIS = new Set();
   for (const type of v.style.maisons) {
     const k = KIT["M_" + type]; if (!k) continue; let fait = false;
     for (let essai = 0; essai < 140 && !fait; essai++) {
@@ -1949,7 +1949,9 @@ function batirVillage(v, r) {
         let x = 0, z = 0, ok = false;
         for (let out = -2; out <= 24 && !ok; out += 1) { x = v.x + lx * along + mx * out; z = v.z + lz * along + mz * out; const h = hauteur(x, z); ok = h > -1.4 && h < .2; }
         if (!ok) continue;
-        const yaw = Math.atan2(-mx, -mz) + (r() - .5) * .12; if (!libre(x, z, yaw, k.pied.hx, k.pied.hz, 3)) continue;
+        const yaw = Math.atan2(-mx, -mz) + (r() - .5) * .08; if (!libre(x, z, yaw, k.pied.hx, k.pied.hz, 3)) continue;
+        { let tx = x, tz = z, n_ = 0; while (n_++ < 30 && hauteur(tx, tz) < .9) { tx -= mx; tz -= mz; }   // la terre derrière la porte doit être douce
+          if (Math.abs(hauteur(tx - mx * 3, tz - mz * 3) - hauteur(tx, tz)) > 1.2) continue; }
         QUAI_PRIS.add(along); poser(type, x, z, .2, yaw); fait = true;
       } else {
         const pl = placeDansLePlan(type, k, essai); if (!pl) break;
@@ -1994,8 +1996,13 @@ function batirVillage(v, r) {
     plats.push({ x: fx, z: fz, yaw, hx: 6, hz: 8.5, y: hf });
     ru.L = Math.max(ru.L, d0 - 8.5);
   }
+  for (let k = 0; k < 28; k++) {   // muret de soutènement au bord de la place, là où le terrain monte de plus de 60 cm
+    const a = k / 28 * Math.PI * 2, ex = Math.cos(a), ez = Math.sin(a), diff = SOL0(C.x + ex * 14.5, C.z + ez * 14.5) - hC;
+    if (diff < .6 || rues.some(ru => Math.abs(Math.atan2(Math.sin(a - ru.a), Math.cos(a - ru.a))) < .3)) continue;   // pas en travers d'une rue
+    v.murets.push({ x: C.x + ex * 10.9, z: C.z + ez * 10.9, yaw: Math.atan2(-ex, -ez), y: hC - .1, sy: Math.min(1.7, Math.max(.6, diff / 1.2)), sx: 2 * Math.PI * 10.9 / 28 / 1.9 });
+  }
   aplanir(plats);
-  const rang = q => q.rond ? 4 : q.maison ? 3 : q.palier ? 2 : 1;   // les maisons après les potagers et paliers (rien ne rogne leur emprise), la place tout à la fin
+  const rang = q => q.rond ? 0 : q.maison ? 3 : q.palier ? 2 : 1;   // la place d'abord, puis potagers, paliers, et les maisons en dernier (rien ne rogne leur emprise)
   aplanirExact(plats.slice().sort((a, b) => rang(a) - rang(b)));
   peindreSol(v, [[C.x, C.z]], 19, "rgb(0,255,0)");   // place pavée
   const peche = v.maisons.some(o => o.type === "pecheur");
@@ -2039,7 +2046,11 @@ function batirVillage(v, r) {
     for (let i = 0; i < n; i++) for (let essai = 0; essai < 60; essai++) {
       let x, z, yaw;
       if (nom === "puits" && i === 0) { x = C.x; z = C.z; yaw = r() * 6.28; }
-      else if (nom === "ponton") { const along = (r() - .5) * 120, x0 = v.x + lx * along, z0 = v.z + lz * along; if (hauteur(x0, z0) > 1.2 || hauteur(x0, z0) < -.8) continue; x = x0; z = z0; yaw = Math.atan2(-mx, -mz); }
+      else if (nom === "ponton") {   // entre deux maisons de pêcheur voisines, vers la mer
+        const P_ = v.maisons.filter(o => o.type === "pecheur").sort((a, b) => ((a.x - v.x) * lx + (a.z - v.z) * lz) - ((b.x - v.x) * lx + (b.z - v.z) * lz));
+        if (P_.length < 2) break; const j = (i * 3 + 1) % (P_.length - 1), A_ = P_[j], B_ = P_[j + 1];
+        x = (A_.x + B_.x) / 2 + mx * 2; z = (A_.z + B_.z) / 2 + mz * 2; yaw = Math.atan2(-mx, -mz);
+        if (Math.hypot(A_.x - B_.x, A_.z - B_.z) > 16 || v.props.some(q => q.nom === "ponton" && Math.hypot(q.x - x, q.z - z) < 4)) continue; }
       else if (nom === "etal") { const a = r() * 6.28; x = C.x + Math.cos(a) * 7.5; z = C.z + Math.sin(a) * 7.5; yaw = Math.atan2(C.x - x, C.z - z); }
       else if (nom === "cloture" || nom === "foin") { const a = r() * 6.28, d = 30 + r() * 45; x = C.x + Math.cos(a) * d; z = C.z + Math.sin(a) * d; yaw = nom === "cloture" ? a + Math.PI / 2 : r() * 6.28; }
       else { const o = v.maisons[(r() * v.maisons.length) | 0], a = r() * 6.28, d = 3 + r() * 5; if (!o) break; x = o.x + Math.cos(a) * (Math.max(o.hx, o.hz) + d); z = o.z + Math.sin(a) * (Math.max(o.hx, o.hz) + d); yaw = r() * 6.28; }
@@ -5314,7 +5325,7 @@ async function demarrer() {
     chrono("kit"); await chargerKit();
     chrono("villages"); VILLAGES = creerVillages(); creerInterieurs(); creerHalos();
     herbe.material.uniforms.tMasque.value = masqueHerbe();
-    VILLAGES.slice(0, 4).forEach((v, i) => herbe.material.uniforms.uVillages.value[i].set(v.place.x, v.place.z, 10.5, 0));   // la place ; les rues et allées : carte du sol
+    VILLAGES.slice(0, 4).forEach((v, i) => herbe.material.uniforms.uVillages.value[i].set(v.place.x, v.place.z, 11.5, 0));   // la place ; les rues et allées : carte du sol
     chrono("paysages"); await creerPaysages(); chrono("caverne"); await creerCaverne(); creerFollets(); creerRampants(); creerEpeeMain();
     await progression(.76, "Planting the forests…");
     chrono("arbresKit"); await chargerArbresKit(); chrono("creerArbres"); creerArbres(); chrono("chargerNature"); await chargerNature(); chrono("semerNature"); semerNature(); chrono("ombresPeintes"); ombresPeintes();

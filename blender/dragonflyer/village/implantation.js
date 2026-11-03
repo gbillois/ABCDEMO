@@ -52,7 +52,8 @@ fs.mkdirSync(OUT, { recursive: true });
     }
     // rapport chiffré
     const rapport = await p.evaluate(nom => {
-      const d = window.__df, v = d.VILLAGES.find(v => v.nom === nom), C = v.place, L = [`${nom} : ${v.maisons.length} maisons, ${v.props.length} accessoires, rayon ${v.rayon.toFixed(0)} m`];
+      const d = window.__df, v = d.VILLAGES.find(v => v.nom === nom), C = v.place, cpt = {}; v.props.forEach(p => cpt[p.nom] = (cpt[p.nom] || 0) + 1);
+      const L = [`${nom} : ${v.maisons.length} maisons, ${v.props.length} accessoires (${Object.entries(cpt).map(([k, n]) => k + " " + n).join(", ")}), ${(v.murets || []).length} murets, rayon ${v.rayon.toFixed(0)} m`];
       v.maisons.forEach((o, i) => {
         const [mn, mx] = d.terrainSous(o.x, o.z, o.yaw, o.hx, o.hz), dc = Math.hypot(o.x - C.x, o.z - C.z);
         // écart réel entre emprises (rectangles tournés) : points du bord de l'une, distance au rectangle de l'autre
