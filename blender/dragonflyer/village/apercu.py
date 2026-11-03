@@ -205,3 +205,228 @@ def apercu_maison_eau(objets, nom, taille, haut, porte_seuil, fenetre, eau=-.2, 
     materiaux_rendu(objets); decor(taille)
     bpy.data.objects.remove(bpy.data.objects["Pre"]); rivage(**rive); plan_eau(eau)
     rendre(dossier, douze_cameras(taille, haut, porte_cam or porte_seuil, fenetre))
+
+# ---- ajouts intérieurs : banc de test des pièces (village/interieurs/*.py)
+def materiau_lueur(objets, force=1.3):
+    """Ce qui brille (IL_, flammes d'un objet) : émission de la couleur des sommets (le jeu le dessine sans lumière)."""
+    m = bpy.data.materials.new("Lueur"); m.use_nodes = True; nt = m.node_tree
+    for n in list(nt.nodes):
+        if n.type != "OUTPUT_MATERIAL": nt.nodes.remove(n)
+    ca = nt.nodes.new("ShaderNodeVertexColor"); ca.layer_name = "Col"; em = nt.nodes.new("ShaderNodeEmission"); em.inputs["Strength"].default_value = force
+    nt.links.new(ca.outputs["Color"], em.inputs["Color"]); nt.links.new(em.outputs["Emission"], nt.nodes["Material Output"].inputs["Surface"])
+    for ob in objets: ob.data.materials.clear(); ob.data.materials.append(m)
+
+def apercu_objet_v(P, V, pied=(1, 1)):
+    """Comme apercu_objet, pour un objet qui a une partie qui brille (V : flammes, braises)."""
+    dossier = sortie(); nettoyer_depart()
+    ob = P.objet({"pied": list(pied)}); obv = V.objet(); cuire_occlusion([ob]); exporter([ob, obv], os.path.join(dossier, ob.name + ".glb"))
+    f, t = faces([ob, obv]); open(os.path.join(dossier, "controle.txt"), "w").write(f"{ob.name} : {f} faces, {t} triangles (dont {faces([obv])[1]} qui brillent)\n"); print(ob.name, t, "triangles")
+    materiaux_rendu([ob]); materiau_lueur([obv]); decor(max(pied) * 2); s = max(pied)
+    rendre(dossier, douze_cameras(s, 1.0, (0, -pied[1] / 2, 0), (0, -pied[1] / 2, .5)))
+
+def planche_12(dossier, fichiers, nom="planche.png"):
+    scene = bpy.context.scene; W, H = scene.render.resolution_x // 2, scene.render.resolution_y // 2
+    pl = np.zeros((H * 3, W * 4, 4), np.float32)
+    for i, f in enumerate(fichiers):
+        im = bpy.data.images.load(f); im.scale(W, H); a = np.array(im.pixels[:], np.float32).reshape(H, W, 4)
+        r, c = 2 - i // 4, i % 4; pl[r * H:(r + 1) * H, c * W:(c + 1) * W] = a; bpy.data.images.remove(im)
+    img = bpy.data.images.new("planche", W * 4, H * 3); img.pixels = pl.ravel(); img.filepath_raw = os.path.join(dossier, nom); img.file_format = "PNG"; img.save()
+
+def degagement(bvh, x, y, marche=.3, haut=1.7, portee=1.0, n_dir=24):
+    """Distance horizontale du point (x, y) au premier obstacle entre marche et haut (0 si quelque chose est au-dessus
+    ou en dessous dans cette tranche : table, lit, poutre basse). Les rayons partent de l'axe de la capsule."""
+    if bvh.ray_cast(Vector((x, y, marche)), Vector((0, 0, 1)), haut - marche)[0]: return 0.0
+    if bvh.ray_cast(Vector((x, y, haut)), Vector((0, 0, -1)), haut - marche)[0]: return 0.0
+    d = portee
+    for z in np.arange(marche + .02, haut + .01, .14):
+        for k in range(n_dir):
+            a = 2 * math.pi * k / n_dir; h = bvh.ray_cast(Vector((x, y, z)), Vector((math.cos(a), math.sin(a), 0)), d)
+            if h[0]: d = min(d, h[3])
+    return d
+
+def _remplir(libre, depart):
+    """Inondation à 8 voisins depuis depart (pas de coin coupé entre deux cases bloquées)."""
+    ny, nx = libre.shape; vu = np.zeros_like(libre); pile = [depart] if libre[depart] else []
+    if pile: vu[depart] = True
+    while pile:
+        j, i = pile.pop()
+        for dj in (-1, 0, 1):
+            for di in (-1, 0, 1):
+                jj, ii = j + dj, i + di
+                if (dj or di) and 0 <= jj < ny and 0 <= ii < nx and libre[jj, ii] and not vu[jj, ii]:
+                    if dj and di and not (libre[j, ii] and libre[jj, i]): continue
+                    vu[jj, ii] = True; pile.append((jj, ii))
+    return vu
+
+def carte_acces(ob, taille, depart, cibles, poses, dossier, pas=.25, rayon=.35, large=.45, marge_mur=.45, marche=.3, haut=1.7):
+    """Test de la capsule du joueur dans une pièce : sur une grille de 25 cm, les cases que la capsule (rayon, haut)
+    atteint depuis la porte (inondation), en restant à marge_mur des murs comme le jeu (garderDansPiece).
+    Passages : une capsule « large » (diamètre 0,9 m) doit aller partout où va la vraie (sinon un meuble laisse un
+    passage de moins de 0,9 m). cibles : {nom: (x0, x1, y0, y1) ou (x, y)} à atteindre à moins de 1 m.
+    Écrit carte_acces.png (vert atteint, jaune-vert atteint mais étroit, rouge bloqué, gris enfermé, brun : trop près
+    d'un mur) et renvoie les lignes du rapport."""
+    dg = bpy.context.evaluated_depsgraph_get(); bvh = BVHTree.FromObject(ob, dg)
+    l, p = taille[0], taille[1]; nx, ny = int(round(l / pas)), int(round(p / pas))
+    xs = -l / 2 + (np.arange(nx) + .5) * pas; ys = -p / 2 + (np.arange(ny) + .5) * pas
+    D = np.zeros((ny, nx)); dedans = np.zeros((ny, nx), bool)
+    for j, y in enumerate(ys):
+        for i, x in enumerate(xs):
+            dedans[j, i] = abs(x) <= l / 2 - marge_mur + 1e-6 and abs(y) <= p / 2 - marge_mur + 1e-6
+            D[j, i] = degagement(bvh, x, y, marche, haut) if dedans[j, i] else 0.0
+    j0 = int(np.argmin(abs(ys - depart[1]))); i0 = int(np.argmin(abs(xs - depart[0])))
+    libre = dedans & (D >= rayon); A = _remplir(libre, (j0, i0))
+    largeL = A & (D >= large); B = _remplir(largeL, (j0, i0))
+    coupe = largeL & ~B                                       # cases où la capsule large tient, mais qu'elle n'atteint pas
+    L = []; ok = True
+    L.append(f"capsule du joueur : rayon {rayon} m, {haut} m, enjambe {marche} m ; grille de {pas} m ; reste à {marge_mur} m des murs (comme le jeu)")
+    L.append(f"départ (porte) : case ({xs[i0]:.2f}, {ys[j0]:.2f}) {'libre' if libre[j0, i0] else 'BLOQUÉE'}")
+    nd = int(dedans.sum()); na = int(A.sum()); nb = int((dedans & ~libre).sum()); ne = int((libre & ~A).sum())
+    L.append(f"sol dans la zone du jeu : {nd} cases ({nd * pas * pas:.1f} m²) ; atteintes {na} ({100 * na / max(1, nd):.0f} %), bloquées par un meuble {nb}, libres mais enfermées {ne}")
+    if ne: ok = False; L.append("  ENFERMÉ : " + ", ".join(f"({xs[i]:.2f}, {ys[j]:.2f})" for j, i in zip(*np.nonzero(libre & ~A))))
+    L.append(f"passages de moins de 0,9 m (capsule de {2 * large:.1f} m de large coupée d'une zone où elle tient) : {int(coupe.sum())} cases" + ("" if not coupe.sum() else " → " + ", ".join(f"({xs[i]:.2f}, {ys[j]:.2f})" for j, i in zip(*np.nonzero(coupe)))))
+    if coupe.sum(): ok = False
+    pts = [(xs[i], ys[j]) for j, i in zip(*np.nonzero(A))]
+    def dist_rect(px, py, c):
+        if len(c) == 2: return math.hypot(px - c[0], py - c[1])
+        x0, x1, y0, y1 = c; return math.hypot(max(x0 - px, 0, px - x1), max(y0 - py, 0, py - y1))
+    for nom, c in cibles.items():
+        dm = min((dist_rect(px, py, c) for px, py in pts), default=99)
+        cotes = ""
+        if len(c) == 4:
+            x0, x1, y0, y1 = c; n_c = 0
+            for test in (lambda px, py: py < y0 and x0 - .3 <= px <= x1 + .3, lambda px, py: py > y1 and x0 - .3 <= px <= x1 + .3,
+                         lambda px, py: px < x0 and y0 - .3 <= py <= y1 + .3, lambda px, py: px > x1 and y0 - .3 <= py <= y1 + .3):
+                if any(test(px, py) and dist_rect(px, py, c) <= 1.0 for px, py in pts): n_c += 1
+            cotes = f", côtés accessibles à moins de 1 m : {n_c}/4"
+        if dm > 1.0: ok = False
+        L.append(f"{nom} : au plus près à {dm:.2f} m {'(OK)' if dm <= 1.0 else '(TROP LOIN)'}{cotes}")
+    # le tour : de chaque mur, une case atteinte à moins de 1,2 m (zone du jeu), et le tour complet de la pièce
+    for nom_m, test in (("mur de la porte (-Y)", lambda x, y: y < -p / 2 + marge_mur + 1.2), ("mur du fond (+Y)", lambda x, y: y > p / 2 - marge_mur - 1.2),
+                        ("mur gauche (-X)", lambda x, y: x < -l / 2 + marge_mur + 1.2), ("mur droit (+X)", lambda x, y: x > l / 2 - marge_mur - 1.2)):
+        n = sum(1 for px, py in pts if test(px, py)); L.append(f"le long du {nom_m} : {n} cases atteintes à moins de 1,2 m de la zone du jeu")
+    # carte
+    k = 12; img = np.zeros((ny * k, nx * k, 4), np.float32); img[..., 3] = 1
+    for j in range(ny):
+        for i in range(nx):
+            if not dedans[j, i]: c = (.35, .27, .2)
+            elif A[j, i] and D[j, i] >= large: c = (.2, .62, .25)
+            elif A[j, i]: c = (.62, .72, .2)
+            elif libre[j, i]: c = (.5, .5, .5)
+            else: c = (.72, .18, .15)
+            img[j * k + 1:(j + 1) * k - 1, i * k + 1:(i + 1) * k - 1, :3] = c
+    def px_(x, y): return int((x + l / 2) / pas * k), int((y + p / 2) / pas * k)
+    for q in poses:
+        if not q.get("obstacle", True): continue
+        a_, b_ = px_(q["min"][0], q["min"][1]), px_(q["max"][0], q["max"][1])
+        a_ = (max(0, a_[0]), max(0, a_[1])); b_ = (min(nx * k - 1, b_[0]), min(ny * k - 1, b_[1]))
+        img[a_[1]:b_[1] + 1, a_[0], :3] = 1; img[a_[1]:b_[1] + 1, b_[0], :3] = 1; img[a_[1], a_[0]:b_[0] + 1, :3] = 1; img[b_[1], a_[0]:b_[0] + 1, :3] = 1
+    for (x, y), c in ((depart, (.2, .4, 1)),) + tuple((v, (1, .85, .1)) for v in cibles.values() if len(v) == 2):
+        u, w = px_(x, y); img[max(0, w - 5):w + 5, max(0, u - 5):u + 5, :3] = c
+    im = bpy.data.images.new("acces", nx * k, ny * k); im.pixels = img.ravel(); im.filepath_raw = os.path.join(dossier, "carte_acces.png"); im.file_format = "PNG"; im.save()
+    L.insert(0, f"ACCÈS : {'PASSE' if ok else 'À REVOIR'} (carte : carte_acces.png ; vert : atteint, jaune-vert : atteint mais à moins de {large} m d'un meuble, rouge : meuble, gris : libre mais enfermé, brun : bande des murs où le jeu ne laisse pas aller)")
+    return ok, L
+
+def controle_poses(poses, taille, tol=.025):
+    """Rien qui flotte, rien qui s'enfonce, rien dans les murs, pas de meubles qui se traversent. poses : [{nom, min, max,
+    appui ('sol', 'mur', 'plafond', 'sur'), sur (nom du support), z_haut (plafond), encastre (dans le mur : fenêtre,
+    porte, cheminée), obstacle}]."""
+    l, p = taille[0], taille[1]; L = []; ok = True; par_nom = {q["nom"]: q for q in poses}
+    for q in poses:
+        mn, mx = q["min"], q["max"]; a = q.get("appui", "sol"); msg = "ok"
+        if a == "sol" and abs(mn[2]) > tol: msg = f"{'FLOTTE' if mn[2] > 0 else 'S’ENFONCE'} de {abs(mn[2]) * 100:.0f} cm"
+        elif a == "sur":
+            s = par_nom[q["sur"]]; dz = mn[2] - s["max"][2]; cx, cy = (mn[0] + mx[0]) / 2, (mn[1] + mx[1]) / 2
+            if abs(dz) > tol: msg = f"{'FLOTTE' if dz > 0 else 'S’ENFONCE'} de {abs(dz) * 100:.0f} cm au-dessus de {q['sur']}"
+            elif not (s["min"][0] <= cx <= s["max"][0] and s["min"][1] <= cy <= s["max"][1]): msg = f"DÉBORDE de {q['sur']}"
+            else: msg = f"posé sur {q['sur']}"
+        elif a == "mur":
+            e = min(l / 2 - mx[0], mn[0] + l / 2, p / 2 - mx[1], mn[1] + p / 2)
+            msg = "contre le mur" if e <= tol + .02 else f"DÉCOLLÉ du mur de {e * 100:.0f} cm"
+        elif a == "plafond":
+            e = q["z_haut"] - mx[2]; msg = "accroché" if abs(e) <= tol + .01 else f"{'PEND DANS LE VIDE' if e > 0 else 'DANS LA POUTRE'} ({e * 100:.0f} cm)"
+        if not q.get("encastre"):
+            dans = max(mx[0] - l / 2, -l / 2 - mn[0], mx[1] - p / 2, -p / 2 - mn[1])
+            if dans > tol: msg += f" ; DANS LE MUR de {dans * 100:.0f} cm"
+        if msg.isupper() or "FLOTTE" in msg or "ENFONCE" in msg or "DÉ" in msg or "DANS" in msg or "PEND" in msg: ok = False
+        L.append(f"  {q['nom']} : {msg} (de {mn[2]:.2f} à {mx[2]:.2f} m)")
+    obs = [q for q in poses if q.get("obstacle", True) and q.get("appui", "sol") == "sol"]
+    for i, a in enumerate(obs):
+        for b in obs[i + 1:]:
+            r = [min(a["max"][k], b["max"][k]) - max(a["min"][k], b["min"][k]) for k in range(3)]
+            if min(r) <= .03: continue
+            if a.get("bvh") and b.get("bvh") and not a["bvh"].overlap(b["bvh"]): continue   # boîtes qui se recouvrent, mais pièces qui ne se touchent pas
+            ok = False; L.append(f"  SE TRAVERSENT : {a['nom']} et {b['nom']} (boîtes : {r[0] * 100:.0f} × {r[1] * 100:.0f} × {r[2] * 100:.0f} cm)")
+    L.insert(0, f"POSÉ : {'PASSE' if ok else 'À REVOIR'} ({len(poses)} objets)"); return ok, L
+
+def cameras_interieur(taille, porte, foyer, coins):
+    """Les 12 caméras des intérieurs, toujours les mêmes (porte vers -Y, foyer, deux coins les plus meublés)."""
+    l, p, h = taille; px, py = porte[0], -p / 2; fx, fy, fz = foyer; V_ = Vector
+    return [("01_porte_homme", V_((px + .05, py + .35, 1.6)), V_((px, p / 2, 1.15)), 16),
+            ("02_coin_avant_gauche", V_((-l / 2 + .35, -p / 2 + .35, 1.75)), V_((0, 0, .8)), 16),
+            ("03_coin_avant_droit", V_((l / 2 - .35, -p / 2 + .35, 1.75)), V_((0, 0, .8)), 16),
+            ("04_coin_fond_droit", V_((l / 2 - .35, p / 2 - .35, 1.75)), V_((0, 0, .8)), 16),
+            ("05_coin_fond_gauche", V_((-l / 2 + .35, p / 2 - .35, 1.75)), V_((0, 0, .8)), 16),
+            ("06_enfant_foyer", V_((fx + .6, fy - 2.6, 1.0)), V_((fx, fy, fz + .25)), 20),
+            ("07_fond_vers_porte", V_((px + 1.1, p / 2 - 1.0, 1.6)), V_((px, -p / 2, 1.1)), 16),
+            ("08_coin_meuble_1", V_(coins[0][0]), V_(coins[0][1]), 20),
+            ("09_coin_meuble_2", V_(coins[1][0]), V_(coins[1][1]), 20),
+            ("10_plafond", V_((0, -p / 2 + 1.0, 1.3)), V_((0, .8, h)), 14),
+            ("11_dessus_coupe", None, None, 0),
+            ("12_soir_feu_seul", V_((l / 2 - .6, -p / 2 + .7, 1.5)), V_((fx, fy, fz + .3)), 17)]
+
+def lumieres_interieur(taille, foyer, fenetres, soir=False):
+    """Lumière des rendus d'intérieur : le feu (lumière orangée au foyer), un peu de jour par chaque fenêtre et une
+    douce lumière d'ambiance (comme la lumière d'ambiance du jeu) ; le soir, le feu seul."""
+    for o in [o for o in bpy.context.scene.objects if o.type == "LIGHT"]: bpy.data.objects.remove(o)
+    l, p, h = taille; sc = bpy.context.scene.collection
+    def lum(nom, sorte, pos, e, c, **k):
+        o = bpy.data.objects.new(nom, bpy.data.lights.new(nom, sorte)); sc.objects.link(o); o.location = pos
+        o.data.energy = e; o.data.color = c
+        for a, v in k.items(): setattr(o.data, a, v)
+        return o
+    lum("Feu", "POINT", (foyer[0], foyer[1] - .9, foyer[2] + .45), 380 if soir else 150, (1, .55, .22), shadow_soft_size=.35)   # devant le feu (pas dans les braises : les pierres et le chaudron brûleraient)
+    if soir: return
+    a = lum("Ambiance", "AREA", (0, 0, h - .1), 260, (1, .9, .78), shape="RECTANGLE", size=l * .8, size_y=p * .8)
+    for (c, n, wl, wh) in fenetres:
+        o = lum("Jour", "AREA", Vector(c) + Vector(n) * .06, 110, (.82, .9, 1), shape="RECTANGLE", size=wl, size_y=wh)
+        o.rotation_euler = Vector(n).to_track_quat("-Z", "Y").to_euler()
+
+def apercu_interieur(P, V, C, nom, taille, porte, foyer, coins, poses, cibles, fenetres=(), props=None, ancien=None):
+    """Banc de test d'une pièce : P (I_ : murs, sol, meubles), V (IL_ : ce qui brille), C (plafond et charpente, retiré
+    pour la vue en coupe ; il rejoint I_ à l'export). Rapport controle.txt (triangles, posé, accès), carte_acces.png,
+    12 rendus, planche.png, <nom>.glb (I_<nom> + IL_<nom>, propriétés « taille », « porte », « foyer », « obstacles »)."""
+    dossier = sortie(); nettoyer_depart(); scene = bpy.context.scene
+    obs = [[round((q["min"][0] + q["max"][0]) / 2, 3), round((q["min"][1] + q["max"][1]) / 2, 3), round((q["max"][0] - q["min"][0]) / 2, 3), round((q["max"][1] - q["min"][1]) / 2, 3)]
+           for q in poses if q.get("obstacle", True) and q.get("appui", "sol") in ("sol", "mur") and q["min"][2] < 1.0 and q["max"][2] > .3]
+    pr = {"taille": list(taille), "porte": list(porte), "foyer": list(foyer), "obstacles": [x for o in obs for x in o]}; pr.update(props or {})
+    obI = P.objet(pr); obL = V.objet(); obC = C.objet()
+    depart = (porte[0], porte[1] + .2)                         # là où le jeu pose le joueur en entrant
+    ok_a, L_a = carte_acces(obI, taille, depart, cibles, poses, dossier)
+    ok_p, L_p = controle_poses(poses, taille)
+    w = bpy.data.worlds.new("Dedans"); scene.world = w; w.use_nodes = True
+    w.node_tree.nodes["Background"].inputs[0].default_value = (.5, .45, .4, 1); w.node_tree.nodes["Background"].inputs[1].default_value = .05
+    w.light_settings.distance = .8                             # occlusion courte : dans une pièce fermée, tout est « à l'ombre » à 10 m
+    cuire_occlusion([obI, obC], sol_z=-50)
+    materiaux_rendu([obI, obC]); materiau_lueur([obL])
+    cam = bpy.data.objects.new("Cam", bpy.data.cameras.new("Cam")); scene.collection.objects.link(cam); scene.camera = cam; cam.data.clip_start = .05
+    scene.cycles.samples = 32; scene.cycles.use_denoising = True; scene.render.resolution_x, scene.render.resolution_y = 720, 480
+    scene.view_settings.view_transform = "Standard"           # comme le jeu (sRGB) : AgX délave les flammes et les couleurs franches
+    fichiers = []
+    for (n, pos, cible, lens) in cameras_interieur(taille, porte, foyer, coins):
+        lumieres_interieur(taille, foyer, fenetres, soir=n.startswith("12"))
+        obC.hide_render = n.startswith("11")
+        if pos is None:                                        # vue de dessus en coupe (plan de la pièce)
+            cam.data.type = "ORTHO"; cam.data.ortho_scale = max(taille[0] + .6, (taille[1] + .6) * 1.5); cam.location = (0, 0, taille[2] + 8); cam.rotation_euler = (0, 0, 0)
+        else:
+            cam.data.type = "PERSP"; cam.data.lens = lens; cam.location = pos; cam.rotation_euler = (cible - pos).to_track_quat("-Z", "Y").to_euler()
+        f = os.path.join(dossier, n + ".png"); scene.render.filepath = f; bpy.ops.render.render(write_still=True); fichiers.append(f)
+    obC.hide_render = False
+    planche_12(dossier, fichiers)
+    t_ancien = ancien
+    for o in scene.objects: o.select_set(o in (obI, obC))
+    bpy.context.view_layer.objects.active = obI; bpy.ops.object.join()
+    exporter([obI, obL], os.path.join(dossier, nom + ".glb"))
+    f1, t1 = faces([obI]); f2, t2 = faces([obL])
+    L = [f"I_{nom} : {t1} triangles ; IL_{nom} : {t2} triangles ; total {t1 + t2}" + (f" (ancien intérieur : {t_ancien})" if t_ancien else ""),
+         f"taille {taille}, porte {list(porte)}, foyer {list(foyer)}, {len(obs)} obstacles exportés (rectangles x, y, demi-largeurs)", ""] + L_a + [""] + L_p
+    open(os.path.join(dossier, "controle.txt"), "w").write("\n".join(L) + "\n"); print("\n".join(L))

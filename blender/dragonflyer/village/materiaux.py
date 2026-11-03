@@ -81,3 +81,21 @@ MATIERES.update({
     "liege":      Matiere("liege",      ["#c08a50", "#b47e48"], .05),                          # flotteurs des filets
     "bouee_r":    Matiere("bouee_r",    ["#c8432f"], .03),
 })
+# ---- ajouts intérieurs (interieurs/maison.py, interieurs/halle.py et leurs objets) : tissus, vaisselle, herbes, cire
+MATIERES.update({
+    "platre_i":  Matiere("platre_i",  ["#e8d2a8", "#e2c99a", "#eed8b2", "#dcc292"], .03),                          # enduit des murs intérieurs (ocre clair chaud : le feu le dore)
+    "plancher":  Matiere("plancher",  ["#9a6a40", "#8e6038", "#a47248", "#875a36", "#a06c42"], .08, "#5a3c24"),   # planches du sol, usées et chaudes
+    "laine_r":   Matiere("laine_r",   ["#b8483a", "#ac4034", "#c05040"], .04),                                    # couverture rouge
+    "laine_o":   Matiere("laine_o",   ["#d8a04a", "#cc9644"], .04),                                               # carreaux ocre de la couverture, tapis
+    "laine_b":   Matiere("laine_b",   ["#4a6e94", "#46688c"], .04),                                               # bleu (tapis, coussin)
+    "lin":       Matiere("lin",       ["#efe4c8", "#e8dcbe", "#f2e8d0"], .02),                                    # draps, oreiller, nappe (crème, jamais blanc pur)
+    "faience":   Matiere("faience",   ["#e6dcc4", "#dcd0b4"], .03),                                               # assiettes, bols émaillés crème
+    "faience_b": Matiere("faience_b", ["#5a82a8", "#4f78a0"], .03),                                               # bord peint bleu des assiettes, cruches
+    "pain":      Matiere("pain",      ["#c8873e", "#bc7c38", "#d09448"], .05),                                    # pain, miches
+    "herbe_s":   Matiere("herbe_s",   ["#8a8a4a", "#7e7e44", "#9a8a52", "#6e7a40"], .07),                         # bouquets d'herbes séchées (vert passé, jamais vif)
+    "lavande":   Matiere("lavande",   ["#8e72a8", "#8468a0"], .05),
+    "cire":      Matiere("cire",      ["#f0e2b8", "#ead8a8"], .02),                                               # chandelles
+    "cuivre":    Matiere("cuivre",    ["#b06a3a", "#a46236"], .04),                                               # chaudron, casserole
+    "pomme":     Matiere("pomme",     ["#c03a2a", "#b8442e", "#c8a03a"], .05),
+    "fenetre_j": Matiere("fenetre_j", ["#b8cede", "#a8c2d6"], .02),                                               # un peu de jour vu par la fenêtre (dans IL_)
+})
