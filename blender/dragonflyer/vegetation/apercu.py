@@ -126,9 +126,9 @@ def materiau_imposteur(chemin, nom):
     ti = N.new("ShaderNodeTexImage"); ti.image = bpy.data.images.load(chemin, check_existing=True); ti.image.alpha_mode = "STRAIGHT"
     oi = N.new("ShaderNodeObjectInfo"); mx = N.new("ShaderNodeMix"); mx.data_type = "RGBA"; mx.blend_type = "MULTIPLY"; mx.inputs["Factor"].default_value = 1
     L.new(ti.outputs["Color"], mx.inputs[6]); L.new(oi.outputs["Color"], mx.inputs[7])
-    # seul le plan qui fait à peu près face au regard se montre (des trois, il y en a toujours un à moins de 30°) :
+    # seul le plan qui fait à peu près face au regard se montre (des trois, le meilleur est toujours au-dessus de 0,87, le suivant en dessous sauf pile entre les deux) :
     # pas d'image écrasée de biais ni d'arête au milieu de l'arbre ; même règle à mettre dans le jeu
-    al = tranche(nt, ti.outputs["Alpha"], bas=.66, haut=.78, horizontal=True)
+    al = tranche(nt, ti.outputs["Alpha"], bas=.8, haut=.9, horizontal=True)
     L.new(detourage(nt, al, eclairage_jeu(nt, mx.outputs[2], normale_choisie(nt))), N["Material Output"].inputs["Surface"])
     return m
 

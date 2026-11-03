@@ -1,6 +1,6 @@
 # Le sapin de la forêt : un tronc droit qui monte presque au sommet, sept étages d'aiguilles bombés et festonnés,
 # du plus large (au ras de l'herbe) au plus petit (la pointe), qui se recouvrent tous : bien fourni jusqu'en bas,
-# jamais de trou. Sous chaque étage, quelques branches partent du tronc. Fait seulement des pièces du kit.
+# jamais de trou. Le bord de chaque étage est frangé de brins. Fait seulement des pièces du kit.
 # 13 m de haut (le jeu l'agrandit de 0,9 à 1,8 fois), pied à l'origine.
 # Lancer seul : blender -b -P sapin.py -- <dossier>   (12 rendus, planche, controle.txt, sapin.glb, imposteur)
 import sys, os; sys.path[:0] = [os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")]
@@ -31,14 +31,8 @@ def construire(graine=5):
         zb = .72 + t ** 1.08 * (H - 2.3 - .72) + (R.uniform(-.15, .15) if 0 < i < ETAGES - 1 else 0)
         if i == ETAGES - 1: h = H - zb
         Ri = ((R0 - R_HAUT) * (1 - t) ** .9 + R_HAUT) * R.uniform(.92, 1.08)
-        nd = round(4 + 4 * (1 - t))
+        nd = round(4.5 + 4 * (1 - t))
         etage_aiguilles(A, zb, h, Ri, nd=nd, rt=rayon_tronc(zb + h * .32), tombe=.42 - .18 * t, sommet=i == ETAGES - 1)
-        # branches sous l'étage du bas seulement (vues d'en dessous, cachées de partout ailleurs)
-        if i == 0:
-            for k in range(4):
-                a = (k + R.uniform(-.25, .25)) * math.pi / 2; d = Vector((math.cos(a), math.sin(a), 0))
-                p0 = d * rayon_tronc(zb) * .3 + Vector((0, 0, zb + h * .2)); p1 = d * Ri * .55 + Vector((0, 0, zb + .0))
-                tube(A, courbe(p0, p1, -.12, 3), [.12, .06], n=5, pas=.9, teinte=e)
     return A
 
 if __name__ == "__main__":

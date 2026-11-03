@@ -112,8 +112,25 @@ Commandes (Blender : `/opt/blender-dl/blender-4.2.3-linux-x64/blender`) :
   - imposteurs : seul le plan qui fait à peu près face au regard (horizontal) se montre (seuil 0,66 à 0,78 ; il y en a
     toujours un au-dessus de 0,87) : plus d'image écrasée de biais (rayures) ni d'arête ; silhouette élargie de 2 px.
   Dans le jeu, la matière de loin devra faire pareil (normale de face par dFdx/dFdy, regard ramené à l'horizontale).
-- Tour 4 (`scratchpad/arbres/t4/`) : sapin 2 452 triangles, feuillu 3 773 ; imposteurs : écart de couleur 0,3 % et 0,2 %,
-  surface 91 % et 95 %. En attente de l'inspection.
+- Tour 4 (`scratchpad/arbres/t4/`) : sapin 2 452 triangles, feuillu 3 773. Notes (sapin / feuillu) : silhouette 8/8,
+  feuillage 7/7, tronc 8/7, matières 8/7, imposteur 8/8, forêt 8, coût 9/9 → À REFAIRE.
+  Faits : pied du feuillu (à 85 %), imposteurs, nervures rouges, tronc sous la jupe, encoche noire.
+  Restait : « œufs » verts lisses dans le houppier et coques sombres vues de dessous (3e tour : la cause était
+  l'effacement des cartes vues par la tranche, qui découvrait les cœurs) ; étranglement en anneau à la fourche ;
+  bords du sapin en dalles à coins vifs (4e tour : la cause est la géométrie du bord, que les brins ne cachaient pas) ;
+  moignon sous l'étage du bas ; brin coupé par le sol ; bout de racine en lame.
+  Corrigé (tour 5) :
+  - CHANGEMENT D'APPROCHE pour les touffes : surtout des cartes (60 bouquets par touffe, répartis de 45 à 85 % du
+    rayon), avec un petit cœur sombre de 20 faces (0,55 × rayon) qui ne sert que de fond ; effacement par la tranche
+    réduit aux cartes presque de profil (0,03 à 0,1) ;
+  - fourche : le fût s'élargit un peu jusqu'à l'écartement des branches et ne se referme qu'au-dessus ; les branches
+    naissent plus bas, déjà décalées vers leur côté, et sortent du fût progressivement ;
+  - racines : le bout plonge avant de s'amincir ;
+  - sapin : anneau d'arrondi retiré ; un brin sur CHAQUE sommet du bord (frange continue qui cache le bord), lobes
+    plus ronds ; brins relevés ou raccourcis pour rester au-dessus du sol ; branches sous l'étage du bas retirées ;
+  - imposteurs : seul le meilleur plan se montre (seuil 0,8 à 0,9).
+- Tour 5 (`scratchpad/arbres/t5/`) : sapin 2 272 triangles, feuillu 3 829 ; imposteurs : écart de couleur 0,2 % et 0,1 %,
+  surface 85 % et 91 %. En attente de l'inspection.
 
 ## Intégration (quand tout est à 8+)
 Prévu : `arbres.glb` (T_pin_0/1, T_feuillu_0/1, matières écorce puis feuillage, `userData.matieres`) et les mêmes

@@ -331,7 +331,7 @@ def materiaux_rendu(textures, plat=False):
         N.remove(N["Principled BSDF"]); out = N["Material Output"]
         ti = N.new("ShaderNodeTexImage"); ti.image = image; ti.interpolation = "Linear"
         tc = N.new("ShaderNodeUVMap"); tc.uv_map = "UVMap"; L.new(tc.outputs["UV"], ti.inputs["Vector"])
-        alpha = tranche(nt, ti.outputs["Alpha"], tc.outputs["UV"]) if (feuilles and not plat) else ti.outputs["Alpha"]
+        alpha = tranche(nt, ti.outputs["Alpha"], tc.outputs["UV"], bas=.03, haut=.1) if (feuilles and not plat) else ti.outputs["Alpha"]   # seulement presque de profil
         vc = N.new("ShaderNodeVertexColor"); vc.layer_name = "Col"
         mu = N.new("ShaderNodeMix"); mu.data_type = "RGBA"; mu.blend_type = "MULTIPLY"; mu.inputs["Factor"].default_value = 1
         L.new(ti.outputs["Color"], mu.inputs[6]); L.new(vc.outputs["Color"], mu.inputs[7])

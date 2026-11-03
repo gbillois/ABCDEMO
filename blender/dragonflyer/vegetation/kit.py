@@ -152,7 +152,7 @@ def pied_sculpte(A, hauteurs, rayon, contreforts, cols=32, rep=1.4, teinte=(1, 1
     def r_de(th, z):
         r = rayon(z)
         for a, L, W in contreforts:
-            g = math.exp(-max(z, 0) / .42) * (1 + .5 * min(1, max(0, -z) / .5))   # surtout au ras du sol, et plus loin dessous
+            g = math.exp(-max(z, 0) / .42) * (.85 + .65 * min(1, max(0, -z) / .4))   # surtout au ras du sol, et plus loin dessous (le bout plonge avant de s'amincir)
             ext = L * g
             if ext < .01: continue
             w = min(1.2, W / max(.2, r + ext * .5))                                  # demi-largeur angulaire : largeur physique W
@@ -192,15 +192,16 @@ def carte(A, base, axe, larg, long, variante, n_fn, c_fn):
     else: uvs = [(u1, v0), (u0, v0), (u0, v1), (u1, v1)]   # miroir : moins de répétition
     return A.f(vs, uvs, FEUILLAGE)
 
-def touffe(A, centre, rayon, ech=(1, 1, .85), ncartes=16, taille=1.0, inclin=38, sub=2, jit=.06):
-    """Touffe de feuilles : un cœur rond opaque (le feuillage serré de la texture : on ne voit jamais le ciel à travers)
-    et des bouquets en cartes posés tout autour, penchés vers l'extérieur (silhouette découpée, en feuilles)."""
-    c = Vector(centre); E = Vector(ech) * rayon
+def touffe(A, centre, rayon, ech=(1, 1, .85), ncartes=16, taille=1.0, inclin=38, sub=1, jit=.06, coeur=.5):
+    """Touffe de feuilles : surtout des bouquets en cartes, répartis dans tout le volume (de 45 à 85 % du rayon) et
+    penchés vers l'extérieur ; au milieu, un petit cœur opaque et sombre (coeur × rayon) qui sert seulement de fond
+    (pas de ciel au travers du centre), toujours recouvert : jamais de coque nue."""
+    c = Vector(centre); E = Vector(ech) * rayon * coeur; E_t = Vector(ech) * rayon
     r = bmesh.ops.create_icosphere(A.bm, subdivisions=sub, radius=1, matrix=Matrix.Translation(c) @ Matrix.Diagonal((*E, 1)))
     vs = r["verts"]
     for v in vs:
         d = v.co - c; v.co = c + d * (1 + A.R.uniform(-jit, jit))
-        v[A.col] = (*A.lumiere_feuillage(v.co, -.01), 1); A.normales[v] = A.normale_feuillage(v.co, c)   # cœur à peine plus sombre que les bouquets
+        v[A.col] = (*A.lumiere_feuillage(v.co, -.1), 1); A.normales[v] = A.normale_feuillage(v.co, c)   # fond : plus sombre, comme l'ombre au cœur du feuillage
     fs = list({f for v in vs for f in v.link_faces})
     # texture du cœur projetée à plat selon l'axe principal de chaque face (pas de pôle pincé ni de rayures) :
     # le fond de feuilles serrées garde partout la même taille ; décalage au hasard par touffe
@@ -220,7 +221,7 @@ def touffe(A, centre, rayon, ech=(1, 1, .85), ncartes=16, taille=1.0, inclin=38,
         if d.dot(dehors) < -.8 and A.R.random() < .85: continue        # tout droit vers le cœur de l'arbre : presque rien
         if ncartes <= 0: break
         ncartes -= 1
-        p = c + Vector((d.x * E.x, d.y * E.y, d.z * E.z)) * .8
+        p = c + Vector((d.x * E_t.x, d.y * E_t.y, d.z * E_t.z)) * A.R.uniform(.45, .85)
         t = _ortho(d); t = Matrix.Rotation(A.R.uniform(0, 6.28), 3, d) @ t
         b = math.radians(inclin + A.R.uniform(-10, 10)); axe = (t * math.cos(b) + d * math.sin(b)).normalized()
         larg = d.cross(axe).normalized(); L = rayon * taille * A.R.uniform(.85, 1.15)
@@ -243,16 +244,14 @@ def etage_aiguilles(A, zb, h, R, nd=10, rt=.3, tombe=.35, brins=True, sommet=Fal
     def bord(j):
         k, r = divmod(j, 4)
         if creux(j): return P(j, R * .8, zb + .08 * h)
-        f = 1.0 if r == 1 else .93                                     # milieu du lobe plus avancé : bout arrondi
-        return P(j, R * (1 + lobes[k][0]) * f, zb - tombe * (1 + lobes[k][1]) * (1 if r == 1 else .8))
-    def arrondi(j):   # juste au-dessus du bord, un peu en dedans : le bord est un bourrelet arrondi, pas une dalle
-        b = bord(j); return Vector((b.x * .955, b.y * .955, b.z + .13))
-    anneaux = [[bord(j) for j in range(n)], [arrondi(j) for j in range(n)],
+        f = 1.0 if r == 1 else .97                                     # milieu du lobe à peine plus avancé : lobe rond
+        return P(j, R * (1 + lobes[k][0]) * f, zb - tombe * (1 + lobes[k][1]) * (1 if r == 1 else .9))
+    anneaux = [[bord(j) for j in range(n)],
                [P(j, R * (.6 if creux(j) else .66), zb + h * (.33 if creux(j) else .29)) for j in range(n)],
                [P(j, max(R * .32, rt + .12), zb + h * .68) for j in range(n)]]
     if sommet: anneaux.append([P(j, max(R * .14, rt + .06), zb + h * .9) for j in range(n)])
     haut = Vector((0, 0, zb + h * (1.0 if not sommet else .99)))
-    m = max(1, round(2 * math.pi * R / 5.5)); S = [0, .05, .42, .78, .93][:len(anneaux)] + [1.]
+    m = max(1, round(2 * math.pi * R / 5.5)); S = [0, .42, .78, .93][:len(anneaux)] + [1.]
     vv = lambda t: FOND_V[0] + (FOND_V[1] - FOND_V[0]) * t
     clair = lambda p, b=0.: A.lumiere_feuillage(p, b)
     def nrm(p, dessous=False):
@@ -267,9 +266,9 @@ def etage_aiguilles(A, zb, h, R, nd=10, rt=.3, tombe=.35, brins=True, sommet=Fal
         p = anneaux[i][j]; av = levres[j] if i == 0 else anneaux[i - 1][j]; ap = anneaux[i + 1][j] if i + 1 < len(anneaux) else haut
         t = av - ap; rad = Vector((p.x, p.y, 0)); rad = rad.normalized() if rad.length > 1e-3 else Vector((1, 0, 0))
         ng = rad * (-t.z) + Vector((0, 0, max(0., t.dot(rad))))
-        st = nrm_bord(p) if i <= 1 else nrm(p)
+        st = nrm_bord(p) if i == 0 else nrm(p)
         return (ng.normalized() * .65 + st.normalized() * .35) if ng.length > 1e-4 else st
-    V = [[A.v(p, clair(p, .03 if (i <= 1 and not creux(j)) else 0), nrm_forme(i, j)) for j, p in enumerate(an)] for i, an in enumerate(anneaux)]
+    V = [[A.v(p, clair(p, .03 if (i == 0 and not creux(j)) else 0), nrm_forme(i, j)) for j, p in enumerate(an)] for i, an in enumerate(anneaux)]
     vh = A.v(haut, clair(haut, .05), (0, 0, 1))
     def bande(B0, B1, t0, t1, inv=False):
         for j in range(n):
@@ -288,9 +287,8 @@ def etage_aiguilles(A, zb, h, R, nd=10, rt=.3, tombe=.35, brins=True, sommet=Fal
     bande(Vl, sous, .12, .45, inv=True)
     if not brins: return
     n_fn = lambda p: nrm(p)
-    for j in range(n):   # brins : au bout de chaque lobe un long brin (parfois très long), dans chaque creux un plus court
-        if j % 4 in (0, 2): continue
-        p = anneaux[0][j]; q = anneaux[1][j]; a = az(j)
+    for j in range(n):   # frange : un brin sur chaque sommet du bord (le bord n'est jamais vu nu) ; long au milieu du lobe,
+        p = anneaux[0][j]; q = anneaux[1][j]; a = az(j)              # moyen sur ses côtés, plus court dans le creux
         pente = (p - q).normalized(); tg = Vector((-math.sin(a), math.cos(a), 0))
         nn = pente.cross(tg).normalized()
         rot = Matrix.Rotation(math.radians(A.R.uniform(-22, 22)), 3, nn)          # angle varié dans le plan de la pente
@@ -299,6 +297,11 @@ def etage_aiguilles(A, zb, h, R, nd=10, rt=.3, tombe=.35, brins=True, sommet=Fal
         else:
             axe = (pente + Vector((0, 0, -.22 + A.R.uniform(-.1, .1)))).normalized(); L = max(.9, min(1.8, R * .44)); k_ = .5
             if A.R.random() < .3: L *= 1.35; k_ = .38                             # quelques brins dépassent nettement du bord
+        if j % 4 in (0, 2): L *= .85; k_ = .5
         L *= A.R.uniform(.75, 1.2); axe = rot @ axe; tg = rot @ tg
+        for _ in range(6):   # le bout du brin reste au-dessus du sol (brin relevé, au besoin raccourci)
+            if (p - axe * L * k_ + axe * L).z > .12: break
+            axe = (axe + Vector((0, 0, .18))).normalized()
+        while (p - axe * L * k_ + axe * L).z < .12 and L > .4: L *= .85
         teinte = A.R.uniform(.82, .95)
         carte(A, p - axe * L * k_, axe, tg * L * A.R.uniform(.8, 1.0), L, A.R.randrange(2), n_fn, lambda p, t=teinte: tuple(x * t for x in clair(p, 0)))
