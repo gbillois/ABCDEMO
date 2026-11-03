@@ -102,6 +102,9 @@ lisent), accessoires hors des rues et des portes, seuil gardé pour toutes les m
 - Tour 3 : tout à 8 sauf animations 7 (jupe en deux pans : réglée). Restent : trot et course trop proches et vitesses
   inversées, glissement de la marche 5,1 cm, contacts de pieds à prouver, coup d'épée raide et lame peu visible. Tour 4 demandé.
 
+- Tour 4 : animations 7 (réception du saut 10,5 cm, épée à prouver par contact). Tour 5 : PASSE (tout à 8 ou plus,
+  coût 9, 14 784 triangles). Intégration au jeu demandée à l'agent (fusion de la branche de travail d'abord).
+
 ## Arbres (agent séparé, worktree, `blender/dragonflyer/vegetation/PASSATION.md` sur sa branche)
 - Refaits de zéro par scripts (sapin, feuillu), contrôle par 12 caméras et planche « forêt ». Tour 1 en fabrication.
 
