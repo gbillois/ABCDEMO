@@ -142,10 +142,30 @@ Commandes (Blender : `/opt/blender-dl/blender-4.2.3-linux-x64/blender`) :
   - sapin sans racines (la jupe les cache ; c'était le moignon) ;
   - racines du feuillu : dos rond (cos^1,3 au lieu de cos²), plus larges, un peu plus courtes, et sous le sol elles ne
     s'allongent presque plus : le bout, arrondi, plonge presque droit (plus de lame ni de pointe).
-- Tour 6 (`scratchpad/arbres/t6/`) : sapin 2 456 triangles, feuillu 3 829 ; imposteurs : écart 0,3 % et 0,2 %, surface 89 % et 91 %.
-  En attente de l'inspection.
+- Tour 6 (`scratchpad/arbres/t6/`) : sapin 2 456 triangles, feuillu 3 829 → PASSE (tout à 8 ou plus, coût 9/9).
+  Réserves mineures non faites : plis légers entre grappes de l'étage du milieu du sapin (08), bouts de racines du
+  feuillu encore un peu anguleux (07), petite arête à droite de la cime de l'imposteur du sapin (11).
 
-## Intégration (quand tout est à 8+)
-Prévu : `arbres.glb` (T_pin_0/1, T_feuillu_0/1, matières écorce puis feuillage, `userData.matieres`) et les mêmes
-textures `arbres_*.webp`. Adaptations de `chargerArbresKit()` à faire et à signaler : garder l'attribut `color`
-(occlusion et lumière peintes, `vertexColors`), écorce et feuillage en `RepeatWrapping` (textures qui se répètent).
+## Intégration au jeu (faite, version 2026.11.03-7, cache sw dragonflyer-v13)
+- `exporter.py` : construit les deux arbres, cuit l'occlusion, fait et étalonne les imposteurs, exporte `arbres.glb`
+  (T_pin_0/1, T_feuillu_0/1 ; noms des maillages « maillage_<nom>_pres/loin », distincts des noms d'objets : le GLTFLoader
+  nomme les morceaux d'un maillage à deux matières « <maillage>_0/_1 », et « T_feuillu_1 » était pris pour l'imposteur)
+  et les WebP (écorce 512², aiguilles et feuilles 1024², imposteurs en trois vues 512 de haut).
+  Puis `gltf-transform meshopt` → `dragonflyer/assets/arbres.glb` (141 Ko, contre 716 Ko).
+- `chargerArbresKit()` : décodeur meshopt ; attributs quantifiés remis en flottants AVANT d'appliquer la matrice du nœud
+  (sinon les positions sont rabotées à ±1 : arbres écrasés) ; couleurs des sommets gardées (écorce : sans la teinte de
+  l'arbre ; feuillage : avec) ; textures d'écorce, d'aiguilles et de feuilles en RepeatWrapping ; plus d'avecBoule sur le
+  feuillage (normales déjà choisies) ; cartes effacées seulement presque de profil (normale de face par dFdx/dFdy) ;
+  imposteur : normale non retournée, seul le plan qui fait face au regard horizontal se montre (smoothstep 0,8 à 0,9).
+- `creerArbres()` : teinte de chaque arbre = règle de `teinte_arbre` (même nombre de tirages : les arbres restent aux
+  mêmes places) ; penchant ±3° tiré d'un hachage de la position (`matArbre`). Ombres peintes au sol aux nouvelles largeurs.
+- Mesures (Playwright, SwiftShader, qualité haute, mêmes vues ; `scratchpad/arbres/jeu.js`, captures dans
+  `scratchpad/arbres/jeu/`) : appels de dessin identiques (forêt 108, lisière 83, vol 103, village 98) ; triangles
+  forêt 2,62 → 2,08 M, lisière 1,31 → 1,27 M, vol 1,81 → 1,58 M, village 1,93 → 1,79 M ; 0 programme fabriqué pendant le
+  jeu ; aucune erreur de console. Les arbres de près pèsent moins que ceux du MegaKit (sapin 2 456 contre 3 947 triangles,
+  feuillu 3 829 contre 6 265). Textures un peu plus lourdes (≈ 520 Ko de WebP contre ≈ 100 Ko).
+
+## Ce qui reste
+- Les réserves mineures du tour 6 ; un 2e sapin et un feuillu ovale (facultatif).
+- Voir les arbres sur iPad (le compteur caché du jeu) : les feuillus paraissent un peu plus clairs et plus jaunes que
+  dans les aperçus de Blender (pas d'avecBoule, translucidité du jeu) ; à juger par le propriétaire.
