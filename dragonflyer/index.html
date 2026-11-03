@@ -5116,7 +5116,8 @@ async function demarrer() {
     $("texteCh").textContent = "Oops, the dragon could not wake up: " + (err && err.message || err);
   }
 }
-window.__df = { camera, renderer, scene, etat, ARBRES, NATURE, get composer() { return composer; }, get dragon() { return dragon; }, hauteur, FEUX, ANNEAUX, NIVEAUX, entree, majTerrain, rendre,
+// PORTES, dansUnRect, terrainSous, pente : pour le contrôle de l'implantation des villages (blender/dragonflyer/village/implantation.js)
+window.__df = { camera, renderer, scene, etat, ARBRES, NATURE, PORTES, dansUnRect, terrainSous, pente, get composer() { return composer; }, get dragon() { return dragon; }, hauteur, FEUX, ANNEAUX, NIVEAUX, entree, majTerrain, rendre,
   vue(x, y, z, tx, ty, tz) { camera.position.set(x, y, z); camera.lookAt(tx, ty, tz); camera.near = Math.min(camera.near, .1); camera.updateProjectionMatrix(); camera.updateMatrixWorld(); majTerrain(); trierNuages(); majArbres(); mer.position.set(x, 0, z); },
   POSE_SOL, poseTest(p) { if (p) Object.assign(POSE_SOL, p); etat.pose = 1; etat.ampl = 0; etat.pitch = etat.roll = 0; animerDragon(0); },
   jouer, allumerFeu, sePoser, BRAISES, HIST, get CAVE() { return CAVE; }, get ENTREE_BRAISES() { return ENTREE_BRAISES; }, toucherBrasero, get actionPres() { return actionPres; }, majEpeeDos, FOLLETS, RAMPANTS, VIE, frapper, COUP, lancerDefi, suiteDialogue, get DEFI() { return DEFI; }, repondre, monterOuAppeler, marche, get VILLAGES() { return VILLAGES; }, PORTES, entrer, sortir, get dedans() { return dedans; }, get portePres() { return portePres; }, MONDE_T, majHeure, SAUVAGES, majSauvages, ANIMAUX, majAnimaux, VILLAGEOIS, majVillageois, parler, CASCADES, LIBRES, HIST, lancerDefi, get RUNA() { return RUNA; }, suiteDialogue, dessinerJournal, majVillagesTest() { majVillages(0, camera.position.x, camera.position.z); }, get NID() { return NID; }, get HUTTE() { return HUTTE; }, BANCS,

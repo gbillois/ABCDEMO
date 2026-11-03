@@ -79,6 +79,11 @@ bois (prisme qui suit le toit), escalier, porte droite à linteau de bois, volet
   Dans le jeu (village.glb refait, la chaumière a aussi sa vraie collerette), version 2026.11.03-2, cache sw v11.
   Suggestions non faites : pignons un peu plus chauds, mousse au soubassement, chevrons sous l'avant-toit.
 
+## Implantation des villages (`implantation.js`)
+Outil prêt (12 vues par village dans le jeu + rapport chiffré + planche). Premier constat chiffré à Mistholm : un
+colombage avec le seuil à 2,05 m au-dessus du sol (marches jusqu'à 0,9 m seulement), soubassements découverts jusqu'à
+1,4 m, une porte bouchée. Tour 1 (Mistholm) chez l'inspecteur. Puis Saltcliff, Fernhollow, Stonebrook.
+
 ## Héros (agent séparé, worktree `worktree-agent-adb19e9034e46bb45`, voir `blender/dragonflyer/personnages/PASSATION.md` sur cette branche)
 - Tour 1 : proportions 8, visage 8, cheveux et vêtements 6, articulations 7, animations 5, style 8, coût 6 → À REFAIRE.
   Trou sur le crâne, fourrure en bretelles, jupe en boule, manche pincée, banc d'animation mal cadré, saut en T,
