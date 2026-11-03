@@ -22,13 +22,13 @@ def lisse(a, b, x):
 
 # ---------------------------------------------------------------- maillage + couleurs + poids
 class Maillage:
-    def __init__(s): s.V, s.F, s.C, s.W, s.N = [], [], [], [], {}
+    def __init__(s): s.V, s.F, s.C, s.W, s.N, s.Fnom = [], [], [], [], {}, []
     def ajouter(s, V, F, C, W, nom=None):
         o = len(s.V); V = [A(v, float) for v in V]
         if isinstance(W, (str, dict)): W = [W] * len(V)
         W = [{w: 1.0} if isinstance(w, str) else dict(w) for w in W]
         C = [A(c, float) for c in (C if len(np.shape(C)) == 2 else [C] * len(V))]
-        s.V += V; s.C += C; s.W += W; s.F += [[i + o for i in f] for f in F]
+        s.V += V; s.C += C; s.W += W; s.F += [[i + o for i in f] for f in F]; s.Fnom += [nom] * len(F)
         if nom: s.N[nom] = s.N.get(nom, 0) + len(F)
         return o
     def triangles(s): return sum(len(f) - 2 for f in s.F)

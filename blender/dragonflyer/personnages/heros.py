@@ -143,7 +143,13 @@ def armature(scene):
     bpy.ops.object.mode_set(mode="OBJECT"); return rig
 
 def objet(scene, M, rig, nom="Pieton"):
-    me = bpy.data.meshes.new(nom); me.from_pydata([tuple(v) for v in M.V], [], M.F); me.validate(); me.update()
+    me = bpy.data.meshes.new(nom); me.from_pydata([tuple(v) for v in M.V], [], M.F); me.update()
+    # faces tournées vers l'extérieur, pièce par pièce (le jeu ne dessine que l'endroit des faces) ; les décalques du
+    # visage, à une seule face, sont déjà orientés vers l'extérieur de la tête et restent tels quels
+    import bmesh
+    bm = bmesh.new(); bm.from_mesh(me); bm.faces.ensure_lookup_table()
+    bmesh.ops.recalc_face_normals(bm, faces=[f for f, n in zip(bm.faces, M.Fnom) if n != "visage"])
+    bm.to_mesh(me); bm.free(); me.validate(); me.update()
     for p in me.polygons: p.use_smooth = True
     at = me.color_attributes.new("Col", "FLOAT_COLOR", "POINT")
     at.data.foreach_set("color", np.array([(*np.clip(c, 0, 1), 1) for c in M.C], np.float32).ravel())

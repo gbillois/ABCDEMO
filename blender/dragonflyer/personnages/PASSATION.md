@@ -199,9 +199,32 @@ lame qui pend contre la cuisse au retour.
 3. Retour de l'épée : coude plié de 50° vers l'avant et poignet tourné vers l'extérieur : la lame reste devant le corps,
    loin de la cuisse et de la ceinture. Facultatif fait : fil clair sur la lame du banc.
 
+## Tour 5 : contrôle : PASSE (tout à 8 ou plus, coût 9)
+
+## Intégration au jeu
+
+- Branche de travail fusionnée (merge) ; `DRAGONFLYER_VERSION` et `sw.js` gardés comme la branche de travail.
+- `pieton.glb` compressé (meshopt, 92 Ko au lieu de 263 Ko) mis dans le bloc `data-pieton` par `integrer.py` (ce dossier),
+  sans toucher au dragon ni au relief.
+- Défaut trouvé seulement dans le jeu : beaucoup de pièces (tubes, capsules) avaient leurs faces tournées vers
+  l'intérieur ; Cycles dessine les deux côtés, le jeu non (brassards, genoux et mèches « en creux »). `heros.py`
+  recalcule maintenant l'orientation des faces pièce par pièce (sauf les décalques du visage, déjà orientés).
+  Leçon à garder : vérifier l'endroit des faces (ou une capture dans le jeu) avant le contrôle, pas après.
+- `animerClips` : seuils marche → trot `lisse(1.1, 1.6)`, trot → course `lisse(2.6, 3.4)`, repos `lisse(.06, .3)` ;
+  repos à 75 % du clip (qui respire) et 25 % de pose figée.
+- Villageois : marche à 1,0 m/s au lieu de 1,35 (foulée du clip de marche calme ; à 1,35 ils auraient trotté ou glissé).
+  Ils gardent l'ancien modèle (`../pieton.py`, même squelette) et les nouvelles animations : vérifié en marche.
+- Épée en main (`majEpeeMain`, avec les clips) : poignée en travers du poing, sur l'axe du pouce de HandR, garde
+  au-dessus du pouce, comme au banc.
+- Épée au dos (`majEpeeDos`) : baudrier mis à l'échelle (1,36 ; 1 ; 1,12) pour le nouveau buste.
+- Visage : le héros n'a plus de matière « RiderFace » ; `matHeros` lui donne la matière à couleurs de sommets. La
+  branche RiderFace ne sert plus qu'aux villageois. Rien d'autre ne lisait l'ancienne tête.
+- Contrôle dans le jeu : `jeu.js` (Playwright) → repos de face, de dos et 3/4, marche, course, saut, épée au dos,
+  coup d'épée, villageois qui marche, plus une planche. Aucune erreur de page.
+
 ## Prochaine étape
 
 1. Faire contrôler les planches `t2/` par l'inspecteur.
 2. Corriger, refaire les planches, recontrôler jusqu'à 8/10 partout.
-3. Ensuite seulement : meshopt (`gltf-transform meshopt`), remplacer le bloc `data-pieton` de `dragonflyer/index.html`,
-   vérifier dans le jeu (Playwright), changer `DRAGONFLYER_VERSION`.
+3. Fait (voir « Intégration au jeu »). Reste : changer `DRAGONFLYER_VERSION` et le cache de `sw.js` (le coordinateur),
+   montrer au propriétaire.
