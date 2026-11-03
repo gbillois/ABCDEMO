@@ -71,7 +71,11 @@ bois (prisme qui suit le toit), escalier, porte droite à linteau de bois, volet
 - Avant contrôle : capsule bloquée par 3 marches de 30 cm (le joueur monte 30 cm au plus) → 4 marches de 22,5 cm et
   40 cm de profondeur ; enduit de pignon rectangulaire qui perçait le toit → prisme ; caméras qui reculent pour les
   maisons hautes. 30 468 triangles (ancienne : 40 560).
-- Tour 1 : en cours.
+- Tour 1 : posé 7, matières 7, formes 8, style 7, lisibilité 8, passage 9, coût 6 → À REFAIRE.
+  Cadrage qui coupe le pied, enduit gris froid, porte nue, dalles fines dans le soubassement, 30 468 triangles.
+  Corrigé : caméras reculées, enduit crème-ocre (5 nuances, bas sali), auvent (kit), lanterne, tonneau et pot de
+  fleurs (objets/), dernier rang de pierres jamais en plaquette (kit : assises), bois fins sans chanfrein → 25 060.
+- Tour 2 : en cours.
 
 ## Héros (agent séparé, worktree `worktree-agent-adb19e9034e46bb45`, voir `blender/dragonflyer/personnages/PASSATION.md` sur cette branche)
 - Tour 1 : proportions 8, visage 8, cheveux et vêtements 6, articulations 7, animations 5, style 8, coût 6 → À REFAIRE.

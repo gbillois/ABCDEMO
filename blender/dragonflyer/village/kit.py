@@ -51,7 +51,7 @@ def poutre(P, a, b, l=.2, h=.2, mat="chene", c=None, bev=.035, tordu=.0):
     q = d.to_track_quat("Z", "Y" if abs(d.normalized().z) < .95 else "X")
     Mx = Matrix.Translation((a + b) / 2) @ q.to_matrix().to_4x4() @ Matrix.Rotation(P.R.uniform(-tordu, tordu), 4, "Z") @ Matrix.Diagonal((l, h, L, 1))
     r = bmesh.ops.create_cube(P.bm, size=1, matrix=Mx)
-    P._fin(r["verts"], c or M(mat).couleur(P.R), bev, .008); return r["verts"]
+    P._fin(r["verts"], c or M(mat).couleur(P.R), bev if min(l, h) >= .15 else 0, .008); return r["verts"]   # les bois fins ne sont pas chanfreinés (triangles)
 
 def planche(P, centre, taille, rz=0.0, mat="chene_c"):
     """Une planche (assise, caisse, volet) : une poutre plate, taille = (longueur, largeur, épaisseur) le long de x tourné de rz."""
@@ -78,7 +78,9 @@ def assises(z0, z1, taille):
     """Hauteurs des rangs de pierres, les mêmes pour tous les murs d'une maison (les coins se croisent juste)."""
     R = random.Random(int(z0 * 100) + 7); z = z0; L = []
     while z < z1 - .05:
-        hz = min(taille * R.uniform(.62, .88), z1 - z); L.append((z, hz)); z += hz
+        hz = taille * R.uniform(.62, .88)
+        if z1 - z - hz < .2: hz = z1 - z   # pas de dernier rang en plaquette : le rang du dessus absorbe le reste
+        L.append((z, hz)); z += hz
     return L
 
 def mur_moellons(P, a, b, z0, z1, ouvertures=(), taille=.5, saillie=.07):
@@ -296,7 +298,7 @@ def porte(P, centre, l=1.15, h=2.0, mat="peint", rz=0.0, cintree=True, seuil=Tru
     x, y, z = centre; r = l / 2; hd = h - r if cintree else h; n = 5
     for i in range(n):   # planches : le haut suit l'arc (ou droit)
         u = -r + (i + .5) * l / n; ht = hd + (math.sqrt(max(0, r * r - u * u)) * .98 if cintree else 0)
-        P.boite((x + u, y + .02, z + ht / 2), (l / n * .94, .1, ht), M(mat).couleur(P.R, .05), bev=.015)
+        P.boite((x + u, y + .02, z + ht / 2), (l / n * .94, .1, ht), M(mat).couleur(P.R, .13), bev=.015)
     for zz in (.35, hd - .15): P.boite((x - .1, y - .05, z + zz), (l * .8, .04, .09), M("fer").couleur(P.R), bev=0)   # pentures
     P.cylindre((x + r * .55, y - .08, z + 1.0), (x + r * .55, y - .03, z + 1.0), .07, .07, M("fer").couleur(P.R), n=8)  # anneau
     for s in (-1, 1): poutre(P, (x + s * (r + .08), y, z), (x + s * (r + .08), y, z + hd), l=.16, h=.24, mat="chene")
@@ -395,7 +397,8 @@ def pan_de_bois(P, a, b, z0, z1, ouvertures=(), pas_poteau=1.15, saillie=.05, gr
         for (pu0, pu1, pz0, pz1) in panneaux:   # torchis : légèrement en retrait des bois, une nuance par panneau
             c = M("platre").couleur(R)
             q = p3((pu0 + pu1) / 2, (pz0 + pz1) / 2, saillie - .07)
-            P.boite(q, (pu1 - pu0, .06, pz1 - pz0), c, rz=rz, bev=0)
+            for v in P.boite(q, (pu1 - pu0, .06, pz1 - pz0), c, rz=rz, bev=0):
+                if v.co.z < q[2]: v[P.col] = (*melange(c, (.62, .5, .36), .22), 1)   # bas des panneaux un peu sali
 
 # ------------------------------------------------------------------ 7. le toit de tuiles (deux pans, faîte selon X)
 class ToitTuiles:
@@ -469,3 +472,15 @@ def escalier(P, centre, l, marches, haut=.3, prof=.36, rz=0.0):
     for k in range(marches):
         zt = z - k * haut; yy = y - prof * (k + .5)
         P.boite((x, yy, zt - haut / 2 - .2), (l + .2 + k * .1, prof * 1.02, haut + .4), M("moellon").couleur(P.R), bev=.05, jit=.01)
+
+def auvent(P, centre, l=1.7, prof=.75, z=None, rz=0.0):
+    """Petit auvent de planches au-dessus d'une porte : deux consoles de bois et un toit de bardeaux en pente.
+    centre = (x, y_face_du_mur, z_bas_du_auvent)."""
+    x, y, z0 = centre
+    for s in (-1, 1):
+        poutre(P, (x + s * l * .42, y, z0 - .55), (x + s * l * .42, y - prof * .9, z0), l=.13, h=.13)        # consoles
+        poutre(P, (x + s * l * .42, y, z0), (x + s * l * .42, y - prof, z0), l=.14, h=.16)
+    ang = .45
+    for k in range(3):   # bardeaux en trois rangs
+        d = prof * (k + .5) / 3
+        P.boite((x, y - d, z0 + .12 + (prof - d) * math.tan(ang) * .6), (l + .2, prof / 3 * 1.25, .06), M("tuile").couleur(P.R), rx=ang * .6, bev=.015)

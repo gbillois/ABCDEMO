@@ -6,6 +6,9 @@ import sys, os; sys.path[:0] = [os.path.join(os.path.dirname(os.path.abspath(__f
 import math
 from kit import Piece, mur_moellons, pan_de_bois, ToitTuiles, pignon_platre, escalier, poutre, porte, fenetre, cheminee
 from materiaux import M
+from mathutils import Matrix
+from kit import auvent
+import lanterne, tonneau, pot_fleurs
 
 PIED, PORTE, INTERIEUR = (7.6, 7.6), (-1.2, -4.2, .9), "maison"
 A, B = 3.4, 3.65                       # demi-largeur du rez-de-chaussée, de l'étage (encorbellement)
@@ -21,7 +24,7 @@ def construire(graine=21):
     P = Piece("M_colombage", graine); V = Piece("W_colombage", graine + 1)
     # soubassement de pierre et cœurs pleins (les murs posent dessus)
     P.boite((0, 0, (Z_BAS + Z_SOCLE) / 2), (2 * A - .1, 2 * A - .1, Z_SOCLE - Z_BAS), M("mortier").couleur(P.R), bev=0)
-    for (a_, b_, _) in murs(A, 0, 0, [[]] * 4): mur_moellons(P, a_, b_, -.6, Z_SOCLE, [], taille=.45)
+    for (a_, b_, _) in murs(A, 0, 0, [[]] * 4): mur_moellons(P, a_, b_, -.6, Z_SOCLE, [], taille=.55)
     P.boite((0, 0, (Z_SOCLE + Z_RDC) / 2), (2 * A - .12, 2 * A - .12, Z_RDC - Z_SOCLE), M("platre").couleur(P.R), bev=0)
     P.boite((0, 0, (Z_ETAGE + Z_HAUT) / 2), (2 * B - .12, 2 * B - .12, Z_HAUT - Z_ETAGE), M("platre").couleur(P.R), bev=0)
     # rez-de-chaussée : porte, fenêtres (u = distance le long du mur)
@@ -29,12 +32,16 @@ def construire(graine=21):
     rdc = [[(A - 1.2 - .62, A - 1.2 + .62, Z_SOCLE, Z_SOCLE + 2.15), f(A + 1.5)], [f(A)], [f(A - 1.5), f(A + 1.5)], [f(A)]]
     for k, (a_, b_, o) in enumerate(murs(A, Z_SOCLE, Z_RDC, rdc)): pan_de_bois(P, a_, b_, Z_SOCLE, Z_RDC, o, graine_motif=graine + k)
     porte(P, (-1.2, -A - .07, Z_SOCLE), l=1.1, h=2.05, mat="chene_c", cintree=False, seuil=False)
-    escalier(P, (-1.2, -A - .07, Z_SOCLE), 1.1, 4, haut=.225, prof=.4)   # 4 marches de 22,5 cm (le joueur monte 30 cm au plus)
+    escalier(P, (-1.2, -A - .07, Z_SOCLE), 1.1, 4, haut=.225, prof=.4)
+    auvent(P, (-1.2, -A - .05, Z_SOCLE + 2.35), l=1.8, prof=.7)                                   # auvent sur consoles au-dessus de la porte
+    L_ = (-.25, -A - .06, Z_SOCLE + 1.85); P.ajouter(lanterne.construire(V, L_), Matrix.Translation(L_))         # lanterne à droite de la porte
+    P.ajouter(pot_fleurs.construire(), Matrix.Translation((-2.15, -A - .45, 0)))                     # pot au pied des marches
+    P.ajouter(tonneau.construire(), Matrix.Translation((2.9, -A - .45, 0)))                          # tonneau au coin   # 4 marches de 22,5 cm (le joueur monte 30 cm au plus)
     for (x, y, rz) in ((1.5, -A - .07, 0), (A + .07, 0, math.pi / 2), (-1.5, A + .07, math.pi), (1.5, A + .07, math.pi), (-A - .07, 0, -math.pi / 2)):
         fenetre(V, P, (x, y, 2.2), rz=rz, h=.85, mat_volet="volet_v", appui="chene")
     # plancher de l'étage : solives qui dépassent (encorbellement), sablière, dessous en planches sombres
-    for i in range(14):
-        u = -A + .25 + i * (2 * A - .5) / 13
+    for i in range(10):
+        u = -A + .25 + i * (2 * A - .5) / 9
         for s in (-1, 1): poutre(P, (u, s * (A - .2), Z_RDC + .1), (u, s * (B + .14), Z_RDC + .1), l=.16, h=.2)
     for s in (-1, 1): poutre(P, (s * (A - .2), -A + .1, Z_RDC + .1), (s * (B + .14), -A + .1, Z_RDC + .1), l=.16, h=.2); poutre(P, (s * (A - .2), A - .1, Z_RDC + .1), (s * (B + .14), A - .1, Z_RDC + .1), l=.16, h=.2)
     P.boite((0, 0, Z_RDC + .02), (2 * B + .1, 2 * B + .1, .06), M("chene").sombre, bev=0)   # dessous de l'encorbellement (à l'ombre : brun)

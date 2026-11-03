@@ -61,7 +61,7 @@ def decor(taille):
 
 def douze_cameras(taille, haut, porte, fenetre):
     """Les 12 caméras, toujours les mêmes (à l'échelle de la maison). Façade vers -Y."""
-    d = max(taille * 1.9, haut * 1.75); c = Vector((0, 0, haut * .55)); cams = []   # recule pour les maisons hautes
+    d = max(taille * 1.9, haut * 2.1); c = Vector((0, 0, haut * .5)); cams = []   # recule pour les maisons hautes
     for k, (nom, az) in enumerate((("face", 0), ("droite", 90), ("dos", 180), ("gauche", 270))):   # à hauteur d'homme
         a = math.radians(az); cams.append((f"{k + 1:02d}_{nom}_homme", Vector((math.sin(a) * d, -math.cos(a) * d, 1.6)), c, 35))
     for k, (nom, az) in enumerate((("face_droite", 45), ("dos_droite", 135), ("dos_gauche", 225), ("face_gauche", 315))):   # en plongée

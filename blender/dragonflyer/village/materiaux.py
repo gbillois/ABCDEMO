@@ -27,7 +27,7 @@ MATIERES = {
     "chaume_f": Matiere("chaume_f", ["#a57f3c", "#96713a"], .05),
     "chaume_d": Matiere("chaume_d", ["#9a6438", "#8c5a32", "#a46c3c"], .05),                                # dessous du chaume : brun chaud (un jaune à l'ombre tourne à l'olive)
     "mousse":   Matiere("mousse",   ["#7a8a4a", "#6f8442"], .06),
-    "platre":   Matiere("platre",   ["#efe6d2", "#e8dcc2", "#f2ead8", "#e2d5b8"], .025),                       # torchis enduit des colombages
+    "platre":   Matiere("platre",   ["#f0e0bc", "#ead4a6", "#f4e6c6", "#e4cb98", "#efd8ae"], .03),                       # torchis enduit des colombages
     "tuile":    Matiere("tuile",    ["#b0553a", "#a54e36", "#bb5e40", "#9c4a34", "#b86448"], .06, "#6a3424"),   # tuiles de terre cuite
     "tuile_d":  Matiere("tuile_d",  ["#7a4630", "#6e3e2a"], .04),                                             # dessous et tranche du toit (à l'ombre : brun chaud)
     "volet_v":  Matiere("volet_v",  ["#4a7a4a", "#437045"], .04),                                             # volets verts
