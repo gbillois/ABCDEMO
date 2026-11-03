@@ -484,3 +484,250 @@ def auvent(P, centre, l=1.7, prof=.75, z=None, rz=0.0):
     for k in range(3):   # bardeaux en trois rangs
         d = prof * (k + .5) / 3
         P.boite((x, y - d, z0 + .12 + (prof - d) * math.tan(ang) * .6), (l + .2, prof / 3 * 1.25, .06), M("tuile").couleur(P.R), rx=ang * .6, bev=.015)
+
+# ---- ajouts pierre et moulin
+def nb_sommets(P):
+    """Repère pour teinter() et rogner() : le nombre de sommets avant d'ajouter des pierres."""
+    return len(P.bm.verts)
+
+def _neufs(P, n0):
+    P.bm.verts.ensure_lookup_table(); return [P.bm.verts[i] for i in range(n0, len(P.bm.verts))]
+
+def teinter(P, n0, mat="pierre_s", graine=0):
+    """Repeint dans la matière mat les pierres ajoutées depuis le sommet n0 (murs, cheminée faits en moellons) : chaque
+    pierre (une couleur) reçoit une teinte de mat, en gardant son écart de clarté (pierres plus sombres ou plus claires)."""
+    R = random.Random(graine); ref = sum(sum(t) for t in M("moellon").teintes) / (3 * len(M("moellon").teintes)); vus = {}
+    for v in _neufs(P, n0):
+        c = tuple(v[P.col])[:3]; k = tuple(round(x, 4) for x in c)
+        if k not in vus:
+            l = max(.75, min(1.25, sum(c) / 3 / ref)); vus[k] = tuple(min(1., x * l) for x in M(mat).couleur(R))
+        v[P.col] = (*vus[k], 1)
+
+def rogner(P, n0, zmax, marge=.04):
+    """Pignon de pierre : les pierres ajoutées depuis n0 qui sont tout entières au-dessus de zmax(x, y) (le dessous du
+    toit) disparaissent ; les autres sont rabotées (leurs sommets redescendent sous zmax) : elles suivent la pente."""
+    neufs = _neufs(P, n0); ens = set(neufs); vus = set(); suppr = []
+    for v in neufs:
+        if v in vus: continue
+        ile, pile = [], [v]; vus.add(v)
+        while pile:
+            w = pile.pop(); ile.append(w)
+            for e in w.link_edges:
+                o = e.other_vert(w)
+                if o in ens and o not in vus: vus.add(o); pile.append(o)
+        lim = [zmax(w.co.x, w.co.y) for w in ile]
+        if min(w.co.z - l for w, l in zip(ile, lim)) > -marge: suppr += ile
+        else:
+            for w, l in zip(ile, lim):
+                if w.co.z > l: w.co.z = l
+    bmesh.ops.delete(P.bm, geom=suppr, context="VERTS")
+
+def _face(P, vs, vers, lisse=False):
+    """Une face (sommets déjà colorés) tournée du côté vers."""
+    try: f = P.bm.faces.new(vs)
+    except ValueError: return None
+    f.normal_update()
+    if f.normal.dot(Vector(vers)) < 0: f.normal_flip()
+    if lisse: f[P.lisse] = 1
+    return f
+
+def prisme_pignon(P, x0, x1, y0, y1, z0, z1, c):
+    """Cœur plein d'un pignon (derrière les pierres) : prisme triangulaire, base y0..y1 à z0, pointe au milieu à z1."""
+    vs = []
+    for x in (x0, x1): vs += [P.bm.verts.new((x, y0, z0)), P.bm.verts.new((x, y1, z0)), P.bm.verts.new((x, (y0 + y1) / 2, z1))]
+    for v in vs: v[P.col] = (*c, 1)
+    ym, zm = (y0 + y1) / 2, (z0 + z1) / 2
+    for f in ((0, 1, 2), (3, 5, 4), (0, 3, 4, 1), (1, 4, 5, 2), (2, 5, 3, 0)):
+        q = sum((vs[i].co for i in f), Vector()) / len(f); _face(P, [vs[i] for i in f], q - Vector(((x0 + x1) / 2, ym, zm)))
+
+class ToitArdoises:
+    """Toit à deux pans couvrant |x-cx| < X, |y-cy| < Y (débords compris), faîte selon X, couvert d'ardoises posées en
+    rangs qui se recouvrent (chaque ardoise un peu soulevée en bas : une ombre fine sous chaque rang ; joints décalés,
+    largeurs inégales, quelques taches de lichen ; deux rangs d'écailles pointues pour le décor). Dessous en planches
+    brunes, tranche brune, planches de rive sur les pignons, faîtage en ardoises croisées.
+    forme() : hauteur du dessus ; dessous() : hauteur du dessous (pour les murs et pignons)."""
+    def __init__(s, cx, cy, X, Y, z_bord, z_faite, ep=.25):
+        s.cx, s.cy, s.X, s.Y, s.zb, s.zf, s.ep = cx, cy, X, Y, z_bord, z_faite, ep
+        s.k = (z_faite - z_bord) / Y; s.ev = ep * math.sqrt(1 + s.k * s.k)   # épaisseur mesurée à la verticale
+    def forme(s, x, y): return s.zf - s.k * abs(y - s.cy), 0
+    def dessous(s, x, y): return s.forme(x, y)[0] - s.ev
+    def dessus(s, x, y): return s.forme(x, y)[0] + .05, 0, 0
+    def construire(s, P, cheminees=(), larg=.32, rang=.25, ecailles=(6, 7)):
+        R = P.R; cx, cy, X, Y, k = s.cx, s.cy, s.X, s.Y, s.k
+        pente = math.hypot(Y, s.zf - s.zb); cosa = Y / pente
+        def trou(x, y, m=.04): return any(abs(x - hx) < hr + m and abs(y - hy) < hr + m for (hx, hy, hr) in cheminees)
+        def pt(sg, u, d, h=0.0):
+            yy = cy + sg * d * cosa; return (cx - X + u, yy, s.zf - k * abs(yy - cy) + h)
+        def V(p, c): v = P.bm.verts.new(p); v[P.col] = (*c, 1); return v
+        # 1. coque : dessus sombre (vu seulement entre les ardoises), tranche brune
+        for sg in (-1, 1):
+            haut = [(cx - X, cy, s.zf - .01), (cx + X, cy, s.zf - .01), (cx + X, cy + sg * Y, s.zb - .01), (cx - X, cy + sg * Y, s.zb - .01)]
+            T = [V(p, M("ardoise").sombre) for p in haut]
+            B = [V((p[0], p[1], p[2] - s.ev + .01), M("ardoise_d").couleur(R)) for p in haut]
+            nrm = (0, sg * k, 1)
+            _face(P, T, nrm)
+            for i in range(4):
+                j = (i + 1) % 4; q = Vector(haut[i]) + Vector(haut[j]); q = q / 2 - Vector((cx, cy + sg * Y / 2, (s.zf + s.zb) / 2))
+                _face(P, [T[i], T[j], B[j], B[i]], (q.x, q.y, 0))
+            # dessous en planches (selon la pente), une nuance par planche
+            n = int(2 * X / .26)
+            for i in range(n):
+                x0 = cx - X + 2 * X * i / n + .006; x1 = cx - X + 2 * X * (i + 1) / n - .006
+                c = M("ardoise_d").couleur(R, .1); c = tuple(x * (1.12 if i % 2 else .94) for x in c)
+                q = [V((x0, cy, s.zf - s.ev - .005), c), V((x1, cy, s.zf - s.ev - .005), c), V((x1, cy + sg * Y, s.zb - s.ev - .005), c), V((x0, cy + sg * Y, s.zb - s.ev - .005), c)]
+                _face(P, q, (0, -sg * k, -1))
+        # 2. ardoises, rang par rang depuis le faîtage
+        nr = int((pente - .04) / rang) + 1
+        for sg in (-1, 1):
+            nrm = Vector((0, sg * k, 1)); bas = Vector((0, sg, -k * .3))
+            for r_ in range(nr):
+                d0 = .04 + r_ * rang
+                if d0 >= pente: break
+                d1 = min(pente + .05, d0 + rang * 1.5); ec = r_ in ecailles
+                u = -R.uniform(0, larg)
+                while u < 2 * X:
+                    w = larg * R.uniform(.78, 1.18); u0, u1 = max(0.0, u) + .009, min(2 * X, u + w) - .009; u += w
+                    if u1 - u0 < .1: continue
+                    um = (u0 + u1) / 2
+                    if trou(*pt(sg, um, (d0 + d1) / 2)[:2]): continue
+                    c = M("ardoise").couleur(R)
+                    if R.random() < .03: c = melange(c, M("lichen").couleur(R), R.uniform(.2, .4))
+                    ch = melange(c, M("ardoise").sombre, .4); cl = melange(c, M("ardoise").sombre, .65)
+                    hb0, hb1 = R.uniform(.035, .055), R.uniform(.035, .055)
+                    A, B_ = V(pt(sg, u0, d0, .012), ch), V(pt(sg, u1, d0, .012), ch)
+                    D, C = V(pt(sg, u0, d1, hb0), c), V(pt(sg, u1, d1, hb1), c)
+                    D2, C2 = V(pt(sg, u0, d1 + .004, .004), cl), V(pt(sg, u1, d1 + .004, .004), cl)
+                    if ec:   # écaille : pointe au milieu du bord bas
+                        E = V(pt(sg, um, d1 + .09, (hb0 + hb1) / 2), c); E2 = V(pt(sg, um, d1 + .094, .004), cl)
+                        _face(P, [A, D, E, C, B_], nrm); _face(P, [D, D2, E2, E], bas); _face(P, [E, E2, C2, C], bas)
+                    else:
+                        _face(P, [A, D, C, B_], nrm); _face(P, [D, D2, C2, C], bas)
+        # 3. faîtage : ardoises croisées en V renversé, posées tous les 45 cm
+        n = int((2 * X + .04) / .45) + 1; ang = math.atan(k)
+        for i in range(n):
+            x = cx - X - .02 + (2 * X + .04) * (i + .5) / n
+            if trou(x, cy, .06): continue
+            c = melange(M("ardoise").couleur(R), M("ardoise").sombre, .3)
+            for sg in (-1, 1):
+                p = Vector(pt(sg, 0, .13)) + Vector((0, 0, .07)); p.x = x
+                P.boite(p, ((2 * X + .04) / n * 1.06, .32, .05), c, rx=-sg * ang, bev=0)
+        # 4. planches de rive sur les pignons (arrêtées avant une cheminée posée au faîte)
+        for sx in (-1, 1):
+            xr = cx + sx * (X + .03)
+            dmin = 0.0
+            for (hx, hy, hr) in cheminees:
+                if abs(hx - xr) < hr + .3 and abs(hy - cy) < hr: dmin = max(dmin, (hr + .06) / cosa)
+            for sg in (-1, 1):
+                d0, d1 = dmin, pente + .06; dm = (d0 + d1) / 2
+                p = Vector(pt(sg, 0, dm, -.03)); p.x = xr
+                P.boite(p, (.08, d1 - d0, .3), M("chene").couleur(R), rx=-sg * ang, bev=.015)
+        return s
+
+def tour_pierres(P, r0, r1, z0, z1, ouvertures=(), taille=.6, saillie=.08):
+    """Tour ronde qui s'affine (rayon r0 en z0, r1 en z1) : pierres en assises, joints décalés d'un rang à l'autre.
+    ouvertures : [(a0, a1, oz0, oz1)] en angle (radians, 0 = +X, -π/2 = la façade -Y) : les pierres s'arrêtent au bord.
+    Le cœur (un cône de mortier) est à part. Pierres en moellons (teinter() pour une autre matière)."""
+    rr = lambda z: r0 + (r1 - r0) * (z - z0) / (z1 - z0)
+    for rang, (z, hz) in enumerate(assises(z0, z1, taille * .8)):
+        r = rr(z + hz / 2); n = max(8, round(2 * math.pi * r / (taille * 1.45))); dec = (rang % 2) * .5 + random.Random(rang).uniform(-.15, .15)
+        libres = [(0.0, 2 * math.pi)]; bords = [(2 * math.pi * (i + dec) / n) for i in range(n + 1)]
+        for (a0, a1, oz0, oz1) in ouvertures:
+            if oz0 < z + hz - .04 and z + .04 < oz1:
+                larg_a = (a1 - a0) % (2 * math.pi); a0 %= 2 * math.pi; a1 = a0 + larg_a   # on retire [a0, a1] (et son image décalée de 2π)
+                libres2 = []
+                for (u0, u1) in libres:
+                    seg = [(u0, u1)]
+                    for (b0, b1) in ((a0, a1), (a0 - 2 * math.pi, a1 - 2 * math.pi)):
+                        ns = []
+                        for (v0, v1) in seg:
+                            if b1 <= v0 or b0 >= v1: ns.append((v0, v1)); continue
+                            if b0 > v0: ns.append((v0, b0))
+                            if b1 < v1: ns.append((b1, v1))
+                        seg = ns
+                    libres2 += seg
+                libres = libres2
+        for i in range(n):
+            g0, g1 = bords[i] % (2 * math.pi), None
+            g1 = g0 + 2 * math.pi / n
+            for (u0, u1) in libres:
+                for dec2 in (0, -2 * math.pi):
+                    v0, v1 = max(u0, g0 + dec2), min(u1, g1 + dec2)
+                    if (v1 - v0) * r < .12: continue
+                    am = (v0 + v1) / 2; nrm = Vector((math.cos(am), math.sin(am), 0))
+                    p = nrm * (r + saillie * .5 + P.R.uniform(-.012, .015))
+                    moellon(P, (p.x, p.y, z + hz / 2), (v1 - v0) * r - .045, hz - .045, am + math.pi / 2 + P.R.uniform(-.02, .02), nrm, ep=.24)
+
+def cone_bardeaux(P, cx, cy, z0, r0, z1, bombe=.25, rang=.3, larg=.3, mat="bardeau"):
+    """Chapeau conique un peu bombé couvert de bardeaux de bois en rangs (du bas, rayon r0 en z0, jusqu'à la pointe z1) ;
+    dessous brun ; retourne la fonction rayon(z) du dessus."""
+    H = z1 - z0
+    def rz(z):
+        t = max(0.0, min(1.0, (z - z0) / H)); return r0 * (1 - t) * (1 + bombe * math.sin(math.pi * t) * .9)
+    def V(p, c): v = P.bm.verts.new(p); v[P.col] = (*c, 1); return v
+    R = P.R
+    # cœur : cône plein (dessus sombre, dessous brun)
+    nc = 16; zs = [z0 + H * i / 6 for i in range(7)]; anneaux = []
+    for j, z in enumerate(zs):
+        r = max(.02, rz(z) - .03); c = M(mat).sombre if j else M(mat + "_d").couleur(R)
+        anneaux.append([V((cx + math.cos(2 * math.pi * i / nc) * r, cy + math.sin(2 * math.pi * i / nc) * r, z), c) for i in range(nc)])
+    for j in range(6):
+        for i in range(nc):
+            a, b = anneaux[j][i], anneaux[j][(i + 1) % nc]; c_, d = anneaux[j + 1][(i + 1) % nc], anneaux[j + 1][i]
+            m = (a.co + c_.co) / 2; _face(P, [a, b, c_, d], (m.x - cx, m.y - cy, .5))
+    fond = [V((cx + math.cos(2 * math.pi * i / nc) * (r0 - .03), cy + math.sin(2 * math.pi * i / nc) * (r0 - .03), z0 - .02), M(mat + "_d").couleur(R)) for i in range(nc)]
+    _face(P, fond, (0, 0, -1))
+    # bardeaux : rangs du haut vers le bas, chacun recouvre le suivant
+    nr = int(H / (rang * .85)); hs = []
+    for j in range(nr):
+        za = z1 - .1 - j * rang * .85; zb_ = za - rang * 1.35
+        if za <= z0: break
+        zb_ = max(zb_, z0 - .12)
+        ra, rb = rz(za), rz(zb_) + .05 if zb_ > z0 else r0 + .06
+        n = max(5, round(2 * math.pi * rb / larg)); dec = R.uniform(0, 1)
+        for i in range(n):
+            a0 = 2 * math.pi * (i + dec) / n + .006 * 2 / max(rb, .3); a1 = 2 * math.pi * (i + 1 + dec) / n - .012 / max(rb, .3)
+            c = M(mat).couleur(R); ch = melange(c, M(mat).sombre, .45)
+            pa0 = (cx + math.cos(a0) * (ra + .01), cy + math.sin(a0) * (ra + .01), za); pa1 = (cx + math.cos(a1) * (ra + .01), cy + math.sin(a1) * (ra + .01), za)
+            eb = R.uniform(.035, .055)
+            pb0 = (cx + math.cos(a0) * (rb + eb), cy + math.sin(a0) * (rb + eb), zb_); pb1 = (cx + math.cos(a1) * (rb + eb), cy + math.sin(a1) * (rb + eb), zb_)
+            pl0 = (cx + math.cos(a0) * (rb + .005), cy + math.sin(a0) * (rb + .005), zb_ - .01); pl1 = (cx + math.cos(a1) * (rb + .005), cy + math.sin(a1) * (rb + .005), zb_ - .01)
+            A, B_, C, D = V(pa0, ch), V(pa1, ch), V(pb1, c), V(pb0, c); C2, D2 = V(pl1, melange(c, M(mat).sombre, .6)), V(pl0, melange(c, M(mat).sombre, .6))
+            am = (a0 + a1) / 2; out = (math.cos(am), math.sin(am), .6)
+            _face(P, [A, D, C, B_], out); _face(P, [D, D2, C2, C], (math.cos(am), math.sin(am), -.4))
+    return rz
+
+def cheminee_pignon(P, x_mur, y, z0, z1, z_epaule=2.4, base=(1.0, 1.56), conduit=(.8, 1.1), taille=.42, c_coeur=None, mat="moellon"):
+    """Grosse cheminée maçonnée contre un pignon (à l'extérieur, vers +X depuis le plan du mur x_mur) : un massif large
+    (saillie, largeur = base) jusqu'à z_epaule, un glacis de pierres plates en pente, puis le conduit (saillie, largeur =
+    conduit) jusqu'à z1. Chaque face est un vrai mur de moellons (assises communes, chaînage aux angles : plusieurs
+    pierres par rang sur chaque face) en matière mat ; glacis et chapeau de pierre claire, deux pots de terre cuite.
+    """
+    c_coeur = c_coeur or M("mortier").couleur(P.R)
+    xb = x_mur - .3
+    def massif(xf, l, za, zb_, dos):
+        P.boite(((xb + xf) / 2 - .02, y, (za + zb_) / 2), (xf - xb - .1, l - .1, zb_ - za), c_coeur, bev=0)
+        a, b, c, d = (xb, y - l / 2), (xf, y - l / 2), (xf, y + l / 2), (xb, y + l / 2)
+        faces = [(a, b), (b, c), (c, d)] + ([(d, a)] if dos else [])
+        n0 = nb_sommets(P)
+        for (p, q) in faces: mur_moellons(P, p, q, za, zb_, (), taille=taille, saillie=.05)
+        if mat != "moellon": teinter(P, n0, mat, int(za * 10) + 3)
+    massif(x_mur + base[0], base[1], z0, z_epaule, False)
+    massif(x_mur + conduit[0], conduit[1], z_epaule - .05, z1, True)
+    # glacis : pierres plates en pente qui couvrent le haut du massif autour du conduit
+    xf0, xf1, l0, l1 = x_mur + base[0], x_mur + conduit[0], base[1] / 2, conduit[1] / 2; h = .42
+    n = 3
+    for i in range(n):   # devant
+        yy = y - l0 + (i + .5) * 2 * l0 / n
+        a = math.atan2(h, xf0 - xf1 + .1)
+        P.boite(((xf0 + xf1) / 2 + .05, yy, z_epaule + h / 2 + .02), (math.hypot(h, xf0 - xf1 + .1), 2 * l0 / n - .03, .1), M("moellon").couleur(P.R, .05), ry=a, bev=.03)
+    for s in (-1, 1):    # côtés
+        for i in range(n):
+            xx = xb + .15 + (i + .5) * (xf0 - xb - .1) / n
+            a = math.atan2(h, l0 - l1 + .1)
+            P.boite((xx, y + s * ((l0 + l1) / 2 + .05), z_epaule + h / 2 + .02), ((xf0 - xb - .1) / n - .03, math.hypot(h, l0 - l1 + .1), .1), M("moellon").couleur(P.R, .05), rx=-s * a, bev=.03)
+    # chapeau et pots
+    xm = (xb + xf1) / 2
+    P.boite((xm, y, z1 + .08), (xf1 - xb + .24, conduit[1] + .24, .16), M("moellon").couleur(P.R, .03), bev=.04)
+    for s in (-1, 1):
+        P.cylindre((xm, y + s * conduit[1] * .22, z1 + .16), (xm, y + s * conduit[1] * .22, z1 + .52), .14, .11, M("terre").couleur(P.R), n=8)
+        P.cylindre((xm, y + s * conduit[1] * .22, z1 + .48), (xm, y + s * conduit[1] * .22, z1 + .56), .15, .15, M("terre").couleur(P.R), n=8)

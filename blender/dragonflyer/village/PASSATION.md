@@ -93,6 +93,28 @@ bois (prisme qui suit le toit), escalier, porte droite à linteau de bois, volet
 ## Arbres (agent séparé, worktree, `blender/dragonflyer/vegetation/PASSATION.md` sur sa branche)
 - Refaits de zéro par scripts (sapin, feuillu), contrôle par 12 caméras et planche « forêt ». Tour 1 en fabrication.
 
+## Pierre et moulin (agent séparé, worktree ; à fusionner)
+Nouvelles matières (fin de `materiaux.py`) : pierre_s (pierre sombre, gris chaud), ardoise, ardoise_d (dessous brun),
+lichen, volet_r, bardeau, bardeau_d, toile, jute. Nouvelles pièces (fin de `kit.py`, section « ajouts pierre et moulin ») :
+`teinter` (repeint des moellons dans une autre matière, en gardant les écarts de clarté), `rogner` (pignon de pierre :
+pierres au-dessus du toit supprimées, les autres rabotées selon la pente), `prisme_pignon` (cœur plein du pignon),
+`ToitArdoises` (rangs d'ardoises soulevées en bas, joints décalés, deux rangs d'écailles, lichen rare, dessous en planches
+brunes, rives, faîtage en ardoises croisées), `tour_pierres` (tour ronde qui s'affine), `cone_bardeaux` (chapeau conique
+bombé), `cheminee_pignon` (cheminée maçonnée sur 3 ou 4 faces avec `mur_moellons`, glacis, chapeau, deux pots).
+Aucune pièce existante modifiée. Objets : `objets/sacs_grain.py`, `objets/meule.py`.
+
+### Maison de pierre (`maisons/pierre.py`)
+Même emprise (6,8 × 7,6), même point « porte » (0, -4.3, 0), intérieur « maison ». Murs 6,4 × 7,2, toit à 42°
+(égout 3,0 m, faîte 6,7 m), cheminée contre le pignon droit jusqu'à 7,6 m. `construire(graine, variante)` :
+0 = cheminée à droite, volets rouges, banc, tas de bois, lanterne ; 1 = miroir (cheminée à gauche), volets verts,
+tonneau, pot ; 2 = volets bleus, banc sur le côté, deux pots. Le jeu n'a qu'un type « pierre » (une seule géométrie
+instanciée) : pour varier il faudrait exporter M_pierre_1, M_pierre_2… (à décider à la fusion).
+- Premier jet (pierre0) : joints presque noirs, cheminée du kit en « pile d'assiettes » vue de côté (une pierre par rang
+  sur la face latérale), lichen trop régulier, vides sombres autour des fenêtres. Corrigé : cœur en mortier gris-brun,
+  `cheminee_pignon`, lichen 3 %, ouvertures serrées au bord des volets et de l'appui.
+- Tour 1 à inspecter : rendus `qc/pierre1/`, 21 371 triangles (ancienne 35 796 : 60 %), capsule PASSE (seuil 12 cm),
+  porte 0,86 × 2,14 m.
+
 ## Prochaine étape
 Finir la chaumière (tout à 8+), l'intégrer : `../maisons.py` appelle `village/maisons/chaumiere.py:construire()`,
 puis capture dans le jeu, puis montrer au propriétaire. Ensuite : une maison à la fois (colombage, longère…).

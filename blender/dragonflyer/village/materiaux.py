@@ -42,3 +42,16 @@ MATIERES = {
     "paille":   Matiere("paille",   ["#d8b860"], .06),
 }
 def M(nom): return MATIERES[nom]
+
+# ---- ajouts pierre et moulin (maisons/pierre.py, maisons/moulin.py)
+MATIERES.update({
+    "pierre_s":  Matiere("pierre_s",  ["#7f786e", "#736d65", "#8a8174", "#6e6a63", "#857868"], .07, "#4a4642"),   # pierre sombre de montagne (gris chaud)
+    "ardoise":   Matiere("ardoise",   ["#5f6a76", "#57616d", "#68717c", "#525c68", "#626872"], .05, "#383e48"),   # ardoises bleu-gris
+    "ardoise_d": Matiere("ardoise_d", ["#74503a", "#684632", "#7c5840"], .04),                                    # dessous du toit d'ardoises : planches brunes (à l'ombre)
+    "lichen":    Matiere("lichen",    ["#a8975c", "#9a9258"], .06),                                               # taches de lichen sur les ardoises
+    "volet_r":   Matiere("volet_r",   ["#8e4030", "#82392b"], .04),                                               # volets rouge sang-de-bœuf
+    "bardeau":   Matiere("bardeau",   ["#946240", "#875a38", "#9e6c46", "#7e5434"], .07, "#553824"),             # bardeaux de bois (chapeau du moulin)
+    "bardeau_d": Matiere("bardeau_d", ["#6e4830", "#62402c"], .04),
+    "toile":     Matiere("toile",     ["#eee2c0", "#e6d6ac", "#f2e8cc"], .03),                                    # toile des ailes
+    "jute":      Matiere("jute",      ["#cdb27c", "#c2a670", "#d6bc88"], .05),                                    # sacs de grain
+})
