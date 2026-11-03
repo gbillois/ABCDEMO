@@ -906,12 +906,14 @@ const bruitCPU = (x, z, echelle, canal = "a") => {
 };
 
 // Normales, ombre portée des montagnes (soleil fixe) et occlusion : calculées une fois par la carte graphique
-function texturesRelief() {
+let rtRelief = null;
+function texturesRelief() {   // rappelée après l'aplanissement des villages : mêmes textures, contenu refait
+  if (tH) { tH.needsUpdate = true; } else {
   tH = new THREE.DataTexture(HAUT, NRES, NRES, THREE.RedFormat, THREE.FloatType);
   tH.needsUpdate = true;
   tHum = new THREE.DataTexture(HUM, NRES, NRES, THREE.RedFormat, THREE.UnsignedByteType);
-  tHum.magFilter = THREE.LinearFilter; tHum.minFilter = THREE.LinearFilter; tHum.needsUpdate = true;
-  const rt = new THREE.WebGLRenderTarget(NRES, NRES, { type: THREE.UnsignedByteType, magFilter: THREE.LinearFilter, minFilter: THREE.LinearMipmapLinearFilter, generateMipmaps: true, depthBuffer: false });
+  tHum.magFilter = THREE.LinearFilter; tHum.minFilter = THREE.LinearFilter; tHum.needsUpdate = true; }
+  const rt = rtRelief || new THREE.WebGLRenderTarget(NRES, NRES, { type: THREE.UnsignedByteType, magFilter: THREE.LinearFilter, minFilter: THREE.LinearMipmapLinearFilter, generateMipmaps: true, depthBuffer: false });
   const mat = new THREE.ShaderMaterial({
     uniforms: { tH: { value: tH } },
     vertexShader: "varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }",
@@ -953,7 +955,7 @@ function texturesRelief() {
   const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   renderer.setRenderTarget(rt); renderer.render(sc, cam); renderer.setRenderTarget(null);
   mat.dispose(); quad.geometry.dispose();
-  tTerr = rt.texture;
+  rtRelief = rt; tTerr = rt.texture;
 }
 
 // ------------------------------------------------------------------ ciel (dôme) + couche lointaine de nuages
@@ -1017,7 +1019,7 @@ function materiauTerrain() {
   const m = new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0 });
   m.userData.u = { uS: { value: 1 }, uHalf: { value: 1 }, uC: { value: new THREE.Vector2() }, uInC: { value: new THREE.Vector2() }, uInHalf: { value: -1 } };
   m.onBeforeCompile = function (sh) {
-    Object.assign(sh.uniforms, this.userData.u, { tH: { value: tH }, tTerr: { value: tTerr }, tBruit: { value: tBruit }, tRoche: { value: tRoche }, tHum: { value: tHum }, uTemps: U_TEMPS, tCanopee: U_CANOPEE, uOmbreC: U_OMBRE_C });
+    Object.assign(sh.uniforms, this.userData.u, { tH: { value: tH }, tTerr: { value: tTerr }, tBruit: { value: tBruit }, tRoche: { value: tRoche }, tHum: { value: tHum }, uTemps: U_TEMPS, tCanopee: U_CANOPEE, uOmbreC: U_OMBRE_C, tSol: U_SOL, uSolV: U_SOL_V });
     sh.vertexShader = sh.vertexShader
       .replace("#include <common>", `#include <common>
         uniform sampler2D tH, tTerr, tBruit; uniform float uS, uHalf; uniform vec2 uC; varying vec3 vW;
@@ -1036,6 +1038,9 @@ function materiauTerrain() {
     sh.fragmentShader = sh.fragmentShader
       .replace("#include <common>", `#include <common>
         uniform sampler2D tTerr, tBruit, tRoche, tHum, tCanopee; uniform float uInHalf, uTemps; uniform vec2 uInC; uniform vec3 uOmbreC; varying vec3 vW;
+        uniform sampler2D tSol; uniform vec4 uSolV[4];
+        vec2 solVillage(vec2 p) { vec2 r = vec2(0.0); for (int i = 0; i < 4; i++) { vec4 sv = uSolV[i]; if (sv.w < 0.5) continue; vec2 q = (p - sv.xy) / sv.z;
+          if (q.x < 0.0 || q.y < 0.0 || q.x > 1.0 || q.y > 1.0) continue; r = max(r, texture(tSol, (q + vec2(float(i - (i / 2) * 2), float(i / 2))) * 0.5).rg); } return r; }
         const float MONDE = ${MONDE.toFixed(1)};
         float terrSh, terrAO; vec3 terrN, terrAlb; float terrRough;`)
       .replace("#include <clipping_planes_fragment>", `
@@ -1103,6 +1108,15 @@ function materiauTerrain() {
           terrAlb = alb;
           terrRough = mix(mix(0.95, 0.82, rockW), 0.5, snowW * 0.6);
           terrRough = mix(terrRough, 0.45, sandW * smoothstep(1.2, 0.0, h));
+          { vec2 sv = solVillage(vW.xz);   // rues et allées en terre battue, place pavée
+            if (sv.x + sv.y > 0.01) {
+              vec4 nb = texture(tBruit, vW.xz / 2.3), nc = texture(tBruit, vW.xz / 0.9);
+              vec3 terre = vec3(0.27, 0.19, 0.11) * (0.8 + 0.35 * nb.r) * (0.9 + 0.2 * nc.g);
+              vec3 pave = vec3(0.33, 0.3, 0.25) * (0.78 + 0.42 * nb.g);
+              pave = mix(pave, pave * 0.5, smoothstep(0.6, 0.72, nc.b));   // joints entre les pavés
+              terrAlb = mix(terrAlb, terre, smoothstep(0.12, 0.55, sv.x));
+              terrAlb = mix(terrAlb, pave, smoothstep(0.12, 0.55, sv.y));
+              terrRough = mix(terrRough, 0.92, max(sv.x, sv.y)); } }
           // ombres des nuages qui passent
           float ns = texture(tBruit, (vW.xz + uTemps * vec2(7.0, 2.5)) / 5200.0).r;
           terrSh *= mix(1.0, 0.45, smoothstep(0.6, 0.78, ns));
@@ -1751,6 +1765,7 @@ const STYLES_VILLAGES = [
   { nom: "Stonebrook", maisons: ["longere", "pierre", "pierre", "pierre", "forge", "pierre", "pierre", "pierre", "pierre"],
     props: { puits: 1, tonneau: 5, caisse: 5, lanterne: 5 } },
 ];
+const ENFONCE = { longere: .75 };   // maisons dont le seuil est haut sans marches : posées plus bas dans le terrain
 // collisions (rectangles tournés, pour le cavalier à pied), rangées dans une grille de 32 m
 const COLLISIONS = new Map(), PORTES = [], MOULINS = [];
 const cleC = (i, j) => i * 100003 + j;
@@ -1784,9 +1799,96 @@ function terrainSous(x, z, yaw, hx, hz) {
   }
   return [mn, mx];
 }
+// ---- sol des villages : une petite carte par village (128 m de côté, 50 cm par point), rangées 2 × 2 dans une texture :
+// rouge = terre battue (rues, allées vers les portes), vert = pavés (place). Lue par le terrain (couleur) et l'herbe (pas d'herbe haute).
+const SOL = { T: 256, M: 128, cv: null, cx: null, villages: [] };
+const U_SOL = { value: null }, U_SOL_V = { value: [0, 1, 2, 3].map(() => new THREE.Vector4(0, 0, 0, 0)) };
+function solTuile(v) {
+  if (!SOL.cv) { SOL.cv = document.createElement("canvas"); SOL.cv.width = SOL.cv.height = SOL.T * 2; SOL.cx = SOL.cv.getContext("2d", { willReadFrequently: true }); SOL.cx.fillStyle = "#000"; SOL.cx.fillRect(0, 0, SOL.T * 2, SOL.T * 2); }
+  let i = SOL.villages.indexOf(v); if (i < 0) { if (SOL.villages.length >= 4) return null; SOL.villages.push(v); i = SOL.villages.length - 1; }
+  return { ox: (i % 2) * SOL.T, oy: (i >> 1) * SOL.T, x0: v.place.x - SOL.M / 2, z0: v.place.z - SOL.M / 2, i };
+}
+function peindreSol(v, pts, larg, couleur) {   // un trait (rue, allée) ou un disque (un seul point), bords adoucis
+  const t = solTuile(v); if (!t) return; const c = SOL.cx, k = SOL.T / SOL.M;
+  c.save(); c.beginPath(); c.rect(t.ox, t.oy, SOL.T, SOL.T); c.clip(); c.globalCompositeOperation = "lighter"; c.filter = "blur(1.5px)";
+  c.strokeStyle = c.fillStyle = couleur; c.lineCap = c.lineJoin = "round"; c.lineWidth = larg * k;
+  const P = ([x, z]) => [t.ox + (x - t.x0) * k, t.oy + (z - t.z0) * k];
+  c.beginPath();
+  if (pts.length === 1) { const [X, Y] = P(pts[0]); c.arc(X, Y, larg / 2 * k, 0, 6.2832); c.fill(); }
+  else { pts.forEach((q, i) => { const [X, Y] = P(q); i ? c.lineTo(X, Y) : c.moveTo(X, Y); }); c.stroke(); }
+  c.restore();
+}
+function finirSol() {
+  if (!SOL.cv) return;
+  const d = SOL.cx.getImageData(0, 0, SOL.T * 2, SOL.T * 2).data, rg = new Uint8Array(d.length / 2);
+  for (let i = 0, j = 0; i < d.length; i += 4, j += 2) { rg[j] = d[i]; rg[j + 1] = d[i + 1]; }
+  const t = new THREE.DataTexture(rg, SOL.T * 2, SOL.T * 2, THREE.RGFormat, THREE.UnsignedByteType);
+  t.magFilter = t.minFilter = THREE.LinearFilter; t.needsUpdate = true; U_SOL.value = t;
+  SOL.villages.forEach((v, i) => U_SOL_V.value[i].set(v.place.x - SOL.M / 2, v.place.z - SOL.M / 2, SOL.M, 1));
+}
+// aplanir : plateformes des maisons (et paliers devant les portes), mélangées doucement au terrain autour
+function aplanir(plats) {   // plats : [{ x, z, yaw, hx, hz, y }] (hx, hz : demi-côtés du plat), modifie HAUT
+  if (!plats.length) return;
+  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+  for (const q of plats) { const R = Math.hypot(q.hx, q.hz) + 12; x0 = Math.min(x0, q.x - R); x1 = Math.max(x1, q.x + R); z0 = Math.min(z0, q.z - R); z1 = Math.max(z1, q.z + R); }
+  const gi = x => Math.round((x + MONDE / 2) / CEL - .5);
+  const neuf = [];
+  for (let iz = Math.max(0, gi(z0)); iz <= Math.min(NRES - 1, gi(z1)); iz++) for (let ix = Math.max(0, gi(x0)); ix <= Math.min(NRES - 1, gi(x1)); ix++) {
+    const x = (ix + .5) * CEL - MONDE / 2, z = (iz + .5) * CEL - MONDE / 2, i = iz * NRES + ix; let sw = 0, sy = 0, wmax = 0;
+    for (const q of plats) {
+      const dx = x - q.x, dz = z - q.z, cs = Math.cos(q.yaw), sn = Math.sin(q.yaw), lx = Math.abs(dx * cs - dz * sn) - q.hx, lz = Math.abs(dx * sn + dz * cs) - q.hz;
+      const e = Math.hypot(Math.max(lx, 0), Math.max(lz, 0));   // distance au bord du plat (0 dedans)
+      const w = e <= CEL * 1.1 ? 1000 : Math.exp(-(((e - CEL * 1.1) / 4.5) ** 2));   // dedans (et un point autour) : plat exact ; puis talus doux
+      sw += w; sy += w * q.y; wmax = Math.max(wmax, Math.min(1, w));
+    }
+    if (sw > 1e-4) neuf.push([i, (sy + (1 - wmax) * HAUT[i]) / (sw + (1 - wmax))]);
+  }
+  for (const [i, h] of neuf) HAUT[i] = h;
+}
 function batirVillage(v, r) {
   const nl = Math.hypot(v.mx, v.mz) || 1, mx = v.mx / nl, mz = v.mz / nl, lx = -mz, lz = mx;
   const C = { x: v.x - mx * 38, z: v.z - mz * 38 }; v.place = C; v.maisons = [];
+  const hC = Math.max(1.5, hauteur(C.x, C.z));
+  // trois rues qui partent de la place, vers le terrain le plus doux et loin de l'eau
+  let meilleur = null;
+  for (let c = 0; c < 24; c++) {
+    const a0 = c / 24 * Math.PI * 2 / 3; let cout = 0;
+    for (let k = 0; k < 3; k++) { const a = a0 + k * Math.PI * 2 / 3, dx = Math.cos(a), dz = Math.sin(a); let hp = hC;
+      for (let s = 8; s <= 62; s += 6) { const h = hauteur(C.x + dx * s, C.z + dz * s); cout += Math.abs(h - hp) + (h < 1.5 ? 40 : 0) + (h > 90 ? 40 : 0); hp = h; } }
+    if (!meilleur || cout < meilleur.cout) meilleur = { a0, cout };
+  }
+  const rues = [0, 1, 2].map(k => { const a = meilleur.a0 + k * Math.PI * 2 / 3; return { a, dx: Math.cos(a), dz: Math.sin(a), L: 0, curseur: [12, 12] }; });
+  v.rues = rues;
+  const anneau = rues.map(ru => ({ a: ru.a + Math.PI / 3, pris: false }));   // entre deux rues, face à la place
+  const PRINCIPALES = new Set(["longere", "forge", "moulin"]);
+  let tour = 0;
+  function placeDansLePlan(type, k, essai) {
+    const hx = k.pied.hx, hz = k.pied.hz;
+    const essayer = (x, z, yaw) => {
+      const [mn, mxh] = terrainSous(x, z, yaw, hx, hz);
+      if (mn < 1.2 || mxh - mn > 4.5 || mxh > 90) return null;
+      if (!libre(x, z, yaw, hx, hz, 3)) return null;
+      return { x, z, yaw, y: Math.max(1.5, (mn + mxh) / 2) };
+    };
+    if (PRINCIPALES.has(type)) for (const an of anneau) if (!an.pris) {
+      const d = 9 + hz + 2.5, x = C.x + Math.cos(an.a) * d, z = C.z + Math.sin(an.a) * d, pl = essayer(x, z, Math.atan2(C.x - x, C.z - z));
+      if (pl) { an.pris = true; return pl; }
+    }
+    for (let n = 0; n < 6; n++) {   // la rue et le côté les moins avancés
+      const cands = []; rues.forEach((ru, i) => [0, 1].forEach(c => cands.push([ru.curseur[c], i, c])));
+      cands.sort((a, b) => a[0] - b[0] || ((a[1] + a[2] + tour) % 3) - ((b[1] + b[2] + tour) % 3));
+      for (const [, i, c] of cands) {
+        const ru = rues[i], side = c ? 1 : -1, px = -ru.dz * side, pz = ru.dx * side;
+        while (ru.curseur[c] < 66) {
+          const sC = ru.curseur[c] + hx, d = hz + 3.2, x = C.x + ru.dx * sC + px * d, z = C.z + ru.dz * sC + pz * d;
+          const pl = essayer(x, z, Math.atan2(-px, -pz));   // la façade regarde la rue
+          if (pl) { ru.curseur[c] = sC + hx + 3.5 + r() * 2.5; ru.L = Math.max(ru.L, sC + hx + 4); tour++; return pl; }
+          ru.curseur[c] += 2.5;
+        }
+      }
+    }
+    return null;
+  }
   const pris = [];   // rectangles déjà posés (avec marge) pour ne pas se chevaucher
   const libre = (x, z, yaw, hx, hz, marge = 2.2) => {
     for (const o of pris) { if (Math.hypot(o.x - x, o.z - z) < Math.hypot(o.hx, o.hz) + Math.hypot(hx, hz) + marge) {
@@ -1816,14 +1918,27 @@ function batirVillage(v, r) {
         const yaw = Math.atan2(-mx, -mz) + (r() - .5) * .3; if (!libre(x, z, yaw, k.pied.hx, k.pied.hz, 3)) continue;
         poser(type, x, z, .2, yaw); fait = true;
       } else {
-        const a = r() * Math.PI * 2, d = 14 + essai * .45 + r() * 10, x = C.x + Math.cos(a) * d, z = C.z + Math.sin(a) * d;
-        const yaw = Math.atan2(C.x - x, C.z - z) + (r() - .5) * .25;
-        const [mn, mxh] = terrainSous(x, z, yaw, k.pied.hx, k.pied.hz);
-        if (mn < 1.2 || mxh - mn > (type === "pecheur" ? 1.1 : 2.4) || mxh > 90) continue;   // le soubassement de pierre descend de 2,8 m
-        if (!libre(x, z, yaw, k.pied.hx, k.pied.hz)) continue;
-        poser(type, x, z, mxh - .12, yaw); fait = true;
+        const pl = placeDansLePlan(type, k, essai); if (!pl) break;
+        poser(type, pl.x, pl.z, pl.y - (ENFONCE[type] || 0), pl.yaw); pl.o = v.maisons[v.maisons.length - 1]; fait = true;
       }
     }
+  }
+  // terrain : plateformes aplanies sous les maisons et devant les portes, place à plat ; puis rues, allées et place peintes
+  const plats = [{ x: C.x, z: C.z, yaw: 0, hx: 6.5, hz: 6.5, y: hC }];
+  for (const o of v.maisons) {
+    if (o.type === "pecheur") continue;
+    plats.push({ x: o.x, z: o.z, yaw: o.yaw, hx: o.hx + .6, hz: o.hz + .6, y: o.y + (ENFONCE[o.type] || 0) });
+    const sn = Math.sin(o.yaw), cs = Math.cos(o.yaw), dd = o.hz + 2;   // palier devant la porte (la façade regarde +Z local)
+    plats.push({ x: o.x + sn * dd, z: o.z + cs * dd, yaw: o.yaw, hx: 1.6, hz: 1.6, y: o.y + (ENFONCE[o.type] || 0) });
+  }
+  aplanir(plats);
+  peindreSol(v, [[C.x, C.z]], 17, "rgb(0,255,0)");   // place pavée
+  for (const ru of rues) if (ru.L > 0) peindreSol(v, [[C.x + ru.dx * 6, C.z + ru.dz * 6], [C.x + ru.dx * ru.L, C.z + ru.dz * ru.L]], 2.8, "rgb(255,0,0)");
+  for (const pt of PORTES.filter(q => v.maisons.includes(q.maison))) {   // une allée de chaque porte jusqu'à la rue (ou la place)
+    const ox = Math.sin(pt.yaw), oz = Math.cos(pt.yaw), a = [pt.x + ox * .6, pt.z + oz * .6];
+    let best = [C.x, C.z], db = Math.hypot(a[0] - C.x, a[1] - C.z) - 7;
+    for (const ru of rues) if (ru.L > 0) { const t = Math.max(6, Math.min(ru.L, (a[0] - C.x) * ru.dx + (a[1] - C.z) * ru.dz)), q = [C.x + ru.dx * t, C.z + ru.dz * t], dq = Math.hypot(a[0] - q[0], a[1] - q[1]); if (dq < db) { db = dq; best = q; } }
+    peindreSol(v, [a, [a[0] + ox * 1.6, a[1] + oz * 1.6], best], 1.5, "rgb(255,0,0)");
   }
   // accessoires autour de la place
   v.props = [];
@@ -1844,7 +1959,11 @@ function batirVillage(v, r) {
       break;
     }
   }
-  function libreProp(x, z) { for (const o of pris) { const dx = x - o.x, dz = z - o.z, cs = Math.cos(o.yaw), sn = Math.sin(o.yaw); if (Math.abs(dx * cs - dz * sn) < o.hx + 1.2 && Math.abs(dx * sn + dz * cs) < o.hz + 1.2) return false; }
+  function libreProp(x, z) {
+    if (Math.hypot(x - C.x, z - C.z) < 8.8) return false;   // pas d'accessoire épars sur la place
+    for (const ru of (v.rues || [])) if (ru.L > 0) { const t = (x - C.x) * ru.dx + (z - C.z) * ru.dz; if (t > 5 && t < ru.L + 1 && Math.abs((x - C.x) * -ru.dz + (z - C.z) * ru.dx) < 2.2) return false; }   // ni dans les rues
+    for (const q of PORTES) if (Math.hypot(x - q.x, z - q.z) < 2.8) return false;   // ni devant une porte
+    for (const o of pris) { const dx = x - o.x, dz = z - o.z, cs = Math.cos(o.yaw), sn = Math.sin(o.yaw); if (Math.abs(dx * cs - dz * sn) < o.hx + 1.2 && Math.abs(dx * sn + dz * cs) < o.hz + 1.2) return false; }
     for (const p of v.props) if (Math.hypot(p.x - x, p.z - z) < 1.6) return false; return true; }
   v.rayon = 30 + Math.max(0, ...v.maisons.map(o => Math.hypot(o.x - C.x, o.z - C.z)));
   // les maillages : un InstancedMesh par type et par village (le village entier disparaît quand il est loin)
@@ -2126,6 +2245,7 @@ function creerVillages() {
   for (const s of sites) { if (choisis.length >= 4) break; if (choisis.every(c => Math.hypot(c.x - s.x, c.z - s.z) > 1300)) choisis.push(s); }
   const r = alea(12);
   choisis.forEach((v, i) => { v.style = STYLES_VILLAGES[i % STYLES_VILLAGES.length]; v.nom = v.style.nom; batirVillage(v, r); });
+  texturesRelief(); finirSol();   // le relief a été aplani sous les maisons : normales, ombres et occlusion refaites ; rues et place peintes
   for (const v of choisis) {   // bateaux devant le village
     const nl = Math.hypot(v.mx, v.mz) || 1, mx = v.mx / nl, mz = v.mz / nl, lx = -mz, lz = mx;
     for (let k = 0; k < 3; k++) {
@@ -2699,9 +2819,10 @@ function creerHerbe() {
   g.setAttribute("iOff", new THREE.InstancedBufferAttribute(off, 3)); g.instanceCount = N;
   const m = new THREE.ShaderMaterial({
     side: THREE.DoubleSide,
-    uniforms: { tH: { value: tH }, tTerr: { value: tTerr }, tBruit: { value: tBruit }, tHum: { value: tHum }, uTemps: U_TEMPS, uCentre: { value: new THREE.Vector3() }, uR: { value: R }, fogDensity: U_HEURE, uVillages: { value: [0, 1, 2, 3].map(() => new THREE.Vector4(1e6, 1e6, 0, 0)) }, tMasque: { value: null }, tCanopee: U_CANOPEE },
+    uniforms: { tH: { value: tH }, tTerr: { value: tTerr }, tBruit: { value: tBruit }, tHum: { value: tHum }, uTemps: U_TEMPS, uCentre: { value: new THREE.Vector3() }, uR: { value: R }, fogDensity: U_HEURE, uVillages: { value: [0, 1, 2, 3].map(() => new THREE.Vector4(1e6, 1e6, 0, 0)) }, tMasque: { value: null }, tCanopee: U_CANOPEE, tSol: U_SOL, uSolV: U_SOL_V },
     vertexShader: `
       uniform sampler2D tH, tTerr, tBruit, tHum, tCanopee; uniform float uTemps, uR; uniform vec3 uCentre; uniform vec4 uVillages[4]; uniform sampler2D tMasque;
+      uniform sampler2D tSol; uniform vec4 uSolV[4];
       attribute vec3 iOff; attribute float aCote, aFleur;
       varying vec3 vW, vCol; varying float vCote, vSh, vFleur;
       ${GLSL_HAUTEUR()}
@@ -2716,7 +2837,9 @@ function creerHerbe() {
         float hum = textureLod(tHum, tuv, 0.0).r;
         float pres = (1.0 - smoothstep(0.2, 0.3, pente + (n2.r - 0.5) * 0.15)) * smoothstep(2.6, 4.5, h) * (1.0 - smoothstep(430.0, 560.0, h)) * smoothstep(0.25, 0.45, n3.g * 0.7 + n4.b * 0.5);
         pres *= textureLod(tMasque, tuv, 0.0).r;   // pas d'herbe contre les maisons, les puits, les étals
-        for (int i = 0; i < 4; i++) pres *= smoothstep(uVillages[i].z, uVillages[i].z + 12.0, length(p - uVillages[i].xy));   // rues et places sans hautes herbes
+        for (int i = 0; i < 4; i++) { pres *= smoothstep(uVillages[i].z, uVillages[i].z + 4.0, length(p - uVillages[i].xy));   // place sans hautes herbes
+          vec4 sv = uSolV[i]; if (sv.w > 0.5) { vec2 q = (p - sv.xy) / sv.z; if (q.x > 0.0 && q.y > 0.0 && q.x < 1.0 && q.y < 1.0) {
+            vec2 so = textureLod(tSol, (q + vec2(float(i - (i / 2) * 2), float(i / 2))) * 0.5, 0.0).rg; pres *= 1.0 - smoothstep(0.08, 0.4, max(so.x, so.y)); } } }   // ni sur les rues et les allées
         float s = (1.0 - smoothstep(uR * 0.72, uR * 0.98, d)) * pres * (0.55 + 0.9 * rnd);
         float fl = aFleur * step(0.93, fract(rnd * 37.0));
         vec3 q = position * vec3(1.0, s, 1.0) * mix(1.0, 0.0, aFleur * (1.0 - fl));
@@ -5089,7 +5212,7 @@ async function demarrer() {
     chrono("kit"); await chargerKit();
     chrono("villages"); VILLAGES = creerVillages(); creerInterieurs(); creerHalos();
     herbe.material.uniforms.tMasque.value = masqueHerbe();
-    VILLAGES.slice(0, 4).forEach((v, i) => herbe.material.uniforms.uVillages.value[i].set(v.place.x, v.place.z, Math.max(25, (v.rayon || 50) - 12), 0));
+    VILLAGES.slice(0, 4).forEach((v, i) => herbe.material.uniforms.uVillages.value[i].set(v.place.x, v.place.z, 9, 0));   // la place ; les rues et allées : carte du sol
     chrono("paysages"); await creerPaysages(); chrono("caverne"); await creerCaverne(); creerFollets(); creerRampants(); creerEpeeMain();
     await progression(.76, "Planting the forests…");
     chrono("arbresKit"); await chargerArbresKit(); chrono("creerArbres"); creerArbres(); chrono("chargerNature"); await chargerNature(); chrono("semerNature"); semerNature(); chrono("ombresPeintes"); ombresPeintes();
