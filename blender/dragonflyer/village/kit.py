@@ -192,19 +192,16 @@ class ToitChaume:
             for j in range(ny):
                 x = cx - X + 2 * X * i / (nx - 1); y = cy - Y + 2 * Y * j / (ny - 1); z = s.forme(x, y)[0]
                 v = bm.verts.new((x, y, z - .04)); v[col] = (*M("chaume_f").teintes[1], 1); Vd[i][j] = v
-                w = bm.verts.new((cx + (x - cx) * .97, cy + (y - cy) * .97, z - s.ep)); w[col] = (*[min(1, c_ * 1.3) for c_ in melange(M("chaume").teintes[(i * 2 + j) % 3], M("chaume_f").teintes[0], .12 + .2 * ((i + j) % 2))], 1); Vs[i][j] = w
+                w = bm.verts.new((cx + (x - cx) * .97, cy + (y - cy) * .97, z - s.ep)); w[col] = (*[min(1, c_ * 2.0) for c_ in melange(M("chaume").teintes[(i * 2 + j) % 3], M("chaume_f").teintes[0], .1 + .15 * ((i + j) % 2))], 1); Vs[i][j] = w   # très clair : l'occlusion cuite le ramènera à un doré d'ombre
         for i in range(nx - 1):
             for j in range(ny - 1):
                 quad(Vd[i][j], Vd[i + 1][j], Vd[i + 1][j + 1], Vd[i][j + 1]); quad(Vs[i][j], Vs[i][j + 1], Vs[i + 1][j + 1], Vs[i + 1][j])
+        # le bord de la coque se referme simplement (il est caché par le rang de rive, plus bas)
         tour = [(i, 0) for i in range(nx - 1)] + [(nx - 1, j) for j in range(ny - 1)] + [(i, ny - 1) for i in range(nx - 1, 0, -1)] + [(0, j) for j in range(ny - 1, 0, -1)]
-        bas = []
-        for (i, j) in tour:
-            v = Vd[i][j]; dx, dy = v.co.x - cx, v.co.y - cy; dl = math.hypot(dx, dy) or 1
-            b = bm.verts.new((v.co.x + dx / dl * .02, v.co.y + dy / dl * .02, v.co.z - .16)); b[col] = (*[min(1, c_ * 1.15) for c_ in M("chaume").teintes[2]], 1); bas.append(b)
         nT = len(tour)
         for t in range(nT):
-            (i0, j0), (i1, j1) = tour[t], tour[(t + 1) % nT]; u = (t + 1) % nT
-            quad(Vd[i0][j0], bas[t], bas[u], Vd[i1][j1]); quad(bas[t], Vs[i0][j0], Vs[i1][j1], bas[u])
+            (i0, j0), (i1, j1) = tour[t], tour[(t + 1) % nT]
+            quad(Vd[i0][j0], Vs[i0][j0], Vs[i1][j1], Vd[i1][j1])
         # 2. rangs de chaume
         zc = max(s.forme(s.cx, s.cy)[0], s.forme(s.cx + s.xr * .5, s.cy)[0]) + .01; rang = 0
         while zc > s.zb - .3:
@@ -236,7 +233,25 @@ class ToitChaume:
                     if trou(pts[k]) or trou(pts[k + 1]) or trou((rm[k].co.x, rm[k].co.y)) or trou((rm[k + 1].co.x, rm[k + 1].co.y)): continue
                     quad(rh[k], rm[k], rm[k + 1], rh[k + 1]); quad(rm[k], rp[k], rp[k + 1], rm[k + 1])
             zc -= dz; rang += 1
-        # 3. faîtage : boudin tressé posé dans la crête (enfoncé d'un tiers), qui suit la vraie hauteur du toit
+        # 3. rang de rive : tout le tour du toit (égouts et rives des pignons), un rang de mèches qui passe par-dessus le
+        #    bord et retombe dehors, de la même paille que les autres rangs (pas de boudin lisse)
+        coins = [(cx - X, cy - Y), (cx + X, cy - Y), (cx + X, cy + Y), (cx - X, cy + Y)]
+        for c in range(4):
+            (ax, ay), (bx2, by2) = coins[c], coins[(c + 1) % 4]
+            L = math.hypot(bx2 - ax, by2 - ay); n = int(L / pas_meche); tx, ty = (bx2 - ax) / L, (by2 - ay) / L; ox, oy = ty, -tx   # dehors
+            rh, rm, rp = [], [], []
+            for k in range(n + 1):
+                x, y = ax + tx * L * k / n, ay + ty * L * k / n
+                x -= ox * .22; y -= oy * .22; z = s.forme(x, y)[0]
+                teinte = M("chaume").teintes[R.randrange(3)]
+                lg = .12 + .04 * math.sin(k * 1.9 + c) + .03 * math.sin(k * .7) + R.uniform(-.02, .02)
+                h = bm.verts.new((x, y, z + .07)); h[col] = (*melange(teinte, M("chaume_f").teintes[0], .35), 1)
+                m = bm.verts.new((x + ox * .3, y + oy * .3, z - .1)); m[col] = (*[min(1, c_ * 1.35) for c_ in melange(teinte, (1, .92, .66), .15 + .08 * (k % 2))], 1)
+                p_ = bm.verts.new((x + ox * (.36 + lg * .2), y + oy * (.36 + lg * .2), z - .1 - lg)); p_[col] = (*[min(1, c_ * 1.35) for c_ in melange(teinte, (1, .95, .75), .25)], 1)
+                rh.append(h); rm.append(m); rp.append(p_)
+            for k in range(n):
+                quad(rh[k], rm[k], rm[k + 1], rh[k + 1]); quad(rm[k], rp[k], rp[k + 1], rm[k + 1])
+        # 4. faîtage : boudin tressé posé dans la crête (enfoncé d'un tiers), qui suit la vraie hauteur du toit
         xs = [cx - s.xr - .2 + k * .45 for k in range(int((2 * s.xr + .4) / .45) + 1)]
         pts = [Vector((x, cy, s.forme(x, cy)[0] + .1)) for x in xs]
         for k in range(len(pts) - 1): P.cylindre(pts[k], pts[k + 1] + (pts[k + 1] - pts[k]) * .06, .23, .23, M("chaume_f").couleur(R), n=6)

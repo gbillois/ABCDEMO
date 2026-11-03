@@ -40,7 +40,12 @@ Fichier tenu à jour à chaque étape, pour qu'une nouvelle session reprenne ici
   un volet, petites plaquettes à la cheminée (bouts de rangs contre le conduit).
   Corrigé : dessous et rebord en paille dorée, frange douce, rangs coupés autour de la cheminée, fenêtres à ±1,72 m,
   18 016 triangles.
-- Tour 6 : en cours.
+- Tour 6 : posé 8, matières 7, formes 8, style 8, lisibilité 9, passage 9, coût 8 → À REFAIRE (matières).
+  Frange, volets, cheminée : faits. Bord olive lisse depuis 3 tours → CHANGEMENT D'APPROCHE : rebord de coque supprimé,
+  « rang de rive » en mèches tout autour du toit, dessous très clair (l'occlusion le ramène au doré).
+  Banc de test : sol des rendus vert-brun terne comme le jeu (le vert vif teintait les dessous de toit), ciel un peu
+  plus fort comme le jeu de jour. 18 764 triangles.
+- Tour 7 : en cours.
 
 ## Héros (agent séparé, worktree `worktree-agent-adb19e9034e46bb45`, voir `blender/dragonflyer/personnages/PASSATION.md` sur cette branche)
 - Tour 1 : proportions 8, visage 8, cheveux et vêtements 6, articulations 7, animations 5, style 8, coût 6 → À REFAIRE.

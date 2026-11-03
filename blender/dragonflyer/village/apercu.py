@@ -47,12 +47,12 @@ def decor(taille):
     """Ciel, soleil chaud du milieu de matinée (comme dans le jeu), pré."""
     scene = bpy.context.scene
     w = bpy.data.worlds.new("Ciel"); scene.world = w; w.use_nodes = True
-    w.node_tree.nodes["Background"].inputs[0].default_value = (.55, .7, .9, 1); w.node_tree.nodes["Background"].inputs[1].default_value = .9
+    w.node_tree.nodes["Background"].inputs[0].default_value = (.55, .7, .9, 1); w.node_tree.nodes["Background"].inputs[1].default_value = 1.15   # lumière du ciel comme dans le jeu de jour (les pans à l'ombre restent lisibles)
     sun = bpy.data.objects.new("Soleil", bpy.data.lights.new("Soleil", "SUN")); scene.collection.objects.link(sun)
     sun.data.energy = 3.6; sun.data.color = (1, .95, .85); sun.rotation_euler = (.9, .2, -.75); sun.data.angle = .08
     pre = bpy.data.objects.new("Pre", bpy.data.meshes.new("Pre")); scene.collection.objects.link(pre)
     bm = bmesh.new(); bmesh.ops.create_grid(bm, x_segments=1, y_segments=1, size=taille * 12); bm.to_mesh(pre.data); bm.free()
-    mg = bpy.data.materials.new("Herbe"); mg.use_nodes = True; mg.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (*lin("#6e9a44"), 1)
+    mg = bpy.data.materials.new("Herbe"); mg.use_nodes = True; mg.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (*lin("#6a7350"), 1)   # herbe et terre ternes, comme le sol du jeu (un vert vif renvoie du vert sous les toits)
     mg.node_tree.nodes["Principled BSDF"].inputs["Roughness"].default_value = 1; pre.data.materials.append(mg)
     cam = bpy.data.objects.new("Cam", bpy.data.cameras.new("Cam")); scene.collection.objects.link(cam); scene.camera = cam
     scene.cycles.samples = 28; scene.cycles.use_denoising = True
