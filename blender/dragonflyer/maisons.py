@@ -329,12 +329,20 @@ MAISONS_PROPS = {}
 sys.path[:0] = [os.path.join(os.path.dirname(os.path.abspath(__file__)), "village"), os.path.join(os.path.dirname(os.path.abspath(__file__)), "village", "maisons"),
                 os.path.join(os.path.dirname(os.path.abspath(__file__)), "village", "objets")]
 import importlib
-NOUVELLES = {"chaumiere", "colombage"}
+NOUVELLES = {"chaumiere", "colombage", "longere", "forge", "pierre", "moulin", "pecheur"}
+VARIANTES = {"pierre": (0, 1, 2), "pecheur": (0, 1, 2)}   # M_pierre, M_pierre_1, M_pierre_2 ; M_pecheur, M_pecheur_b, M_pecheur_c (le jeu les répartit)
 def maison_nouvelle(nom, pied, port, inter, ancienne):
-    T, U = Piece("tmp"), Piece("tmp2"); ancienne(T, U); T.bm.free(); U.bm.free()   # même tirage au sort qu'avant pour les autres maisons
-    Pn, Vn = importlib.import_module(nom).construire()
-    ob = Pn.objet({"pied": list(pied), "porte": list(port), "interieur": inter}); Vn.objet()
-    MAISONS[nom] = ob; print("FACES", nom, len(ob.data.polygons), sum(len(p.vertices) - 2 for p in ob.data.polygons))
+    T, U = Piece("tmp"), Piece("tmp2"); ancienne(T, U); T.bm.free(); U.bm.free()   # même tirage au sort qu'avant pour les accessoires qui suivent
+    for o in [o for o in bpy.data.objects if o.name.startswith("A_")]: bpy.data.objects.remove(o)   # l'ancien moulin pose ses ailes lui-même
+    mod = importlib.import_module(nom); pied, port, inter = mod.PIED, mod.PORTE, mod.INTERIEUR   # emprise et porte : celles du nouveau fichier
+    for var in VARIANTES.get(nom, (None,)):
+        res = mod.construire() if var is None else mod.construire(variante=var)
+        Pn, Vn = res[0], res[1]
+        ob = Pn.objet({"pied": list(pied), "porte": list(port), "interieur": inter}); Vn.objet()
+        if len(res) > 2:   # ailes du moulin : objet à part, placé à l'axe
+            obA = res[2].objet({"axe": list(mod.AXE)}); obA.location = mod.AXE
+        if var in (None, 0): MAISONS[nom] = ob
+        print("FACES", ob.name, len(ob.data.polygons), sum(len(p.vertices) - 2 for p in ob.data.polygons))
 for nom, pied, port, inter, f in (
     ("longere", (7.4, 14.6), (0, -7.6, 1.0), "halle", longere),
     ("colombage", (7.6, 7.6), (-1.2, -4.2, .9), "maison", colombage),
@@ -426,6 +434,15 @@ def ponton(P):
 for nom, f, pied in (("puits", puits, (2.6, 2.6)), ("tonneau", tonneau, (.9, .9)), ("caisse", caisse, (.9, .9)), ("charrette", charrette, (2.0, 3.8)),
                      ("etal", etal, (3.0, 1.6)), ("cloture", cloture, None), ("lanterne", lanterne, None), ("foin", foin, (2.4, 2.4)), ("ponton", ponton, None)):
     accessoire(nom, f, pied)
+
+# objets faits avec la méthode (village/objets/) que le jeu pose lui-même dans les villages
+import muret as _muret
+_muret.construire().objet({"pied": [2.0, .5]})
+import banc as _banc
+_banc.construire().objet({"pied": [1.7, .7]})
+import barque as _barque   # barques de pêche au large (le jeu les fait tanguer) : trois couleurs
+for _s, _m in (("", "clin_bleu"), ("_r", "clin_rouge"), ("_v", "clin_vert")):
+    _o = _barque.construire(mat=_m).objet({"pied": [3.0, 1.2]}); _o.name = "P_barque" + _s
 
 # ------------------------------------------------------------------ intérieurs (pièces fermées, la porte regarde -Y)
 def interieur(nom, l, p, h, meubler):

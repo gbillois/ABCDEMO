@@ -40,5 +40,44 @@ MATIERES = {
     "feuillage":Matiere("feuillage",["#5a8a3a", "#4f7d34", "#6a9a44"], .1),
     "fleur":    Matiere("fleur",    ["#c84a3a", "#e8b84a", "#d86aa0", "#f4f0e8"], .05),
     "paille":   Matiere("paille",   ["#d8b860"], .06),
+    # ajouts longère et forge
+    "cuir":     Matiere("cuir",     ["#7a4a2c", "#6e4228"], .05),                                             # soufflet, poignées
+    "eau":      Matiere("eau",      ["#3e6a7a", "#46727e"], .03),                                             # baquet de trempe
+    "braise":   Matiere("braise",   ["#ff8a2a", "#ffb040", "#f06a1e"], .05),                                  # charbons ardents (dans W_ : brillent la nuit)
+    "charbon":  Matiere("charbon",  ["#3a3230", "#46403a"], .06),                                             # charbon éteint (jamais noir pur)
+    "bois_s":   Matiere("bois_s",   ["#7a5032", "#6a452c", "#86593a"], .08, "#4e3422"),                      # bois goudronné des longères vikings (brun chaud, jamais noir)
+    "peint_r":  Matiere("peint_r",  ["#a8452e", "#9c3f2a"], .04),                                             # porte peinte rouge
+    "fumee":    Matiere("fumee",    ["#e8e2d6", "#cfc9be"], .02),                                             # fumée stylisée
+    "flamme":   Matiere("flamme",   ["#ffd060", "#ff9a30"], .03),                                             # flammes du foyer (dans W_)
+    "lueur":    Matiere("lueur",    ["#d8844a", "#e89a52"], .03),                                             # lueur orangée du feu sur la pierre (dans W_)
 }
 def M(nom): return MATIERES[nom]
+
+# ---- ajouts pierre et moulin (maisons/pierre.py, maisons/moulin.py)
+MATIERES.update({
+    "pierre_s":  Matiere("pierre_s",  ["#857c70", "#94877a", "#8a7866", "#9c8c74", "#7a7068", "#8e7a62", "#a39888", "#706a64"], .08, "#4c4640"),   # pierre de montagne : gris chauds, beiges, bruns-ocre, quelques sombres
+    "ardoise":   Matiere("ardoise",   ["#5f6a76", "#57616d", "#68717c", "#525c68", "#626872"], .05, "#383e48"),   # ardoises bleu-gris
+    "ardoise_d": Matiere("ardoise_d", ["#74503a", "#684632", "#7c5840"], .04),                                    # dessous du toit d'ardoises : planches brunes (à l'ombre)
+    "lichen":    Matiere("lichen",    ["#a8975c", "#9a9258"], .06),                                               # taches de lichen sur les ardoises
+    "volet_r":   Matiere("volet_r",   ["#8e4030", "#82392b"], .04),                                               # volets rouge sang-de-bœuf
+    "bardeau":   Matiere("bardeau",   ["#946240", "#875a38", "#9e6c46", "#7e5434"], .07, "#553824"),             # bardeaux de bois (chapeau du moulin)
+    "bardeau_d": Matiere("bardeau_d", ["#6e4830", "#62402c"], .04),
+    "toile":     Matiere("toile",     ["#eee2c0", "#e6d6ac", "#f2e8cc"], .03),                                    # toile des ailes
+    "jute":      Matiere("jute",      ["#e6cc94", "#dcc088", "#ead6a6", "#d4b47a"], .05, "#9a7a4a"),                                  # sacs de grain
+})
+# ---- ajouts pêcheur (maisons/pecheur.py et ses objets) : planches peintes, pilotis, bardeaux, cordages, bouées
+MATIERES.update({
+    "clin_rouge": Matiere("clin_rouge", ["#a8452f", "#9e3f2b", "#b04c34", "#a3412d"], .05),   # planches peintes, rouge de Falun
+    "clin_bleu":  Matiere("clin_bleu",  ["#4f7fa6", "#48779e", "#5687ae", "#4c7aa0"], .05),
+    "clin_vert":  Matiere("clin_vert",  ["#5f9483", "#588b7b", "#66998a", "#5c8f80"], .05),   # vert d'eau
+    "blanc":      Matiere("blanc",      ["#e9dfc8", "#e2d6bc"], .03),                          # boiseries peintes : crème chaud, jamais blanc pur
+    "goudron":    Matiere("goudron",    ["#4e3c2e", "#47372b"], .05),                          # bas des pieux, goudronné
+    "algue":      Matiere("algue",      ["#5d6b3c", "#55633a"], .06),                          # ligne d'eau
+    "bardeau_p":  Matiere("bardeau_p",    ["#8f7f6c", "#837361", "#9a8a74", "#887866"], .06, "#5a4a3c"),   # bardeaux gris patiné (gris chaud)
+    "bardeau_b":  Matiere("bardeau_b",  ["#8a5a3a", "#7e5236", "#946444", "#86583a"], .06, "#54361f"),   # bardeaux bruns
+    "bardeau_pd": Matiere("bardeau_pd",  ["#5e4430", "#56402e"], .04),                          # dessous du toit (à l'ombre : brun chaud)
+    "corde":      Matiere("corde",      ["#c9ae80", "#bea374"], .05),
+    "filet":      Matiere("filet",      ["#7a6e52", "#6e634a"], .05),
+    "liege":      Matiere("liege",      ["#c08a50", "#b47e48"], .05),                          # flotteurs des filets
+    "bouee_r":    Matiere("bouee_r",    ["#c8432f"], .03),
+})
