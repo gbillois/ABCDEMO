@@ -150,7 +150,7 @@ def _brin(T, R, x0, x1, y0, y1):
     def env(t):   # demi-largeur du brin selon la hauteur
         return W * .47 * (math.sin(math.pi * min(1, t * 1.05) ** .8) ** .9) * (1 - .35 * t) + W * .05 * (1 - t)
     # trois couches : aiguilles sombres derrière, moyennes, claires devant
-    for couche, (ca, cb, n, ep) in enumerate(((sombre, moyen, 170, 12), (moyen, clair, 200, 10.5), (clair, lum, 130, 9))):
+    for couche, (ca, cb, n, ep) in enumerate(((sombre, moyen, 170, 12), (sombre * 1.08, clair * .95, 200, 10.5), (moyen, clair, 110, 9))):
         for i in range(n):
             t = R.uniform(.0, .97); ax, ay = axe(t); cote = R.choice((-1, 1))
             L = env(t) * R.uniform(.6, 1.05) * (1.1 if couche == 0 else 1)
@@ -219,7 +219,7 @@ def peindre_feuilles(R, taille=1024):
     T.rgb[:h // 2] = srgb(FEUILLES["sombre"]) * (1 - t) * .4 + srgb(FEUILLES["moyen"]) * (.6 + .4 * t); T.a[:h // 2] = 1
     pal = {k: _c(FEUILLES, k) for k in FEUILLES}
     # fond opaque : feuilles serrées, contraste doux (le cœur des touffes, surtout vu entre les bouquets)
-    for passe, (cs, cc, n) in enumerate(((pal["sombre"], pal["moyen"], 420), (pal["moyen"], pal["clair"], 380), (pal["moyen"], pal["lumiere"], 120))):
+    for passe, (cs, cc, n) in enumerate(((pal["sombre"] * 1.15, pal["moyen"], 420), (pal["moyen"], pal["clair"] * .92, 380), (pal["moyen"], pal["clair"], 60))):
         for i in range(n):
             x = R.uniform(0, w); y = R.uniform(8, h / 2 - 8); L = R.uniform(34, 52); ang = R.uniform(-math.pi, math.pi)
             v = R.uniform(.92, 1.06)
@@ -248,14 +248,17 @@ def peindre_tout(dossier, graine=7):
 
 # ------------------------------------------------------------------ matières de rendu (aperçus Blender, proches du jeu)
 # Lumière des aperçus, la même que le décor (apercu.decor) : soleil chaud du milieu de matinée, ciel bleu clair.
-PLAT_GAIN = .72   # clarté de l'image de l'imposteur (réglée pour qu'il ait la même valeur que l'arbre de près)
 SOLEIL_EULER = (.9, .2, -.75); SOLEIL_FORCE = 3.6; SOLEIL_COUL = (1, .95, .85); CIEL = (.55, .7, .9); CIEL_FORCE = 1.15
 
 def _soleil_vers():
     from mathutils import Euler, Vector
     return -(Euler(SOLEIL_EULER).to_matrix() @ Vector((0, 0, -1)))
 
-def eclairage_jeu(nt, albedo, normale, traverse=0.0):
+def lumiere_haut():
+    """Ce que l'éclairage du jeu donne à une face tournée vers le haut (normales des imposteurs)."""
+    L = _soleil_vers(); return tuple(SOLEIL_FORCE / math.pi * c * max(0, L.z) + CIEL_FORCE * k for c, k in zip(SOLEIL_COUL, CIEL))
+
+def eclairage_jeu(nt, albedo, normale, traverse=0.0, diviser=None):
     """Éclairage façon jeu, calculé dans la matière (émission) : soleil × normale choisie, ciel selon que la normale
     regarde en haut, un peu de sol, et (feuillage) la lumière qui traverse quand le soleil est derrière.
     Comme dans le jeu : la normale vaut des deux côtés d'une carte, et l'arbre ne reçoit pas d'ombre (il en fait au sol)."""
@@ -280,6 +283,7 @@ def eclairage_jeu(nt, albedo, normale, traverse=0.0):
     tot = vm("ADD", vm("SCALE", soleil, sc=m("MAXIMUM", ndl, 0.0)), vm("SCALE", ciel, sc=m("MULTIPLY_ADD", nz, .5, .5)))
     tot = vm("ADD", tot, vm("SCALE", sol, sc=m("MULTIPLY_ADD", nz, -.5, .5)))
     if traverse: tot = vm("ADD", tot, vm("SCALE", soleil, sc=m("MULTIPLY", m("MAXIMUM", m("MULTIPLY", ndl, -1.0), 0.0), traverse)))
+    if diviser: tot = vm("DIVIDE", tot, vec(diviser))
     em = N.new("ShaderNodeEmission"); L.new(vm("MULTIPLY", tot, albedo), em.inputs["Color"]); return em.outputs[0]
 
 def normale_choisie(nt):
@@ -298,7 +302,8 @@ def detourage(nt, alpha, surface):
 
 def materiaux_rendu(textures, plat=False):
     """Écorce et feuillage : texture × couleur des sommets, éclairage façon jeu ; feuillage détouré à 0,5 et traversé de lumière.
-    plat : pour l'image de l'imposteur, la couleur avec seulement un léger relief (le jeu l'éclaire ensuite lui-même)."""
+    plat : pour l'image de l'imposteur, l'éclairage du jeu divisé par celui d'un plan tourné vers le haut (le jeu le multiplie
+    ensuite par sa propre lumière : de jour on retrouve l'arbre de près, la nuit l'imposteur s'assombrit avec le reste)."""
     import bpy
     def img(n):
         im = bpy.data.images.load(textures[n], check_existing=True); im.alpha_mode = "STRAIGHT"; return im
@@ -309,13 +314,13 @@ def materiaux_rendu(textures, plat=False):
         vc = N.new("ShaderNodeVertexColor"); vc.layer_name = "Col"
         mu = N.new("ShaderNodeMix"); mu.data_type = "RGBA"; mu.blend_type = "MULTIPLY"; mu.inputs["Factor"].default_value = 1
         L.new(ti.outputs["Color"], mu.inputs[6]); L.new(vc.outputs["Color"], mu.inputs[7])
-        if plat:
+        if feuilles:   # teinte de chaque arbre (couleur de l'objet), comme la couleur d'instance du jeu sur le feuillage
+            oi = N.new("ShaderNodeObjectInfo"); m2 = N.new("ShaderNodeMix"); m2.data_type = "RGBA"; m2.blend_type = "MULTIPLY"; m2.inputs["Factor"].default_value = 1
+            L.new(mu.outputs[2], m2.inputs[6]); L.new(oi.outputs["Color"], m2.inputs[7]); mu = m2
+        if plat:   # image de l'imposteur : la lumière du jeu divisée par celle d'un plan tourné vers le haut
             nrm = normale_choisie(nt) if feuilles else N.new("ShaderNodeNewGeometry").outputs["Normal"]
-            sep = N.new("ShaderNodeSeparateXYZ"); L.new(nrm, sep.inputs[0])
-            k = N.new("ShaderNodeMath"); k.operation = "MULTIPLY_ADD"; L.new(sep.outputs[2], k.inputs[0]); k.inputs[1].default_value = .2; k.inputs[2].default_value = PLAT_GAIN
-            sc_ = N.new("ShaderNodeVectorMath"); sc_.operation = "SCALE"; L.new(mu.outputs[2], sc_.inputs[0]); L.new(k.outputs[0], sc_.inputs["Scale"])
-            em = N.new("ShaderNodeEmission"); L.new(sc_.outputs["Vector"], em.inputs["Color"])
-            L.new(detourage(nt, ti.outputs["Alpha"], em.outputs[0]) if feuilles else em.outputs[0], out.inputs["Surface"])
+            em = eclairage_jeu(nt, mu.outputs[2], nrm, .35 if feuilles else 0, diviser=lumiere_haut())
+            L.new(detourage(nt, ti.outputs["Alpha"], em) if feuilles else em, out.inputs["Surface"])
         elif feuilles:
             L.new(detourage(nt, ti.outputs["Alpha"], eclairage_jeu(nt, mu.outputs[2], normale_choisie(nt), .35)), out.inputs["Surface"])
         else:
@@ -327,3 +332,9 @@ def materiaux_rendu(textures, plat=False):
 if __name__ == "__main__":   # blender -b -P materiaux.py -- <dossier> : peint les textures seules
     import sys
     peindre_tout(sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else "/tmp/vegetation_tex")
+
+def teinte_arbre(R):
+    """Teinte d'un arbre de la forêt (règle proposée au jeu pour la couleur d'instance) : luminosité ±8 %,
+    un arbre sur quatre environ tire vers le jaune (jusqu'à 5° de teinte)."""
+    lum = R.uniform(.92, 1.08); j = R.random() ** 3
+    return (lum * (1 + .05 * j), lum, lum * (1 - .2 * j))

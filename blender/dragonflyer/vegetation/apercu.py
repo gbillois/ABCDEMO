@@ -57,8 +57,7 @@ def appliquer_rendu(ob, mats):
 
 # ------------------------------------------------------------------ imposteur
 def imposteur(ob, nom, dossier, mats, haut_px=1024):
-    """Rend l'arbre de côté (orthographique, fond transparent, matières « à plat » : couleur, occlusion cuite et léger
-    relief ; le jeu ajoute son soleil), puis trois plans croisés à 60° qui portent l'image. Normales vers le haut :
+    """Rend l'arbre de côté (orthographique, fond transparent, matières « à plat » : voir materiaux_rendu), puis trois plans croisés à 60° qui portent l'image. Normales vers le haut :
     les trois plans sont éclairés pareil quel que soit l'angle de vue."""
     sc = bpy.context.scene
     xs = [v.co for v in ob.data.vertices]
@@ -104,8 +103,47 @@ def materiau_imposteur(chemin, nom):
     m = bpy.data.materials.new(f"Rendu_loin_{nom}"); m.use_nodes = True; nt = m.node_tree; N = nt.nodes; L = nt.links
     N.remove(N["Principled BSDF"])
     ti = N.new("ShaderNodeTexImage"); ti.image = bpy.data.images.load(chemin, check_existing=True); ti.image.alpha_mode = "STRAIGHT"
-    L.new(detourage(nt, ti.outputs["Alpha"], eclairage_jeu(nt, ti.outputs["Color"], normale_choisie(nt))), N["Material Output"].inputs["Surface"])
+    oi = N.new("ShaderNodeObjectInfo"); mx = N.new("ShaderNodeMix"); mx.data_type = "RGBA"; mx.blend_type = "MULTIPLY"; mx.inputs["Factor"].default_value = 1
+    L.new(ti.outputs["Color"], mx.inputs[6]); L.new(oi.outputs["Color"], mx.inputs[7])
+    L.new(detourage(nt, ti.outputs["Alpha"], eclairage_jeu(nt, mx.outputs[2], normale_choisie(nt))), N["Material Output"].inputs["Surface"])
     return m
+
+def _moyenne(f):
+    im = bpy.data.images.load(f); a = np.array(im.pixels[:], np.float32).reshape(-1, 4); bpy.data.images.remove(im)
+    m = a[:, 3] > .5; return a[m, :3].mean(0), m.mean()
+
+def calibrer(ob, imp, chemin, dossier, tours=2):
+    """L'arbre de près et l'imposteur rendus seuls, de face à hauteur d'homme et en plongée (fond transparent, petite
+    image) : la couleur moyenne de l'imposteur est ramenée sur celle de l'arbre (image corrigée), et on note les écarts
+    de couleur et de surface couverte."""
+    sc = bpy.context.scene; ancien = (sc.render.resolution_x, sc.render.resolution_y, sc.render.film_transparent, sc.cycles.samples, imp.location.copy(), sc.camera)
+    cam = bpy.data.objects.new("CamC", bpy.data.cameras.new("CamC")); sc.collection.objects.link(cam); sc.camera = cam; cam.data.lens = 35
+    sc.render.resolution_x, sc.render.resolution_y = 240, 240; sc.render.film_transparent = True; sc.cycles.samples = 16
+    imp.location = (0, 0, 0); H = ob.dimensions.z; autres = [o for o in sc.objects if o.type == "MESH" and o not in (ob, imp)]
+    for o in autres: o.hide_render = True
+    vues = [(Vector((0, -H * 2.6, 1.6)), Vector((0, 0, H * .47))), (Vector((H * 1.6, -H * 1.6, H * 1.6)), Vector((0, 0, H * .42)))]
+    def mesurer():
+        res = []
+        for qui in (ob, imp):
+            ob.hide_render, imp.hide_render = qui is not ob, qui is not imp; tot = []
+            for k, (pos, cible) in enumerate(vues):
+                cam.location = pos; cam.rotation_euler = (cible - pos).to_track_quat("-Z", "Y").to_euler()
+                f = os.path.join(dossier, f"_calib_{k}.png"); sc.render.filepath = f; bpy.ops.render.render(write_still=True); tot.append(_moyenne(f))
+            res.append((sum(t[0] for t in tot) / len(tot), sum(t[1] for t in tot) / len(tot)))
+        return res
+    for t in range(tours):
+        (cp, ap_), (ci, ai) = mesurer(); g = np.clip(cp / np.maximum(ci, 1e-4), .5, 2.)
+        im = bpy.data.images.load(chemin, check_existing=True); im.reload(); px = np.array(im.pixels[:], np.float32).reshape(-1, 4)
+        px[:, :3] = np.clip(px[:, :3] * g, 0, 1); im.pixels.foreach_set(px.ravel()); im.filepath_raw = chemin; im.file_format = "PNG"; im.save(); im.reload()
+    (cp, ap_), (ci, ai) = mesurer()
+    for f in os.listdir(dossier):
+        if f.startswith("_calib_"): os.remove(os.path.join(dossier, f))
+    for o in autres: o.hide_render = False
+    ob.hide_render = imp.hide_render = False
+    sc.render.resolution_x, sc.render.resolution_y, sc.render.film_transparent, sc.cycles.samples, imp.location, sc.camera = ancien
+    bpy.data.objects.remove(cam)
+    ecart = float(np.abs(ci - cp).max() / max(cp.max(), 1e-4) * 100)
+    return f"imposteur étalonné : écart de couleur moyenne {ecart:.1f} % (près {tuple(round(float(x), 3) for x in cp)}, loin {tuple(round(float(x), 3) for x in ci)}), surface couverte loin/près {ai / ap_ * 100:.0f} %"
 
 # ------------------------------------------------------------------ décor, caméras, rendus
 def decor(taille=60):
@@ -182,12 +220,13 @@ def apercu_arbre(A, nom, budget, H, Rc, zc, sous, pied):
     appliquer_rendu(ob, mats)
     imp, chemin = imposteur(ob, nom, dossier, mats)
     imp.data.materials[0] = materiau_imposteur(chemin, nom)
+    cal = calibrer(ob, imp, chemin, dossier)
     imp_x = Rc * 2.6; imp.location.x = imp_x
     dims = ob.dimensions
     lignes = [f"{nom} de près : {triangles(ob)} triangles (écorce {triangles(ob, 0)}, feuillage {triangles(ob, 1)}) ; budget {budget} → {'DANS LE BUDGET' if triangles(ob) <= budget else 'HORS BUDGET'}",
               f"matières : 2 (écorce, {ob.data.materials[1].name.lower()}) ; textures peintes par le code : arbres_ecorce, arbres_pin, arbres_feuilles",
               f"taille : {dims.x:.1f} × {dims.y:.1f} m, hauteur {dims.z:.1f} m",
-              f"imposteur (de loin) : {triangles(imp)} triangles, image {os.path.basename(chemin)}",
+              f"imposteur (de loin) : {triangles(imp)} triangles, image {os.path.basename(chemin)}", cal,
               "rendus : 01-03 hauteur d'homme, 04-06 plongée, 07 pied, 08 de près hauteur d'homme, 09 dessus, 10 sous le feuillage,",
               "         11 imposteur (à droite) à côté de l'arbre de près, 12 les deux de loin (75 m)"]
     open(os.path.join(dossier, "controle.txt"), "w").write("\n".join(lignes) + "\n"); print("\n".join(lignes))

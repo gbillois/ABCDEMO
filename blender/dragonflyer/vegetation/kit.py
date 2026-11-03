@@ -61,7 +61,8 @@ class Arbre:
         f = .64 + .17 * (h + 1) / 2 + .22 * min(1, bord) + bonus
         f = max(.55, min(1., f))
         chaud = .07 * (1 - (h + 1) / 2)          # le dessous tire vers le jaune (lumière qui traverse, herbe qui renvoie)
-        return (min(1., f * (1 + chaud)), f, max(0., f * (1 - 2 * chaud)))
+        soleil = max(0., h) * min(1., bord) * .5    # le haut du bord, au soleil, tire un peu vers l'or
+        return (min(1., f * (1 + chaud + .04 * soleil)), f, max(0., f * (1 - 2 * chaud - .12 * soleil)))
     # --- fin
     def objet(s, scene=None):
         scene = scene or bpy.context.scene
@@ -131,13 +132,14 @@ def courbe(a, b, flechir=0.0, n=4, R=None, jit=0.0, montee=0.0):
     return pts
 
 def racines(A, rayon_tronc, n=5, long=1.3, teinte=(1, 1, 1), z_haut=.7):
-    """Contreforts au pied du tronc : partent de la base du tronc, s'écartent et plongent sous le sol (pied bien posé)."""
+    """Contreforts au pied du tronc : naissent dans le tronc, s'écartent en s'arrondissant et plongent sous le sol
+    (le bout s'effile à 45 cm sous terre : jamais de bout coupé visible ; entre deux racines on voit le tronc entrer dans le sol)."""
     for i in range(n):
         a = 2 * math.pi * (i + A.R.uniform(-.2, .2)) / n; d = Vector((math.cos(a), math.sin(a), 0))
         L = long * A.R.uniform(.8, 1.15)
-        pts = [d * rayon_tronc * .2 + Vector((0, 0, z_haut)), d * (rayon_tronc * .9) + Vector((0, 0, z_haut * .45)),
-               d * (rayon_tronc + L * .55) + Vector((0, 0, .06)), d * (rayon_tronc + L) + Vector((0, 0, -.25))]
-        tube(A, pts, [rayon_tronc * .55, rayon_tronc * .5, rayon_tronc * .3, rayon_tronc * .12], n=6, pas=.45, teinte=teinte, bout=True)
+        pts = [d * rayon_tronc * .25 + Vector((0, 0, z_haut)), d * (rayon_tronc * .85) + Vector((0, 0, z_haut * .42)),
+               d * (rayon_tronc + L * .45) + Vector((0, 0, .02)), d * (rayon_tronc + L * .8) + Vector((0, 0, -.2)), d * (rayon_tronc + L) + Vector((0, 0, -.45))]
+        tube(A, pts, [rayon_tronc * .5, rayon_tronc * .44, rayon_tronc * .26, rayon_tronc * .13, rayon_tronc * .05], n=8, pas=.42, teinte=teinte, bout=True)
 
 # ------------------------------------------------------------------ 2. la touffe de feuilles (feuillu)
 def _fibo(n, R):
@@ -168,18 +170,16 @@ def touffe(A, centre, rayon, ech=(1, 1, .85), ncartes=16, taille=1.0, inclin=38,
         d = v.co - c; v.co = c + d * (1 + A.R.uniform(-jit, jit))
         v[A.col] = (*A.lumiere_feuillage(v.co, -.04), 1); A.normales[v] = A.normale_feuillage(v.co, c)
     fs = list({f for v in vs for f in v.link_faces})
+    # texture du cœur projetée à plat selon l'axe principal de chaque face (pas de pôle pincé ni de rayures) :
+    # le fond de feuilles serrées garde partout la même taille ; décalage au hasard par touffe
+    du, dv = A.R.uniform(0, 1), A.R.uniform(-.05, .05); ech_t = 4.0
     for fa in fs:
-        fa.material_index = FEUILLAGE; fa.smooth = True; us = []
+        fa.material_index = FEUILLAGE; fa.smooth = True; fa.normal_update()
+        nx, ny, nz = (abs(x) for x in fa.normal)
         for l in fa.loops:
-            d = l.vert.co - c; d = Vector((d.x / E.x, d.y / E.y, d.z / E.z)).normalized()
-            us.append([math.atan2(d.y, d.x) / (2 * math.pi) + .5, FOND_V[0] + (FOND_V[1] - FOND_V[0]) * math.acos(max(-1, min(1, -d.z))) / math.pi, abs(d.z) > .999])
-        uu = [u[0] for u in us if not u[2]]
-        if uu and max(uu) - min(uu) > .5:
-            for u in us:
-                if u[0] < .5: u[0] += 1
-        for u in us:
-            if u[2]: u[0] = sum(uu) / max(1, len(uu))
-        for l, u in zip(fa.loops, us): l[A.uv].uv = (u[0] * 2, u[1])   # deux tours de texture : feuilles à la bonne taille
+            d = l.vert.co - c
+            a, b = (d.y, d.z) if nx >= max(ny, nz) else ((d.x, d.z) if ny >= nz else (d.x, d.y))
+            l[A.uv].uv = (du + a / ech_t, max(FOND_V[0], min(FOND_V[1], .25 + dv + b / ech_t * (FOND_V[1] - FOND_V[0]))))
         A.orienter(fa)
     # bouquets : surtout au-dessus et sur le pourtour de la couronne (presque rien vers le cœur de l'arbre)
     cc = A.couronne[0]; n_fn = lambda p: A.normale_feuillage(p, c); c_fn = lambda p: A.lumiere_feuillage(p, .02)
@@ -195,49 +195,66 @@ def touffe(A, centre, rayon, ech=(1, 1, .85), ncartes=16, taille=1.0, inclin=38,
         carte(A, p - axe * L * .3, axe, larg * L, L, A.R.randrange(2), n_fn, c_fn)
 
 # ------------------------------------------------------------------ 3. l'étage d'aiguilles (sapin)
-def etage_aiguilles(A, zb, h, R, nd=10, rt=.3, tombe=.35, brins=True, sommet=False, H=13.):
-    """Un étage de sapin : cône bombé (aiguilles serrées, opaque) dont le bord festonné retombe en nd pointes ;
-    dessous fermé jusqu'au tronc ; un brin d'aiguilles en carte au bout de chaque pointe et entre les pointes.
-    zb : hauteur du bord, h : hauteur de l'étage, R : rayon au bord, rt : rayon du tronc à cet endroit."""
-    n = 2 * nd; ph = A.R.uniform(0, 6.28); jit = [A.R.uniform(-.08, .08) for _ in range(n)]
-    def az(j): return ph + 2 * math.pi * j / n
+def etage_aiguilles(A, zb, h, R, nd=10, rt=.3, tombe=.35, brins=True, sommet=False, levre=.24):
+    """Un étage de sapin : cône bombé (aiguilles serrées, opaque) dont le bord retombe en nd lobes arrondis (deux sommets
+    par lobe, un creux entre deux lobes) ; une lèvre sous le bord donne de l'épaisseur (pas de jupon en papier) ; dessous
+    fermé jusqu'au tronc ; des brins en cartes de tailles et d'angles variés tout le long du bord, certains qui dépassent.
+    zb : hauteur du bord, h : hauteur de l'étage, R : rayon au bord, rt : rayon du tronc à cet endroit.
+    sommet : dernier étage, pointe arrondie."""
+    n = 3 * nd; ph = A.R.uniform(0, 6.28); pas = 2 * math.pi / nd
+    lobes = [(A.R.uniform(-.1, .1), A.R.uniform(-.25, .3), A.R.uniform(-.08, .08)) for _ in range(nd)]   # débord, retombée, décalage
+    def az(j):
+        k, r = divmod(j, 3); return ph + pas * (k + lobes[k][2] + (-.2, .2, .5)[r])
     def P(j, r, z): return Vector((math.cos(az(j)) * r, math.sin(az(j)) * r, z))
-    pointe = lambda j: j % 2 == 0
+    creux = lambda j: j % 3 == 2
     def bord(j):
-        if pointe(j): return P(j, R * (1 + jit[j]), zb - tombe * (1 + 2 * jit[j]))
-        return P(j, R * .8, zb + .1 * h)
+        k = j // 3
+        if creux(j): return P(j, R * .8, zb + .08 * h)
+        return P(j, R * (1 + lobes[k][0]), zb - tombe * (1 + lobes[k][1]))
     anneaux = [[bord(j) for j in range(n)],
-               [P(j, R * (.66 if pointe(j) else .6), zb + h * (.3 if pointe(j) else .34)) for j in range(n)],
-               [P(j, R * .3, zb + h * .7) for j in range(n)]]
-    haut = Vector((0, 0, zb + h))
-    m = max(1, round(2 * math.pi * R / 5.5)); S = [0, .42, .78, 1.]     # répétitions de la texture autour ; avancée le long de la pente
+               [P(j, R * (.6 if creux(j) else .66), zb + h * (.33 if creux(j) else .29)) for j in range(n)],
+               [P(j, max(R * .32, rt + .12), zb + h * .68) for j in range(n)]]
+    if sommet: anneaux.append([P(j, max(R * .14, rt + .06), zb + h * .9) for j in range(n)])
+    haut = Vector((0, 0, zb + h * (1.0 if not sommet else .99)))
+    m = max(1, round(2 * math.pi * R / 5.5)); S = [0, .42, .78, .93, 1.][:len(anneaux)] + [1.]
     vv = lambda t: FOND_V[0] + (FOND_V[1] - FOND_V[0]) * t
     clair = lambda p, b=0.: A.lumiere_feuillage(p, b)
     def nrm(p, dessous=False):
         rad = Vector((p.x, p.y, 0)); rad = rad.normalized() if rad.length > 1e-3 else Vector((1, 0, 0))
         return (rad * .8 + Vector((0, 0, .45))) if dessous else (rad * .62 + Vector((0, 0, .78)))
-    V = [[A.v(p, clair(p, .05 if (i == 0 and pointe(j)) else 0), nrm(p)) for j, p in enumerate(an)] for i, an in enumerate(anneaux)]
+    V = [[A.v(p, clair(p, .03 if (i == 0 and not creux(j)) else 0), nrm(p)) for j, p in enumerate(an)] for i, an in enumerate(anneaux)]
     vh = A.v(haut, clair(haut, .05), (0, 0, 1))
-    for i in range(2):
+    def bande(B0, B1, t0, t1, inv=False):
         for j in range(n):
             u0, u1 = j / n * m, (j + 1) / n * m
-            A.f([V[i][j], V[i][(j + 1) % n], V[i + 1][(j + 1) % n], V[i + 1][j]], [(u0, vv(S[i])), (u1, vv(S[i])), (u1, vv(S[i + 1])), (u0, vv(S[i + 1]))], FEUILLAGE)
+            vs = [B0[j], B0[(j + 1) % n], B1[(j + 1) % n], B1[j]]; uv = [(u0, vv(t0)), (u1, vv(t0)), (u1, vv(t1)), (u0, vv(t1))]
+            A.f(vs[::-1] if inv else vs, uv[::-1] if inv else uv, FEUILLAGE)
+    for i in range(len(V) - 1): bande(V[i], V[i + 1], S[i], S[i + 1])
     for j in range(n):
         u0, u1 = j / n * m, (j + 1) / n * m
-        A.f([V[2][j], V[2][(j + 1) % n], vh], [(u0, vv(S[2])), (u1, vv(S[2])), ((u0 + u1) / 2, vv(1))], FEUILLAGE)
-    # dessous : du bord au tronc, en remontant (sombre mais chaud, normales vers l'extérieur)
+        A.f([V[-1][j], V[-1][(j + 1) % n], vh], [(u0, vv(S[len(V) - 1])), (u1, vv(S[len(V) - 1])), ((u0 + u1) / 2, vv(1))], FEUILLAGE)
+    # lèvre : sous le bord, un peu en dedans et plus bas (épaisseur), puis le dessous jusqu'au tronc
+    Vl = [A.v(Vector((p.x * .9, p.y * .9, p.z - levre * (.8 if creux(j) else 1))), clair(p, -.03), nrm(p, True)) for j, p in enumerate(anneaux[0])]
+    Vb = [A.v(p, clair(p, .0), nrm(p, True)) for p in anneaux[0]]
+    bande(Vb, Vl, 0, .12, inv=True)
     dz = zb + h * .32
     sous = [A.v(P(j, rt * 1.1, dz), tuple(x * .95 for x in clair(P(j, rt, dz), -.08)), nrm(P(j, 1, dz), True)) for j in range(n)]
-    Vb = [A.v(p, clair(p, 0), nrm(p, True)) for p in anneaux[0]]
-    for j in range(n):
-        u0, u1 = j / n * m, (j + 1) / n * m
-        A.f([Vb[(j + 1) % n], Vb[j], sous[j], sous[(j + 1) % n]], [(u1, vv(0)), (u0, vv(0)), (u0, vv(.4)), (u1, vv(.4))], FEUILLAGE)
+    bande(Vl, sous, .12, .45, inv=True)
     if not brins: return
-    n_fn = lambda p: nrm(p); c_fn = lambda p: tuple(x * .9 for x in clair(p, 0))   # brins un ton sous la pente : relief, pas de taches
-    for j in range(n):   # frange continue : un long brin à chaque pointe, un plus court dans chaque creux
-        p = anneaux[0][j]; q = anneaux[1][j]; pente = (p - q).normalized(); tg = Vector((-math.sin(az(j)), math.cos(az(j)), 0))
-        if pointe(j):
-            axe = (pente + Vector((0, 0, -.22))).normalized(); L = max(.9, min(1.8, R * .44)) * A.R.uniform(.9, 1.1); k = .5
+    n_fn = lambda p: nrm(p)
+    for j in range(n):   # brins : au milieu de chaque lobe un long brin (parfois très long), dans chaque creux un plus court
+        if j % 3 == 1: continue
+        k = j // 3
+        if j % 3 == 0: p = (anneaux[0][j] + anneaux[0][j + 1]) / 2; q = (anneaux[1][j] + anneaux[1][j + 1]) / 2; a = (az(j) + az(j + 1)) / 2
+        else: p = anneaux[0][j]; q = anneaux[1][j]; a = az(j)
+        pente = (p - q).normalized(); tg = Vector((-math.sin(a), math.cos(a), 0))
+        nn = pente.cross(tg).normalized()
+        rot = Matrix.Rotation(math.radians(A.R.uniform(-22, 22)), 3, nn)          # angle varié dans le plan de la pente
+        if creux(j):
+            axe = (pente + Vector((0, 0, -.1))).normalized(); L = max(.7, min(1.4, R * .34)); k_ = .55
         else:
-            axe = (pente + Vector((0, 0, -.1))).normalized(); L = max(.7, min(1.4, R * .34)) * A.R.uniform(.9, 1.1); k = .55
-        carte(A, p - axe * L * k, axe, tg * L * .95, L, A.R.randrange(2), n_fn, c_fn)
+            axe = (pente + Vector((0, 0, -.22 + A.R.uniform(-.1, .1)))).normalized(); L = max(.9, min(1.8, R * .44)); k_ = .5
+            if A.R.random() < .3: L *= 1.35; k_ = .38                             # quelques brins dépassent nettement du bord
+        L *= A.R.uniform(.75, 1.2); axe = rot @ axe; tg = rot @ tg
+        teinte = A.R.uniform(.82, .95)
+        carte(A, p - axe * L * k_, axe, tg * L * A.R.uniform(.8, 1.0), L, A.R.randrange(2), n_fn, lambda p, t=teinte: tuple(x * t for x in clair(p, 0)))

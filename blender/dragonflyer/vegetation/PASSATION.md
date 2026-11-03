@@ -42,8 +42,31 @@ Commandes (Blender : `/opt/blender-dl/blender-4.2.3-linux-x64/blender`) :
 - `create_icosphere(subdivisions=1)` de Blender 4.2 donne 20 faces : les touffes utilisent 2 (80 faces).
 
 ## Tours de contrôle
-- Tour 1 (planches dans `scratchpad/arbres/t1/`) : sapin 1 892 triangles (budget 2 500), feuillu 3 369 (budget 4 000),
-  imposteurs 6 triangles. En attente de l'inspection.
+- Tour 1 (`scratchpad/arbres/t1/`) : sapin 1 892 triangles, feuillu 3 369. Notes (sapin / feuillu) : silhouette 7/8,
+  feuillage 7/7, tronc et branches 7/6, matières 7/7, imposteur 7/6, forêt 7, coût 9/9 → À REFAIRE.
+  Acquis : plus de branches trouées, plus de bas dégarni, plus de dessous noir.
+  Restait : bouts de branches brun-rouge qui percent les étages 3 à 5 ; brins en rangées claires (autocollants), cônes
+  en plaques lisses, étages identiques, bords en pointes sèches et en lame ; base trop étroite, cime trop pointue ;
+  racines du feuillu en planches à bout plat ; collerette à la fourche ; cœurs des touffes à facettes et rayures de
+  texture ; imposteurs plus clairs, plus jaunes, plus plats et plus étroits ; forêt d'un seul arbre dupliqué.
+  Corrigé (tour 2) :
+  - sapin : étage refait (`etage_aiguilles`) : lobes arrondis (deux sommets par lobe), lèvre de 24 cm sous le bord
+    (épaisseur), étages et débords variés (±10 %), brins de tailles (×0,75 à 1,2) et d'angles (±22°) variés, un ton sous
+    la pente, 30 % dépassent nettement ; base 3,8 m de rayon, cime de 1,25 m arrondie ; branches seulement sous l'étage
+    du bas (vues d'en dessous) ; texture des brins moins contrastée ;
+  - feuillu : racines à 8 côtés qui plongent à 45 cm sous le sol en s'effilant ; tronc évasé au pied, aminci dans la
+    fourche, maîtresses branches nées dans le tronc (Y continu) ; cœurs à 80 faces, peu bosselés, texture projetée à plat
+    par face (plus de pôles ni de rayures), fond de feuilles moins contrasté, 24 bouquets par touffe ; bords au soleil
+    plus dorés ;
+  - imposteurs : image = éclairage du jeu divisé par celui d'un plan tourné vers le haut (l'imposteur garde les coussins
+    ombrés et retrouve de jour la lumière de l'arbre de près), puis étalonnage automatique (`apercu.calibrer`) :
+    écart de couleur moyenne < 1 % (dans `controle.txt`) ;
+  - forêt : teinte par arbre (`materiaux.teinte_arbre` : luminosité ±8 %, un sur quatre environ plus jaune), penchant
+    ±3°, vue 1 recadrée. Tailles et rotations : celles du jeu.
+  Dans le jeu (`creerArbres`) : rotation aléatoire et échelle déjà faites (sapins ×0,94 à 1,81, feuillus ×0,83 à 1,6) ;
+  teinte d'instance actuelle HSL(0,2 ± 0,05 ; 0,35 ; 0,8 à 0,95), faite pour les textures du MegaKit (assombrit de
+  15 % et jaunit) : à remplacer par `teinte_arbre` ; penchant à ajouter dans `matArbre`.
+- Tour 2 (`scratchpad/arbres/t2/`) : sapin 2 197 triangles, feuillu 3 706. En attente de l'inspection.
 
 ## Intégration (quand tout est à 8+)
 Prévu : `arbres.glb` (T_pin_0/1, T_feuillu_0/1, matières écorce puis feuillage, `userData.matieres`) et les mêmes
