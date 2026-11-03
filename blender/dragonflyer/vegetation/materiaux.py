@@ -153,7 +153,7 @@ def _brin(T, R, x0, x1, y0, y1):
     for couche, (ca, cb, n, ep) in enumerate(((sombre, moyen, 170, 12), (sombre * 1.08, clair * .95, 200, 10.5), (moyen, clair, 110, 9))):
         for i in range(n):
             t = R.uniform(.0, .97); ax, ay = axe(t); cote = R.choice((-1, 1))
-            L = env(t) * R.uniform(.6, 1.05) * (1.1 if couche == 0 else 1)
+            L = env(t) * R.uniform(.6, .98) * (.9 if couche == 0 else 1)   # les aiguilles sombres restent dans la silhouette (pas de poils qui dépassent)
             a = math.radians(R.uniform(28, 62)); a = math.pi / 2 - a if cote > 0 else math.pi / 2 + a
             T.trait(ax, ay, ax + math.cos(a) * L, ay + math.sin(a) * L, ep * R.uniform(.8, 1.2) * W / 512,
                     ca * R.uniform(.92, 1.05), cb * R.uniform(.92, 1.08), zone=zone)
@@ -300,6 +300,21 @@ def detourage(nt, alpha, surface):
     tp = N.new("ShaderNodeBsdfTransparent"); mx = N.new("ShaderNodeMixShader")
     L.new(se.outputs[0], mx.inputs[0]); L.new(tp.outputs[0], mx.inputs[1]); L.new(surface, mx.inputs[2]); return mx.outputs[0]
 
+def tranche(nt, alpha, uv=None, bas=.1, haut=.25):
+    """Une carte vue presque par la tranche s'efface (sinon un trait fin, « poil » ou « tige ») ; seulement la région des
+    cartes de la texture (v > 0,5), jamais les cœurs ni les cônes. Même règle à mettre dans le jeu."""
+    N, L = nt.nodes, nt.links
+    g = N.new("ShaderNodeNewGeometry"); dp = N.new("ShaderNodeVectorMath"); dp.operation = "DOT_PRODUCT"
+    L.new(g.outputs["True Normal"], dp.inputs[0]); L.new(g.outputs["Incoming"], dp.inputs[1])
+    ab = N.new("ShaderNodeMath"); ab.operation = "ABSOLUTE"; L.new(dp.outputs["Value"], ab.inputs[0])
+    mr = N.new("ShaderNodeMapRange"); mr.inputs["From Min"].default_value = bas; mr.inputs["From Max"].default_value = haut; mr.interpolation_type = "SMOOTHSTEP"
+    L.new(ab.outputs[0], mr.inputs["Value"]); f = mr.outputs["Result"]
+    if uv is not None:   # hors des cartes : 1
+        sp = N.new("ShaderNodeSeparateXYZ"); L.new(uv, sp.inputs[0])
+        lt = N.new("ShaderNodeMath"); lt.operation = "LESS_THAN"; L.new(sp.outputs[1], lt.inputs[0]); lt.inputs[1].default_value = .5
+        mx = N.new("ShaderNodeMath"); mx.operation = "MAXIMUM"; L.new(f, mx.inputs[0]); L.new(lt.outputs[0], mx.inputs[1]); f = mx.outputs[0]
+    al = N.new("ShaderNodeMath"); al.operation = "MULTIPLY"; L.new(alpha, al.inputs[0]); L.new(f, al.inputs[1]); return al.outputs[0]
+
 def materiaux_rendu(textures, plat=False):
     """Écorce et feuillage : texture × couleur des sommets, éclairage façon jeu ; feuillage détouré à 0,5 et traversé de lumière.
     plat : pour l'image de l'imposteur, l'éclairage du jeu divisé par celui d'un plan tourné vers le haut (le jeu le multiplie
@@ -311,6 +326,8 @@ def materiaux_rendu(textures, plat=False):
         m = bpy.data.materials.new(nom + ("_plat" if plat else "")); m.use_nodes = True; nt = m.node_tree; N = nt.nodes; L = nt.links
         N.remove(N["Principled BSDF"]); out = N["Material Output"]
         ti = N.new("ShaderNodeTexImage"); ti.image = image; ti.interpolation = "Linear"
+        tc = N.new("ShaderNodeUVMap"); tc.uv_map = "UVMap"; L.new(tc.outputs["UV"], ti.inputs["Vector"])
+        alpha = tranche(nt, ti.outputs["Alpha"], tc.outputs["UV"]) if (feuilles and not plat) else ti.outputs["Alpha"]
         vc = N.new("ShaderNodeVertexColor"); vc.layer_name = "Col"
         mu = N.new("ShaderNodeMix"); mu.data_type = "RGBA"; mu.blend_type = "MULTIPLY"; mu.inputs["Factor"].default_value = 1
         L.new(ti.outputs["Color"], mu.inputs[6]); L.new(vc.outputs["Color"], mu.inputs[7])
@@ -320,9 +337,9 @@ def materiaux_rendu(textures, plat=False):
         if plat:   # image de l'imposteur : la lumière du jeu divisée par celle d'un plan tourné vers le haut
             nrm = normale_choisie(nt) if feuilles else N.new("ShaderNodeNewGeometry").outputs["Normal"]
             em = eclairage_jeu(nt, mu.outputs[2], nrm, .35 if feuilles else 0, diviser=lumiere_haut())
-            L.new(detourage(nt, ti.outputs["Alpha"], em) if feuilles else em, out.inputs["Surface"])
+            L.new(detourage(nt, alpha, em) if feuilles else em, out.inputs["Surface"])
         elif feuilles:
-            L.new(detourage(nt, ti.outputs["Alpha"], eclairage_jeu(nt, mu.outputs[2], normale_choisie(nt), .35)), out.inputs["Surface"])
+            L.new(detourage(nt, alpha, eclairage_jeu(nt, mu.outputs[2], normale_choisie(nt), .35)), out.inputs["Surface"])
         else:
             g = N.new("ShaderNodeNewGeometry")
             L.new(eclairage_jeu(nt, mu.outputs[2], g.outputs["Normal"]), out.inputs["Surface"])

@@ -37,7 +37,20 @@ def main():
             o.location = (x, y, -.3); o.rotation_euler = (*pen, rot); o.scale = (sc, sc, sy); o.color = (*coul, 1); p.append(o)
         paires.append(p)
     ap.decor(1500)
-    vues = [("foret_1_dans_la_foret", Vector((-1.5, 16, 1.6)), Vector((-9, 60, 6)), 22),
+    # vue 1 : parmi quelques directions, celle où aucun arbre proche (< 35 m) n'est coupé par le bord de l'image
+    pos1 = Vector((-1.5, 16, 1.6)); demi = math.degrees(math.atan(18 / 22))
+    def coupe(cap):
+        n = 0
+        for (x, y, t, sc, *_r) in arbres:
+            d = Vector((x - pos1.x, y - pos1.y)); L = d.length
+            if L > 35: continue
+            ang = math.degrees(math.atan2(d.x, d.y)) - cap; larg = math.degrees(math.atan((3.8 if t == 0 else 4.6) * sc / L))
+            if abs(abs(ang) - demi) < larg + 2: n += 1
+        return n
+    cap = min(range(-40, 41, 4), key=lambda c: (coupe(c), abs(c + 10)))
+    print("vue 1 : cap", cap, "arbres coupés", coupe(cap))
+    cible1 = pos1 + Vector((math.sin(math.radians(cap)) * 44, math.cos(math.radians(cap)) * 44, 4.4))
+    vues = [("foret_1_dans_la_foret", pos1, cible1, 22),
             ("foret_2_lisiere", Vector((-6, -28, 1.7)), Vector((0, 40, 7)), 28),
             ("foret_3_vol", Vector((-55, -45, 48)), Vector((0, 70, 4)), 30),
             ("foret_4_haut", Vector((10, -150, 160)), Vector((0, 110, 0)), 32)]

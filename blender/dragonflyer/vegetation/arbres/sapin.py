@@ -31,7 +31,7 @@ def construire(graine=5):
         zb = .72 + t ** 1.08 * (H - 2.3 - .72) + (R.uniform(-.15, .15) if 0 < i < ETAGES - 1 else 0)
         if i == ETAGES - 1: h = H - zb
         Ri = ((R0 - R_HAUT) * (1 - t) ** .9 + R_HAUT) * R.uniform(.92, 1.08)
-        nd = round(5 + 5 * (1 - t))
+        nd = round(4.5 + 4.5 * (1 - t))
         etage_aiguilles(A, zb, h, Ri, nd=nd, rt=rayon_tronc(zb + h * .32), tombe=.42 - .18 * t, sommet=i == ETAGES - 1)
         # branches sous l'étage du bas seulement (vues d'en dessous, cachées de partout ailleurs)
         if i == 0:

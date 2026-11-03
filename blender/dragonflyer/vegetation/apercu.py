@@ -5,7 +5,7 @@
 import bpy, bmesh, math, os, sys
 import numpy as np
 from mathutils import Vector
-from materiaux import lin, materiaux_rendu, peindre_tout, eclairage_jeu, normale_choisie, detourage, SOLEIL_EULER, SOLEIL_FORCE, SOLEIL_COUL, CIEL, CIEL_FORCE
+from materiaux import tranche, lin, materiaux_rendu, peindre_tout, eclairage_jeu, normale_choisie, detourage, SOLEIL_EULER, SOLEIL_FORCE, SOLEIL_COUL, CIEL, CIEL_FORCE
 
 def sortie():
     d = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else "/tmp/vegetation_apercu"
@@ -57,8 +57,9 @@ def appliquer_rendu(ob, mats):
 
 # ------------------------------------------------------------------ imposteur
 def imposteur(ob, nom, dossier, mats, haut_px=1024):
-    """Rend l'arbre de côté (orthographique, fond transparent, matières « à plat » : voir materiaux_rendu), puis trois plans croisés à 60° qui portent l'image. Normales vers le haut :
-    les trois plans sont éclairés pareil quel que soit l'angle de vue."""
+    """Rend l'arbre de trois côtés (orthographique, fond transparent, matières « à plat » : voir materiaux_rendu), face à
+    chacun des trois plans croisés à 60° ; les trois vues sont côte à côte dans une seule image et chaque plan porte la
+    sienne (pas de lobes en miroir). Normales vers le haut : les trois plans sont éclairés pareil quel que soit l'angle."""
     sc = bpy.context.scene
     xs = [v.co for v in ob.data.vertices]
     demi = max(max(abs(p.x) for p in xs), max(abs(p.y) for p in xs)) * 1.03
@@ -78,7 +79,13 @@ def imposteur(ob, nom, dossier, mats, haut_px=1024):
     vrais = list(ob.data.materials)
     plats = materiaux_rendu(textures(dossier), plat=True)
     for i, mm in enumerate(vrais): ob.data.materials[i] = plats["Ecorce" if mm.name.startswith("Ecorce") else ("Aiguilles" if mm.name.startswith("Aiguilles") else "Feuilles")]
-    chemin = os.path.join(dossier, f"arbres_loin_{nom}.png"); sc.render.filepath = chemin; bpy.ops.render.render(write_still=True)
+    chemin = os.path.join(dossier, f"arbres_loin_{nom}.png"); vues = []
+    for k in range(3):
+        a = k * math.pi / 3; cam.location = (60 * math.sin(a), -60 * math.cos(a), z0 + haut / 2); cam.rotation_euler = (math.pi / 2, 0, a)
+        f = os.path.join(dossier, f"_vue_{k}.png"); sc.render.filepath = f; bpy.ops.render.render(write_still=True)
+        im = bpy.data.images.load(f); vues.append(np.array(im.pixels[:], np.float32).reshape(ry, rx, 4)); bpy.data.images.remove(im); os.remove(f)
+    atlas = np.concatenate(vues, 1); img = bpy.data.images.new(f"loin_{nom}", rx * 3, ry, alpha=True)
+    img.pixels.foreach_set(atlas.ravel()); img.filepath_raw = chemin; img.file_format = "PNG"; img.save(); bpy.data.images.remove(img)
     for o in caches: o.hide_render = False
     for i, mm in enumerate(vrais): ob.data.materials[i] = mm
     sc.camera, sc.world, sc.render.resolution_x, sc.render.resolution_y, sc.render.film_transparent, sc.view_settings.view_transform, sc.cycles.samples = ancien
@@ -90,7 +97,7 @@ def imposteur(ob, nom, dossier, mats, haut_px=1024):
         vs = [bm.verts.new((-larg / 2 * c, -larg / 2 * s_, z0)), bm.verts.new((larg / 2 * c, larg / 2 * s_, z0)),
               bm.verts.new((larg / 2 * c, larg / 2 * s_, z0 + haut)), bm.verts.new((-larg / 2 * c, -larg / 2 * s_, z0 + haut))]
         f = bm.faces.new(vs)
-        for l, (u, v) in zip(f.loops, ((0, 0), (1, 0), (1, 1), (0, 1))): l[uv].uv = (u, v)
+        for l, (u, v) in zip(f.loops, ((0, 0), (1, 0), (1, 1), (0, 1))): l[uv].uv = ((u + k) / 3, v)
     bm.to_mesh(me); bm.free()
     me.normals_split_custom_set_from_vertices([(0, 0, 1)] * len(me.vertices))
     at = me.attributes.new("Nf", "FLOAT_VECTOR", "POINT"); at.data.foreach_set("vector", [0, 0, 1] * len(me.vertices))
@@ -105,7 +112,9 @@ def materiau_imposteur(chemin, nom):
     ti = N.new("ShaderNodeTexImage"); ti.image = bpy.data.images.load(chemin, check_existing=True); ti.image.alpha_mode = "STRAIGHT"
     oi = N.new("ShaderNodeObjectInfo"); mx = N.new("ShaderNodeMix"); mx.data_type = "RGBA"; mx.blend_type = "MULTIPLY"; mx.inputs["Factor"].default_value = 1
     L.new(ti.outputs["Color"], mx.inputs[6]); L.new(oi.outputs["Color"], mx.inputs[7])
-    L.new(detourage(nt, ti.outputs["Alpha"], eclairage_jeu(nt, mx.outputs[2], normale_choisie(nt))), N["Material Output"].inputs["Surface"])
+    # un plan vu par la tranche s'efface (sinon un trait vertical au milieu de l'arbre) : même règle à mettre dans le jeu
+    al = tranche(nt, ti.outputs["Alpha"], bas=.12, haut=.3)
+    L.new(detourage(nt, al, eclairage_jeu(nt, mx.outputs[2], normale_choisie(nt))), N["Material Output"].inputs["Surface"])
     return m
 
 def _moyenne(f):
@@ -185,6 +194,8 @@ def douze_cameras(H, Rc, zc, imp_x, sous, pied):
 
 def rendre(dossier, cams, planche="planche.png", cols=4, avant=None):
     sc = bpy.context.scene; cam = sc.camera; fichiers = []
+    seules = os.environ.get("SEULES")   # essai : seulement certaines vues (ex. SEULES=07,08,10)
+    if seules: cams = [c for c in cams if c[0][:2] in seules.split(",")]
     for nom, pos, cible, lens in cams:
         if avant: avant(nom)
         cam.location = pos; cam.rotation_euler = (cible - pos).to_track_quat("-Z", "Y").to_euler(); cam.data.lens = lens

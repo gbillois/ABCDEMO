@@ -66,7 +66,29 @@ Commandes (Blender : `/opt/blender-dl/blender-4.2.3-linux-x64/blender`) :
   Dans le jeu (`creerArbres`) : rotation aléatoire et échelle déjà faites (sapins ×0,94 à 1,81, feuillus ×0,83 à 1,6) ;
   teinte d'instance actuelle HSL(0,2 ± 0,05 ; 0,35 ; 0,8 à 0,95), faite pour les textures du MegaKit (assombrit de
   15 % et jaunit) : à remplacer par `teinte_arbre` ; penchant à ajouter dans `matArbre`.
-- Tour 2 (`scratchpad/arbres/t2/`) : sapin 2 197 triangles, feuillu 3 706. En attente de l'inspection.
+- Tour 2 (`scratchpad/arbres/t2/`) : sapin 2 197 triangles, feuillu 3 706. Notes (sapin / feuillu) : silhouette 8/8,
+  feuillage 7/7, tronc 8/6, matières 8/7, imposteur 8/7, forêt 8, coût 9/9 → À REFAIRE.
+  Faits : moignons, silhouette du sapin, imposteur du sapin, variation en forêt.
+  Restait : racines du feuillu (piliers plats, bout tranché : 2e échec), bourrelet à la fourche (2e échec), coques
+  anguleuses et nues, tige verte étirée ; imposteur du feuillu (trait vertical au centre, lobes en miroir) ; lèvre du
+  sapin en dalle à coins droits ; poils sombres isolés ; sapin coupé dans foret_1.
+  Corrigé (tour 3) :
+  - CHANGEMENT D'APPROCHE pour la charpente du feuillu (règle des 3 tours) : tronc, racines, maîtresses branches et
+    flèche sont un seul maillage continu (`kit.Charpente` : squelette d'arêtes → modificateur Skin → subdivision ×2 →
+    allègement à 10 %, les normales reprises de la surface dense) ; l'écorce suit le segment le plus proche, face par face
+    (orientée dans le sens de chaque branche, pas de zigzag). Les racines naissent dans le tronc et plongent à 55 cm ;
+    le bout des maîtresses branches se prolonge dans une touffe. Les rameaux (cachés dans les touffes) restent des tubes ;
+  - houppier : cœurs ×0,9, 26 bouquets par touffe, aussi sur le dessous ;
+  - cartes vues par la tranche effacées (région des cartes seulement) : plus de « tiges » ni de « poils » ;
+    aiguilles sombres des brins raccourcies ;
+  - sapin : lobes à trois sommets (milieu plus avancé et plus bas), bord arrondi : la lèvre de 13 cm part des mêmes
+    sommets que le dessus et la normale y tourne en douceur ; 4 à 9 lobes par étage (budget) ;
+  - imposteurs : trois vues dans une seule image (chaque plan porte la vue prise face à lui, plus de miroir),
+    plans vus par la tranche effacés ; écarts de couleur < 1 % ;
+  - foret_1 : cadrage choisi automatiquement (aucun arbre proche coupé par le bord).
+  À reprendre dans le jeu à l'intégration : effacement des cartes et des plans d'imposteur vus par la tranche
+  (normale de face par dFdx/dFdy de la position), imposteur en trois vues (u de k/3 à (k+1)/3).
+- Tour 3 (`scratchpad/arbres/t3/`) : sapin 2 436 triangles, feuillu 3 779. En attente de l'inspection.
 
 ## Intégration (quand tout est à 8+)
 Prévu : `arbres.glb` (T_pin_0/1, T_feuillu_0/1, matières écorce puis feuillage, `userData.matieres`) et les mêmes
