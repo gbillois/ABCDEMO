@@ -90,6 +90,76 @@ lisent), accessoires hors des rues et des portes, seuil gardé pour toutes les m
 - Mistholm : tour 1 (2 à 6) → tour 2 (7-8) → tour 3 PASSE (tout à 8). Suggestions : clôtures et potagers, axe
   d'approche dégagé, palier devant la chaumière n°8, marche de la forge.
 - Saltcliff, Fernhollow, Stonebrook : en contrôle.
+## Longère et forge (agent séparé, worktree)
+Deux fichiers : `maisons/longere.py` puis `maisons/forge.py`. Emprise, point « porte » et intérieur gardés comme dans
+l'ancien `../maisons.py` (le jeu les lit) : longère (7,4 × 14,6), (0, -7.6, 1.0), « halle » ; forge (7,4 × 6,4), (0, -3.6, 0.5), sans intérieur.
+- Kit, section « ajouts longère et forge » (fin de `kit.py`, aucune pièce existante modifiée) : `ToitTourne` (un toit à
+  faîte selon X tourné d'un quart de tour : faîte selon Y, porte dans le pignon), `planches_verticales` (bardage ou pignon,
+  haut de chaque planche qui suit la pente, trous pour porte et fenêtres), `dalles`, `tete_dragon`, `rives_croisees`
+  (planches de rive croisées au faîte + têtes de dragon + volige sous le débord), `mousse` (plaque posée selon la pente),
+  `fumoir` (lanterneau à fumée), `foyer_forge`, `poteau`. Matières ajoutées : cuir, eau, braise, charbon, bois_s (bois goudronné).
+- Objets : `objets/bouclier.py` (rond peint, trois motifs).
+- Longère, avant contrôle : chaume `ToitChaume` (égout à 0,85 m, faîte 5,8 m, pignons droits), soubassement de moellons
+  jusqu'au plancher (1 m), pignons de planches goudronnées, porte à linteau de bois + 4 marches de 25 cm, rives croisées
+  en têtes de dragon, lanterneau, mousse, boucliers, banc, tonneau, tas de bois. Corrigé soi-même avant contrôle : petit
+  toit du lanterneau en V (sens de rotation), têtes trop petites et trop sombres (× 1,5, bois clair), dessous de chaume
+  jaune sous le débord des pignons (volige de planches). 25 124 triangles (ancienne : 50 932). Capsule : passe (sol au
+  seuil 0,75 m) ; ouverture mesurée 0,86 × 2,06 m (la mesure bute sur l'anneau de la porte, à 1 m ; 1,2 m entre les montants).
+  Rendus : `scratchpad/qc/longere1/`.
+- Longère, tour 1 : posé 8, matières 7, formes 8, style 7, lisibilité 8, passage 8 (sous réserve), coût 9 → À REFAIRE.
+  Pignons presque noirs, mousse en « autocollants », longs côtés vides, entrée trop sombre, sol au seuil 0,75 m,
+  largeur mesurée sur l'anneau, rives lourdes et chevilles isolées.
+  Corrigé : bois_s en brun chaud (3 teintes, 14 % de planches plus claires), porte rouge (matière peint_r) à cadre clair
+  (`porte` et `fenetre` du kit ont un paramètre `mat_cadre`, « chene » par défaut : les autres maisons ne changent pas),
+  lanterne près de la porte, rives en bois clair chanfreiné avec bandes peintes rouge et ocre, chevilles supprimées,
+  mousse supprimée, chaume vieilli (`ToitTourne.construire(vieilli=…)` : chaque rang sa nuance, gris et brun vers le bas),
+  fumée stylisée au lanterneau (kit : `fumee`, matière fumee), sur chaque long côté tas de bois, tonneaux, banc, pots,
+  lanterne sur poteau, cailloux, herbe (kit : `cailloux`, `herbe`) posés juste au-delà de la frange (0,3 à 0,9 m hors de
+  l'emprise : pas de collision dans le jeu pour eux). Palier de pierre au niveau du plancher devant la porte, puis 3 marches
+  de 25 cm : le point « porte » est sur le palier (sol au seuil 1,00 m). Banc de test commun (`apercu.py`) : la largeur de
+  porte est mesurée à 0,6 m et à 1,4 m au-dessus du plancher, on garde la plus grande (une poignée ne la réduit plus).
+  29 300 triangles, capsule passe, porte 1,20 × 2,06 m. Rendus : `scratchpad/qc/longere2/`.
+- Longère, tour 2 : posé 8, matières 8, formes 8, style 8, lisibilité 8, passage 9, coût 8 → PASSE.
+  Après : fumée en géométrie retirée (en boules figées elle se lit comme des blocs ; le jeu la fera s'il le faut ; la pièce
+  `fumee` reste au kit mais n'est plus utilisée), chaume un peu plus vieilli en bas (vieilli 0,7).
+  **Pied changé** : 9,2 × 14,6 m (avant 7,4 × 14,6) pour couvrir les objets des longs côtés (posés à ±4,25 à ±4,32 m) :
+  à reporter dans la table MAISONS de `../maisons.py` à la fusion. Point « porte » (0, -7.6, 1.0) et intérieur « halle » inchangés.
+  Contrôle final : `scratchpad/qc/longere3/`. À intégrer au jeu à la fusion (pas fait ici).
+
+## Forge (`maisons/forge.py`)
+- Objets : `objets/enclume.py`, `soufflet.py`, `etabli.py` (et `fer_a_cheval`), `ratelier.py`, `baquet.py`, `enseigne.py`.
+- Premier jet : plateforme de pierre à 0,5 m (dalles, 2 marches de 25 cm), façade ouverte entre quatre poteaux sur dés,
+  grosse poutre et aisseliers, entraits et poinçons, toit de tuiles (`ToitTuiles`), mur du fond en pierre avec le foyer de
+  forge (braises dans W_), hotte sur manteau de bois et cheminée, murets de pierre et planches sur les côtés, fenêtre à
+  droite, enseigne pendue sous la poutre. Emprise 7,4 × 6,4 m inchangée. **Point « porte » changé** : (0, -2.0, 0.5) sur le
+  sol de la forge (avant (0, -3.6, 0.5), dans le vide devant la plateforme) ; sans intérieur, le jeu ne le lit pas.
+  `controle.txt` : la mesure de porte commune (montants, arc) est remplacée par « sans objet », et une ligne mesure le
+  côté ouvert (largeur entre les poteaux du milieu, hauteur libre sous l'enseigne).
+  Corrigé soi-même avant contrôle : intérieur presque noir (seule la façade éclairait) → côté droit ouvert au-dessus du
+  muret (poteau, sablière, aisseliers, pignon de planches seulement en haut), la fenêtre de ce côté est supprimée.
+  18 288 triangles (ancienne : 26 352, soit 69 %). Capsule : passe (sol au seuil 0,50 m) ; côté ouvert 2,21 m de large,
+  1,95 m sous l'enseigne. Rendus : `scratchpad/qc/forge1/`. En attente du tour 1 de contrôle.
+  Points faibles connus : dessous du toit très sombre en vue 12, grand mur du fond en pierre nu (vue 03).
+- Forge, tour 1 : posé 8, matières 8, formes 8, style 7, lisibilité 8, passage 8, coût 9 → À REFAIRE (style).
+  Intérieur presque noir, feu en petite tache, mur arrière vide, pignon gauche lisse avec un bloc isolé (bout de la
+  poutre de façade), losange noir sous le faîtage (entaille en V entre les deux pans de la coque de tuiles), métier peu lisible depuis la rue.
+  Corrigé : foyer plus grand (1,8 × 1,2 m), tas de braises bombé visible de face et de côté, six flammes, plaques de
+  lueur orange (dans W_, matières flamme et lueur), margelle basse devant ; intérieur éclairci en brun chaud
+  (kit : `eclaircir`, avec une condition `garde` pour ne toucher que le dessous du toit) ; chevrons clairs sous les
+  tuiles ; panne faîtière qui ferme le faîte ; poutre de façade qui traverse les pignons ; aérations aux deux pignons
+  (kit : `aeration`), fers à cheval cloués et échelle appuyée (objets/echelle.py) au pignon gauche ; soufflet à gauche
+  du feu et râtelier de marteaux et pinces au mur du fond (vus de la rue), enclume plus en avant ; fer à cheval
+  au-dessus de l'enseigne ; suie en haut de la cheminée ; au pied du mur du fond : tas de bois, tas de charbon et pelle,
+  tonneau, herbe. **Pied changé** : 7,4 × 7,6 m (avant 7,4 × 6,4) pour couvrir les objets au pied du mur du fond.
+  21 368 triangles (81 % de l'ancienne), capsule passe, côté ouvert 2,22 × 1,95 m. Rendus : `scratchpad/qc/forge2/`.
+- Forge, tour 2 : posé 8, matières 8, formes 7, style 8, lisibilité 8, passage 8, coût 9 → À REFAIRE (formes).
+  Le losange noir à la pointe des pignons revenait (2e fois). Vérifié en agrandissant ses propres rendus 02 et 04 : le
+  jour passait par l'encoche en V entre les deux planches de rive de `ToitTuiles`, sous le bout de la faîtière (la
+  panne, plus bas, ne pouvait pas le fermer). Corrigé : about de faîtage en bois (disque brun) à chaque pignon, qui
+  couvre l'encoche et le bout de la faîtière. Aussi : lueur chaude au sol devant le feu (dans W_).
+  Leçon : vérifier soi-même chaque défaut signalé en agrandissant la zone du rendu avant de le corriger. La maison à
+  colombages a les mêmes planches de rive : à regarder de près si l'inspecteur y voit un jour.
+  21 452 triangles, capsule passe. Rendus : `scratchpad/qc/forge3/`.
 
 ## Héros (agent séparé, worktree `worktree-agent-adb19e9034e46bb45`, voir `blender/dragonflyer/personnages/PASSATION.md` sur cette branche)
 - Tour 1 : proportions 8, visage 8, cheveux et vêtements 6, articulations 7, animations 5, style 8, coût 6 → À REFAIRE.

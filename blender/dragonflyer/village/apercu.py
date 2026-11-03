@@ -113,12 +113,17 @@ def capsule(ob, porte, rayon=.35, haut=1.7, marche_max=.3, depart=4.5):
         if h[0]: ok = False; lignes.append(f"tête bloquée à y={y:.2f} (z={h[0].z:.2f})"); break
     lignes.insert(0, f"capsule (rayon {rayon} m, {haut} m) de 4,5 m devant jusqu'au seuil : {'PASSE' if ok else 'BLOQUÉE'} (sol au seuil {sol:.2f} m)")
     # ouverture de la porte : rayons juste devant les planches
-    zp = pz + 1.0   # mesures depuis le plancher de la maison (point « porte »), pas depuis le sol
-    hd = bvh.ray_cast(Vector((px, py, zp)), Vector((0, 1, 0)), 3)
-    yp = (hd[0].y - .02) if hd[0] else py + .5   # juste devant les planches, entre les montants
-    g = bvh.ray_cast(Vector((px, yp, zp)), Vector((-1, 0, 0)), 2); d = bvh.ray_cast(Vector((px, yp, zp)), Vector((1, 0, 0)), 2)
+    # mesures depuis le plancher de la maison (point « porte »), pas depuis le sol ; la largeur est prise à 0,6 m et à
+    # 1,4 m au-dessus du plancher et on garde la plus grande (une poignée ou un anneau ne réduit pas le passage)
+    larg, yp = float("nan"), py + .5
+    for zp in (pz + .6, pz + 1.4):
+        hd = bvh.ray_cast(Vector((px, py, zp)), Vector((0, 1, 0)), 3)
+        y_ = (hd[0].y - .02) if hd[0] else py + .5   # juste devant les planches, entre les montants
+        g = bvh.ray_cast(Vector((px, y_, zp)), Vector((-1, 0, 0)), 2); d = bvh.ray_cast(Vector((px, y_, zp)), Vector((1, 0, 0)), 2)
+        l_ = (d[0].x - g[0].x) if g[0] and d[0] else float("nan")
+        if l_ == l_ and (larg != larg or l_ > larg): larg, yp = l_, y_
     u = bvh.ray_cast(Vector((px, yp - .07, pz + .3)), Vector((0, 0, 1)), 4)   # un peu plus devant : pas les pentures, mais le linteau ou l'arc
-    larg = (d[0].x - g[0].x) if g[0] and d[0] else float("nan"); hp = (u[0].z - pz) if u[0] else float("nan")
+    hp = (u[0].z - pz) if u[0] else float("nan")
     porte_ok = larg >= 2 * rayon + .1 and hp >= haut + .1
     lignes.append(f"ouverture de la porte : {larg:.2f} m de large, {hp:.2f} m sous l'arc → {'assez grande pour la capsule' if porte_ok else 'TROP PETITE pour la capsule'}")
     return ok and porte_ok, lignes

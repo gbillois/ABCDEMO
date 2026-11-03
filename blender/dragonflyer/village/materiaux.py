@@ -40,5 +40,15 @@ MATIERES = {
     "feuillage":Matiere("feuillage",["#5a8a3a", "#4f7d34", "#6a9a44"], .1),
     "fleur":    Matiere("fleur",    ["#c84a3a", "#e8b84a", "#d86aa0", "#f4f0e8"], .05),
     "paille":   Matiere("paille",   ["#d8b860"], .06),
+    # ajouts longère et forge
+    "cuir":     Matiere("cuir",     ["#7a4a2c", "#6e4228"], .05),                                             # soufflet, poignées
+    "eau":      Matiere("eau",      ["#3e6a7a", "#46727e"], .03),                                             # baquet de trempe
+    "braise":   Matiere("braise",   ["#ff8a2a", "#ffb040", "#f06a1e"], .05),                                  # charbons ardents (dans W_ : brillent la nuit)
+    "charbon":  Matiere("charbon",  ["#3a3230", "#46403a"], .06),                                             # charbon éteint (jamais noir pur)
+    "bois_s":   Matiere("bois_s",   ["#7a5032", "#6a452c", "#86593a"], .08, "#4e3422"),                      # bois goudronné des longères vikings (brun chaud, jamais noir)
+    "peint_r":  Matiere("peint_r",  ["#a8452e", "#9c3f2a"], .04),                                             # porte peinte rouge
+    "fumee":    Matiere("fumee",    ["#e8e2d6", "#cfc9be"], .02),                                             # fumée stylisée
+    "flamme":   Matiere("flamme",   ["#ffd060", "#ff9a30"], .03),                                             # flammes du foyer (dans W_)
+    "lueur":    Matiere("lueur",    ["#d8844a", "#e89a52"], .03),                                             # lueur orangée du feu sur la pierre (dans W_)
 }
 def M(nom): return MATIERES[nom]
