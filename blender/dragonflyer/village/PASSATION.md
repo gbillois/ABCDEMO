@@ -129,6 +129,18 @@ l'ancien `../maisons.py` (le jeu les lit) : longère (7,4 × 14,6), (0, -7.6, 1.
   18 288 triangles (ancienne : 26 352, soit 69 %). Capsule : passe (sol au seuil 0,50 m) ; côté ouvert 2,21 m de large,
   1,95 m sous l'enseigne. Rendus : `scratchpad/qc/forge1/`. En attente du tour 1 de contrôle.
   Points faibles connus : dessous du toit très sombre en vue 12, grand mur du fond en pierre nu (vue 03).
+- Forge, tour 1 : posé 8, matières 8, formes 8, style 7, lisibilité 8, passage 8, coût 9 → À REFAIRE (style).
+  Intérieur presque noir, feu en petite tache, mur arrière vide, pignon gauche lisse avec un bloc isolé (bout de la
+  poutre de façade), losange noir sous le faîtage (entaille en V entre les deux pans de la coque de tuiles), métier peu lisible depuis la rue.
+  Corrigé : foyer plus grand (1,8 × 1,2 m), tas de braises bombé visible de face et de côté, six flammes, plaques de
+  lueur orange (dans W_, matières flamme et lueur), margelle basse devant ; intérieur éclairci en brun chaud
+  (kit : `eclaircir`, avec une condition `garde` pour ne toucher que le dessous du toit) ; chevrons clairs sous les
+  tuiles ; panne faîtière qui ferme le faîte ; poutre de façade qui traverse les pignons ; aérations aux deux pignons
+  (kit : `aeration`), fers à cheval cloués et échelle appuyée (objets/echelle.py) au pignon gauche ; soufflet à gauche
+  du feu et râtelier de marteaux et pinces au mur du fond (vus de la rue), enclume plus en avant ; fer à cheval
+  au-dessus de l'enseigne ; suie en haut de la cheminée ; au pied du mur du fond : tas de bois, tas de charbon et pelle,
+  tonneau, herbe. **Pied changé** : 7,4 × 7,6 m (avant 7,4 × 6,4) pour couvrir les objets au pied du mur du fond.
+  21 368 triangles (81 % de l'ancienne), capsule passe, côté ouvert 2,22 × 1,95 m. Rendus : `scratchpad/qc/forge2/`.
 
 ## Héros (agent séparé, worktree `worktree-agent-adb19e9034e46bb45`, voir `blender/dragonflyer/personnages/PASSATION.md` sur cette branche)
 - Tour 1 : proportions 8, visage 8, cheveux et vêtements 6, articulations 7, animations 5, style 8, coût 6 → À REFAIRE.

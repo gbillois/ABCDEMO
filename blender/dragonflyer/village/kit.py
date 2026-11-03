@@ -632,13 +632,20 @@ def foyer_forge(V, P, x, y, z, l=1.5, p=1.1, h=.8):
                 um = (u0 + u1) / 2
                 P.boite((ax + tx * um + nx * .03, ay + ty * um + ny * .03, zc), (u1 - u0 - .04, .16, hz - .04), M("moellon").couleur(R, .1), rz=math.atan2(ty, tx), bev=.04, jit=.01)
     zt = z + h
-    for (cx, cy, sx, sy) in ((x, y - p / 2 + .1, l + .06, .26), (x - l / 2 + .12, y + .08, .26, p - .2), (x + l / 2 - .12, y + .08, .26, p - .2)):   # margelle
-        P.boite((cx, cy, zt + .05), (sx, sy, .12), M("moellon").couleur(R, .05), bev=.035, jit=.006)
+    for (cx, cy, sx, sy, hz) in ((x, y - p / 2 + .1, l + .06, .26, .08), (x - l / 2 + .12, y + .08, .26, p - .2, .12), (x + l / 2 - .12, y + .08, .26, p - .2, .12)):   # margelle (basse devant : on voit le feu)
+        P.boite((cx, cy, zt + hz / 2 - .01), (sx, sy, hz), M("moellon").couleur(R, .05), bev=.03, jit=.006)
     P.boite((x, y + .08, zt + .02), (l - .4, p - .3, .06), M("charbon").couleur(R), bev=0)
-    for i in range(16):   # charbons et braises
-        px, py = x + R.uniform(-l / 2 + .3, l / 2 - .3), y + R.uniform(-p / 2 + .28, p / 2 - .2)
-        if i % 3: V.sphere((px, py, zt + .06), R.uniform(.07, .11), M("braise").couleur(R), (1, 1, .7), sub=1, jit=.01)
-        else: P.sphere((px, py, zt + .07), R.uniform(.07, .1), M("charbon").couleur(R), (1, 1, .7), sub=1, jit=.012)
+    mx, my = l / 2 - .3, p / 2 - .25
+    for i in range(26):   # tas de charbons et de braises, bombé au milieu (on le voit de face et de côté)
+        u, w = R.uniform(-1, 1), R.uniform(-1, 1); px, py = x + u * mx, y + .08 + w * my
+        zz = zt + .06 + .16 * (1 - max(abs(u), abs(w)) ** 2)
+        if i % 4: V.sphere((px, py, zz), R.uniform(.08, .13), M("braise").couleur(R), (1, 1, .75), sub=1, jit=.01)
+        else: P.sphere((px, py, zz), R.uniform(.07, .1), M("charbon").couleur(R), (1, 1, .7), sub=1, jit=.012)
+    for i in range(6):    # petites flammes (cônes doux, jaune au cœur)
+        u = (i - 2.5) / 2.5 * mx * .7; ph = R.uniform(.3, .5) * (1 - abs(u) / mx * .5); px, py = x + u, y + .08 + R.uniform(-.1, .1)
+        V.cylindre((px, py, zt + .15), (px + R.uniform(-.05, .05), py, zt + .15 + ph), R.uniform(.09, .13), .01, M("flamme").teintes[i % 2], n=6)
+    V.boite((x, y + p / 2 - .2, zt + .5), (l - .35, .03, .8), M("lueur").teintes[0], bev=0)   # lueur du feu sur la pierre du fond, devant les moellons (brille la nuit)
+    V.boite((x, y - p / 2 + .21, zt + .1), (l - .4, .02, .1), M("lueur").teintes[1], bev=0)    # et sur le bord de la margelle
 
 def poteau(P, x, y, z0, z1, cote=.3, mat="chene", de=True):
     """Poteau de bois sur un dé de pierre (il ne touche pas le sol : il ne pourrit pas)."""
@@ -662,3 +669,20 @@ def herbe(P, x, y, n=5):
     for i in range(n):
         a = P.R.uniform(0, math.tau); bx, by = x + P.R.uniform(-.15, .15), y + P.R.uniform(-.15, .15)
         P.cylindre((bx, by, 0), (bx + math.cos(a) * .12, by + math.sin(a) * .12, P.R.uniform(.3, .5)), .05, .005, M("feuillage").couleur(P.R), n=3)
+
+def eclaircir(P, mini, maxi, f=1.4, teinte=(1.0, .95, .88), garde=None):
+    """Remonte les couleurs d'une zone (un intérieur ouvert que l'occlusion cuite va beaucoup assombrir), en brun chaud :
+    multiplie par f et par une teinte légèrement chaude. f < 1 : salir (suie en haut d'une cheminée).
+    garde(co) : condition de plus sur la position (par exemple : seulement sous le toit)."""
+    for v in P.bm.verts:
+        if all(mini[i] <= v.co[i] <= maxi[i] for i in range(3)) and (garde is None or garde(v.co)):
+            c = v[P.col]; v[P.col] = (*(min(1.0, c[i] * f * teinte[i]) for i in range(3)), 1)
+
+def aeration(P, centre, rz=0.0, l=.55, h=.42):
+    """Aération de pignon : cadre de bois, fond sombre, trois lames inclinées. Regarde -Y tourné de rz ; centre sur la face du mur."""
+    H = Piece("tmp_aeration", P.R.randrange(1 << 30))
+    H.boite((0, .0, 0), (l, .03, h), M("bois_s").sombre, bev=0)
+    for z in (-h / 2, h / 2): poutre(H, (-l / 2 - .06, -.04, z), (l / 2 + .06, -.04, z), l=.08, h=.08, mat="chene_c", bev=0)
+    for x in (-l / 2, l / 2): poutre(H, (x, -.04, -h / 2), (x, -.04, h / 2), l=.08, h=.08, mat="chene_c", bev=0)
+    for k in range(3): H.boite((0, -.05, -h / 2 + (k + .6) * h / 3.2), (l - .04, .02, .12), M("chene").couleur(H.R), rx=.6, bev=0)
+    P.ajouter(H, Matrix.Translation(Vector(centre)) @ Matrix.Rotation(rz, 4, "Z")); H.bm.free()
