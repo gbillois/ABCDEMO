@@ -35,7 +35,12 @@ Fichier tenu à jour à chaque étape, pour qu'une nouvelle session reprenne ici
   demi-croupe en désordre, pierre sur un volet, 19 228 triangles.
   Corrigé : pignons droits, plus de bosse autour de la cheminée, rebord mince, frange = mèches longues du rang du bas,
   dessous en paille, rangs depuis le sommet, fenêtres décalées, 18 208 triangles.
-- Tour 5 : en cours.
+- Tour 5 : posé 8, matières 7, formes 8, style 8, lisibilité 9, passage 9, coût 8 → À REFAIRE (matières seulement).
+  Dessous du toit et bord des pignons vert olive et lisses, frange en dents de scie, pierre de l'arc de la porte sur
+  un volet, petites plaquettes à la cheminée (bouts de rangs contre le conduit).
+  Corrigé : dessous et rebord en paille dorée, frange douce, rangs coupés autour de la cheminée, fenêtres à ±1,72 m,
+  18 016 triangles.
+- Tour 6 : en cours.
 
 ## Héros (agent séparé, worktree `worktree-agent-adb19e9034e46bb45`, voir `blender/dragonflyer/personnages/PASSATION.md` sur cette branche)
 - Tour 1 : proportions 8, visage 8, cheveux et vêtements 6, articulations 7, animations 5, style 8, coût 6 → À REFAIRE.

@@ -12,22 +12,22 @@ import banc, tas_bois
 PIED, PORTE, INTERIEUR = (5.6, 6.8), (0, -3.9, 0), "maison"
 X, Y = 2.6, 3.2                     # faces des murs
 Z_BAS, Z_PIERRE, Z_HAUT = -2.8, -.6, 2.5   # le cœur descend sous le sol (pentes), les pierres dès -0,6 m, le mur monte sous le chaume
-FENETRE_FACE = (1.5, -Y - .07, 1.2)
+FENETRE_FACE = (1.72, -Y - .07, 1.2)   # assez loin de l'arc de la porte pour que les volets restent libres
 CHEMINEE = (-X - .45, .8)
 
 def construire(graine=11):
     P = Piece("M_chaumiere", graine); V = Piece("W_chaumiere", graine + 1)
     P.boite((0, 0, (Z_BAS + Z_HAUT) / 2), (2 * X - .1, 2 * Y - .1, Z_HAUT - Z_BAS), M("mortier").couleur(P.R), bev=.04)   # cœur (mortier)
     ouv_fen = lambda u: (u - .93, u + .93, .55, 1.85)   # fenêtre et volets ouverts : les pierres s'arrêtent au bord des volets
-    mur_moellons(P, (-X, -Y), (X, -Y), Z_PIERRE, Z_HAUT, [(X - .76, X + .76, -1, 2.5), ouv_fen(X - 1.5), ouv_fen(X + 1.5)])   # façade
+    mur_moellons(P, (-X, -Y), (X, -Y), Z_PIERRE, Z_HAUT, [(X - .76, X + .76, -1, 2.5), ouv_fen(X - 1.72), ouv_fen(X + 1.72)])   # façade
     mur_moellons(P, (X, -Y), (X, Y), Z_PIERRE, Z_HAUT, [ouv_fen(Y - 1.3)])                                               # droite
     mur_moellons(P, (X, Y), (-X, Y), Z_PIERRE, Z_HAUT, [ouv_fen(X + 1.0)])                                                # dos
     yc = Y - CHEMINEE[1]; mur_moellons(P, (-X, Y), (-X, -Y), Z_PIERRE, Z_HAUT, [(yc - .62, yc + .62, -1, 9)])            # gauche (cheminée)
     porte(P, (0, -Y - .07, 0), l=1.15, h=2.05)
-    fenetre(V, P, (-1.5, -Y - .07, 1.2)); fenetre(V, P, FENETRE_FACE)
+    fenetre(V, P, (-1.72, -Y - .07, 1.2)); fenetre(V, P, FENETRE_FACE)
     fenetre(V, P, (X + .07, -1.3, 1.2), rz=math.pi / 2)
     fenetre(V, P, (-1.0, Y + .07, 1.2), rz=math.pi, jardiniere=False)
-    toit = ToitChaume(0, 0, X + .4, Y + .65, 2.3, 5.3, croupe=.9, z_demi=10, ep=.45, sourcils=[(0, 1.0, .55)], cheminees=[(*CHEMINEE, .5)]).construire(P)
+    toit = ToitChaume(0, 0, X + .4, Y + .65, 2.3, 5.3, croupe=.9, z_demi=10, ep=.45, sourcils=[(0, 1.0, .55)], cheminees=[(*CHEMINEE, .43)]).construire(P)
     for sx in (-1, 1): pignon_planches(P, sx * X, -Y, Y, Z_HAUT, toit, sens=sx, sauf=[(CHEMINEE[1] - .38, CHEMINEE[1] + .38)] if sx < 0 else ())
     chevrons(P, toit, [((-X, -Y), (X, -Y)), ((X, Y), (-X, Y))], Z_HAUT)                     # sous les pans (les pignons ont leurs planches)
     faite = toit.forme(0, 0)[0]

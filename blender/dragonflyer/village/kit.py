@@ -192,7 +192,7 @@ class ToitChaume:
             for j in range(ny):
                 x = cx - X + 2 * X * i / (nx - 1); y = cy - Y + 2 * Y * j / (ny - 1); z = s.forme(x, y)[0]
                 v = bm.verts.new((x, y, z - .04)); v[col] = (*M("chaume_f").teintes[1], 1); Vd[i][j] = v
-                w = bm.verts.new((cx + (x - cx) * .97, cy + (y - cy) * .97, z - s.ep)); w[col] = (*melange(M("chaume").teintes[(i + j) % 3], M("chaume_f").teintes[0], .45), 1); Vs[i][j] = w
+                w = bm.verts.new((cx + (x - cx) * .97, cy + (y - cy) * .97, z - s.ep)); w[col] = (*[min(1, c_ * 1.3) for c_ in melange(M("chaume").teintes[(i * 2 + j) % 3], M("chaume_f").teintes[0], .12 + .2 * ((i + j) % 2))], 1); Vs[i][j] = w
         for i in range(nx - 1):
             for j in range(ny - 1):
                 quad(Vd[i][j], Vd[i + 1][j], Vd[i + 1][j + 1], Vd[i][j + 1]); quad(Vs[i][j], Vs[i][j + 1], Vs[i + 1][j + 1], Vs[i + 1][j])
@@ -200,7 +200,7 @@ class ToitChaume:
         bas = []
         for (i, j) in tour:
             v = Vd[i][j]; dx, dy = v.co.x - cx, v.co.y - cy; dl = math.hypot(dx, dy) or 1
-            b = bm.verts.new((v.co.x + dx / dl * .02, v.co.y + dy / dl * .02, v.co.z - .16)); b[col] = (*M("chaume").teintes[1], 1); bas.append(b)
+            b = bm.verts.new((v.co.x + dx / dl * .02, v.co.y + dy / dl * .02, v.co.z - .16)); b[col] = (*[min(1, c_ * 1.15) for c_ in M("chaume").teintes[2]], 1); bas.append(b)
         nT = len(tour)
         for t in range(nT):
             (i0, j0), (i1, j1) = tour[t], tour[(t + 1) % nT]; u = (t + 1) % nT
@@ -225,13 +225,15 @@ class ToitChaume:
                     while n_ < 60 and s.dedans(bx + gx * .05, by + gy * .05) and s.forme(bx, by)[0] > zc - dz * 1.25: bx += gx * .05; by += gy * .05; n_ += 1
                     zb_ = s.forme(bx, by)[0]
                     bord = not s.dedans(bx + gx * .06, by + gy * .06)
-                    lg = R.choice((.05, .09, .13, .17)) * (1.0 if not bord else 1.9)
+                    lg = R.choice((.05, .09, .13, .17)) if not bord else .1 + .035 * math.sin(k * 1.9) + .025 * math.sin(k * .7) + R.uniform(-.015, .015)
                     teinte = M("chaume").teintes[R.randrange(3)]
                     h = bm.verts.new((x, y, zc + .02)); h[col] = (*melange(teinte, M("chaume_f").teintes[0], .55), 1)
                     m = bm.verts.new((bx, by, zb_ + .09)); m[col] = (*melange(teinte, (1, .92, .66), .08 + .1 * (k % 2)), 1)
-                    p = bm.verts.new((bx + gx * lg, by + gy * lg, zb_ + .09 - lg * (.9 if not bord else 1.4))); p[col] = (*melange(teinte, (1, .95, .75), .22), 1)
+                    p = bm.verts.new((bx + gx * lg, by + gy * lg, zb_ + .09 - lg * (.9 if not bord else 1.2))); p[col] = (*melange(teinte, (1, .95, .75), .22), 1)
                     rh.append(h); rm.append(m); rp.append(p)
+                trou = lambda q: any(abs(q[0] - hx) < hr + .08 and abs(q[1] - hy) < hr + .08 for (hx, hy, hr) in s.cheminees)
                 for k in range(len(pts) - 1):
+                    if trou(pts[k]) or trou(pts[k + 1]) or trou((rm[k].co.x, rm[k].co.y)) or trou((rm[k + 1].co.x, rm[k + 1].co.y)): continue
                     quad(rh[k], rm[k], rm[k + 1], rh[k + 1]); quad(rm[k], rp[k], rp[k + 1], rm[k + 1])
             zc -= dz; rang += 1
         # 3. faîtage : boudin tressé posé dans la crête (enfoncé d'un tiers), qui suit la vraie hauteur du toit
