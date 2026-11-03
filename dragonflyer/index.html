@@ -1111,7 +1111,7 @@ function materiauTerrain() {
           { vec3 sv = solVillage(vW.xz);   // rues en terre battue, place et allées pavées, potagers et champs labourés
             if (sv.x + sv.y + sv.z > 0.01) {
               vec4 nb = texture(tBruit, vW.xz / 2.3), nc = texture(tBruit, vW.xz / 0.9);
-              vec3 terre = vec3(0.34, 0.26, 0.16) * (0.82 + 0.3 * nb.r) * (0.9 + 0.2 * nc.g);
+              vec3 terre = vec3(0.34, 0.26, 0.16) * (0.82 + 0.3 * nb.r) * (0.9 + 0.2 * nc.g) * (1.0 + 2.0 * min(length(nB.xz), 0.35));   // une rue en pente reste aussi claire qu'une rue plate
               terrN = normalize(mix(terrN, nB, 0.85 * smoothstep(0.1, 0.5, max(sv.x, sv.y))));   // rues et pavés : pas de relief de roche (plus de traits noirs)
               vec2 gp = vW.xz / 0.46; gp.x += floor(gp.y) * 0.5; vec2 fp = fract(gp);   // pavés en quinconce de 46 cm
               float hp = fract(sin(dot(floor(gp), vec2(12.9898, 78.233))) * 43758.5);
@@ -1668,16 +1668,11 @@ function semerNature() {
     if (r() < (pente(px, pz) > .15 ? .05 : .012)) {   // rochers (plus sur les pentes), entourés de galets
       const t = "rocher" + (1 + ((r() * 3) | 0)), s = .8 + r() * 1.6; mettre(t, px, pz, s, s * (.7 + r() * .5), c.setHSL(.08, .2, .42 + r() * .12));   // pierre chaude, comme les falaises du jeu
       if (s > 1.5) ajouterCollision({ x: px, z: pz, yaw: 0, hx: s * .9, hz: s * .9, haut: h + s * 1.6 });
-      for (let k = 0; k < 4; k++) { const an = r() * 6.28, d = s * 1.4 + r() * 2; mettre(r() < .5 ? "galet1" : "galet2", px + Math.cos(an) * d, pz + Math.sin(an) * d, .5 + r() * .7, .4, c.setHSL(.08, .16, .4 + r() * .12)); }
+      for (let k = 0; k < 4; k++) { const an = r() * 6.28, d = s * 1.4 + r() * 2, gx = px + Math.cos(an) * d, gz = pz + Math.sin(an) * d; if (solIci(gx, gz) > .02 || dansUnRect(gx, gz, .5)) continue;   // jamais sur une rue ou une place
+        mettre(r() < .5 ? "galet1" : "galet2", gx, gz, .5 + r() * .7, .4, c.setHSL(.08, .16, .4 + r() * .12)); }
     }
   }
-  // chemins de pierres : de la place du village jusqu'à chaque porte
-  for (const v of VILLAGES) for (const pt of PORTES) {
-    if (!pt.maison || !v.maisons.includes(pt.maison)) continue;
-    const x1 = pt.x + Math.sin(pt.yaw) * 1.6, z1 = pt.z + Math.cos(pt.yaw) * 1.6, x0 = v.place.x, z0 = v.place.z, L = Math.hypot(x1 - x0, z1 - z0);
-    for (let d = 3; d < L; d += 1.05) { const t = d / L, ox = (r() - .5) * .8, x = x0 + (x1 - x0) * t - (z1 - z0) / L * ox, z = z0 + (z1 - z0) * t + (x1 - x0) / L * ox;
-      if (dansUnRect(x, z, .2)) continue; mettre(r() < .5 ? "galet1" : "galet2", x, z, 1 + r() * .5, .32, c.setHSL(.08, .14, .46 + r() * .12)); }
-  }
+  // (les anciens chemins de pas japonais de la place aux portes sont remplacés par les allées pavées de la carte du sol)
 }
 const _qN = new THREE.Quaternion(), _vN = new THREE.Vector3(), _sN = new THREE.Vector3(), _mN = new THREE.Matrix4();
 function majNature() {
@@ -5486,7 +5481,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
 })();
 </script>
 <script>
-window.DRAGONFLYER_VERSION = "2026.11.03-5"; // à changer à chaque modification du jeu
+window.DRAGONFLYER_VERSION = "2026.11.03-6"; // à changer à chaque modification du jeu
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
