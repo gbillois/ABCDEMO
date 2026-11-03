@@ -1,5 +1,6 @@
 # Le feuillu de la forêt : un tronc trapu à contreforts, une fourche en quatre maîtresses branches et une flèche
-# (tronc, racines et maîtresses branches d'une seule pièce : kit.Charpente),
+# (pied sculpté d'une seule peau avec ses contreforts, qui monte jusque dans la fourche : kit.pied_sculpte ;
+# les maîtresses branches naissent dedans et en sortent),
 # des rameaux qui portent chacun une touffe de feuilles. Les touffes sont posées d'abord (règle : trois couronnes
 # et un sommet sur une boule aplatie), puis les branches poussent vers elles : la couronne est ronde et pleine,
 # et chaque touffe tient à une branche (rien ne flotte). Fait seulement des pièces du kit.
@@ -8,7 +9,7 @@
 import sys, os; sys.path[:0] = [os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")]
 import math
 from mathutils import Vector
-from kit import Arbre, Charpente, tube, courbe, touffe
+from kit import Arbre, pied_sculpte, tube, courbe, touffe
 from materiaux import TEINTE_ECORCE
 
 H = 10.0
@@ -28,17 +29,20 @@ def construire(graine=8):
             a = ph + 2 * math.pi * (i + R.uniform(-.15, .15)) / nb; e_ = math.radians(el + R.uniform(-6, 6))
             d = Vector((math.cos(a) * math.cos(e_) * AX.x, math.sin(a) * math.cos(e_) * AX.y, math.sin(e_) * AX.z)) * k
             touffes.append((Vector((0, 0, ZC)) + d, ray * R.uniform(.92, 1.08)))
-    # 2. la charpente d'une seule pièce : tronc évasé, racines qui en naissent et plongent sous le sol, fourche en Y
+    # 2. le pied : un seul cylindre sculpté, du sous-sol à la fourche, avec cinq contreforts qui plongent sous le sol
     F = Vector((R.uniform(-.15, .15), R.uniform(-.15, .15), FOURCHE))
-    C = Charpente()
-    tr = C.chaine([(0, 0, -.55), (0, 0, .3), F * .35 + Vector((0, 0, 1.0 - FOURCHE * .35)), F * .7 + Vector((0, 0, 2.2 - FOURCHE * .7)), F],
-                  [.62, .66, .55, .5, .47])
+    def rayon(z):   # fût un peu évasé au pied ; dans la fourche il se resserre et passe sous la peau des branches
+        r = .56 - .1 * max(0, z) / F.z + .07 * math.exp(-max(z, 0) / .3)
+        return max(.16, r - max(0, z - (F.z - .05)) * .55)
     ph = R.uniform(0, 6.28)
-    for k in range(5):
-        a = ph + 2 * math.pi * (k + R.uniform(-.18, .18)) / 5; d = Vector((math.cos(a), math.sin(a), 0)); L = R.uniform(.9, 1.15)
-        C.chaine([d * .75 * L + Vector((0, 0, .1)), d * 1.4 * L + Vector((0, 0, -.06)), d * 2.0 * L + Vector((0, 0, -.24)), d * 2.45 * L + Vector((0, 0, -.55))],
-                 [.33, .22, .12, .05], depart=tr[1])
-    # 3. maîtresses branches : quatre directions, plus la flèche vers le sommet ; chaque touffe va à la plus proche
+    contreforts = [(ph + 2 * math.pi * (k + R.uniform(-.15, .15)) / 5, R.uniform(1.0, 1.5), R.uniform(.38, .5)) for k in range(5)]
+    hauteurs = [-.75, -.35, -.12, .02, .12, .25, .42, .68, 1.1, 1.8, 2.6, F.z + .1, F.z + .55]
+    n0 = len(A.bm.faces)
+    pied_sculpte(A, hauteurs, rayon, contreforts, cols=28, teinte=e, axe=lambda z: Vector((F.x, F.y, 0)) * max(0, z) / F.z)
+    # 3. maîtresses branches : nées dans le haut du pied (qui se referme en douceur au-dessus de la fourche), elles en
+    #    sortent comme d'un fût ; deux partent un peu plus bas que les autres ; chacune finit, arrondie, au centre
+    #    de la touffe la plus proche (son bout ne se voit jamais)
+    print("pied", len(A.bm.faces) - n0, "faces"); n0 = len(A.bm.faces)
     meres = []
     ph = R.uniform(0, 6.28)
     for i in range(4):
@@ -51,19 +55,22 @@ def construire(graine=8):
         else: j = min(range(4), key=lambda j: (Vector((c.x, c.y, 0)).normalized() - Vector((meres[j].x - F.x, meres[j].y - F.y, 0)).normalized()).length)
         groupes[j].append((c, r))
     for j, M in enumerate(meres):
-        # la maîtresse branche se prolonge jusque dans la touffe la plus proche : son bout ne se voit jamais
         c, r = min(groupes[j], key=lambda cr: (cr[0] - M).length) if groupes[j] else (M, 0)
-        bout = M + (c - M) * .8
-        C.chaine([F + (M - F) * .5 + Vector((0, 0, .12 if j < 4 else 0)), M, bout], [.36, .26, .14] if j < 4 else [.36, .25, .14], depart=tr[-1])
-    C.construire(A, teinte=e, subdiv=2, garder=.1)
+        z0 = F.z - (.55 if j in (0, 2) else .3)
+        tube(A, [Vector((F.x, F.y, z0)), F + (M - F) * .5 + Vector((0, 0, .12 if j < 4 else 0)), M, c],
+             [.3, .29, .23, .07] if j < 4 else [.3, .28, .22, .07], n=7, pas=.8, teinte=e, bout=True)
+    print("branches", len(A.bm.faces) - n0, "faces"); n0 = len(A.bm.faces)
     for j, M in enumerate(meres):
         # 4. rameaux : du bout de la maîtresse branche jusque dans chaque touffe (le bout se cache dans la touffe)
+        proche = min(groupes[j], key=lambda cr: (cr[0] - M).length)[0] if groupes[j] else None
         for c, r in groupes[j]:
+            if c is proche: continue          # la maîtresse branche y va déjà
             fin = c - (c - M).normalized() * r * .25
             tube(A, courbe(M - (c - M).normalized() * .15, fin, .25 if c.z > M.z else -.15, 3, R, .08), [.2, .15, .1], n=4, pas=1.6, teinte=e, bout=True)
+    print("rameaux", len(A.bm.faces) - n0, "faces"); n0 = len(A.bm.faces)
     # 5. les touffes (cœur opaque + bouquets en cartes)
     for c, r in touffes:
-        touffe(A, c, r * .9, ech=(1, 1, .82), ncartes=26, taille=1.0, inclin=34, jit=.03)
+        touffe(A, c, r * .8, ech=(1, 1, .82), ncartes=30, taille=1.2, inclin=34, jit=.03)
     return A
 
 if __name__ == "__main__":

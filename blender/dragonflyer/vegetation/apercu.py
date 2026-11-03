@@ -84,7 +84,7 @@ def imposteur(ob, nom, dossier, mats, haut_px=1024):
         a = k * math.pi / 3; cam.location = (60 * math.sin(a), -60 * math.cos(a), z0 + haut / 2); cam.rotation_euler = (math.pi / 2, 0, a)
         f = os.path.join(dossier, f"_vue_{k}.png"); sc.render.filepath = f; bpy.ops.render.render(write_still=True)
         im = bpy.data.images.load(f); vues.append(np.array(im.pixels[:], np.float32).reshape(ry, rx, 4)); bpy.data.images.remove(im); os.remove(f)
-    atlas = np.concatenate(vues, 1); img = bpy.data.images.new(f"loin_{nom}", rx * 3, ry, alpha=True)
+    atlas = elargir(np.concatenate(vues, 1)); img = bpy.data.images.new(f"loin_{nom}", rx * 3, ry, alpha=True)
     img.pixels.foreach_set(atlas.ravel()); img.filepath_raw = chemin; img.file_format = "PNG"; img.save(); bpy.data.images.remove(img)
     for o in caches: o.hide_render = False
     for i, mm in enumerate(vrais): ob.data.materials[i] = mm
@@ -106,14 +106,29 @@ def imposteur(ob, nom, dossier, mats, haut_px=1024):
     o["matieres"] = [f"Loin_{nom}"]
     return o, chemin
 
+def elargir(px, n=2):
+    """La silhouette grandit de n pixels (le seuil de transparence du jeu l'amincit à distance) ; les pixels gagnés
+    prennent la couleur de leur voisin opaque (pas de liseré sombre)."""
+    px = px.copy()
+    for _ in range(n):
+        a = px[..., 3]; nouv = px.copy()
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                if dy == dx == 0: continue
+                v = np.roll(np.roll(px, dy, 0), dx, 1); m = (v[..., 3] > nouv[..., 3]) & (a < .5)
+                nouv[m] = v[m]
+        px = nouv
+    return px
+
 def materiau_imposteur(chemin, nom):
     m = bpy.data.materials.new(f"Rendu_loin_{nom}"); m.use_nodes = True; nt = m.node_tree; N = nt.nodes; L = nt.links
     N.remove(N["Principled BSDF"])
     ti = N.new("ShaderNodeTexImage"); ti.image = bpy.data.images.load(chemin, check_existing=True); ti.image.alpha_mode = "STRAIGHT"
     oi = N.new("ShaderNodeObjectInfo"); mx = N.new("ShaderNodeMix"); mx.data_type = "RGBA"; mx.blend_type = "MULTIPLY"; mx.inputs["Factor"].default_value = 1
     L.new(ti.outputs["Color"], mx.inputs[6]); L.new(oi.outputs["Color"], mx.inputs[7])
-    # un plan vu par la tranche s'efface (sinon un trait vertical au milieu de l'arbre) : même règle à mettre dans le jeu
-    al = tranche(nt, ti.outputs["Alpha"], bas=.12, haut=.3)
+    # seul le plan qui fait à peu près face au regard se montre (des trois, il y en a toujours un à moins de 30°) :
+    # pas d'image écrasée de biais ni d'arête au milieu de l'arbre ; même règle à mettre dans le jeu
+    al = tranche(nt, ti.outputs["Alpha"], bas=.66, haut=.78, horizontal=True)
     L.new(detourage(nt, al, eclairage_jeu(nt, mx.outputs[2], normale_choisie(nt))), N["Material Output"].inputs["Surface"])
     return m
 

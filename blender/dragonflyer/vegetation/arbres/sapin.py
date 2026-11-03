@@ -22,7 +22,7 @@ def construire(graine=5):
     A.couronne = (Vector((0, 0, H * .42)), Vector((R0, R0, H * .58)))
     # tronc et racines
     tube(A, courbe((0, 0, -.3), (R.uniform(-.1, .1), R.uniform(-.1, .1), H * .86), 0, 4, R, .05), [rayon_tronc(0) * 1.15, rayon_tronc(H * .86)], n=8, pas=1.4, teinte=e)
-    racines(A, rayon_tronc(0), n=4, long=1.0, teinte=e, z_haut=.55)
+    racines(A, rayon_tronc(0), n=4, long=1.0, teinte=e, z_haut=.55, cotes=6, pas=.6)   # cachées sous la jupe : légères
     # étages : du bas vers le haut (règle : rayon et hauteur diminuent, chaque étage recouvre le haut du précédent ;
     # hauteur et débord varient de ±10 % d'un étage à l'autre)
     for i in range(ETAGES):
@@ -31,7 +31,7 @@ def construire(graine=5):
         zb = .72 + t ** 1.08 * (H - 2.3 - .72) + (R.uniform(-.15, .15) if 0 < i < ETAGES - 1 else 0)
         if i == ETAGES - 1: h = H - zb
         Ri = ((R0 - R_HAUT) * (1 - t) ** .9 + R_HAUT) * R.uniform(.92, 1.08)
-        nd = round(4.5 + 4.5 * (1 - t))
+        nd = round(4 + 4 * (1 - t))
         etage_aiguilles(A, zb, h, Ri, nd=nd, rt=rayon_tronc(zb + h * .32), tombe=.42 - .18 * t, sommet=i == ETAGES - 1)
         # branches sous l'étage du bas seulement (vues d'en dessous, cachées de partout ailleurs)
         if i == 0:

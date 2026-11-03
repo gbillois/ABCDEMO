@@ -131,7 +131,7 @@ def courbe(a, b, flechir=0.0, n=4, R=None, jit=0.0, montee=0.0):
         pts.append(p)
     return pts
 
-def racines(A, rayon_tronc, n=5, long=1.3, teinte=(1, 1, 1), z_haut=.7):
+def racines(A, rayon_tronc, n=5, long=1.3, teinte=(1, 1, 1), z_haut=.7, cotes=8, pas=.42):
     """Contreforts au pied du tronc : naissent dans le tronc, s'écartent en s'arrondissant et plongent sous le sol
     (le bout s'effile à 45 cm sous terre : jamais de bout coupé visible ; entre deux racines on voit le tronc entrer dans le sol)."""
     for i in range(n):
@@ -139,92 +139,39 @@ def racines(A, rayon_tronc, n=5, long=1.3, teinte=(1, 1, 1), z_haut=.7):
         L = long * A.R.uniform(.8, 1.15)
         pts = [d * rayon_tronc * .25 + Vector((0, 0, z_haut)), d * (rayon_tronc * .85) + Vector((0, 0, z_haut * .42)),
                d * (rayon_tronc + L * .45) + Vector((0, 0, .02)), d * (rayon_tronc + L * .8) + Vector((0, 0, -.2)), d * (rayon_tronc + L) + Vector((0, 0, -.45))]
-        tube(A, pts, [rayon_tronc * .5, rayon_tronc * .44, rayon_tronc * .26, rayon_tronc * .13, rayon_tronc * .05], n=8, pas=.42, teinte=teinte, bout=True)
+        tube(A, pts, [rayon_tronc * .5, rayon_tronc * .44, rayon_tronc * .26, rayon_tronc * .13, rayon_tronc * .05], n=cotes, pas=pas, teinte=teinte, bout=True)
 
-# ------------------------------------------------------------------ 1 bis. la charpente d'une seule pièce (tronc, racines, maîtresses branches)
-class Charpente:
-    """Squelette d'un arbre : des chaînes de points avec leur rayon ; une chaîne part d'un point d'une autre chaîne.
-    Le maillage est fait d'un seul tenant (modificateur Skin de Blender, puis subdivision lissée) : les racines et les
-    branches sortent du tronc sans arête, sans collerette ni bourrelet. L'écorce suit le squelette : chaque point de
-    la peau prend la direction du segment le plus proche (le long de la branche) et l'angle autour de lui."""
-    def __init__(s):
-        s.points = []; s.rayons = []; s.aretes = []; s.chaines = []
-    def chaine(s, pts, rayons, depart=None):
-        """Ajoute une chaîne ; depart = indice d'un point existant d'où elle part (None : nouvelle racine).
-        Renvoie les indices de ses points (le point de départ compris)."""
-        idx = [] if depart is None else [depart]
-        for p, r in zip(pts, rayons):
-            s.points.append(Vector(p)); s.rayons.append(r); j = len(s.points) - 1
-            if idx: s.aretes.append((idx[-1], j))
-            idx.append(j)
-        s.chaines.append(idx); return idx
-
-    def construire(s, A, teinte=(1, 1, 1), rep=1.4, subdiv=2, lisse=.5, garder=1.0):
-        sc = bpy.context.scene
-        me = bpy.data.meshes.new("charpente"); me.from_pydata([tuple(p) for p in s.points], s.aretes, []); me.update()
-        ob = bpy.data.objects.new("charpente", me); sc.collection.objects.link(ob)
-        mod = ob.modifiers.new("skin", "SKIN"); mod.branch_smoothing = lisse; mod.use_smooth_shade = True
-        for i, r in enumerate(s.rayons): me.skin_vertices[0].data[i].radius = (r, r)
-        me.skin_vertices[0].data[0].use_root = True
-        sub = ob.modifiers.new("sub", "SUBSURF"); sub.levels = subdiv; sub.render_levels = subdiv
-        if garder < 1:   # allègement doux de la surface lisse (garde la silhouette)
-            dec = ob.modifiers.new("dec", "DECIMATE"); dec.ratio = garder; dec.use_collapse_triangulate = True
-        dg = bpy.context.evaluated_depsgraph_get(); ev = ob.evaluated_get(dg)
-        m2 = bpy.data.meshes.new_from_object(ev)
-        lisses = None
-        if garder < 1:   # normales de la surface dense (avant allègement) : l'ombrage reste lisse, sans facettes
-            from mathutils.kdtree import KDTree
-            dec.show_viewport = False; dg.update(); ev = ob.evaluated_get(dg); dense = bpy.data.meshes.new_from_object(ev)
-            kd = KDTree(len(dense.vertices))
-            for v in dense.vertices: kd.insert(v.co, v.index)
-            kd.balance(); nd = [v.normal.copy() for v in dense.vertices]; bpy.data.meshes.remove(dense)
-            lisses = lambda co: sum((nd[i] * (1 / (d + 1e-3)) for _, i, d in kd.find_n(co, 4)), Vector()).normalized()
-        bpy.data.objects.remove(ob); bpy.data.meshes.remove(me)
-        # cadres le long des chaînes (transport parallèle ; une chaîne fille part du cadre de sa mère)
-        cadre = {}; long = {}
-        for ch in s.chaines:
-            a = ch[0]; N = cadre.get(a, (None,))[0]; L0 = long.get(a, 0.)
-            for k in range(len(ch) - 1):
-                i, j = ch[k], ch[k + 1]; t = (s.points[j] - s.points[i]).normalized()
-                N = _ortho(t) if N is None else (N - t * N.dot(t)).normalized()
-                if N.length < .5: N = _ortho(t)
-                cadre[(i, j)] = (N, t.cross(N), t); long[(i, j)] = L0
-                L0 += (s.points[j] - s.points[i]).length; long[j] = L0
-                if j not in cadre: cadre[j] = (N,)
-            cadre.setdefault(a, (N,))
-        segs = [(i, j) for (i, j) in s.aretes]
-        rep_u = {}   # répétitions de l'écorce autour : une valeur par chaîne (pas de couture d'un segment à l'autre)
-        for ch in s.chaines:
-            rm = sum(s.rayons[i] for i in ch) / len(ch); m = max(1, round(2 * math.pi * rm / rep))
-            for k in range(len(ch) - 1): rep_u[(ch[k], ch[k + 1])] = m
-        def proche(p):
-            best = None
-            for (i, j) in segs:
-                a, b = s.points[i], s.points[j]; d = b - a; t = max(0., min(1., (p - a).dot(d) / d.length_squared))
-                q = a + d * t; e = (p - q).length - (s.rayons[i] + (s.rayons[j] - s.rayons[i]) * t)
-                if best is None or e < best[0]: best = (e, (i, j), t, q)
-            return best[1]
-        def coord(p, sg):
-            i, j = sg; a, b = s.points[i], s.points[j]; d = b - a; t = max(0., min(1., (p - a).dot(d) / d.length_squared))
-            q = a + d * t; N, B, T = cadre[sg]; w = p - q
-            ang = math.atan2(w.dot(B), w.dot(N)) / (2 * math.pi)
-            m = rep_u[sg]
-            return ang * m, (long[sg] + (s.points[sg[1]] - s.points[sg[0]]).length * t) / rep
-        bm = A.bm; avant = set(bm.verts); bm.from_mesh(m2); bpy.data.meshes.remove(m2)
-        nouveaux = [v for v in bm.verts if v not in avant]
-        for v in nouveaux:
-            v[A.col] = (*teinte, 1)
-            if lisses: A.normales[v] = lisses(v.co)
-        for f in {f for v in nouveaux for f in v.link_faces}:
-            f.material_index = ECORCE; f.smooth = True
-            sg = proche(f.calc_center_median())          # toute la face suit le même segment : pas de zigzag d'écorce
-            us = [list(coord(l.vert.co, sg)) for l in f.loops]
-            u0 = min(u[0] for u in us); u1 = max(u[0] for u in us)
-            if u1 - u0 > .5:   # couture de l'angle : la face reste d'un seul côté
-                for u in us:
-                    if u[0] - u0 > .5: u[0] -= round(u[0] - u0)
-            for l, u in zip(f.loops, us): l[A.uv].uv = u
-        return len(nouveaux)
+# ------------------------------------------------------------------ 1 ter. le pied sculpté (tronc et contreforts d'une seule peau)
+def pied_sculpte(A, hauteurs, rayon, contreforts, cols=32, rep=1.4, teinte=(1, 1, 1), axe=None):
+    """Le bas du tronc : un cylindre bien subdivisé (cols colonnes, un anneau par hauteur) dont le rayon est sculpté
+    par des contreforts. Chaque contrefort (angle, longueur, largeur) gonfle le rayon dans sa direction, de plus en plus
+    près du sol, en bosse arrondie (cos²), et continue sous le sol : la racine s'y enfonce, jamais de bout coupé.
+    Une seule peau : normales continues du fût aux racines ; écorce continue, dans le sens du fût (v = longueur le
+    long de chaque colonne, u = tour). axe(z) : décalage horizontal du centre (tronc un peu penché)."""
+    axe = axe or (lambda z: Vector((0, 0, 0)))
+    def r_de(th, z):
+        r = rayon(z)
+        for a, L, W in contreforts:
+            g = math.exp(-max(z, 0) / .42) * (1 + .5 * min(1, max(0, -z) / .5))   # surtout au ras du sol, et plus loin dessous
+            ext = L * g
+            if ext < .01: continue
+            w = min(1.2, W / max(.2, r + ext * .5))                                  # demi-largeur angulaire : largeur physique W
+            d = math.atan2(math.sin(th - a), math.cos(th - a))
+            if abs(d) < w: r += ext * math.cos(d / w * math.pi / 2) ** 2
+        return r
+    m = max(1, round(2 * math.pi * rayon(1.0) / rep))
+    anneaux = []
+    for z in hauteurs:
+        c = axe(z); anneaux.append([A.v(c + Vector((math.cos(2 * math.pi * k / cols) * r_de(2 * math.pi * k / cols, z),
+                                                    math.sin(2 * math.pi * k / cols) * r_de(2 * math.pi * k / cols, z), z)), teinte) for k in range(cols)])
+    long = [[0.] * cols]
+    for i in range(1, len(anneaux)): long.append([long[-1][k] + (anneaux[i][k].co - anneaux[i - 1][k].co).length for k in range(cols)])
+    for i in range(len(anneaux) - 1):
+        for k in range(cols):
+            k2 = (k + 1) % cols; u0 = k / cols * m; u1 = (k + 1) / cols * m
+            A.f([anneaux[i][k], anneaux[i][k2], anneaux[i + 1][k2], anneaux[i + 1][k]],
+                [(u0, long[i][k] / rep), (u1, long[i][k2] / rep), (u1, long[i + 1][k2] / rep), (u0, long[i + 1][k] / rep)], ECORCE)
+    return anneaux
 
 # ------------------------------------------------------------------ 2. la touffe de feuilles (feuillu)
 def _fibo(n, R):
@@ -253,7 +200,7 @@ def touffe(A, centre, rayon, ech=(1, 1, .85), ncartes=16, taille=1.0, inclin=38,
     vs = r["verts"]
     for v in vs:
         d = v.co - c; v.co = c + d * (1 + A.R.uniform(-jit, jit))
-        v[A.col] = (*A.lumiere_feuillage(v.co, -.04), 1); A.normales[v] = A.normale_feuillage(v.co, c)
+        v[A.col] = (*A.lumiere_feuillage(v.co, -.01), 1); A.normales[v] = A.normale_feuillage(v.co, c)   # cœur à peine plus sombre que les bouquets
     fs = list({f for v in vs for f in v.link_faces})
     # texture du cœur projetée à plat selon l'axe principal de chaque face (pas de pôle pincé ni de rayures) :
     # le fond de feuilles serrées garde partout la même taille ; décalage au hasard par touffe
@@ -270,7 +217,7 @@ def touffe(A, centre, rayon, ech=(1, 1, .85), ncartes=16, taille=1.0, inclin=38,
     cc = A.couronne[0]; n_fn = lambda p: A.normale_feuillage(p, c); c_fn = lambda p: A.lumiere_feuillage(p, .02)
     for d in _fibo(int(ncartes * 1.4), A.R):
         dehors = (c - cc); dehors = dehors.normalized() if dehors.length > .3 else Vector((0, 0, 1))
-        if d.dot(dehors) < -.6 and A.R.random() < .85: continue        # vers le cœur de l'arbre : presque rien
+        if d.dot(dehors) < -.8 and A.R.random() < .85: continue        # tout droit vers le cœur de l'arbre : presque rien
         if ncartes <= 0: break
         ncartes -= 1
         p = c + Vector((d.x * E.x, d.y * E.y, d.z * E.z)) * .8
@@ -298,12 +245,14 @@ def etage_aiguilles(A, zb, h, R, nd=10, rt=.3, tombe=.35, brins=True, sommet=Fal
         if creux(j): return P(j, R * .8, zb + .08 * h)
         f = 1.0 if r == 1 else .93                                     # milieu du lobe plus avancé : bout arrondi
         return P(j, R * (1 + lobes[k][0]) * f, zb - tombe * (1 + lobes[k][1]) * (1 if r == 1 else .8))
-    anneaux = [[bord(j) for j in range(n)],
+    def arrondi(j):   # juste au-dessus du bord, un peu en dedans : le bord est un bourrelet arrondi, pas une dalle
+        b = bord(j); return Vector((b.x * .955, b.y * .955, b.z + .13))
+    anneaux = [[bord(j) for j in range(n)], [arrondi(j) for j in range(n)],
                [P(j, R * (.6 if creux(j) else .66), zb + h * (.33 if creux(j) else .29)) for j in range(n)],
                [P(j, max(R * .32, rt + .12), zb + h * .68) for j in range(n)]]
     if sommet: anneaux.append([P(j, max(R * .14, rt + .06), zb + h * .9) for j in range(n)])
     haut = Vector((0, 0, zb + h * (1.0 if not sommet else .99)))
-    m = max(1, round(2 * math.pi * R / 5.5)); S = [0, .42, .78, .93, 1.][:len(anneaux)] + [1.]
+    m = max(1, round(2 * math.pi * R / 5.5)); S = [0, .05, .42, .78, .93][:len(anneaux)] + [1.]
     vv = lambda t: FOND_V[0] + (FOND_V[1] - FOND_V[0]) * t
     clair = lambda p, b=0.: A.lumiere_feuillage(p, b)
     def nrm(p, dessous=False):
@@ -311,7 +260,16 @@ def etage_aiguilles(A, zb, h, R, nd=10, rt=.3, tombe=.35, brins=True, sommet=Fal
         return (rad * .8 + Vector((0, 0, .45))) if dessous else (rad * .62 + Vector((0, 0, .78)))
     def nrm_bord(p):   # sur l'arrondi du bord : à mi-chemin entre le dessus et la lèvre
         rad = Vector((p.x, p.y, 0)).normalized(); return rad * .9 + Vector((0, 0, .3))
-    V = [[A.v(p, clair(p, .03 if (i == 0 and not creux(j)) else 0), nrm_bord(p) if i == 0 else nrm(p)) for j, p in enumerate(an)] for i, an in enumerate(anneaux)]
+    levres = [Vector((p.x * .95, p.y * .95, p.z - levre * (.8 if creux(j) else 1))) for j, p in enumerate(anneaux[0])]
+    def nrm_forme(i, j):
+        """Normale de la forme réelle (perpendiculaire à la pente, dans le plan vertical), mêlée à la normale stylisée :
+        le dessus bombé et le bord arrondi se lisent, sans jamais tourner vers le bas."""
+        p = anneaux[i][j]; av = levres[j] if i == 0 else anneaux[i - 1][j]; ap = anneaux[i + 1][j] if i + 1 < len(anneaux) else haut
+        t = av - ap; rad = Vector((p.x, p.y, 0)); rad = rad.normalized() if rad.length > 1e-3 else Vector((1, 0, 0))
+        ng = rad * (-t.z) + Vector((0, 0, max(0., t.dot(rad))))
+        st = nrm_bord(p) if i <= 1 else nrm(p)
+        return (ng.normalized() * .65 + st.normalized() * .35) if ng.length > 1e-4 else st
+    V = [[A.v(p, clair(p, .03 if (i <= 1 and not creux(j)) else 0), nrm_forme(i, j)) for j, p in enumerate(an)] for i, an in enumerate(anneaux)]
     vh = A.v(haut, clair(haut, .05), (0, 0, 1))
     def bande(B0, B1, t0, t1, inv=False):
         for j in range(n):
@@ -323,7 +281,7 @@ def etage_aiguilles(A, zb, h, R, nd=10, rt=.3, tombe=.35, brins=True, sommet=Fal
         u0, u1 = j / n * m, (j + 1) / n * m
         A.f([V[-1][j], V[-1][(j + 1) % n], vh], [(u0, vv(S[len(V) - 1])), (u1, vv(S[len(V) - 1])), ((u0 + u1) / 2, vv(1))], FEUILLAGE)
     # lèvre : des mêmes sommets du bord, un peu en dedans et plus bas (épaisseur arrondie), puis le dessous jusqu'au tronc
-    Vl = [A.v(Vector((p.x * .95, p.y * .95, p.z - levre * (.8 if creux(j) else 1))), clair(p, -.02), nrm(p, True)) for j, p in enumerate(anneaux[0])]
+    Vl = [A.v(q, clair(anneaux[0][j], -.02), nrm(q, True)) for j, q in enumerate(levres)]
     bande(V[0], Vl, 0, .06, inv=True)
     dz = zb + h * .32
     sous = [A.v(P(j, rt * 1.1, dz), tuple(x * .95 for x in clair(P(j, rt, dz), -.08)), nrm(P(j, 1, dz), True)) for j in range(n)]

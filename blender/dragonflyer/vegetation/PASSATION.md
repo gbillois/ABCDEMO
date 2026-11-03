@@ -88,7 +88,32 @@ Commandes (Blender : `/opt/blender-dl/blender-4.2.3-linux-x64/blender`) :
   - foret_1 : cadrage choisi automatiquement (aucun arbre proche coupé par le bord).
   À reprendre dans le jeu à l'intégration : effacement des cartes et des plans d'imposteur vus par la tranche
   (normale de face par dFdx/dFdy de la position), imposteur en trois vues (u de k/3 à (k+1)/3).
-- Tour 3 (`scratchpad/arbres/t3/`) : sapin 2 436 triangles, feuillu 3 779. En attente de l'inspection.
+- Tour 3 (`scratchpad/arbres/t3/`) : sapin 2 436 triangles, feuillu 3 779. Notes (sapin / feuillu) : silhouette 8/8,
+  feuillage 7/7, tronc 8/6, matières 8/7, imposteur 8/7, forêt 8, coût 9/9 → À REFAIRE.
+  Faits : poils, cadrage, trait vertical de l'imposteur feuillu, fourche d'une seule peau, tige verte.
+  Restait : pied du feuillu à facettes, plis en V d'écorce, racine tronquée (3e tour sur les racines) ; encoche noire
+  à la fourche ; bouts de branches carrés et coques d'ombre unie vues de dessous ; imposteur feuillu rayé, tronc fin ;
+  bord des étages du sapin en dalles, dessus plat (3e tour sur ce bord) ; arête au milieu de l'imposteur du sapin,
+  plan trop étroit ; tiges brun-rouge dans les brins ; tronc rouge-orangé sous la jupe.
+  Corrigé (tour 4) :
+  - CHANGEMENT D'APPROCHE pour le pied du feuillu (la peau Skin allégée faisait des facettes et des coutures) :
+    `kit.pied_sculpte` : un seul cylindre de 28 colonnes et 13 anneaux, du sous-sol jusque dans la fourche, dont le
+    rayon est sculpté par 5 contreforts en bosse arrondie (cos²), surtout au ras du sol et plus loin dessous : les
+    racines naissent du fût et s'enfoncent, une seule peau, normales continues, écorce continue (v = longueur le long
+    de chaque colonne). Le haut du pied se referme en douceur au-dessus de la fourche ;
+  - maîtresses branches : des tubes nés dans le haut du pied (deux un peu plus bas), qui en sortent comme d'un fût et
+    finissent, arrondis, au centre d'une touffe : plus de bout de tronc fermé (collerette), plus de nœud à 6 branches
+    (encoche), plus de bouts carrés. `kit.Charpente` (Skin) est retirée ;
+  - touffes : cœurs ×0,8, 30 bouquets ×1,2, aussi vers l'intérieur ;
+  - CHANGEMENT D'APPROCHE pour le bord des étages du sapin : un anneau d'arrondi au-dessus du bord (13 cm plus haut,
+    4,5 % en dedans) en plus de la lèvre dessous, et des normales prises sur la forme réelle (65 %) mêlées à la normale
+    stylisée (35 %) : bourrelet arrondi, dessus bombé. 4 à 8 lobes par étage (budget) ; racines du sapin allégées ;
+  - tige des brins courte, fine, brun-vert ; écorce du sapin plus sombre ;
+  - imposteurs : seul le plan qui fait à peu près face au regard (horizontal) se montre (seuil 0,66 à 0,78 ; il y en a
+    toujours un au-dessus de 0,87) : plus d'image écrasée de biais (rayures) ni d'arête ; silhouette élargie de 2 px.
+  Dans le jeu, la matière de loin devra faire pareil (normale de face par dFdx/dFdy, regard ramené à l'horizontale).
+- Tour 4 (`scratchpad/arbres/t4/`) : sapin 2 452 triangles, feuillu 3 773 ; imposteurs : écart de couleur 0,3 % et 0,2 %,
+  surface 91 % et 95 %. En attente de l'inspection.
 
 ## Intégration (quand tout est à 8+)
 Prévu : `arbres.glb` (T_pin_0/1, T_feuillu_0/1, matières écorce puis feuillage, `userData.matieres`) et les mêmes

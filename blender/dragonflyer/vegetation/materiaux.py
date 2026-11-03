@@ -23,7 +23,7 @@ FEUILLES = {"sombre": "#3f6b2a", "moyen": "#5f9234", "clair": "#8fbf45", "lumier
 AIGUILLES = {"sombre": "#2c5e3e", "moyen": "#3f7f4c", "clair": "#5fa25a", "lumiere": "#94cc6c", "fond": "#36704a"}
 ECORCE = {"sombre": "#4a3222", "moyen": "#755036", "clair": "#9a7050", "lumiere": "#b48a62"}
 # teintes de l'écorce par espèce (couleurs de sommets, multipliées par la texture)
-TEINTE_ECORCE = {"sapin": lin("#e0b4a0"), "feuillu": lin("#f2e6d8")}
+TEINTE_ECORCE = {"sapin": lin("#a88a7c"), "feuillu": lin("#f2e6d8")}   # sapin : brun sombre sous la jupe (pas de rouge-orangé)
 
 # ------------------------------------------------------------------ bruit qui se répète
 def bruit(w, h, gx, gy, R):
@@ -162,9 +162,9 @@ def _brin(T, R, x0, x1, y0, y1):
         t = R.uniform(0, .92); ax, ay = axe(t); L = env(t) * .7
         a = math.pi / 2 + R.uniform(-1.0, 1.0)
         T.trait(ax, ay, ax + math.cos(a) * L, ay + math.sin(a) * L, 16 * W / 512, moyen * .95, clair, zone=zone)
-    for i in range(30):
-        t0, t1 = i / 30 * .9, (i + 1) / 30 * .9; a0, a1 = axe(t0), axe(t1)
-        T.trait(*a0, *a1, 7 * W / 512 * (1 - t0 * .6), srgb("#6b4a30"), srgb("#7a5838"), zone=zone, pointe=False)
+    for i in range(20):   # la tige : courte, fine, brun-vert (pas de nervure rouge qui ressemble à une baguette)
+        t0, t1 = i / 20 * .5, (i + 1) / 20 * .5; a0, a1 = axe(t0), axe(t1)
+        T.trait(*a0, *a1, 4.5 * W / 512 * (1 - t0), srgb("#4a5a34"), srgb("#3f6a40"), zone=zone, pointe=False)
 
 def peindre_pin(R, taille=1024):
     T = Toile(taille, taille, AIGUILLES["fond"], 0.0); w = h = taille
@@ -300,12 +300,16 @@ def detourage(nt, alpha, surface):
     tp = N.new("ShaderNodeBsdfTransparent"); mx = N.new("ShaderNodeMixShader")
     L.new(se.outputs[0], mx.inputs[0]); L.new(tp.outputs[0], mx.inputs[1]); L.new(surface, mx.inputs[2]); return mx.outputs[0]
 
-def tranche(nt, alpha, uv=None, bas=.1, haut=.25):
+def tranche(nt, alpha, uv=None, bas=.1, haut=.25, horizontal=False):
     """Une carte vue presque par la tranche s'efface (sinon un trait fin, « poil » ou « tige ») ; seulement la région des
     cartes de la texture (v > 0,5), jamais les cœurs ni les cônes. Même règle à mettre dans le jeu."""
     N, L = nt.nodes, nt.links
     g = N.new("ShaderNodeNewGeometry"); dp = N.new("ShaderNodeVectorMath"); dp.operation = "DOT_PRODUCT"
-    L.new(g.outputs["True Normal"], dp.inputs[0]); L.new(g.outputs["Incoming"], dp.inputs[1])
+    vue = g.outputs["Incoming"]
+    if horizontal:   # direction du regard ramenée à l'horizontale (plans verticaux : visibles aussi vus d'en haut)
+        hz = N.new("ShaderNodeVectorMath"); hz.operation = "MULTIPLY"; hz.inputs[1].default_value = (1, 1, 0); L.new(vue, hz.inputs[0])
+        nz = N.new("ShaderNodeVectorMath"); nz.operation = "NORMALIZE"; L.new(hz.outputs["Vector"], nz.inputs[0]); vue = nz.outputs["Vector"]
+    L.new(g.outputs["True Normal"], dp.inputs[0]); L.new(vue, dp.inputs[1])
     ab = N.new("ShaderNodeMath"); ab.operation = "ABSOLUTE"; L.new(dp.outputs["Value"], ab.inputs[0])
     mr = N.new("ShaderNodeMapRange"); mr.inputs["From Min"].default_value = bas; mr.inputs["From Max"].default_value = haut; mr.interpolation_type = "SMOOTHSTEP"
     L.new(ab.outputs[0], mr.inputs["Value"]); f = mr.outputs["Result"]
