@@ -430,6 +430,8 @@ for nom, f, pied in (("puits", puits, (2.6, 2.6)), ("tonneau", tonneau, (.9, .9)
 # objets faits avec la méthode (village/objets/) que le jeu pose lui-même dans les villages
 import muret as _muret
 _muret.construire().objet({"pied": [2.0, .5]})
+import banc as _banc
+_banc.construire().objet({"pied": [1.7, .7]})
 
 # ------------------------------------------------------------------ intérieurs (pièces fermées, la porte regarde -Y)
 def interieur(nom, l, p, h, meubler):

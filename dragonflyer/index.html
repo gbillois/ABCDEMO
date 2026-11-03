@@ -1117,7 +1117,7 @@ function materiauTerrain() {
               float jt = 1.0 - smoothstep(0.05, 0.11, min(min(fp.x, 1.0 - fp.x), min(fp.y, 1.0 - fp.y)));
               vec3 pave = vec3(0.36, 0.33, 0.28) * (0.78 + 0.3 * hp) * (0.92 + 0.16 * nb.g);
               pave = mix(pave, vec3(0.13, 0.12, 0.1), jt * 0.8);                                   // joints sombres
-              pave = mix(pave, pave * 0.62, smoothstep(0.25, 0.4, sv.y) * (1.0 - smoothstep(0.4, 0.55, sv.y)));   // bordure au bord
+              pave = mix(pave, pave * 0.8, smoothstep(0.25, 0.4, sv.y) * (1.0 - smoothstep(0.4, 0.55, sv.y)));   // bordure au bord
               terrAlb = mix(terrAlb, terre, smoothstep(0.12, 0.55, sv.x));
               terrAlb = mix(terrAlb, pave, smoothstep(0.2, 0.32, sv.y));                      // bord franc
               float sil = sin((vW.x * 0.8 + vW.z * 0.6) * 9.0) * 0.5 + 0.5;   // sillons
@@ -1648,7 +1648,7 @@ function semerNature() {
     T.liste.push(it); const k = Math.floor(x / NATURE.case) + "," + Math.floor(z / NATURE.case);
     if (!NATURE.grille.has(k)) NATURE.grille.set(k, []); NATURE.grille.get(k).push(it);
   };
-  const libre = (x, z) => { const h = hauteur(x, z); return h > 1.6 && pente(x, z) < .3 && !horsVillage(x, z) && !dansUnRect(x, z, 1); };
+  const libre = (x, z) => { const h = hauteur(x, z); return h > 1.6 && pente(x, z) < .3 && !horsVillage(x, z) && !dansUnRect(x, z, 1) && solIci(x, z) < .05; };   // ni sur les rues, la place, les champs
   // au pied des arbres : fougères, buissons, champignons
   for (const a of ARBRES.liste) {
     if (r() > .5) continue;
@@ -1772,7 +1772,7 @@ const STYLES_VILLAGES = [
   { nom: "Stonebrook", maisons: ["longere", "pierre", "pierre", "pierre", "forge", "pierre", "pierre", "pierre", "pierre"],
     props: { puits: 1, tonneau: 5, caisse: 5, lanterne: 5 } },
 ];
-const ENFONCE = { longere: .75 };   // maisons dont le seuil est haut sans marches : posées plus bas dans le terrain
+const ENFONCE = { longere: .75, forge: .3 };   // maisons dont le seuil est haut sans marches : posées plus bas dans le terrain
 // collisions (rectangles tournés, pour le cavalier à pied), rangées dans une grille de 32 m
 const COLLISIONS = new Map(), PORTES = [], MOULINS = [];
 const cleC = (i, j) => i * 100003 + j;
@@ -1825,11 +1825,19 @@ function peindreSol(v, pts, larg, couleur) {   // un trait (rue, allée) ou un d
   else { pts.forEach((q, i) => { const [X, Y] = P(q); i ? c.lineTo(X, Y) : c.moveTo(X, Y); }); c.stroke(); }
   c.restore();
 }
+function solIci(x, z) {   // 0 à 1 : rue, place, allée ou champ à cet endroit (après finirSol)
+  if (!SOL.d) return 0;
+  for (let i = 0; i < SOL.villages.length; i++) { const v = SOL.villages[i], u = (x - v.place.x + SOL.M / 2) / SOL.M, w = (z - v.place.z + SOL.M / 2) / SOL.M;
+    if (u < 0 || w < 0 || u >= 1 || w >= 1) continue;
+    const px = (i % 2) * SOL.T + ((u * SOL.T) | 0), py = (i >> 1) * SOL.T + ((w * SOL.T) | 0), k = (py * SOL.T * 2 + px) * 4;
+    return Math.max(SOL.d[k], SOL.d[k + 1], SOL.d[k + 2]) / 255; }
+  return 0;
+}
 function finirSol() {
   if (!SOL.cv) return;
   const d = SOL.cx.getImageData(0, 0, SOL.T * 2, SOL.T * 2).data, rg = new Uint8Array(d);
   const t = new THREE.DataTexture(rg, SOL.T * 2, SOL.T * 2, THREE.RGBAFormat, THREE.UnsignedByteType);   // r : terre battue, g : pavés et dalles, b : terre labourée
-  t.magFilter = t.minFilter = THREE.LinearFilter; t.needsUpdate = true; U_SOL.value = t;
+  t.magFilter = t.minFilter = THREE.LinearFilter; t.needsUpdate = true; U_SOL.value = t; SOL.d = d;
   SOL.villages.forEach((v, i) => U_SOL_V.value[i].set(v.place.x - SOL.M / 2, v.place.z - SOL.M / 2, SOL.M, 1));
 }
 // aplanir : plateformes des maisons (et paliers devant les portes), mélangées doucement au terrain autour
@@ -1857,7 +1865,7 @@ function aplanirExact(plats) {   // dans l'ordre : chaque plat (et un point de g
     const R = Math.hypot(q.hx, q.hz) + CEL * 2, cs = Math.cos(q.yaw), sn = Math.sin(q.yaw);
     for (let iz = Math.max(0, gi(q.z - R)); iz <= Math.min(NRES - 1, gi(q.z + R)); iz++) for (let ix = Math.max(0, gi(q.x - R)); ix <= Math.min(NRES - 1, gi(q.x + R)); ix++) {
       const x = (ix + .5) * CEL - MONDE / 2, z = (iz + .5) * CEL - MONDE / 2, dx = x - q.x, dz = z - q.z;
-      if (Math.abs(dx * cs - dz * sn) <= q.hx + CEL * .75 && Math.abs(dx * sn + dz * cs) <= q.hz + CEL * .75) HAUT[iz * NRES + ix] = q.y;
+      if (q.rond ? Math.hypot(dx, dz) <= q.hx + CEL * .75 : Math.abs(dx * cs - dz * sn) <= q.hx + CEL * .75 && Math.abs(dx * sn + dz * cs) <= q.hz + CEL * .75) HAUT[iz * NRES + ix] = q.y;
     }
   }
 }
@@ -1950,22 +1958,22 @@ function batirVillage(v, r) {
     }
   }
   // terrain : plateformes aplanies sous les maisons et devant les portes, place à plat ; puis rues, allées et place peintes
-  const plats = [{ x: C.x, z: C.z, yaw: 0, hx: 10, hz: 10, y: hC }];
+  const plats = [{ x: C.x, z: C.z, yaw: 0, hx: 10, hz: 10, y: hC, rond: true }];
   v.murets = []; v.potagers = []; v.props = [];
   const SOL0 = (x, z) => hauteur(x, z);   // relief d'origine (avant l'aplanissement)
   for (const o of v.maisons) {
     if (o.type === "pecheur") continue;
     const yp = o.y + (ENFONCE[o.type] || 0), sn = Math.sin(o.yaw), cs = Math.cos(o.yaw), P = (lx, lz) => [o.x + lx * cs + lz * sn, o.z - lx * sn + lz * cs];
-    plats.push({ x: o.x, z: o.z, yaw: o.yaw, hx: o.hx + .6, hz: o.hz + .6, y: yp });
-    const dd = o.hz + 2; plats.push({ x: o.x + sn * dd, z: o.z + cs * dd, yaw: o.yaw, hx: 1.6, hz: 1.6, y: yp });   // palier devant la porte (façade : +Z local)
+    plats.push({ x: o.x, z: o.z, yaw: o.yaw, hx: o.hx + .6, hz: o.hz + .6, y: yp, maison: true });
+    const dd = o.hz + 2; plats.push({ x: o.x + sn * dd, z: o.z + cs * dd, yaw: o.yaw, hx: 1.6, hz: 1.6, y: yp, palier: true });   // palier devant la porte (façade : +Z local)
     // murets de soutènement sur les côtés et à l'arrière quand la terrasse entaille la pente ou la remblaie de plus de 45 cm
     const bord = .6 + CEL * .75 + .3;   // au bord de la zone aplanie, là où le talus commence
     for (const [cx_, cz_, ax, az, L] of [[o.hx + bord, 0, 0, 1, o.hz * 2 + 2 * bord], [-(o.hx + bord), 0, 0, 1, o.hz * 2 + 2 * bord], [0, -(o.hz + bord), 1, 0, o.hx * 2 + 2 * bord]]) {
       const [mx_, mz_] = P(cx_, cz_), [ox_, oz_] = P(cx_ ? cx_ + Math.sign(cx_) * 1.5 : 0, cz_ ? cz_ + Math.sign(cz_) * 1.5 : 0);
       const diff = SOL0(ox_, oz_) - yp; if (diff < .45) continue;   // seulement là où la terrasse entaille la pente (côté remblai : un talus doux suffit)
-      const n = Math.max(1, Math.round(L / 2)), ex = ax * cs + az * sn, ez = -ax * sn + az * cs;
-      for (let k = 0; k < n; k++) { const t = (k + .5 - n / 2) * (L / n);
-        v.murets.push({ x: mx_ + ex * t, z: mz_ + ez * t, yaw: Math.atan2(-ez, ex), y: yp - .1, sy: Math.min(1.7, Math.max(.55, diff / .9 + .1)) }); }
+      const n = Math.max(2, Math.round(L / 2)), ex = ax * cs + az * sn, ez = -ax * sn + az * cs, sy = Math.min(1.7, Math.max(.55, diff / .9 + .1));
+      for (let k = 0; k < n; k++) { const t = (k + .5 - n / 2) * (L / n);   // un mur continu sur tout le côté, même hauteur
+        v.murets.push({ x: mx_ + ex * t, z: mz_ + ez * t, yaw: Math.atan2(-ez, ex), y: yp - .1, sy, sx: L / n / 1.95 }); }
     }
     // un potager clôturé derrière une maison sur deux (chaumières, colombages, maisons de pierre)
     if (["chaumiere", "colombage", "pierre"].includes(o.type) && r() < .55) {
@@ -1977,14 +1985,18 @@ function batirVillage(v, r) {
     }
   }
   // champs labourés clôturés au bout des rues (villages qui ont des meules de foin)
-  if (v.style.props.foin) for (const ru of rues.slice(0, 2)) {
-    const d0 = Math.max(ru.L, 30) + 13, fx = C.x + ru.dx * d0, fz = C.z + ru.dz * d0, hf = SOL0(fx, fz), yaw = Math.atan2(ru.dx, ru.dz);
-    if (hf < 1.5 || hf > 90 || Math.abs(SOL0(fx + ru.dx * 8, fz + ru.dz * 8) - SOL0(fx - ru.dx * 8, fz - ru.dz * 8)) > 3) continue;
-    v.potagers.push({ x: fx, z: fz, yaw, hx: 6, hz: 8.5, y: hf, champ: true }); LIBRES.push({ x: fx, z: fz, r: 16 });
+  if (v.style.props.foin) for (const ru of rues) for (const extra of [13, 19, 25]) {
+    if (v.potagers.filter(g => g.champ).length >= 2 || v.potagers.some(g => g.champ && g.rue === ru)) break;
+    const d0 = Math.max(ru.L, 30) + extra, fx = C.x + ru.dx * d0, fz = C.z + ru.dz * d0, hf = SOL0(fx, fz), yaw = Math.atan2(ru.dx, ru.dz);
+    if (hf < 1.5 || hf > 90 || Math.abs(SOL0(fx + ru.dx * 8, fz + ru.dz * 8) - SOL0(fx - ru.dx * 8, fz - ru.dz * 8)) > 3.5) continue;
+    if (!libre(fx, fz, yaw, 6, 8.5, 2)) continue;
+    v.potagers.push({ x: fx, z: fz, yaw, hx: 6, hz: 8.5, y: hf, champ: true, rue: ru }); LIBRES.push({ x: fx, z: fz, r: 16 }); pris.push({ x: fx, z: fz, yaw, hx: 6, hz: 8.5 });
     plats.push({ x: fx, z: fz, yaw, hx: 6, hz: 8.5, y: hf });
     ru.L = Math.max(ru.L, d0 - 8.5);
   }
-  aplanir(plats); aplanirExact(plats);
+  aplanir(plats);
+  const rang = q => q.rond ? 4 : q.maison ? 3 : q.palier ? 2 : 1;   // les maisons après les potagers et paliers (rien ne rogne leur emprise), la place tout à la fin
+  aplanirExact(plats.slice().sort((a, b) => rang(a) - rang(b)));
   peindreSol(v, [[C.x, C.z]], 19, "rgb(0,255,0)");   // place pavée
   const peche = v.maisons.some(o => o.type === "pecheur");
   for (const ru of rues) {   // les trois rues, toujours (elles sortent du village), et une trouée sans arbres dans leur axe
@@ -1992,6 +2004,10 @@ function batirVillage(v, r) {
     if (peche && Math.hypot(C.x + ru.dx * 20 - v.x, C.z + ru.dz * 20 - v.z) > Math.hypot(C.x - v.x, C.z - v.z) + 12) ru.L = 22;   // côté terre du village de pêcheurs : rues courtes
     peindreSol(v, [[C.x + ru.dx * 6, C.z + ru.dz * 6], [C.x + ru.dx * ru.L, C.z + ru.dz * ru.L]], 3, "rgb(255,0,0)");
     for (let s_ = 12; s_ < ru.L + 28; s_ += 8) LIBRES.push({ x: C.x + ru.dx * s_, z: C.z + ru.dz * s_, r: 7 });
+  }
+  for (let k = 0; k < 4; k++) {   // deux bancs et deux lanternes au bord de la place, entre les rues
+    const a = rues[k % 3].a + Math.PI / 3 + (k < 2 ? -.25 : .25) + (k === 3 ? Math.PI / 1.5 : 0), d = k % 2 ? 9.3 : 8.6, x = C.x + Math.cos(a) * d, z = C.z + Math.sin(a) * d;
+    v.props.push({ nom: k % 2 ? "lanterne" : "banc", x, y: hC - .02, z, yaw: Math.atan2(C.x - x, C.z - z) + Math.PI });
   }
   for (const g of v.potagers) {   // terre labourée et clôture tout autour (portillon du côté de la maison pour les potagers)
     const cs = Math.cos(g.yaw), sn = Math.sin(g.yaw), P = (lx, lz) => [g.x + lx * cs + lz * sn, g.z - lx * sn + lz * cs];
@@ -2001,7 +2017,7 @@ function batirVillage(v, r) {
     cotes.forEach(([lx, lz, demi], ci) => { const n = Math.max(1, Math.round(demi * 2 / 3.2)), along = lx ? [0, 1] : [1, 0];
       for (let k = 0; k < n; k++) { if (!g.champ && ci === 0 && k === (n >> 1)) continue;   // portillon
         const t = (k + .5 - n / 2) * (demi * 2 / n), [x, z] = P(lx + along[0] * t, lz + along[1] * t);
-        v.props.push({ nom: "cloture", x, y: hauteur(x, z) - .05, z, yaw: g.yaw + (lx ? Math.PI / 2 : 0) }); } });
+        v.props.push({ nom: "cloture", x, y: hauteur(x, z) - .05, z, yaw: g.yaw + (lx ? Math.PI / 2 : 0), sx: demi * 2 / n / 3.1 }); } });
     if (g.champ) for (let k = 0; k < 3; k++) { const [x, z] = P((r() - .5) * g.hx, (r() - .5) * g.hz * 1.4); v.props.push({ nom: "foin", x, y: hauteur(x, z) - .1, z, yaw: r() * 6.28 }); }
   }
   if (peche) {   // promenade de terre le long du rivage, derrière les maisons de pêcheur, reliée à la place
@@ -2014,7 +2030,7 @@ function batirVillage(v, r) {
     let best = [C.x, C.z], db = Math.hypot(a[0] - C.x, a[1] - C.z) - 7;
     for (const q of (v.promenade || [])) { const dq = Math.hypot(a[0] - q[0], a[1] - q[1]); if (dq < db) { db = dq; best = [q[0], q[1]]; } }
     for (const ru of rues) if (ru.L > 0) { const t = Math.max(6, Math.min(ru.L, (a[0] - C.x) * ru.dx + (a[1] - C.z) * ru.dz)), q = [C.x + ru.dx * t, C.z + ru.dz * t], dq = Math.hypot(a[0] - q[0], a[1] - q[1]); if (dq < db) { db = dq; best = q; } }
-    peindreSol(v, [a, [a[0] + ox * 1.6, a[1] + oz * 1.6], best], 1.9, "rgb(0,255,0)");
+    peindreSol(v, [a, [a[0] + ox * 1.6, a[1] + oz * 1.6], best], 2.3, "rgb(0,255,0)");
   }
   // accessoires autour de la place
   for (const [nom, n] of Object.entries(v.style.props)) {
@@ -2048,7 +2064,7 @@ function batirVillage(v, r) {
   const instancier = (geo, mat, liste, ombre = true) => {
     if (!geo || !liste.length) return;
     const im = new THREE.InstancedMesh(geo, mat, liste.length);
-    liste.forEach((o, i) => { m4.compose(p.set(o.x, o.y, o.z), q.setFromAxisAngle(Y, o.yaw), o.sy ? new THREE.Vector3(1, o.sy, 1) : un); im.setMatrixAt(i, m4); });
+    liste.forEach((o, i) => { m4.compose(p.set(o.x, o.y, o.z), q.setFromAxisAngle(Y, o.yaw), o.sy || o.sx ? new THREE.Vector3(o.sx || 1, o.sy || 1, 1) : un); im.setMatrixAt(i, m4); });
     im.castShadow = ombre; im.receiveShadow = true; im.computeBoundingSphere(); v.groupe.add(im);
   };
   const types = [...new Set(v.maisons.map(o => o.type))];

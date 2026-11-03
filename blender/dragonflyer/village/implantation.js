@@ -38,11 +38,12 @@ fs.mkdirSync(OUT, { recursive: true });
         L.push([n, [C.x + dx * 4, h(C.x + dx * 4, C.z + dz * 4) + 1.7, C.z + dz * 4], [C.x + dx * 40, hc + 3, C.z + dz * 40]]));   // à 4 m du centre (le puits est au milieu)
       L.push(["05_dessus", [C.x + .1, hc + R * 1.7, C.z + .1], [C.x, hc, C.z]]);
       for (const [n, sx, sz] of [["06_plongee_ne", .8, -.8], ["07_plongee_so", -.8, .8]]) { const Rv = Math.min(R, 75), x = C.x + Rv * sx, z = C.z + Rv * sz; L.push([n, [x, Math.max(hc + Rv * .55, h(x, z) + 12), z], [C.x, hc, C.z]]); }   // jamais dans le sol
-      for (const [n, a] of [["08_cote_est", 0], ["09_cote_ouest", Math.PI]]) { const x = C.x + Math.cos(a) * R * 1.1, z = C.z + Math.sin(a) * R * 1.1; L.push([n, [x, h(x, z) + 4, z], [C.x, hc + 3, C.z]]); }
+      const rues = v.rues || [];   // vues de côté et d'approche dans l'axe des rues d'entrée (là où les trouées dégagent la vue)
+      for (const [n, k] of [["08_cote_rue2", 1], ["09_cote_rue3", 2]]) { const ru = rues[k] || { dx: Math.cos(k * 2.1), dz: Math.sin(k * 2.1), L: 30 }, d0 = (ru.L || 30) + 14, x = C.x + ru.dx * d0, z = C.z + ru.dz * d0; L.push([n, [x, h(x, z) + 4, z], [C.x, hc + 3, C.z]]); }
       const portes = d.PORTES.filter(q => v.maisons.includes(q.maison));
       portes.slice(0, 2).forEach((q, i) => { const ox = Math.sin(q.yaw), oz = Math.cos(q.yaw), x = q.x + ox * 4.2 + oz * 1.2, z = q.z + oz * 4.2 - ox * 1.2;   // dans la rue, un peu de biais
         L.push([`1${i}_rue_porte_${q.maison.type}`, [x, h(x, z) + 2.2, z], [q.x, q.y + 1.2, q.z]]); });
-      L.push(["12_approche", [C.x + R * 1.6, hc + 14, C.z + R * .6], [C.x, hc, C.z]]);
+      { const ru = rues[0] || { dx: 1, dz: 0, L: 30 }, d0 = (ru.L || 30) + 26, x = C.x + ru.dx * d0, z = C.z + ru.dz * d0; L.push(["12_approche", [x, h(x, z) + 7, z], [C.x, hc + 2, C.z]]); }   // en arrivant par la première rue
       return L;
     }, nom);
     for (const [n, pos, cible] of cams) {
