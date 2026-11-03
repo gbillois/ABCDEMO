@@ -150,44 +150,77 @@ if "c" in QUOI and ANIM:
     for o in [o for o in scene.objects if o not in avant]: bpy.data.objects.remove(o)
     acts = {a.name.rsplit("_PietonRig", 1)[0]: a for a in bpy.data.actions}
     ORDRE = [n for n in ("repos", "marche", "trot", "course", "saut_debut", "saut_air", "saut_fin", "epee", "parle", "prendre") if n in acts]
+    if os.environ.get("APERCU_CLIPS"): ORDRE = [n for n in ORDRE if n in os.environ["APERCU_CLIPS"].split(",")]   # essai rapide
     scene.render.resolution_x = scene.render.resolution_y = 320; scene.cycles.samples = 16
     rig.animation_data_create(); fps = scene.render.fps
-    # épée dans la main droite pour le clip « epee » : garde au bout du poing, lame dans le prolongement épaule → main
-    # (un peu relevée), comme dans le jeu ; poignée au creux de la main (voir PASSATION : réglage du jeu à suivre)
-    def piece(nom, verts, faces, coul):
-        me = bpy.data.meshes.new(nom); me.from_pydata(verts, [], faces); me.update()
-        m = bpy.data.materials.new(nom); m.use_nodes = True; m.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = coul
-        m.node_tree.nodes["Principled BSDF"].inputs["Metallic"].default_value = .6 if "lame" in nom else 0
-        me.materials.append(m); o = bpy.data.objects.new(nom, me); scene.collection.objects.link(o); return o
+    # épée dans la main droite pour le clip « epee » : poignée en travers du poing (axe du pouce), garde juste au-dessus
+    # du pouce, lame de 65 cm × 3,2 cm dans le prolongement ; la géométrie est recalculée à chaque image dans le monde
+    sys.path.insert(0, os.path.dirname(ICI)); from squelette import BONES
+    Wr0, Ht0 = Vector(BONES["Hand.R"][0]), Vector(BONES["Hand.R"][1])
+    f0_ = (Ht0 - Wr0).normalized(); n0_ = (Vector((1, 0, 0)) - f0_ * f0_.x).normalized(); th0_ = f0_.cross(n0_).normalized()
     def boite(y0, y1, lx, lz, pointe=False):
         V = [(sx * lx, y, sz * lz) for y in (y0, y1) for sx in (-1, 1) for sz in (-1, 1)]
         if pointe: V[4:] = [(0, y1, 0)] * 4
         return V, [(0, 1, 3, 2), (4, 6, 7, 5), (0, 4, 5, 1), (2, 3, 7, 6), (0, 2, 6, 4), (1, 5, 7, 3)]
-    epee = bpy.data.objects.new("Epee", None); scene.collection.objects.link(epee)
-    for nom, (V, F), c in (("lame", boite(.0, .62, .03, .009), (.85, .84, .82, 1)), ("lame_pointe", boite(.62, .7, .03, .009, True), (.85, .84, .82, 1)),
-                           ("garde", boite(-.02, .02, .11, .022), (.8, .55, .18, 1)), ("poignee", boite(-.17, -.02, .016, .016), (.25, .14, .07, 1)),
-                           ("pommeau", boite(-.2, -.17, .028, .028), (.8, .55, .18, 1))):
-        o = piece(nom, V, [list(f) for f in F], c); o.parent = epee
+    PIECES = [(boite(.0, .58, .016, .005), 0), (boite(.58, .65, .016, .005, True), 0), (boite(-.018, .018, .075, .02), 1),
+              (boite(-.15, -.018, .014, .014), 2), (boite(-.18, -.15, .024, .024), 1)]
+    COULS = [(.86, .85, .83, 1), (.85, .6, .2, 1), (.3, .16, .08, 1)]
+    me_e = bpy.data.meshes.new("Epee"); epee = bpy.data.objects.new("Epee", me_e); scene.collection.objects.link(epee)
+    for c in COULS:
+        m = bpy.data.materials.new("epee"); m.use_nodes = True; b_ = m.node_tree.nodes["Principled BSDF"]
+        b_.inputs["Base Color"].default_value = c; b_.inputs["Metallic"].default_value = .5 if c == COULS[0] else 0; me_e.materials.append(m)
     epee.hide_render = True
     def placer_epee():
         bpy.context.view_layer.update()
-        mw = rig.matrix_world; S_ = mw @ rig.pose.bones["UpperArm.R"].head; W_ = mw @ rig.pose.bones["Hand.R"].head; T_ = mw @ rig.pose.bones["Hand.R"].tail
-        d = (W_ - S_).normalized(); d.z += .35; d.normalize()
-        paume = W_ + (T_ - W_) * .55
-        epee.matrix_world = Matrix.Translation(paume + d * .1) @ d.to_track_quat("Y", "Z").to_matrix().to_4x4()
-    # repères au sol : un disque sous chaque pied posé (rouge = gauche, bleu = droit), gardé pour les images suivantes ;
-    # un pied qui ne glisse pas reste sur son disque
-    def disque(pos, coul):
-        bpy.ops.mesh.primitive_cylinder_add(radius=.035, depth=.004, location=(pos.x, pos.y, .002)); o = bpy.context.active_object
-        m = bpy.data.materials.new("rep"); m.use_nodes = True; m.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = coul
-        o.data.materials.append(m); return o
+        pb = rig.pose.bones["Hand.R"]; R = rig.matrix_world.to_3x3() @ pb.matrix.to_3x3() @ pb.bone.matrix_local.to_3x3().inverted()
+        W_ = rig.matrix_world @ pb.head; f, n, th = R @ f0_, R @ n0_, R @ th0_
+        poing = W_ + f * .095 + n * .022                       # centre du poing fermé (main ×1,36)
+        X, Z = n, f                                            # largeur de la lame dans le plan de la main
+        V, F, Mi = [], [], []
+        for (pv, pf), mi in PIECES:
+            o = len(V); V += [poing + th * (y + .06) + X * x + Z * z for x, y, z in pv]; F += [[o + k for k in fc] for fc in pf]; Mi += [mi] * len(pf)
+        me_e.clear_geometry(); me_e.from_pydata([tuple(v) for v in V], [], F); me_e.update()
+        for poly, mi in zip(me_e.polygons, Mi): poly.material_index = mi
+    # repères au sol : un grand disque opaque sous le milieu de la semelle de chaque pied posé (rouge = gauche,
+    # bleu = droit), fixe dans le monde et gardé pour les images suivantes ; un pied qui ne glisse pas reste dessus
+    def mat_vif(nom, coul):
+        m = bpy.data.materials.new(nom); m.use_nodes = True; b_ = m.node_tree.nodes["Principled BSDF"]
+        b_.inputs["Base Color"].default_value = coul; b_.inputs["Emission Color"].default_value = coul; b_.inputs["Emission Strength"].default_value = .6
+        return m
+    MAT_REP = {"L": mat_vif("repL", (1, .05, .02, 1)), "R": mat_vif("repR", (.02, .25, 1, 1))}
+    def disque(pos, s_):
+        bpy.ops.mesh.primitive_cylinder_add(radius=.055, depth=.006, location=(pos.x, pos.y, .003)); o = bpy.context.active_object
+        o.data.materials.append(MAT_REP[s_]); return o
+    bpy.ops.mesh.primitive_cube_add(size=1, location=(0, -6, .001)); ligne = bpy.context.active_object
+    ligne.scale = (.018, 24, .002); ligne.data.materials.append(mat_vif("ligne", (1, .85, .1, 1)))
+    for k in range(-24, 25):   # traits tous les 50 cm
+        bpy.ops.mesh.primitive_cube_add(size=1, location=(0, k * .5, .0012)); t_ = bpy.context.active_object
+        t_.scale = (.5, .012, .002); t_.data.materials.append(MAT_REP["L"].copy()); t_.data.materials[0].node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (1, 1, 1, 1)
+        t_.data.materials[0].node_tree.nodes["Principled BSDF"].inputs["Emission Color"].default_value = (1, 1, 1, 1)
+    def semelle(s_):
+        pb = rig.pose.bones[f"Foot.{s_}"]; hd, tl = rig.matrix_world @ pb.head, rig.matrix_world @ pb.tail
+        return hd, tl, hd + (tl - hd) * .35
+    # mesure du glissement (dense : 4 positions par image) : pour chaque appui, distance maximale entre le milieu de la
+    # semelle et sa position au début de l'appui
+    rapport = []
+    for nom in [n for n in ("marche", "trot", "course") if n in acts]:
+        act = acts[nom]; rig.animation_data.action = act; f0, f1 = act.frame_range; v = vit.get(nom, 0); appui = {}; pire = 0
+        for k in range(int((f1 - f0) * 4) + 1):
+            f = f0 + k / 4; scene.frame_set(int(f), subframe=f - int(f)); rig.location = (0, -v * (f - f0) / fps, 0); bpy.context.view_layer.update()
+            for s_ in "LR":
+                hd, tl, c = semelle(s_)
+                if tl.z < .05 and hd.z < .115:
+                    if s_ not in appui: appui[s_] = c.copy()
+                    pire = max(pire, (c.xy - appui[s_].xy).length)
+                else: appui.pop(s_, None)
+        rapport.append(f"{nom}: vitesse {v} m/s, glissement maximal d'un pied posé {pire * 100:.1f} cm")
+    rig.location = (0, 0, 0); open(os.path.join(OUT, "glissement.txt"), "w").write("\n".join(rapport) + "\n"); print("GLISSEMENT", rapport)
     N_IMG = 8
     for part, noms in ((1, ORDRE[:5]), (2, ORDRE[5:])):
       cases = []
       for nom in noms:
         act = acts[nom]; rig.animation_data.action = act; f0, f1 = act.frame_range; v = vit.get(nom, 0) if nom in ("marche", "trot", "course") else 0
         epee.hide_render = nom != "epee"
-        for o in epee.children: o.hide_render = epee.hide_render
         reperes = []
         for vue in ("côté", "face"):
             for i in range(N_IMG):
@@ -195,9 +228,9 @@ if "c" in QUOI and ANIM:
                 t = (f - f0) / fps; y = -v * t; rig.location = (0, y, 0); bpy.context.view_layer.update()
                 if nom == "epee": placer_epee()
                 if vue == "côté":
-                    for s_, coul in (("L", (.85, .15, .1, 1)), ("R", (.1, .3, .9, 1))):
-                        pb = rig.pose.bones[f"Foot.{s_}"]; hd, tl = rig.matrix_world @ pb.head, rig.matrix_world @ pb.tail
-                        if tl.z < .05 and hd.z < .115 and not any((r_.location.xy - (hd.xy + tl.xy) / 2).length < .03 for r_ in reperes): reperes.append(disque((hd + tl) / 2, coul))
+                    for s_ in "LR":
+                        hd, tl, c = semelle(s_)
+                        if tl.z < .05 and hd.z < .115 and not any((r_.location.xy - c.xy).length < .1 for r_ in reperes): reperes.append(disque(c, s_))
                     viser((2.9, y, .9), (0, y, .68), 45)            # la caméra suit le héros ; le sol et les repères défilent
                 else: viser((.35, y - 2.9, 1.0), (0, y, .7), 45)    # de face : toujours à la même distance
                 cases.append({"image": rendre(os.path.join(OUT, f"c_{nom}_{'cote' if vue == 'côté' else 'face'}_{i}.png")), "legende": f"{nom} {vue} {i + 1}/{N_IMG}"})

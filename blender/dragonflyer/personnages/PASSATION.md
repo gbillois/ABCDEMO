@@ -27,14 +27,15 @@ blender -b -P apercu.py -- sortie/pieton.glb sortie/ abc sortie/anim/animations.
   un segment suit un seul os. Pas de torsion « papier de bonbon », jointures toujours fermées.
 - Tronc, gilet, revers de fourrure, cou : partage doux Hips → Spine → Chest → Head selon la hauteur (fondus de ±4,5 cm).
   Ceinture rigide sur Hips, col de fourrure rigide sur Chest, tête rigide.
-- Jupe de la tunique (une pièce, ourlet roulé du même tissu) : Hips en haut ; vers l'ourlet chaque côté suit sa cuisse
-  (85 % devant, 58 % sur le côté, 30 % derrière), partage gauche/droite progressif au milieu.
+- Bas de la tunique (tour 3) : deux moitiés, gauche et droite, fendues devant et derrière à partir de mi-hauteur ;
+  chacune ne suit que sa cuisse (90 % devant, 60 % sur le côté, 35 % derrière vers l'ourlet), jamais un partage
+  gauche/droite. Ourlet roulé du même tissu.
 - Calotte de cheveux fondue dans le crâne (la peau gonfle de 6 % et prend la couleur des cheveux au-dessus de la ligne) ;
   chaque mèche a sa racine fermée et enfoncée dans la calotte.
 - Aisselles : un coussin de tissu partagé 50/50 entre Chest et UpperArm garde le volume bras levés.
 - Visage en géométrie colorée (yeux à iris vert et double reflet, cils, sourcils, nez, bouche, taches de rousseur) :
   plus de matière « RiderFace », une seule matière « Rider » (couleurs de sommets), un seul appel de dessin.
-- Coût : 14 728 triangles au tour 2 (tour 1 : 28 748 ; l'ancien héros : ~39 000).
+- Coût : 14 784 triangles au tour 3 (tour 2 : 14 728) (tour 1 : 28 748 ; l'ancien héros : ~39 000).
 
 ## Tour 1 (planches faites, contrôle non fait)
 
@@ -111,6 +112,39 @@ Défauts encore visibles sur les planches t2 (relecture du fabricant, avant cont
 - C1 marche (côté) : les disques des pieds posés restent un peu derrière le pied d'une image à l'autre : la vitesse
   « naturelle » calculée par `animations.py` (0,93 m/s) ne colle peut-être pas exactement à la foulée ; à mesurer.
 - C1 saut_debut images 7-8 : bras encore écartés en fin de clip (vient de la source) ; à serrer comme saut_air si besoin.
+
+## Tour 2 : contrôle : À REFAIRE (de justesse)
+
+Notes : proportions 8, visage 8, cheveux et vêtements 8, articulations 7, animations 7, style 8, coût 9.
+Corrections 1, 2, 4, 6, 9 du tour 1 validées. Restait : dôme de jupe en écart (3e fois : changer d'approche),
+disques de pied illisibles et glissement à vérifier, marche trop énergique, épée en « fil » trop long.
+
+## Tour 3 (planches dans `t3/`)
+
+1. Jupe : nouvelle approche (deux moitiés fendues devant et derrière, chacune sur sa cuisse, voir plus haut). Le pan
+   unique à partage gauche/droite est abandonné : c'est ce partage qui faisait le dôme.
+2. Banc : disques de 11 cm, opaques et lumineux (rouge gauche, bleu droit), au milieu de la semelle du pied qui
+   touche le sol, fixes dans le monde ; ligne jaune au sol et traits blancs tous les 50 cm. Mesure du glissement
+   (4 positions par image) écrite dans `t3/glissement.txt`.
+   `animations.py` choisit maintenant la vitesse de chaque clip de déplacement en mesurant NOTRE squelette : la
+   vitesse qui rend la plus petite la pire dérive d'un pied posé. Résultat : marche 0,61 m/s (dérive 4,8 cm, surtout le
+   roulé talon-pointe), trot 3,63 m/s (4,2 cm), course 3,14 m/s (2,3 cm). Avant : 0,93 / 2,12 / 2,26 (calcul sur la source).
+3. Marche calme : amplitude réduite vers la pose moyenne du clip (jambes 72 %, bras 45 %, buste 40 %, tête 30 %,
+   bassin 50 %), buste penché 1,5°. Trot (7°) et course (13°) inchangés.
+4. Épée au banc : poignée en travers du poing fermé (main droite en poing), garde au-dessus du pouce, lame de 65 cm ×
+   3,2 cm ; géométrie recalculée dans le monde à chaque image.
+Glissement mesuré au banc (`t3/glissement.txt`, avec les vitesses du jeu) : marche 5,1 cm, trot 3,1 cm, course 1,4 cm
+(la marche garde surtout le roulé talon-pointe du pied, compté comme glissement par cette mesure).
+Vérifié par le fabricant : B16 (écart) le bas de la tunique s'ouvre en V, plus de dôme ; B15 le pan avant suit la cuisse.
+Facultatif fait : respiration du repos 3,2°, bord de fourrure un peu plus étroit, mains ×1,36.
+
+À changer dans le jeu en plus :
+- les vitesses mesurées donnent trot (3,63) plus rapide que course (3,14) : ce sont les foulées des clips KayKit.
+  `animerClips` règle la cadence par v / V (bornée de 0,7 à 1,8) et mélange trot entre 1,1 et 1,9 m/s : à ces vitesses
+  le trot sera joué au plus lent (0,7) et glissera un peu. Revoir les seuils (ou n'utiliser le trot que vers 2,5-3,5 m/s).
+- l'épée en main doit suivre la même prise que le banc (axe du pouce de HandR, garde au-dessus du pouce), au lieu de
+  la direction épaule → main.
+- la main droite est en poing au repos (elle tient l'épée) ; si on la veut ouverte hors combat, il faudra deux mains.
 
 ## Prochaine étape
 

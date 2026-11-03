@@ -52,9 +52,9 @@ ECH = .5 / .406   # hauteur des hanches : héros / source
 # Retouches calmes, clip par clip (degrés) : buste penché en avant (de plus en plus de la marche à la course),
 # respiration au repos, bras en l'air qui se balancent doucement, jambes repliées en l'air.
 RETOUCHE = {
-    "repos": dict(souffle=2.2),
+    "repos": dict(souffle=3.2),
     "parle": dict(souffle=1.5),
-    "marche": dict(penche=2),
+    "marche": dict(penche=1.5, ampl=dict(jambes=.72, bras=.45, tronc=.4, tete=.3, hanches=.5)),   # marche calme : foulée courte, bras qui balancent peu
     "trot": dict(penche=7),
     "course": dict(penche=13),
     "saut_debut": dict(penche=9),
@@ -130,8 +130,53 @@ for nom, act_nom in CLIPS:
             b = fc.data_path.split('"')[1]; k = [p.co[1] for p in fc.keyframe_points]
             sauts[b] = max(sauts.get(b, 0), max(abs(k[i + 1] - k[i]) for i in range(len(k) - 1)))
         print("sauts repos", {b: round(v, 3) for b, v in sorted(sauts.items(), key=lambda x: -x[1])[:6]})
-    duree = (f1 - f0) / fps
-    vitesses[nom] = round(2 * (max(pieds) - min(pieds)) * ECH / max(duree, 1e-3), 2)   # vitesse naturelle du cycle, à l'échelle du héros
+    if RT.get("ampl"):   # amplitude réduite : chaque os se rapproche de sa pose moyenne sur le clip
+        A_ = RT["ampl"]
+        def groupe(b): return "jambes" if b.startswith(("Thigh", "Shin", "Foot")) else "bras" if b.startswith(("UpperArm", "LowerArm", "Hand")) else "tete" if b == "Head" else "tronc"
+        for b in BONES:
+            fcs = [out.fcurves.find(f'pose.bones["{b}"].rotation_quaternion', index=i) for i in range(4)]
+            if not all(fcs): continue
+            Q = [Quaternion([fc.keyframe_points[k].co[1] for fc in fcs]) for k in range(len(fcs[0].keyframe_points))]
+            for q in Q[1:]:
+                if q.dot(Q[0]) < 0: q.negate()
+            m = Quaternion((sum(q.w for q in Q), sum(q.x for q in Q), sum(q.y for q in Q), sum(q.z for q in Q))).normalized()
+            for k, q in enumerate(Q):
+                r = m.slerp(q, A_[groupe(b)])
+                for i, fc in enumerate(fcs): fc.keyframe_points[k].co[1] = r[i]
+        for i in range(3):
+            fc = out.fcurves.find('pose.bones["Hips"].location', index=i)
+            if fc:
+                mo = sum(p.co[1] for p in fc.keyframe_points) / len(fc.keyframe_points)
+                for p in fc.keyframe_points: p.co[1] = mo + (p.co[1] - mo) * A_["hanches"]
+        for fc in out.fcurves: fc.update()
+    # vitesse naturelle mesurée sur NOTRE squelette : celle qui garde immobile le milieu de la semelle d'un pied posé.
+    # Appuis = images où le pied touche le sol (bout < 5 cm, cheville < 11,5 cm) ; on retient la vitesse qui rend la plus
+    # petite la pire dérive d'un pied posé (la pente de régression est seulement affichée).
+    duree = (f1 - f0) / fps; seg, segs = [], []; prec = None
+    for k in range(int((f1 - f0) * 4) + 1):
+        fr = 1 + k / 4; scene.frame_set(int(fr), subframe=fr - int(fr)); t = k / 4 / fps; pose = []
+        for s_ in "LR":
+            hd, tl = rig.matrix_world @ rig.pose.bones[f"Foot.{s_}"].head, rig.matrix_world @ rig.pose.bones[f"Foot.{s_}"].tail
+            if tl.z < .05 and hd.z < .115: pose.append((s_, (hd + (tl - hd) * .35).y))
+        for s_, y in pose: seg.append((s_, t, y))
+    for s_ in "LR":   # découpe en appuis continus, pied par pied
+        cur = []
+        for (q, t, y) in seg:
+            if q != s_: continue
+            if cur and t - cur[-1][0] > .6 / fps: segs.append(cur); cur = []
+            cur.append((t, y))
+        if cur: segs.append(cur)
+    num = den = 0
+    for sg in segs:
+        if len(sg) < 3: continue
+        tm = sum(t for t, _ in sg) / len(sg); ym = sum(y for _, y in sg) / len(sg)
+        num += sum((t - tm) * (y - ym) for t, y in sg); den += sum((t - tm) ** 2 for t, _ in sg)
+    def derive(v):   # pire écart d'un pied posé à sa position de début d'appui (même mesure que le banc d'apercu.py)
+        return max((max(abs((y - v * t) - (sg[0][1] - v * sg[0][0])) for t, y in sg) for sg in segs if len(sg) > 1), default=0)
+    if nom in ("marche", "trot", "course") and den > 0:
+        v0 = min((x / 100 for x in range(10, 600)), key=derive); vitesses[nom] = round(v0, 2)
+        print("  appuis", len(segs), "pente", round(num / den, 2), "vitesse retenue", vitesses[nom], "dérive", round(derive(v0) * 100, 1), "cm")
+    else: vitesses[nom] = round(2 * (max(pieds) - min(pieds)) * ECH / max(duree, 1e-3), 2)
     print("clip", nom, f1 - f0 + 1, "images", round(duree, 2), "s, vitesse", vitesses[nom])
     rig.animation_data.action = None
 src.animation_data.action = None

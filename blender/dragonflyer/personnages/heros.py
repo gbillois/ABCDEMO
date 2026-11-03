@@ -26,15 +26,12 @@ def tronc_point(a, z, off=0.0):
     p = A([rx * cc, cy + ry * ss, z]); n = nrm(A([c / max(rx, 1e-3), s / max(ry, 1e-3), 0]))
     return p + n * off, n
 
-def poids_jupe(p):
-    """Jupe : les hanches en haut ; vers l'ourlet, chaque côté suit sa cuisse (jusqu'à 85 % devant, 58 % sur le côté,
-    30 % derrière), partage gauche/droite progressif au milieu : la jupe s'ouvre avec les jambes sans rien de rigide."""
-    x, y, z = p; h = float(np.clip((.63 - z) / (.63 - .49), 0, 1)) ** 1.3
-    a = math.atan2(y, x); fr = .575 - .275 * math.sin(a); k = fr * h; g = lisse(-.06, .06, x)
-    w = {"Hips": 1 - k}
-    if k * g > 1e-3: w["Thigh.L"] = k * g
-    if k * (1 - g) > 1e-3: w["Thigh.R"] = k * (1 - g)
-    return w
+def poids_moitie(p, sx):
+    """Moitié de jupe : les hanches en haut ; vers l'ourlet, la cuisse du même côté (90 % devant, 60 % sur le côté,
+    35 % derrière)."""
+    x, y, z = p; h = float(np.clip((.63 - z) / (.63 - .49), 0, 1)) ** 1.2
+    a = math.atan2(y, abs(x)); k = (.625 - .275 * math.sin(a)) * h
+    return {"Hips": 1 - k, ("Thigh.L" if sx > 0 else "Thigh.R"): k} if k > 1e-3 else {"Hips": 1.0}
 
 def construire():
     M = K.Maillage(); C = MAT.COUL
@@ -55,7 +52,7 @@ def construire():
     for sx in (1, -1):
         def revers(u, v, sx=sx):
             z = .74 + .25 * v; b = beta(z); a0 = -math.pi / 2 + (b if sx > 0 else -b)
-            larg = (.016 + .085 * lisse(.74, .99, z) ** 1.5) * (1 + .2 * math.sin(z * 71 + sx * 1.3) + .1 * math.sin(z * 157 + sx))
+            larg = (.014 + .07 * lisse(.74, .99, z) ** 1.6) * (1 + .2 * math.sin(z * 71 + sx * 1.3) + .1 * math.sin(z * 157 + sx))
             rx, ry, _ = tronc_rayons(z); r = (rx + ry) / 2
             bord = .012 * (1 + .6 * math.sin(z * 93 + 2 * sx))                                 # dépasse dans l'ouverture, en vagues
             a = a0 + sx * (u * (larg + bord) - bord) / r
@@ -68,17 +65,24 @@ def construire():
     M.ajouter(V, F, MAT.teinte("fourrure", V, .35 + .6 * T, 4), "Chest", "fourrure")
     V, F, T = K.anneau(A([0, .015, .975]), .15, .125, .036, .03, 34, 6, bosses=.24, graine=5)
     M.ajouter(V, F, MAT.teinte("fourrure", V, .25 + .6 * T, 5), "Chest", "fourrure")
-    # ---- jupe de la tunique, épaisse, d'une seule pièce ; poids progressifs vers les cuisses (voir poids_jupe)
-    def jupe(u, v):
-        z = .67 - .18 * v; a = -math.pi + 2 * math.pi * u
-        rx, ry, cy = tronc_rayons(min(z, .66)); k = lisse(.67, .49, z)
-        rx, ry = rx + .012 + .055 * k ** 1.2, ry + .012 + .035 * k ** 1.2
-        vague = 1 + .03 * k * math.sin(6 * a + .5)
-        return A([rx * vague * math.cos(a), cy + ry * vague * math.sin(a), z]), nrm(A([math.cos(a) / rx, math.sin(a) / ry, .25 * k]))
-    V, F = K.coque(jupe, 32, 6, .008, ferme_u=True)
-    M.ajouter(V, F, MAT.teinte("tunique", V), [poids_jupe(v) for v in V], "jupe")
-    V, F = K.coque(lambda u, v: (lambda p, n: (p + n * .003, n))(*jupe(u, .93 + .07 * v)), 32, 1, .012, ferme_u=True)   # ourlet roulé, même tissu
-    M.ajouter(V, F, MAT.teinte("tunique_fonce", V), [poids_jupe(v) for v in V], "jupe")
+    # ---- bas de la tunique en deux moitiés (gauche, droite), fendues devant et derrière à partir de mi-hauteur :
+    # chaque moitié ne suit que SA cuisse (jamais un partage gauche/droite qui ferait un dôme entre les jambes)
+    def moitie(sx):
+        def f(u, v):
+            z = .67 - .18 * v; k = lisse(.67, .49, z); fente = lisse(.61, .53, z)
+            a0, a1 = -math.pi / 2 + .02 + .1 * fente, math.pi / 2 - .02 - .1 * fente       # de devant à derrière, côté +x
+            a = a0 + (a1 - a0) * u
+            if sx < 0: a = math.pi - a
+            rx, ry, cy = tronc_rayons(min(z, .66)); off = .003 * (sx > 0) * (1 - fente)     # recouvrement en haut sans scintillement
+            rx, ry = rx + .012 + off + .05 * k ** 1.2, ry + .012 + off + .032 * k ** 1.2
+            vague = 1 + .03 * k * math.sin(6 * a + .5)
+            return A([rx * vague * math.cos(a), cy + ry * vague * math.sin(a), z]), nrm(A([math.cos(a) / rx, math.sin(a) / ry, .25 * k]))
+        return f
+    for sx in (1, -1):
+        V, F = K.coque(moitie(sx), 16, 6, .008)
+        M.ajouter(V, F, MAT.teinte("tunique", V), [poids_moitie(v, sx) for v in V], "jupe")
+        V, F = K.coque(lambda u, v, sx=sx: (lambda p, n: (p + n * .003, n))(*moitie(sx)(u, .92 + .08 * v)), 16, 1, .012)   # ourlet roulé
+        M.ajouter(V, F, MAT.teinte("tunique_fonce", V), [poids_moitie(v, sx) for v in V], "jupe")
     # ---- ceinture, boucle, bourse
     rx, ry, cy = tronc_rayons(.655)
     V, F, _ = K.anneau(A([0, cy, .655]), rx + .02, ry + .02, .012, .024, 30, 4)
@@ -122,7 +126,7 @@ def construire():
         for u in (.6, .88):
             V, F, _ = K.bague(E + (Wr - E) * u, Wr - E, .058 - .005 * u, .006, .005, 12, 3)
             M.ajouter(V, F, MAT.teinte("cuir_fonce", V), f"LowerArm.{s}", "brassards")
-        K.main(M, Wr, Ht, sx, f"Hand.{s}", taille=1.3)
+        K.main(M, Wr, Ht, sx, f"Hand.{s}", taille=1.36, repli=.55 if sx > 0 else 1.15)   # main droite en poing (tient l'épée)
     # ---- tête
     T = K.Tete(A([0, -.02, 1.255]), .205)
     T.crane(M); K.visage(T, M); K.cheveux(T, M)

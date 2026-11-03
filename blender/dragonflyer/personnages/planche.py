@@ -11,6 +11,7 @@ def police(t):
     return ImageFont.load_default()
 
 m = json.load(open(sys.argv[1])); cases = m["cases"]; nc = m.get("colonnes", 4)
+if not cases: sys.exit(0)
 ims = [Image.open(c["image"]).convert("RGB") for c in cases]
 w, h = ims[0].size; bande = 26; haut = 40; nl = (len(ims) + nc - 1) // nc
 P = Image.new("RGB", (nc * w, haut + nl * (h + bande)), (246, 240, 228)); d = ImageDraw.Draw(P)
