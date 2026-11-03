@@ -61,7 +61,7 @@ fs.mkdirSync(OUT, { recursive: true });
         let pres = 1e9; v.maisons.forEach((q, j) => { if (j === i) return; const c = Math.cos(o.yaw), s = Math.sin(o.yaw);
           for (let k = 0; k < 40; k++) { const t = k / 40 * 4, a = t % 1 * 2 - 1, cote = t | 0, lx = cote === 0 ? a : cote === 1 ? 1 : cote === 2 ? -a : -1, lz = cote === 0 ? -1 : cote === 1 ? a : cote === 2 ? 1 : -a;
             pres = Math.min(pres, dRect(q, o.x + lx * o.hx * c + lz * o.hz * s, o.z - lx * o.hx * s + lz * o.hz * c)); } });
-        const pt = d.PORTES.find(q => q.maison === o); let porte = "pas de porte";
+        const pt = d.PORTES.find(q => q.maison === o) || o.seuil; let porte = "pas de porte";
         if (pt) {
           const ox = Math.sin(pt.yaw), oz = Math.cos(pt.yaw), devant = [1, 2, 3].map(k => d.hauteur(pt.x + ox * k, pt.z + oz * k));
           const bouche = [1, 2, 3].some(k => { const c = d.dansUnRect(pt.x + ox * k, pt.z + oz * k, .3); return c && Math.abs(c.x - o.x) + Math.abs(c.z - o.z) > .01; });
