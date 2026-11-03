@@ -79,6 +79,31 @@ bois (prisme qui suit le toit), escalier, porte droite à linteau de bois, volet
   Dans le jeu (village.glb refait, la chaumière a aussi sa vraie collerette), version 2026.11.03-2, cache sw v11.
   Suggestions non faites : pignons un peu plus chauds, mousse au soubassement, chevrons sous l'avant-toit.
 
+## Pêcheur (`maisons/pecheur.py`, agent séparé, worktree)
+Maison de Saltcliff (répétée 8 fois) : planches peintes à clin sur un plancher porté par 12 pilotis, terrasse côté terre
+avec garde-corps et escalier de bois, coursives, ponton et échelle côté mer, barque amarrée, filet qui sèche, casiers,
+bouée, rames, rouleau de corde, tonneau, lanterne. Trois variantes (`construire(graine, variante)`, défaut graine % 3) :
+rouge (bardeaux gris, porte et volets bleus), bleue (tuiles, porte rouge, volets crème), verte (bardeaux bruns, bois naturel).
+- Gardé de l'ancienne : emprise « pied » 6 × 7, point « porte » (0, -4.0, 1.45) sur la terrasse, intérieur « maison ».
+  Dépassent de l'emprise (comme l'ancienne terrasse) : l'escalier et sa dalle côté terre (jusqu'à y = -7,2) ; le ponton
+  (jusqu'à y = 6,2) et la barque (x jusqu'à 4,0, y jusqu'à 6,5) côté mer. Ils ne sont pas dans le rectangle de collision du jeu.
+- Eau : le jeu pose la maison à y = 0,2 au-dessus de la mer → eau à z = -0,2 dans le repère de la maison. La barque
+  flotte à z = -0,2. Aperçus : `apercu.py: apercu_maison_eau` (rivage en pente, terre à z = 0 côté porte, plan d'eau,
+  occlusion cuite avec le sol au niveau de l'eau) ; `apercu_maison` des autres est inchangée.
+- Kit (« # ---- ajouts pêcheur » à la fin de kit.py) : face_vers, plaque, mur_clins, coin_planches, encadrement,
+  ToitBardeaux (sous-classe de ToitTuiles, même forme), pilotis, plancher, garde_corps, escalier_bois, tore, tuyau_poele.
+  Aucune pièce existante modifiée. Matières ajoutées à la fin de materiaux.py (clin_*, blanc, goudron, algue, bardeau*, corde, filet, liege, bouee_r).
+- Objets : ponton, echelle, casier, filet, bouee, rame, barque, corde (objets/*.py).
+- Avant contrôle (corrigé par le fabricant) : aileron brun qui perçait le toit (plaque de cœur de comble supprimée) ;
+  filet en bâche → vrais fils en losanges ; capsule bloquée par la 2e contremarche (marches de 33 cm moins profondes que
+  le rayon de la capsule, 35 cm) → marches de 38 cm, escalier décalé devant la planche de rive ; mesure de la porte faussée
+  par l'anneau du kit (même hauteur que la mesure, 1 m) → porte de 1,2 m ; joint de plancher dans l'axe de la porte → 25 planches ;
+  caméras 09 et 12 ancrées à 0,6 m devant la porte (le point « porte » est 1,4 m devant, sur la terrasse) ; 14 308 → 12 214 triangles.
+- Premier jet : 12 214 triangles (ancienne : 5 620), capsule PASSE (5 marches de 24 cm), porte 0,86 × 2,06 m mesurés.
+  Rendus : scratchpad `qc/pecheur1/` (variantes dans `variante_bleue/`, `variante_verte/`). En attente de l'inspecteur.
+- À la fusion : `../maisons.py` doit appeler `construire()` (ajouter « pecheur » à NOUVELLES) ; pour les variantes,
+  exporter trois maisons (ex. M_pecheur, M_pecheur_b, M_pecheur_c) et les choisir dans batirVillage.
+
 ## Héros (agent séparé, worktree `worktree-agent-adb19e9034e46bb45`, voir `blender/dragonflyer/personnages/PASSATION.md` sur cette branche)
 - Tour 1 : proportions 8, visage 8, cheveux et vêtements 6, articulations 7, animations 5, style 8, coût 6 → À REFAIRE.
   Trou sur le crâne, fourrure en bretelles, jupe en boule, manche pincée, banc d'animation mal cadré, saut en T,

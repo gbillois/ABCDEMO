@@ -42,3 +42,20 @@ MATIERES = {
     "paille":   Matiere("paille",   ["#d8b860"], .06),
 }
 def M(nom): return MATIERES[nom]
+
+# ---- ajouts pêcheur (maisons/pecheur.py et ses objets) : planches peintes, pilotis, bardeaux, cordages, bouées
+MATIERES.update({
+    "clin_rouge": Matiere("clin_rouge", ["#a8452f", "#9e3f2b", "#b04c34", "#a3412d"], .05),   # planches peintes, rouge de Falun
+    "clin_bleu":  Matiere("clin_bleu",  ["#4f7fa6", "#48779e", "#5687ae", "#4c7aa0"], .05),
+    "clin_vert":  Matiere("clin_vert",  ["#5f9483", "#588b7b", "#66998a", "#5c8f80"], .05),   # vert d'eau
+    "blanc":      Matiere("blanc",      ["#e9dfc8", "#e2d6bc"], .03),                          # boiseries peintes : crème chaud, jamais blanc pur
+    "goudron":    Matiere("goudron",    ["#4e3c2e", "#47372b"], .05),                          # bas des pieux, goudronné
+    "algue":      Matiere("algue",      ["#5d6b3c", "#55633a"], .06),                          # ligne d'eau
+    "bardeau":    Matiere("bardeau",    ["#8f7f6c", "#837361", "#9a8a74", "#887866"], .06, "#5a4a3c"),   # bardeaux gris patiné (gris chaud)
+    "bardeau_b":  Matiere("bardeau_b",  ["#8a5a3a", "#7e5236", "#946444", "#86583a"], .06, "#54361f"),   # bardeaux bruns
+    "bardeau_d":  Matiere("bardeau_d",  ["#5e4430", "#56402e"], .04),                          # dessous du toit (à l'ombre : brun chaud)
+    "corde":      Matiere("corde",      ["#c9ae80", "#bea374"], .05),
+    "filet":      Matiere("filet",      ["#7a6e52", "#6e634a"], .05),
+    "liege":      Matiere("liege",      ["#c08a50", "#b47e48"], .05),                          # flotteurs des filets
+    "bouee_r":    Matiere("bouee_r",    ["#c8432f"], .03),
+})

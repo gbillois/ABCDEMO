@@ -484,3 +484,211 @@ def auvent(P, centre, l=1.7, prof=.75, z=None, rz=0.0):
     for k in range(3):   # bardeaux en trois rangs
         d = prof * (k + .5) / 3
         P.boite((x, y - d, z0 + .12 + (prof - d) * math.tan(ang) * .6), (l + .2, prof / 3 * 1.25, .06), M("tuile").couleur(P.R), rx=ang * .6, bev=.015)
+
+# ---- ajouts pêcheur
+# Pièces de la maison de pêcheur (maisons/pecheur.py), utilisables par toutes : planches peintes posées à clin, pilotis,
+# plancher, garde-corps, escalier de bois, toit de bardeaux, encadrements peints, anneau (bouées, cordes), tuyau de poêle.
+def face_vers(P, verts, vers):
+    """Crée une face et la retourne si sa normale ne regarde pas vers « vers » (pièces ouvertes, sans recalcul global)."""
+    try: f = P.bm.faces.new(verts)
+    except ValueError: return None
+    f.normal_update()
+    if f.normal.dot(Vector(vers)) < 0: f.normal_flip()
+    return f
+
+def _couper(poly, A, B, C):
+    """Garde la partie d'un polygone (u, z) où A·u + B·z + C ≥ 0."""
+    out = []
+    for i in range(len(poly)):
+        p, q = poly[i], poly[(i + 1) % len(poly)]
+        fp, fq = A * p[0] + B * p[1] + C, A * q[0] + B * q[1] + C
+        if fp >= 0: out.append(p)
+        if (fp >= 0) != (fq >= 0):
+            t = fp / (fp - fq); out.append((p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t))
+    return out
+
+def _aire(poly): return abs(sum(poly[i][0] * poly[(i + 1) % len(poly)][1] - poly[(i + 1) % len(poly)][0] * poly[i][1] for i in range(len(poly)))) / 2
+
+def plaque(P, a, t, n, poly, w_av, w_ar, c, c_ar=None):
+    """Planche plate découpée selon un polygone (u, z) dans le plan d'un mur (origine a, direction t, normale n vers
+    l'extérieur). w_av(u, z) : écart de la face avant au plan du mur ; w_ar : écart de l'arrière (pas de face arrière,
+    elle est contre le mur). c_ar : teinte des arêtes du fond (plus sombre : ligne d'ombre)."""
+    av, ar = [], []
+    for (u, z) in poly:
+        p = a + t * u
+        v = P.bm.verts.new((p.x + n.x * w_av(u, z), p.y + n.y * w_av(u, z), z)); v[P.col] = (*c, 1); av.append(v)
+        w = P.bm.verts.new((p.x + n.x * w_ar, p.y + n.y * w_ar, z)); w[P.col] = (*(c_ar or c), 1); ar.append(w)
+    face_vers(P, av, n)
+    m = len(poly); cu = sum(u for u, z in poly) / m; cz = sum(z for u, z in poly) / m
+    for i in range(m):
+        j = (i + 1) % m; (u0, z0), (u1, z1) = poly[i], poly[j]
+        if (z0 + z1) / 2 > cz and abs(u1 - u0) > 1e-3: continue   # tranche du haut : cachée sous la planche suivante ou le toit
+        face_vers(P, [av[i], av[j], ar[j], ar[i]], t * ((u0 + u1) / 2 - cu) + Vector((0, 0, (z0 + z1) / 2 - cz)))
+    return av
+
+def mur_clins(P, a, b, z0, z1, ouvertures=(), mat="clin_rouge", larg=.2, toit=None, marge_toit=.03):
+    """Bardage de planches peintes posées à clin sur la face extérieure d'un mur de a vers b (la face regarde à droite
+    de a→b) : chaque planche recouvre le haut de celle du dessous et son bas dépasse de 3,5 cm (une ligne d'ombre par
+    planche), une nuance par planche, quelques-unes plus passées. ouvertures : [(u0, u1, oz0, oz1)] : les planches
+    s'arrêtent au bord. toit : les planches s'arrêtent sous le toit (pignons en triangle) ; z1 n'est alors qu'un plafond."""
+    a, b = Vector((*a[:2], 0)), Vector((*b[:2], 0)); d = b - a; L = d.length; t = d / L; n = Vector((t.y, -t.x, 0))
+    coupes = []
+    if toit is not None:
+        sous = lambda u: toit.forme(*(a + t * u).xy)[0] - toit.ep - marge_toit
+        us = [0.0, L]
+        if abs(t.y) > .5:
+            ua = (toit.cy - a.y) / t.y
+            if 0 < ua < L: us = [0.0, ua, L]
+        for u_, v_ in zip(us, us[1:]):
+            s_ = (sous(v_) - sous(u_)) / (v_ - u_); coupes.append((s_, -1.0, sous(u_) - s_ * u_))   # sous la ligne du toit
+        z1 = min(z1, max(sous(u) for u in us))
+    R = P.R; z = z0
+    while z < z1 - .03:
+        zb, zt = z, z + larg + .025
+        libres = [(-.03, L + .03)]
+        for (o0, o1, oz0, oz1) in ouvertures:
+            if oz0 < zt - .02 and zb + .02 < oz1:
+                nl = []
+                for (u0, u1) in libres:
+                    if o1 <= u0 or o0 >= u1: nl.append((u0, u1)); continue
+                    if o0 > u0: nl.append((u0, o0))
+                    if o1 < u1: nl.append((o1, u1))
+                libres = nl
+        c = M(mat).couleur(R, .06)
+        if R.random() < .2: c = melange(c, M("blanc").teintes[0], .1)   # quelques planches plus passées
+        cb = melange(c, M(mat).sombre, .6)
+        w_av = lambda u, zz, zb=zb, zt=zt: .036 + (.008 - .036) * (zz - zb) / (zt - zb)
+        for (u0, u1) in libres:
+            if u1 - u0 < .05: continue
+            poly = [(u0, zb), (u1, zb), (u1, zt), (u0, zt)]
+            for (A, B, C) in coupes:
+                poly = _couper(poly, A, B, C)
+                if len(poly) < 3: break
+            if len(poly) < 3 or _aire(poly) < .004: continue
+            plaque(P, a, t, n, poly, w_av, -.02, c, cb)
+        z += larg
+
+def coin_planches(P, x, y, z0, z1, mat, sx, sy):
+    """Planche d'angle peinte qui cache le bout des planches de deux murs (sx, sy : côté extérieur du coin)."""
+    P.boite((x + sx * .03, y + sy * .03, (z0 + z1) / 2), (.2, .2, z1 - z0), M(mat).couleur(P.R), bev=.012)
+
+def encadrement(P, centre, rz=0.0, l=.75, h=.8, mat="blanc", cotes=True):
+    """Encadrement peint d'une fenêtre (même repère que fenetre) : deux montants, un fronton et sa bavette."""
+    x, y, z = centre; ca, sa = math.cos(rz), math.sin(rz); ox, oy = sa, -ca
+    def pt(u, w, dz): return (x + ca * u + ox * w, y + sa * u + oy * w, z + dz)
+    c = M(mat).couleur(P.R)
+    if cotes:
+        for s in (-1, 1): P.boite(pt(s * (l / 2 + .21), .05, .03), (.13, .04, h + .5), c, rz=rz, bev=0)
+    P.boite(pt(0, .055, h / 2 + .3), (l + .62, .05, .15), c, rz=rz, bev=0)
+    P.boite(pt(0, .08, h / 2 + .39), (l + .7, .1, .04), melange(c, M(mat).sombre, .25), rz=rz, bev=0)
+
+class ToitBardeaux(ToitTuiles):
+    """Toit à deux pans (même forme que ToitTuiles) couvert de bardeaux de bois : rangs qui se recouvrent, largeurs
+    inégales, bord bas soulevé (ligne d'ombre), une nuance par bardeau ; faîtage de deux planches ; planches de rive
+    peintes (mat_rive) ; dessous brun chaud."""
+    def __init__(s, cx, cy, X, Y, z_bord, z_faite, ep=.26, mat="bardeau", mat_d="bardeau_d", mat_rive="chene"):
+        super().__init__(cx, cy, X, Y, z_bord, z_faite, ep); s.mat, s.mat_d, s.mat_rive = mat, mat_d, mat_rive
+    def construire(s, P, rang=.38, cheminees=()):
+        R = P.R; cx, cy, X, Y = s.cx, s.cy, s.X, s.Y
+        pente = math.hypot(Y, s.zf - s.zb); cosa = Y / pente; ang = math.atan2(s.zf - s.zb, Y)
+        for sg in (-1, 1):
+            P.boite((cx, cy + sg * Y / 2, (s.zf + s.zb) / 2 - s.ep * .5), (2 * X, pente, s.ep), M(s.mat_d).couleur(R), rx=-sg * ang, bev=0)
+        def trou(x, y): return any(abs(x - hx) < hr + .05 and abs(y - hy) < hr + .05 for (hx, hy, hr) in cheminees)
+        nr = int(pente / rang) + 1; cs = M(s.mat).sombre
+        for sg in (-1, 1):
+            nrm = Vector((0, sg * math.sin(ang), math.cos(ang))); bas = Vector((0, sg * cosa, -math.sin(ang)))
+            for r_ in range(nr):
+                d0 = r_ * rang; d1 = min(pente + .05, d0 + rang * 1.4)
+                if d0 >= pente: break
+                def pt(u, d, h=0.0):
+                    yy = cy + sg * d * cosa; return (cx - X + u, yy, s.zf - s.k * abs(yy - cy) + .03 + h)
+                u = -R.uniform(0, .15)
+                while u < 2 * X:
+                    w = R.uniform(.2, .34); u0, u1 = max(0.0, u), min(2 * X, u + w); u += w
+                    if u1 - u0 < .06 or trou(*pt((u0 + u1) / 2, (d0 + d1) / 2)[:2]): continue
+                    c = M(s.mat).couleur(R, .09); cb = melange(c, cs, .55); e = .035 + R.uniform(-.008, .01)
+                    vs = [pt(u0 + .01, d0), pt(u1 - .01, d0), pt(u1 - .01, d1, e), pt(u0 + .01, d1, e), pt(u1 - .01, d1), pt(u0 + .01, d1)]
+                    vv = [P.bm.verts.new(p) for p in vs]
+                    for k, v in enumerate(vv): v[P.col] = (*(melange(c, cb, .4) if k < 2 else c if k < 4 else cb), 1)
+                    face_vers(P, [vv[0], vv[1], vv[2], vv[3]], nrm); face_vers(P, [vv[3], vv[2], vv[4], vv[5]], bas)
+        # faîtage : deux planches posées à cheval
+        cf = melange(M(s.mat).couleur(R), cs, .3)
+        for sg in (-1, 1):
+            P.boite((cx, cy + sg * .13 * cosa, s.zf - s.k * .13 * cosa + .1), (2 * X + .1, .3, .05), cf, rx=-sg * ang, bev=.01)
+        for sx in (-1, 1):   # planches de rive peintes
+            for sg in (-1, 1):
+                P.boite((cx + sx * (X + .03), cy + sg * Y / 2, (s.zf + s.zb) / 2 - .02), (.07, pente + .05, .3), M(s.mat_rive).couleur(R), rx=-sg * ang, bev=.015)
+        return s
+
+def pilotis(P, x, y, z_bas, z_haut, r=.16, eau=-.2, n=8):
+    """Pieu rond : bas goudronné, frange d'algues à la ligne d'eau, haut en bois patiné un peu de travers."""
+    R = P.R; zg = eau + .35
+    P.cylindre((x, y, z_bas), (x, y, eau - .05), r * 1.05, r * 1.04, M("goudron").couleur(R), n=6)
+    for v in P.cylindre((x, y, eau - .05), (x, y, zg), r * 1.04, r * 1.02, M("goudron").couleur(R), n=n):
+        if v.co.z < eau: v[P.col] = (*M("algue").couleur(R), 1)
+    dx, dy = R.uniform(-.04, .04), R.uniform(-.04, .04)
+    for v in P.cylindre((x, y, zg), (x + dx, y + dy, z_haut), r, r * .95, M("chene").couleur(R, .1), n=n):
+        if v.co.z < zg + .01: v[P.col] = (*melange(M("chene").teintes[0], M("goudron").teintes[0], .5), 1)
+
+def plancher(P, x0, x1, y0, y1, z, larg=.25, ep=.08, mat="chene_c"):
+    """Plancher de planches posées selon Y (dessus à z), un peu inégales en longueur et en teinte, joints fins."""
+    n = max(1, round((x1 - x0) / larg)); w = (x1 - x0) / n; R = P.R
+    for i in range(n):
+        x = x0 + (i + .5) * w; e0, e1 = R.uniform(-.03, .03), R.uniform(-.03, .03)
+        P.boite((x, (y0 + y1 + e0 + e1) / 2, z - ep / 2), (w - .015, y1 - y0 + e1 - e0, ep), M(mat).couleur(R, .12), bev=0)
+
+def garde_corps(P, a, b, z, haut=.95, pas=1.1, mat="blanc", bouts=(True, True)):
+    """Garde-corps de bois de a à b (horizontal, sur un plancher à z) : poteaux, main courante, lisse du milieu."""
+    a, b = Vector((*a[:2], 0)), Vector((*b[:2], 0)); n = max(1, round((b - a).length / pas))
+    for i in range(n + 1):
+        if (i == 0 and not bouts[0]) or (i == n and not bouts[1]): continue
+        p = a + (b - a) * i / n; poutre(P, (p.x, p.y, z - .06), (p.x, p.y, z + haut + .05), l=.1, h=.1, mat=mat)
+    poutre(P, (a.x, a.y, z + haut), (b.x, b.y, z + haut), l=.12, h=.07, mat=mat)
+    poutre(P, (a.x, a.y, z + haut * .5), (b.x, b.y, z + haut * .5), l=.05, h=.07, mat=mat)
+
+def escalier_bois(P, x, y_haut, z_haut, l, marches, prof=.33, z_sol=0.0, mat="chene_c", rampe=None):
+    """Escalier de bois qui descend vers -Y depuis le bord d'un plancher (y_haut, z_haut) jusqu'au sol (z_sol) : marches
+    de planches entre deux limons, dalle de pierre au pied ; rampe : matière des mains courantes (None : sans).
+    Hauteur de marche = (z_haut - z_sol) / (marches + 1) : la garder sous 30 cm (le joueur monte 30 cm au plus)."""
+    hm = (z_haut - z_sol) / (marches + 1); s = hm / prof; R = P.R
+    for k in range(1, marches + 1):
+        zt = z_haut - k * hm
+        P.boite((x + R.uniform(-.01, .01), y_haut - (k - .5) * prof, zt - .035), (l, prof + .02, .07), M(mat).couleur(R, .1), bev=.012)
+    zl = lambda y: z_haut + (y - y_haut) * s - .15
+    y_bas = y_haut + (z_sol - .05 - z_haut + .15) / s
+    for sx in (-1, 1):   # limons à l'extérieur des marches (les marches sont prises entre eux)
+        xx = x + sx * (l / 2 + .035); poutre(P, (xx, y_haut + .02, zl(y_haut + .02)), (xx, y_bas, z_sol - .05), l=.07, h=.3, mat="chene")
+    P.boite((x, y_haut - marches * prof - .25, z_sol - .04), (l + .35, .7, .2), M("moellon").couleur(R), bev=.05, jit=.01)   # dalle au pied (dessus à 6 cm)
+    if rampe:
+        yb = y_haut - marches * prof + .12; zb = z_sol + hm
+        for sx in (-1, 1):
+            xx = x + sx * (l / 2 + .12)
+            poutre(P, (xx, yb, z_sol - .05), (xx, yb, zb + 1.0), l=.1, h=.1, mat=rampe)
+            poutre(P, (xx, y_haut + .06, z_haut + .95), (xx, yb, zb + .95), l=.12, h=.07, mat=rampe)
+            poutre(P, (xx, y_haut + .06, z_haut + .47), (xx, yb, zb + .47), l=.05, h=.07, mat=rampe)
+    return hm
+
+def tore(P, centre, R_, r, c, n=12, m=6, axe=(0, 0, 1), bandes=None):
+    """Anneau autour d'un axe (bouée, rouleau de corde). bandes : [teintes] : secteurs de couleurs nettes (bouée)."""
+    ax = Vector(axe).normalized(); e1 = ax.orthogonal().normalized(); e2 = ax.cross(e1); C = Vector(centre)
+    nb = len(bandes) if bandes else 1; pas = n // nb
+    for k in range(nb):
+        cb = bandes[k] if bandes else c; anneaux = []
+        for i in range(k * pas, (k + 1) * pas + 1):
+            a = 2 * math.pi * i / n; d = e1 * math.cos(a) + e2 * math.sin(a); ring = []
+            ci = cb if bandes else tuple(x * P.R.uniform(.93, 1.05) for x in cb)
+            for j in range(m):
+                b = 2 * math.pi * j / m; v = P.bm.verts.new(C + d * (R_ + r * math.cos(b)) + ax * (r * math.sin(b))); v[P.col] = (*ci, 1); ring.append(v)
+            anneaux.append(ring)
+        for i in range(len(anneaux) - 1):
+            for j in range(m):
+                q = [anneaux[i][j], anneaux[i + 1][j], anneaux[i + 1][(j + 1) % m], anneaux[i][(j + 1) % m]]
+                mid = sum((v.co for v in q), Vector()) / 4; rad = (mid - C) - ax * (mid - C).dot(ax)
+                face_vers(P, q, mid - (C + rad.normalized() * R_))
+
+def tuyau_poele(P, x, y, z0, z1, toit=None):
+    """Tuyau de poêle en fer qui traverse le toit : collerette sur le toit, chapeau conique."""
+    P.cylindre((x, y, z0), (x, y, z1), .09, .09, M("fer").couleur(P.R), n=8)
+    if toit is not None:
+        zr = toit.forme(x, y)[0]; P.cylindre((x, y, zr - .05), (x, y, zr + .12), .18, .12, M("fer").couleur(P.R), n=8)
+    P.cylindre((x, y, z1 - .02), (x, y, z1 + .2), .22, .03, M("fer").couleur(P.R), n=8)
