@@ -178,6 +178,76 @@ l'ancien `../maisons.py` (le jeu les lit) : longère (7,4 × 14,6), (0, -7.6, 1.
 ## Arbres (agent séparé, worktree, `blender/dragonflyer/vegetation/PASSATION.md` sur sa branche)
 - Refaits de zéro par scripts (sapin, feuillu), contrôle par 12 caméras et planche « forêt ». Tour 1 en fabrication.
 
+## Pierre et moulin (agent séparé, worktree ; à fusionner)
+Nouvelles matières (fin de `materiaux.py`) : pierre_s (pierre sombre, gris chaud), ardoise, ardoise_d (dessous brun),
+lichen, volet_r, bardeau, bardeau_d, toile, jute. Nouvelles pièces (fin de `kit.py`, section « ajouts pierre et moulin ») :
+`teinter` (repeint des moellons dans une autre matière, en gardant les écarts de clarté), `rogner` (pignon de pierre :
+pierres au-dessus du toit supprimées, les autres rabotées selon la pente), `prisme_pignon` (cœur plein du pignon),
+`ToitArdoises` (rangs d'ardoises soulevées en bas, joints décalés, deux rangs d'écailles, lichen rare, dessous en planches
+brunes, rives, faîtage en ardoises croisées), `tour_pierres` (tour ronde qui s'affine), `cone_bardeaux` (chapeau conique
+bombé), `cheminee_pignon` (cheminée maçonnée sur 3 ou 4 faces avec `mur_moellons`, glacis, chapeau, deux pots).
+Aucune pièce existante modifiée. Objets : `objets/sacs_grain.py`, `objets/meule.py`.
+
+### Maison de pierre (`maisons/pierre.py`)
+Même emprise (6,8 × 7,6), même point « porte » (0, -4.3, 0), intérieur « maison ». Murs 6,4 × 7,2, toit à 42°
+(égout 3,0 m, faîte 6,7 m), cheminée contre le pignon droit jusqu'à 7,6 m. `construire(graine, variante)` :
+0 = cheminée à droite, volets rouges, banc, tas de bois, lanterne ; 1 = miroir (cheminée à gauche), volets verts,
+tonneau, pot ; 2 = volets bleus, banc sur le côté, deux pots. Le jeu n'a qu'un type « pierre » (une seule géométrie
+instanciée) : pour varier il faudrait exporter M_pierre_1, M_pierre_2… (à décider à la fusion).
+- Premier jet (pierre0) : joints presque noirs, cheminée du kit en « pile d'assiettes » vue de côté (une pierre par rang
+  sur la face latérale), lichen trop régulier, vides sombres autour des fenêtres. Corrigé : cœur en mortier gris-brun,
+  `cheminee_pignon`, lichen 3 %, ouvertures serrées au bord des volets et de l'appui.
+- Tour 1 (`qc/pierre1/`, 21 371 triangles) : posé 8, matières 7, formes 8, style 7, lisibilité 8, passage 9, coût 8
+  → À REFAIRE. Murs d'un seul gris froid, façade austère, faîtage nu et plat, point noir au sommet du pignon, pierres en
+  rouleaux qui dépassent à l'angle de la cheminée, points blancs au bord des ardoises (vue 12).
+  Corrigé : pierre_s en gris chauds, beiges, bruns-ocre (8 teintes), une pierre sur huit nettement plus claire ou plus
+  foncée, pied des murs plus chaud (`teinter`) ; soubassement plus saillant de 12 cm ; paillasson, pot et plante
+  grimpante qui fait le tour de l'arc, seau et balai (objets/seau.py, objets/balai.py), pots sur le banc ; faîtières de
+  pierre (13 cm) sur le faîtage ; épi de bois au sommet du pignon libre ; `cheminee_pignon` refaite : vraies pierres
+  d'angle alternées longue/courte, mêmes assises que les murs, rangs du sol plus saillants ; dernier rang d'ardoises
+  arrêté au bord de la coque (le jour passait entre les ardoises qui dépassaient) ; 5 % d'ardoises teintées vert ou brun.
+  Variantes nommées M_pierre, M_pierre_1, M_pierre_2 ; `pierre.py -- <dossier> --variantes` fait `variantes.png`.
+- Tour 2 à inspecter : `qc/pierre2/` (+ `variantes.png`), 22 247 triangles (62 % de l'ancienne), capsule PASSE, porte
+  0,86 × 2,14 m. Ajout en cours de tour : planche d'égout le long des égouts (`ToitArdoises`), le bord ne brille plus en vue 12.
+
+### Moulin (`maisons/moulin.py`)
+Même emprise (6,2 × 6,2), même point « porte » (0, -3.6, 0), pas d'intérieur. Tour ronde de pierre qui s'affine (rayon
+2,8 → 2,05 m, haut 8 m), couronne de bois sur corbeaux, chapeau de bardeaux bombé (pointe à 11,5 m avec l'épi), nez
+qui abrite l'arbre, queue de manœuvre (borne au sol à y = 3,75 : hors emprise). Ailes `A_moulin` : même convention que
+l'ancien (`axe` en repère Blender, objet placé à l'axe, maillage centré, rotation autour de l'axe Y de Blender) ; axe
+déplacé de (0, -3.15, 8.4) à (0, -3.4, 9.0) et ailes de 5,8 m au lieu de 6,6 m : le bout passe à 3,2 m du sol et
+0,6 m devant la tour (avant, il balayait la porte à hauteur du joueur). Sacs de grain et meule (objets/).
+- Premier jet vu par moi : porte de 1,1 m mesurée à 0,78 m (la mesure bute sur l'anneau) → 1,2 m ; tour d'un gris
+  uniforme → `teinter` (écarts de clarté, pied plus chaud) ; chapeau un peu juste → débord 0,62 m.
+- Tour 1 (`qc/moulin1/`, 8 956 triangles) : posé 7, matières 8, formes 7, style 7, lisibilité 8, passage 7, coût 8
+  → À REFAIRE. Ailes non prouvées sans danger, nez quasi absent, couronne lisse sans corbeaux, queue trop maigre qui
+  cachait la fenêtre du dos, sacs et meule timides, pied nu, porte et fenêtres petites, sac enfoncé dans le mur.
+  Corrigé : contrôle des ailes sur un tour complet dans `controle.txt` (bord le plus bas, et rayons le long de chaque
+  arête des ailes contre le moulin, 120 positions) ; casquette de bardeaux à deux pans qui sort du chapeau, pignon de
+  planches d'où sort l'arbre, moyeu plus petit et bout en pointe ; 16 corbeaux de pierre à deux assises sous une
+  couronne de bois plus large ; queue de perches de 15 cm vers l'arrière gauche (dans l'emprise : borne à 3,9 m de l'axe,
+  en (-2.76, 2.76)), traverse, barre du treuil, borne sur une pierre d'appui ; tas de 5 sacs ocre (un ouvert plein de
+  grain), tonnelet près du seuil, posé tangent à la tour ; touffes d'herbe et fleurs au pied du mur, lanterne à gauche de
+  la porte ; porte 1,15 × 2,3 m, fenêtres 0,6 × 0,74 m, pierres coupées en deux autour de la porte (`tour_pierres`,
+  paramètre `fines`) ; cœur en mortier gris-brun, ouvertures resserrées. Budget tenu en allégeant (corbeaux sans
+  biseau, tour en pierres de 1 m, bardeaux plus larges, 8 barreaux par aile).
+- Tour 2 à inspecter : `qc/moulin2/`, 9 306 triangles (M 8 494 + vitres 72 + ailes 740), capsule PASSE, porte mesurée
+  0,82 × 2,29 m (la mesure va du montant à l'anneau ; l'ouverture réelle fait 1,15 m), ailes : bord le plus bas à
+  3,11 m, aucun contact.
+- Tour 2 : posé 8, matières 8, formes 8, style 7, lisibilité 8, passage 8, coût 8 → À REFAIRE (style, au pied).
+  Sacs lus comme des pots ou des cailloux, tonnelet en étoile (douelles écartées : `tonneau` à 8 douelles et petit
+  rayon), fleurs invisibles.
+  Corrigé : sacs refaits en cylindres renflés plus hauts que larges, col plissé, ficelle et houppe, toile crème-ocre
+  plus claire ; tas de deux sacs couchés, un troisième dessus, un debout noué, un debout ouvert ; tonnelet : le tonneau
+  du village réduit restait en étoile (avec `poutre`, chaque douelle prend sa propre orientation au lieu d'être tangente :
+  à surveiller aussi sur `objets/tonneau.py`), d'où `objets/tonnelet.py` (fût bombé lisse, 2 cerclages, fond, joints) ; trois massifs fleuris (rose, blanc, rouge, 12 fleurs) de chaque côté de la porte et au pied
+  du mur ; mesure de largeur de la porte à 0,6 et 1,4 m dans le rapport. Pour le budget : 12 corbeaux au lieu de 16,
+  7 barreaux par aile, bardeaux plus larges, la fenêtre la plus haute retirée, moins de touffes.
+- Tour 3 à inspecter : `qc/moulin3/`, 9 288 triangles (M 8 536 + vitres 60 + ailes 692), capsule PASSE, porte 1,15 m
+  entre les montants (à 0,6 et 1,4 m), ailes : bord le plus bas à 3,11 m, aucun contact.
+- Maison de pierre : PASSE au tour 2 (tout à 8, passage 9). Suggestions non faites : pierres d'encadrement autour des
+  fenêtres latérales, épi plus épais, pied du mur moins régulier.
+
 ## Prochaine étape
 Finir la chaumière (tout à 8+), l'intégrer : `../maisons.py` appelle `village/maisons/chaumiere.py:construire()`,
 puis capture dans le jeu, puis montrer au propriétaire. Ensuite : une maison à la fois (colombage, longère…).

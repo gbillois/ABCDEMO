@@ -52,3 +52,16 @@ MATIERES = {
     "lueur":    Matiere("lueur",    ["#d8844a", "#e89a52"], .03),                                             # lueur orangée du feu sur la pierre (dans W_)
 }
 def M(nom): return MATIERES[nom]
+
+# ---- ajouts pierre et moulin (maisons/pierre.py, maisons/moulin.py)
+MATIERES.update({
+    "pierre_s":  Matiere("pierre_s",  ["#857c70", "#94877a", "#8a7866", "#9c8c74", "#7a7068", "#8e7a62", "#a39888", "#706a64"], .08, "#4c4640"),   # pierre de montagne : gris chauds, beiges, bruns-ocre, quelques sombres
+    "ardoise":   Matiere("ardoise",   ["#5f6a76", "#57616d", "#68717c", "#525c68", "#626872"], .05, "#383e48"),   # ardoises bleu-gris
+    "ardoise_d": Matiere("ardoise_d", ["#74503a", "#684632", "#7c5840"], .04),                                    # dessous du toit d'ardoises : planches brunes (à l'ombre)
+    "lichen":    Matiere("lichen",    ["#a8975c", "#9a9258"], .06),                                               # taches de lichen sur les ardoises
+    "volet_r":   Matiere("volet_r",   ["#8e4030", "#82392b"], .04),                                               # volets rouge sang-de-bœuf
+    "bardeau":   Matiere("bardeau",   ["#946240", "#875a38", "#9e6c46", "#7e5434"], .07, "#553824"),             # bardeaux de bois (chapeau du moulin)
+    "bardeau_d": Matiere("bardeau_d", ["#6e4830", "#62402c"], .04),
+    "toile":     Matiere("toile",     ["#eee2c0", "#e6d6ac", "#f2e8cc"], .03),                                    # toile des ailes
+    "jute":      Matiere("jute",      ["#e6cc94", "#dcc088", "#ead6a6", "#d4b47a"], .05, "#9a7a4a"),                                  # sacs de grain
+})
