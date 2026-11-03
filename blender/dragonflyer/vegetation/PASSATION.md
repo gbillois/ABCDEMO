@@ -42,7 +42,7 @@ Commandes (Blender : `/opt/blender-dl/blender-4.2.3-linux-x64/blender`) :
 - `create_icosphere(subdivisions=1)` de Blender 4.2 donne 20 faces : les touffes utilisent 2 (80 faces).
 
 ## Tours de contrôle
-- Tour 1 (planches dans `scratchpad/arbres/t1/`) : sapin 1 972 triangles (budget 2 500), feuillu 3 369 (budget 4 000),
+- Tour 1 (planches dans `scratchpad/arbres/t1/`) : sapin 1 892 triangles (budget 2 500), feuillu 3 369 (budget 4 000),
   imposteurs 6 triangles. En attente de l'inspection.
 
 ## Intégration (quand tout est à 8+)
