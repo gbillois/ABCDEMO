@@ -191,8 +191,8 @@ class ToitChaume:
         for i in range(nx):
             for j in range(ny):
                 x = cx - X + 2 * X * i / (nx - 1); y = cy - Y + 2 * Y * j / (ny - 1); z = s.forme(x, y)[0]
-                v = bm.verts.new((x, y, z - .04)); v[col] = (*M("chaume_f").teintes[1], 1); Vd[i][j] = v
-                w = bm.verts.new((cx + (x - cx) * .97, cy + (y - cy) * .97, z - s.ep)); w[col] = (*[min(1, c_ * 2.0) for c_ in melange(M("chaume").teintes[(i * 2 + j) % 3], M("chaume_f").teintes[0], .1 + .15 * ((i + j) % 2))], 1); Vs[i][j] = w   # très clair : l'occlusion cuite le ramènera à un doré d'ombre
+                v = bm.verts.new((x, y, z - .04)); v[col] = (*M("chaume_d").teintes[(i + j) % 3], 1); Vd[i][j] = v
+                w = bm.verts.new((cx + (x - cx) * .97, cy + (y - cy) * .97, z - s.ep)); w[col] = (*[min(1, c_ * 1.5) for c_ in M("chaume_d").teintes[(i * 2 + j) % 3]], 1); Vs[i][j] = w   # dessous brun chaud, en bandes (l'occlusion cuite l'assombrit)
         for i in range(nx - 1):
             for j in range(ny - 1):
                 quad(Vd[i][j], Vd[i + 1][j], Vd[i + 1][j + 1], Vd[i][j + 1]); quad(Vs[i][j], Vs[i][j + 1], Vs[i + 1][j + 1], Vs[i + 1][j])
@@ -244,10 +244,10 @@ class ToitChaume:
                 x, y = ax + tx * L * k / n, ay + ty * L * k / n
                 x -= ox * .22; y -= oy * .22; z = s.forme(x, y)[0]
                 teinte = M("chaume").teintes[R.randrange(3)]
-                lg = .12 + .04 * math.sin(k * 1.9 + c) + .03 * math.sin(k * .7) + R.uniform(-.02, .02)
+                lg = (.12 + .04 * math.sin(k * 1.9 + c) + .03 * math.sin(k * .7) + R.uniform(-.02, .02)) * min(1.0, min(k, n - k) / 3)   # courtes aux coins
                 h = bm.verts.new((x, y, z + .07)); h[col] = (*melange(teinte, M("chaume_f").teintes[0], .35), 1)
-                m = bm.verts.new((x + ox * .3, y + oy * .3, z - .1)); m[col] = (*[min(1, c_ * 1.35) for c_ in melange(teinte, (1, .92, .66), .15 + .08 * (k % 2))], 1)
-                p_ = bm.verts.new((x + ox * (.36 + lg * .2), y + oy * (.36 + lg * .2), z - .1 - lg)); p_[col] = (*[min(1, c_ * 1.35) for c_ in melange(teinte, (1, .95, .75), .25)], 1)
+                m = bm.verts.new((x + ox * .3, y + oy * .3, z - .1)); m[col] = (*melange(teinte, (1, .92, .66), .08 + .06 * (k % 2)), 1)
+                p_ = bm.verts.new((x + ox * (.36 + lg * .2), y + oy * (.36 + lg * .2), z - .1 - lg)); p_[col] = (*melange(teinte, (1, .95, .75), .15), 1)
                 rh.append(h); rm.append(m); rp.append(p_)
             for k in range(n):
                 quad(rh[k], rm[k], rm[k + 1], rh[k + 1]); quad(rm[k], rp[k], rp[k + 1], rm[k + 1])

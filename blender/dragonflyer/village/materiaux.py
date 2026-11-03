@@ -25,6 +25,7 @@ MATIERES = {
     "mortier":  Matiere("mortier",  ["#cfc4ad", "#c4b89e"], .04),
     "chaume":   Matiere("chaume",   ["#cfa75c", "#c39a50", "#d6b16a"], .05, "#8a6a34"),
     "chaume_f": Matiere("chaume_f", ["#a57f3c", "#96713a"], .05),
+    "chaume_d": Matiere("chaume_d", ["#9a6438", "#8c5a32", "#a46c3c"], .05),                                # dessous du chaume : brun chaud (un jaune à l'ombre tourne à l'olive)
     "mousse":   Matiere("mousse",   ["#7a8a4a", "#6f8442"], .06),
     "chene":    Matiere("chene",    ["#7a5232", "#6e4a2e", "#84593a"], .08, "#4a3020"),                       # poutres, planches
     "chene_c":  Matiere("chene_c",  ["#a3744a", "#9a6c44"], .08),

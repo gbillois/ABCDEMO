@@ -45,7 +45,12 @@ Fichier tenu à jour à chaque étape, pour qu'une nouvelle session reprenne ici
   « rang de rive » en mèches tout autour du toit, dessous très clair (l'occlusion le ramène au doré).
   Banc de test : sol des rendus vert-brun terne comme le jeu (le vert vif teintait les dessous de toit), ciel un peu
   plus fort comme le jeu de jour. 18 764 triangles.
-- Tour 7 : en cours.
+- Tour 7 : posé 8, matières 7, formes 8, style 8, lisibilité 9, passage 9, coût 8 → À REFAIRE (matières).
+  Rang de rive : progrès. Dessous du toit toujours olive (4e tour). Cause : un jaune assombri par l'ombre se lit olive.
+  Corrigé : matière « chaume_d » (brun de paille chaud) pour le dessous et la tranche, rive au ton des rangs,
+  mèches courtes aux coins. Leçon pour le kit : toute face qui sera à l'ombre (dessous, tranches) se colore en brun
+  chaud, jamais en jaune.
+- Tour 8 : en cours.
 
 ## Héros (agent séparé, worktree `worktree-agent-adb19e9034e46bb45`, voir `blender/dragonflyer/personnages/PASSATION.md` sur cette branche)
 - Tour 1 : proportions 8, visage 8, cheveux et vêtements 6, articulations 7, animations 5, style 8, coût 6 → À REFAIRE.
