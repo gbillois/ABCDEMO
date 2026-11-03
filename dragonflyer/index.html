@@ -1951,7 +1951,9 @@ function batirVillage(v, r) {
         if (!ok) continue;
         const yaw = Math.atan2(-mx, -mz) + (r() - .5) * .08; if (!libre(x, z, yaw, k.pied.hx, k.pied.hz, 3)) continue;
         { let tx = x, tz = z, n_ = 0; while (n_++ < 30 && hauteur(tx, tz) < .9) { tx -= mx; tz -= mz; }   // la terre derrière la porte doit être douce
-          if (Math.abs(hauteur(tx - mx * 3, tz - mz * 3) - hauteur(tx, tz)) > 1.2) continue; }
+          if (Math.abs(hauteur(tx - mx * 3, tz - mz * 3) - hauteur(tx, tz)) > 1.2) continue;
+          const kp = KIT.M_pecheur, dy = (kp && kp.porte) ? kp.porte.z : -4, px_ = x + Math.sin(yaw) * (Math.abs(dy) + 1.5), pz_ = z + Math.cos(yaw) * (Math.abs(dy) + 1.5);
+          if (hauteur(px_, pz_) > 1.25) continue; }   // le sol devant la porte ne doit pas dépasser la terrasse
         QUAI_PRIS.add(along); poser(type, x, z, .2, yaw); fait = true;
       } else {
         const pl = placeDansLePlan(type, k, essai); if (!pl) break;
@@ -1999,6 +2001,8 @@ function batirVillage(v, r) {
   for (let k = 0; k < 28; k++) {   // muret de soutènement au bord de la place, là où le terrain monte de plus de 60 cm
     const a = k / 28 * Math.PI * 2, ex = Math.cos(a), ez = Math.sin(a), diff = SOL0(C.x + ex * 14.5, C.z + ez * 14.5) - hC;
     if (diff < .6 || rues.some(ru => Math.abs(Math.atan2(Math.sin(a - ru.a), Math.cos(a - ru.a))) < .3)) continue;   // pas en travers d'une rue
+    const mx2 = C.x + ex * 10.9, mz2 = C.z + ez * 10.9;
+    if (v.maisons.some(o => o.seuil && Math.hypot(o.seuil.x - mx2, o.seuil.z - mz2) < 4.5)) continue;   // ni devant une porte
     v.murets.push({ x: C.x + ex * 10.9, z: C.z + ez * 10.9, yaw: Math.atan2(-ex, -ez), y: hC - .1, sy: Math.min(1.7, Math.max(.6, diff / 1.2)), sx: 2 * Math.PI * 10.9 / 28 / 1.9 });
   }
   aplanir(plats);
