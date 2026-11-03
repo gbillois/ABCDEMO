@@ -24,6 +24,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Les Pins">
+<script>if (navigator.standalone) document.documentElement.classList.add("app", "ios");</script>
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icone-192.png">
 <title>Le Domaine des Pins</title>
@@ -39,7 +40,7 @@
 .txtIco .ic,.ic{width:1.25em;height:1.25em;vertical-align:-.28em;flex:none;display:inline-block;overflow:visible}
 .menuJeu{max-width:520px}
 /* Le sac à dos : un vrai sac (rabat, boucle, coutures), des cases avec le dessin de chaque objet */
-.sac{position:relative;width:min(94vw,540px);max-height:calc(100vh - 40px);display:flex;flex-direction:column;filter:drop-shadow(0 14px 24px rgba(0,0,0,.35))}
+.sac{position:relative;width:min(94vw,540px);max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px);display:flex;flex-direction:column;filter:drop-shadow(0 14px 24px rgba(0,0,0,.35))}
 .sacAnse{width:120px;height:34px;margin:0 auto -6px;border:9px solid #a8501a;border-bottom:0;border-radius:60px 60px 0 0}
 .sacRabat{position:relative;background:linear-gradient(#ff9d45,#f07f22);border-radius:38px 38px 22px 22px;padding:12px 18px 18px;border:4px solid #a8501a;z-index:1}
 .sacRabat h1{margin:0;color:#fff;font-size:26px;text-shadow:0 2px 0 #a8501a}
@@ -68,7 +69,7 @@
 .tpConf .btn .ic{width:1.3em;height:1.3em}
 
 /* Réglages en onglets */
-.card.reglages{max-width:540px;padding:0 0 16px;overflow:hidden auto;max-height:calc(100vh - 32px)}
+.card.reglages{max-width:540px;padding:0 0 16px;overflow:hidden auto;max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px)}
 .reglages .regTete{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 8px 20px;background:linear-gradient(#3fae6e,#2f8f5b);color:#fff;position:sticky;top:0;z-index:1}
 .reglages .regTete h1{margin:0;font-size:26px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.2)}
 .reglages .regOnglets{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:8px 10px;background:#f3ead2;position:sticky;top:60px;z-index:1}
@@ -105,12 +106,18 @@
 .menuJeu .vign{color:var(--ink)}
 .menuJeu .vign span{text-shadow:none}
 #gpPill{display:grid;place-items:center;cursor:default}
+html.clavier #actBtn::after,html.clavier #act2Btn::after,html.manette #actBtn::after,html.manette #act2Btn::after{display:inline-block;margin-left:8px;min-width:20px;padding:0 5px;border-radius:6px;background:rgba(255,255,255,.92);color:#1b1035;font-size:13px;line-height:20px;text-shadow:none;vertical-align:middle}
+html.clavier #actBtn::after{content:"E"}html.clavier #act2Btn::after{content:"F"}html.manette #actBtn::after{content:"A"}html.manette #act2Btn::after{content:"Y"}
 .gp-focus{outline:4px solid var(--sun)!important;outline-offset:3px;box-shadow:0 0 0 7px rgba(255,255,255,.85)!important}
 /* au moins 16 px dans les champs : sinon l'iPhone zoome quand on tape dedans */
 input,textarea,select{font-size:max(16px,1em)}
 [hidden]{display:none!important}
 html,body{height:100%;margin:0;overflow:hidden;background:#24452f;color:var(--ink);font-family:var(--ui);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 #game{position:fixed;inset:0;height:100vh;height:100lvh} /* lvh : toute la hauteur de l'écran, même sous la barre du bas de Safari */
+/* appli installée sur iPhone / iPad : iOS ne donne à la page que la zone entre l'heure et la barre du bas, et laissait voir
+   le fond vert au-dessus et au-dessous. L'image 3D (et celle de l'accueil) débordent donc dans ces deux bandes ;
+   les boutons restent dans la zone de la page (l'heure et la réception restent dégagées). */
+html.ios #game,html.ios #accueil{top:-90px;bottom:-90px;height:auto}
 #game canvas{display:block;width:100%;height:100%}
 .pill{background:var(--panel);border-radius:999px;padding:4px 14px;font-weight:800;font-size:19px;box-shadow:0 3px 0 rgba(0,0,0,.18);font-variant-numeric:tabular-nums}
 .btn{font-family:var(--ui);font-weight:800;font-size:19px;border:0;border-radius:18px;padding:9px 16px;color:#fff;background:var(--leaf);box-shadow:0 4px 0 rgba(0,0,0,.25);cursor:pointer;touch-action:manipulation;text-decoration:none;display:inline-block}
@@ -215,7 +222,7 @@ body.combat-on #actions,body.golf-on #moveBtns,body.golf-on #actions,body.crea-o
 .crea{align-items:flex-end;background:transparent;pointer-events:none}.crea .card{pointer-events:auto;margin:auto 0 0;max-height:56vh;overflow:auto;max-width:560px;padding:14px;background:rgba(255,253,244,.96)}
 .crea{align-items:center;justify-content:center;padding:10px}
 body.crea-on #toast{display:none!important}
-.crea .card.creaCarte{display:grid;grid-template-rows:auto minmax(150px,38%) minmax(0,1fr) auto;grid-template-columns:100%;margin:auto;width:min(94vw,560px);max-width:none;height:calc(100vh - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));max-height:none;overflow:hidden;padding:0;background:transparent;border-radius:26px}
+.crea .card.creaCarte{display:grid;grid-template-rows:auto minmax(150px,38%) minmax(0,1fr) auto;grid-template-columns:100%;margin:auto;width:min(94vw,560px);max-width:none;height:calc(100vh - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));max-height:none;height:calc(100dvh - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:hidden;padding:0;background:transparent;border-radius:26px}
 .crea .creaCarte>h1{margin:0;display:block;max-width:none;border-radius:0;text-align:center;font-size:22px;padding:8px 12px}
 .creaVue{position:relative;pointer-events:none;border-top:4px solid #ffc93c;border-bottom:4px solid #ffc93c;background:radial-gradient(ellipse at 50% 85%,rgba(255,255,255,.18),rgba(255,255,255,0) 60%);box-shadow:inset 0 0 30px rgba(0,0,0,.25)}
 .creaVue span{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);white-space:nowrap;font-weight:800;font-size:12px;color:#fff;background:rgba(0,0,0,.35);border-radius:999px;padding:2px 10px}
@@ -521,6 +528,9 @@ html.app .site{display:none!important}
       <p id="majMsg2" class="small"></p>
       <h3>Mes parties sur un autre appareil</h3>
       <p class="small">Transférer, recevoir, exporter ou importer une partie : sur l'écran de départ, touche <b>Gérer</b>.</p>
+      <h3>Qualité des images</h3>
+      <div class="themes" role="group" aria-label="Qualité des images"><button class="btn" data-qual="eco">⚡ Fluide</button><button class="btn" data-qual="auto">✨ Auto</button><button class="btn" data-qual="belle">🌟 Belle</button><button class="btn" data-qual="ultra">💎 Ultra</button></div>
+      <p id="qualTxt" class="small"></p>
       <h3>Autres réglages</h3>
       <div class="grille">
         <button id="perfBtn" class="btn" style="background:#34495e"><i data-ico="graphique"></i> Compteur de fluidité</button>
@@ -537,7 +547,7 @@ html.app .site{display:none!important}
     <div style="position:relative"><canvas id="mapc" width="640" height="640" style="touch-action:none"></canvas>
       <div style="position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px"><button id="mapPlus" class="btn" style="padding:6px 14px;font-size:22px">+</button><button id="mapMinus" class="btn" style="padding:6px 14px;font-size:22px">−</button></div></div>
     <div id="tpConf" class="tpConf" hidden><div><p id="tpTxt"></p><div class="row"><button id="tpOui" class="btn"><i data-ico="teleport"></i> Y aller</button><button id="tpNon" class="btn" style="background:#9aa0b4">Non</button></div></div></div>
-    <p class="small">Touche un <b>point violet</b> (ou n'importe quel endroit) pour t'y téléporter. Bleu : toi · jaune : les canards · violet clair : les personnages. Plus et moins pour zoomer, puis glisse le doigt pour bouger la carte.</p>
+    <p class="small">Touche un <b>point violet</b> pour t'y téléporter. Les points gris <b>?</b> sont des lieux pas encore découverts : va les visiter à pied ! Bleu : toi · jaune : les canards · petits points violets : les personnages. Plus et moins pour zoomer, puis glisse le doigt pour bouger la carte.</p>
     <div class="row"><button id="mapClose" class="btn">Fermer</button></div>
   </div>
 </div>
@@ -993,7 +1003,11 @@ const joliNumero = n => n.slice(0, 3) + " " + n.slice(3);
 function changerDePartie(id) { PARTIES.id = id; sauverParties(); chargementEnCours = true; location.reload(); }
 function creerPartie() { const id = nouveauNumero(PARTIES.liste.map(p => p.id)); PARTIES.liste.unshift({ id, nom: "Nouvelle partie", maj: Date.now() }); PARTIES.id = id; sauverParties(); try { LS_VRAI.setItem("pins-nouvelle", "1"); } catch (e) {} chargementEnCours = true; location.reload(); }
 function oublierPartie(id) { try { const cles = []; for (let i = 0; i < LS_VRAI.length; i++) { const k = LS_VRAI.key(i); if (k && k.startsWith(`pins@${id}:`)) cles.push(k); } for (const k of cles) LS_VRAI.removeItem(k); } catch (e) {} }
-const LOWQ = matchMedia("(pointer: coarse)").matches; // tablettes et téléphones : un peu moins de détails
+// qualité des images, choisie dans Réglages → Plus (réglage de l'appareil) : « eco » (Fluide), « auto », « belle »
+const QUAL = (() => { try { const q = LS_VRAI.getItem("pins-qualite"); return ["eco", "belle", "ultra"].includes(q) ? q : "auto"; } catch (e) { return "auto"; } })();
+const ULTRA = QUAL === "ultra"; // ordinateur puissant : ombres dans les coins (occlusion), relief sur tous les murs, personnages détaillés
+const TACTILE = matchMedia("(pointer: coarse)").matches;
+const LOWQ = QUAL === "eco" ? true : QUAL === "belle" || ULTRA ? false : TACTILE; // tablettes et téléphones (en Auto) : un peu moins de détails
 // Chargement par étapes : entre deux étapes, on laisse l'écran se redessiner (la barre avance, rien ne semble bloqué)
 const souffle = (p, txt) => { $("chargeBar").style.width = p + "%"; if (txt) $("chargeTxt").textContent = txt;
   return new Promise(r => { let fait = false; const ok = () => { if (!fait) { fait = true; r(); } }; requestAnimationFrame(() => setTimeout(ok, 0)); setTimeout(ok, 150); }); };
@@ -1010,15 +1024,37 @@ const renderer = new THREE.WebGLRenderer({ antialias: !LOWQ, powerPreference: "h
 addEventListener("error", e => { const d = document.getElementById("bugView"); if (!d || !d.hidden) return; document.getElementById("bugMsg").textContent = String(e.message || e.error || "?").slice(0, 160); d.hidden = false; });
 // téléphones et tablettes : un peu moins de pixels (l'écran est petit, la différence ne se voit pas, le jeu reste fluide)
 const PETIT = LOWQ && Math.min(screen.width, screen.height) < 500;
-renderer.setPixelRatio(Math.min(devicePixelRatio, PETIT ? 1.25 : LOWQ ? 1.3 : 1.75));
+renderer.setPixelRatio(Math.min(devicePixelRatio, QUAL === "eco" ? 1 : QUAL === "belle" || ULTRA ? 2 : PETIT ? 1.25 : LOWQ ? 1.3 : 1.75));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.85;
-renderer.shadowMap.enabled = true;
+renderer.shadowMap.enabled = QUAL !== "eco"; // Fluide : pas d'ombres
 renderer.shadowMap.type = LOWQ ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap; // ombres douces plus coûteuses : seulement sur ordinateur
 $("game").appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(58, 1, 0.25, 3000); // près = 0,25 m (et pas 0,1) : 2,5 fois plus de précision de profondeur, plus de surfaces qui « clignotent » (iPhone)
-function resize() { const h = Math.max(innerHeight, $("game").clientHeight); renderer.setSize(innerWidth, h); camera.aspect = innerWidth / h; camera.updateProjectionMatrix(); } // toute la hauteur de l'écran (pas de bande en bas)
+// Ultra : l'image est retouchée avant d'être montrée : ombres douces dans les coins et sous les objets (occlusion ambiante GTAO).
+// Les modules ne sont chargés que dans ce mode (gardés hors ligne par sw.js) ; s'ils manquent, on dessine comme d'habitude.
+let COMPO = null;
+if (ULTRA) try {
+  const [{ EffectComposer }, { RenderPass }, { GTAOPass }, { OutputPass }] = await Promise.all(["EffectComposer", "RenderPass", "GTAOPass", "OutputPass"].map(n => import(`three/addons/postprocessing/${n}.js`)));
+  // l'occlusion ne regarde que les objets pleins (calque 2, posé à la fin du chargement par calquesAO) : ni les noms, ni les
+  // bulles, ni le verre du dôme ou l'eau (sinon : des rectangles sombres autour des étiquettes)
+  const camAO = new THREE.PerspectiveCamera(); camAO.layers.set(2);
+  COMPO = new EffectComposer(renderer); COMPO.addPass(new RenderPass(scene, camera));
+  const ao = new GTAOPass(scene, camAO, innerWidth, innerHeight); ao.updateGtaoMaterial({ radius: 1, distanceExponent: 1.5, thickness: 1.5, scale: 1.4 }); ao.blendIntensity = 1;
+  COMPO.addPass(ao); COMPO.addPass(new OutputPass());
+  const rendre = COMPO.render.bind(COMPO);
+  // les noms et panneaux (sprites, calque 31) sont dessinés après, par-dessus, sans l'occlusion (sinon l'ombre des arbres derrière
+  // se voyait à travers) : d'abord la profondeur des objets pleins, puis eux. Les ombres du soleil ne sont calculées qu'une fois par image.
+  const PROFONDEUR = new THREE.MeshBasicMaterial({ colorWrite: false });
+  COMPO.render = () => { camAO.position.copy(camera.position); camAO.quaternion.copy(camera.quaternion); camAO.near = camera.near; camAO.far = camera.far;
+    camAO.projectionMatrix.copy(camera.projectionMatrix); camAO.projectionMatrixInverse.copy(camera.projectionMatrixInverse); camAO.updateMatrixWorld();
+    renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true; rendre();
+    renderer.autoClear = false; renderer.clearDepth(); scene.overrideMaterial = PROFONDEUR; renderer.render(scene, camAO); scene.overrideMaterial = null;
+    camAO.layers.set(31); renderer.render(scene, camAO); camAO.layers.set(2); renderer.autoClear = true; };
+} catch (e) { COMPO = null; }
+function calquesAO() { if (!COMPO) return; scene.traverse(o => { if (o.isSprite) { o.layers.set(31); return; } if (!o.isMesh || o.material?.uniforms?.mirrorSampler) return; /* (le lac à reflets : pas dans l'occlusion) */ const ms = [].concat(o.material); if (ms.every(m => m && m.visible !== false && (!m.transparent || m.opacity >= .99) && !m.alphaTest && !m.alphaMap)) o.layers.enable(2); /* (feuillages découpés : non, leur forme serait un carré plein) */ }); } // (panneaux opaques compris ; verre et eau : non)
+function resize() { const h = Math.max(innerHeight, $("game").clientHeight); renderer.setSize(innerWidth, h); if (COMPO) COMPO.setSize(innerWidth, h); camera.aspect = innerWidth / h; camera.updateProjectionMatrix(); } // toute la hauteur de l'écran (pas de bande en bas)
 addEventListener("resize", resize); resize();
 
 // Ciel réaliste + lumière
@@ -1042,7 +1078,7 @@ scene.fog = new THREE.Fog(0xc2d8e6, 90, 290);
 const hemi = new THREE.HemisphereLight(0xd6eaff, 0x5f7f3e, 0.7); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff0d6, 3.0);
 sun.castShadow = true;
-sun.shadow.mapSize.setScalar(LOWQ ? 1024 : 2048);
+sun.shadow.mapSize.setScalar(LOWQ ? 1024 : ULTRA ? 4096 : 2048);
 // ombres : une boîte serrée autour du joueur (le soleil est à 120 m) ; seuls les objets de cette boîte sont redessinés pour l'ombre
 const OMB = LOWQ ? 30 : 40;
 Object.assign(sun.shadow.camera, { left: -OMB, right: OMB, top: OMB, bottom: -OMB, near: 60, far: 180 });
@@ -1069,7 +1105,7 @@ function tex(size, draw, rx = 1, ry = rx) {
   const c = document.createElement("canvas"); c.width = c.height = size;
   draw(c.getContext("2d", { willReadFrequently: true }), size); // dessin en mémoire : plus rapide pour des milliers de petits traits, et relu sans attendre la carte graphique
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); t.repeat.set(rx, ry); return t;
+  t.anisotropy = Math.min(ULTRA ? 16 : 8, renderer.capabilities.getMaxAnisotropy()); t.repeat.set(rx, ry); return t;
 }
 // UV d'une boîte en unités du monde (pour que les textures ne soient pas étirées)
 // relief : carte de normales tirée de la luminosité d'une texture peinte
@@ -1180,7 +1216,7 @@ function label(text, bg = "#fffdf4", fg = "#1d3b2a", scale = 1) {
   x.fillStyle = bg; x.beginPath(); x.roundRect((W - w) / 2, 14, w, 100, 40); x.fill();
   x.fillStyle = fg; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(text, W / 2, 68, w - 50);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false, toneMapped: false })); s.scale.set(4 * scale * W / 512, scale, 1); return s;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false, toneMapped: false })); s.scale.set(4 * scale * W / 512, scale, 1); if (ULTRA) s.layers.set(31); return s;
 }
 
 /* ================= Maillots de bain ================= */
@@ -1378,6 +1414,7 @@ function updateBoum(dt, time, P, nightK) {
   if (night && !BOUM.wasNight) { BOUM.nights++; try { localStorage.setItem("pins-nuits", String(BOUM.nights)); } catch (e) {}
     BOUM.active = BOUM.nights % 3 === 0; if (BOUM.active && !paused) toast("🎉 Ce soir, c'est la BOUM à l'Aquaparc ! Ballons, bouées et musique : viens danser dans la piscine !", 4200); }
   BOUM.wasNight = night; if (!night) BOUM.active = false;
+  if (net?.invite?.boum !== undefined && BOUM.active !== net.invite.boum) { BOUM.active = net.invite.boum; if (BOUM.active && !paused) toast("🎉 C'est la BOUM à l'Aquaparc ! Viens danser dans la piscine !", 4200); }
   BOUM.g.visible = BOUM.active; BOUM.djBox.off = !BOUM.active;
   // l'Aquaparc est mieux éclairé la nuit (lumière douce dedans, eau qui brille)
   const inD = Math.hypot(P.x - DOME.x, P.z - DOME.z) < DOME.r; if (inD) hemi.intensity += .45 * nightK;
@@ -1401,8 +1438,14 @@ function updateBoum(dt, time, P, nightK) {
 }
 function pressWaves() {
   WAVE_BTN.btn.position.y = 1.07; setTimeout(() => WAVE_BTN.btn.position.y = 1.12, 250); tone(520, .08, "square", .06);
-  if (WAVES.t < 0) { WAVES.t = 0; tone(220, .5, "sawtooth", .07, 0, .1); tone(330, .5, "sawtooth", .07, 0, .6); toast("🌊 C'est parti pour 5 minutes de vagues ! Saute dans la grande piscine !", 3000); }
-  else { WAVES.t = Math.max(WAVES.t, WAVES.dur - 4); toast("Les vagues s'arrêtent… 🌊", 2000); } }
+  const on = WAVES.t < 0; lancerVagues(on);
+  if (net && net.s >= 0 && net.ws.readyState === 1) { net.ws.send(JSON.stringify({ t: "vagues", on: on ? 1 : 0 })); net.vaguesT = performance.now(); net.mondeT = 0; } }
+// lancer (ou arrêter) les vagues : son bouton, ou celui d'un ami de la partie (on ne l'entend que si on est à l'Aquaparc)
+function lancerVagues(on, ami) {
+  if (on === (WAVES.t >= 0) || (!on && WAVES.t >= WAVES.dur - 4)) return;
+  const ici = !ami || Math.hypot(player.position.x - DOME.x, player.position.z - DOME.z) < DOME.r + 10;
+  if (on) { WAVES.t = 0; if (ici) { tone(220, .5, "sawtooth", .07, 0, .1); tone(330, .5, "sawtooth", .07, 0, .6); toast(ami ? "🌊 Un ami a lancé les vagues ! Saute dans la grande piscine !" : "🌊 C'est parti pour 5 minutes de vagues ! Saute dans la grande piscine !", 3000); } }
+  else { WAVES.t = WAVES.dur - 4; if (ici) toast("Les vagues s'arrêtent… 🌊", 2000); } }
 function poolWaveH(x, z) { if (WAVES.amp <= 0) return 0; const ex = Math.min(x - POOL.x1, POOL.x2 - x), ez = Math.min(z - POOL.z1, POOL.z2 - z), edge = Math.max(0, Math.min(1, ex / 1.5, ez / 1.2));
   return .62 * WAVES.amp * edge * Math.sin((x - POOL.x1) * .75 - WAVES.t * 2.1); } // de vraies vagues : plus hautes et plus longues
 function updateWaves(dt, P) {
@@ -1534,6 +1577,8 @@ function lounger(x, z, ry) {
   g.add(frame, cushion, back); for (const sx of [-.3, .3]) for (const sz of [-.8, .8]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .38), metalMat); leg.position.set(sx, .19, sz); g.add(leg); }
   g.position.set(x, 0, z); g.rotation.y = ry; shadowAll(g); scene.add(g); const side = Math.abs(Math.sin(ry)) > .5; boxes.push(side ? { x1: x - 1, x2: x + 1, z1: z - .5, z2: z + .5 } : { x1: x - .5, x2: x + .5, z1: z - 1, z2: z + 1 });
 }
+// là où l'on se promène en maillot : l'Aquaparc et la piscine des anniversaires
+const inSwimZone = (x, z, m) => Math.hypot(x - DOME.x, z - DOME.z) < DOME.r - m || (x > PP.x1 + m && x < PP.x2 - m && z > PP.z1 + m && z < PP.z2 - m);
 const DOME_LOUNGERS = []; // on peut s'y allonger (sauf ceux où un vacancier bronze déjà)
 [-6, -2, 2, 6, 10, 14].forEach(x => { lounger(x, -23.5, Math.PI); if (x !== 6) DOME_LOUNGERS.push({ x, z: -23.5, ry: Math.PI }); }); [-31, -35, -39, -43].forEach(z => { lounger(-15.2, z, Math.PI / 2); if (z !== -35 && z !== -43) DOME_LOUNGERS.push({ x: -15.2, z, ry: Math.PI / 2 }); });
 const lzW = (L, lx, lz) => [L.x + lx * Math.cos(L.ry) + lz * Math.sin(L.ry), L.z - lx * Math.sin(L.ry) + lz * Math.cos(L.ry)];
@@ -2510,10 +2555,10 @@ const gtCarpetTex = tex(256, (x, s) => {
 }
 // les bornes d'arcade : chaque borne lance un des trois mini-jeux
 const GT_GAMES = [
-  { name: "Tape-Taupe", info: "Tape vite les taupes quand elles sortent de leur trou !", col: "#ff4fd8", c3: 0xff4fd8 },
-  { name: "Panier Magique", info: "Touche l'écran (ou Espace) pour lancer le ballon dans le panier qui bouge !", col: "#ffc93c", c3: 0xffc93c },
-  { name: "Attrape-Étoiles", info: "Bouge le panier avec ton doigt (ou les flèches) et attrape les étoiles !", col: "#2fd3ff", c3: 0x2fd3ff },
-  { name: "Tower Defense", info: "Choisis une tour en bas, puis touche l'herbe pour la poser. Touche une tour pour l'améliorer. Arrête les monstres avant ta maison !", col: "#7cff6b", c3: 0x27ae60 },
+  { name: "Tape-Taupe", info: "Tape vite les taupes quand elles sortent de leur trou ! (Clavier : flèches et Espace)", col: "#ff4fd8", c3: 0xff4fd8 },
+  { name: "Panier Magique", info: "Touche l'écran (ou Espace, ou A) pour lancer le ballon dans le panier qui bouge !", col: "#ffc93c", c3: 0xffc93c },
+  { name: "Attrape-Étoiles", info: "Bouge le panier avec ton doigt (ou les flèches, ou le stick) et attrape les étoiles !", col: "#2fd3ff", c3: 0x2fd3ff },
+  { name: "Tower Defense", info: "Choisis une tour en bas, puis touche l'herbe pour la poser. Touche une tour pour l'améliorer. Arrête les monstres avant ta maison ! (Clavier : flèches, Espace pour poser, 1 2 3 pour la tour)", col: "#7cff6b", c3: 0x27ae60 },
 ];
 const gtScreens = GT_GAMES.map(() => { const c = document.createElement("canvas"); c.width = 128; c.height = 96; const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return { c, x: c.getContext("2d"), t }; });
 function drawScreens(time) {
@@ -2785,26 +2830,50 @@ function tdDraw(a, x) {
 const arcCv = $("arcCanvas"), arcX = arcCv.getContext("2d"); let arc = null;
 function openArcade(k) {
   const gm = GT_GAMES[k]; $("arcTitle").textContent = gm.name; $("arcTitle").style.color = gm.col; $("arcInfo").textContent = gm.info;
-  arc = { k, t: 20, score: 0, over: false, last: performance.now(), moles: Array.from({ length: 9 }, () => ({ up: 0, hit: 0 })), spawn: .4, hoopX: 160, hoopV: 90, ball: null, flash: 0, bx: 160, stars: [], starT: 0 };
+  arc = { k, t: 20, score: 0, over: false, last: performance.now(), cur: 4, curL: 0, cc: 0, cr: 0, vu: false, padX: 0, moles: Array.from({ length: 9 }, () => ({ up: 0, hit: 0 })), spawn: .4, hoopX: 160, hoopV: 90, ball: null, flash: 0, bx: 160, stars: [], starT: 0 };
   if (k === 3) tdInit(arc);
   $("arcAgain").hidden = true; ouvrir("arcadeView"); tone(660, .1, "square", .08); tone(990, .12, "square", .08, 0, .1); requestAnimationFrame(arcLoop);
 }
 function arcPos(e) { const r = arcCv.getBoundingClientRect(); return [(e.clientX - r.left) * 320 / r.width, (e.clientY - r.top) * 400 / r.height]; }
-arcCv.addEventListener("pointerdown", e => { if (!arc || arc.over) return; const [x, y] = arcPos(e);
+arcCv.addEventListener("pointerdown", e => { if (!arc) return; if (arc.over) { $("arcAgain").click(); return; } const [x, y] = arcPos(e); arc.vu = false;
+  arcToucher(x, y); if (arc.k === 2) arcCv.setPointerCapture(e.pointerId); });
+function arcToucher(x, y) {
   if (arc.k === 3) { tdClick(arc, x, y); return; }
   if (arc.k === 0) { const i = Math.floor(x / (320 / 3)), j = Math.floor((y - 90) / 100); if (i >= 0 && i < 3 && j >= 0 && j < 3) { const m = arc.moles[j * 3 + i]; if (m.up > 0) { m.up = 0; m.hit = .3; arc.score++; tone(880, .08, "square", .1); tone(1320, .08, "square", .08, 0, .06); } else tone(200, .06, "triangle", .05); } }
   if (arc.k === 1 && !arc.ball) { arc.ball = { x: 160, y: 360 }; whoosh(.3, .05, 500, 1500); }
-  if (arc.k === 2) { arc.bx = x; arcCv.setPointerCapture(e.pointerId); } });
+  if (arc.k === 2) arc.bx = x; }
 arcCv.addEventListener("pointermove", e => { if (arc && arc.k === 2 && e.buttons) arc.bx = arcPos(e)[0]; });
-addEventListener("keydown", e => { if (!arc || arc.over || $("arcadeView").hidden) return; if (arc.k === 1 && e.key === " " && !arc.ball) { arc.ball = { x: 160, y: 360 }; whoosh(.3, .05, 500, 1500); } });
+// au clavier ou à la manette : un curseur (les trous des taupes, les cases et les niveaux du tower defense) et une touche pour agir
+function arcCentre(a) { // là où le curseur « touche »
+  if (a.k === 0) return [53 + (a.cur % 3) * 107, 140 + Math.floor(a.cur / 3) * 100];
+  if (a.k === 3) return a.td.mode === "menu" ? [160, 182 + a.curL * 90] : [a.cc * TD_C + TD_C / 2, TD_TOP + a.cr * TD_C + TD_C / 2];
+  return [160, 200]; }
+function arcBouger(dx, dy) { const a = arc; if (!a || a.over || (a.k !== 0 && a.k !== 3)) return; a.vu = true; tone(700, .03, "square", .03);
+  if (a.k === 0) a.cur = (Math.floor(a.cur / 3) + dy + 3) % 3 * 3 + (a.cur % 3 + dx + 3) % 3;
+  else if (a.td.mode === "menu") a.curL = (a.curL + dy + TD_LEVELS.length) % TD_LEVELS.length;
+  else { a.cc = (a.cc + dx + 8) % 8; a.cr = (a.cr + dy + 8) % 8; } }
+function arcAgir() { const a = arc; if (!a) return; if (a.over) { $("arcAgain").click(); return; } if (a.k === 2) return; if (a.k !== 1) a.vu = true; arcToucher(...arcCentre(a)); }
+function arcTour(i) { const T = arc?.k === 3 && arc.td; if (T && T.mode === "play") { T.sel = (i + 3) % 3; tone(880, .05, "square", .05); } }
+function arcCurseur(a, x) { if (!a.vu || a.over || (a.k !== 0 && a.k !== 3)) return; x.save(); x.strokeStyle = "#ffe066"; x.lineWidth = 4; x.setLineDash([9, 5]); x.beginPath();
+  if (a.k === 0) { const [cx] = arcCentre(a); x.roundRect(cx - 50, 92 + Math.floor(a.cur / 3) * 100, 100, 96, 12); }
+  else if (a.td.mode === "menu") x.roundRect(34, 144 + a.curL * 90, 252, 76, 16);
+  else if (a.td.mode === "play") x.rect(a.cc * TD_C + 2, TD_TOP + a.cr * TD_C + 2, TD_C - 4, TD_C - 4);
+  x.stroke(); x.restore(); }
+const ARC_DIR = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1], q: [-1, 0], a: [-1, 0], d: [1, 0], z: [0, -1], w: [0, -1], s: [0, 1] };
+addEventListener("keydown", e => { if (!arc || $("arcadeView").hidden) return; const k = e.key.toLowerCase(), d = ARC_DIR[k];
+  if (d && arc.k !== 2) { e.preventDefault(); arcBouger(d[0], d[1]); }
+  else if (k === " " || k === "enter" || k === "e") { e.preventDefault(); if (!e.repeat) arcAgir(); }
+  else if (k === "1" || k === "2" || k === "3") arcTour(+k - 1);
+  else if (k === "tab") { e.preventDefault(); if (arc.k === 3) arcTour(arc.td.sel + 1); }
+  else if (k === "escape") $("arcClose").click(); }, true);
 function arcLoop(now) {
   if (!arc || $("arcadeView").hidden) return; const dt = Math.min(.05, (now - arc.last) / 1000); arc.last = now; const a = arc, x = arcX;
-  if (a.k === 3) { tdUpdate(a, dt); tdDraw(a, x); requestAnimationFrame(arcLoop); return; }
+  if (a.k === 3) { tdUpdate(a, dt); tdDraw(a, x); arcCurseur(a, x); requestAnimationFrame(arcLoop); return; }
   if (!a.over) { a.t -= dt;
     if (a.k === 0) { a.spawn -= dt; if (a.spawn < 0) { a.spawn = .45 + Math.random() * .4; const free = a.moles.filter(m => m.up <= 0); if (free.length) free[Math.floor(Math.random() * free.length)].up = .8 + Math.random() * .4; } a.moles.forEach(m => { if (m.up > 0) m.up -= dt; if (m.hit > 0) m.hit -= dt; }); }
     if (a.k === 1) { a.hoopX += a.hoopV * dt; if (a.hoopX < 50 || a.hoopX > 270) { a.hoopV = -a.hoopV; a.hoopX = Math.max(50, Math.min(270, a.hoopX)); }
       if (a.ball) { a.ball.y -= 520 * dt; if (a.ball.y < 95) { if (Math.abs(a.ball.x - a.hoopX) < 26) { a.score++; a.flash = .6; a.hoopV *= 1.12; tone(784, .1, "triangle", .12); tone(1046, .15, "triangle", .12, 0, .1); } else tone(220, .12, "triangle", .06); a.ball = null; } } if (a.flash > 0) a.flash -= dt; }
-    if (a.k === 2) { if (keys["arrowleft"] || keys["q"] || keys["a"]) a.bx -= 260 * dt; if (keys["arrowright"] || keys["d"]) a.bx += 260 * dt; a.bx = Math.max(35, Math.min(285, a.bx));
+    if (a.k === 2) { if (keys["arrowleft"] || keys["q"] || keys["a"]) a.bx -= 260 * dt; if (keys["arrowright"] || keys["d"]) a.bx += 260 * dt; a.bx = Math.max(35, Math.min(285, a.bx + a.padX * 260 * dt));
       a.starT -= dt; if (a.starT < 0) { a.starT = .5 + Math.random() * .4; a.stars.push({ x: 20 + Math.random() * 280, y: 40, v: 110 + Math.random() * 80 + (20 - a.t) * 4, gold: Math.random() < .15 }); }
       a.stars.forEach(s => s.y += s.v * dt); a.stars = a.stars.filter(s => { if (s.y > 355 && s.y < 385 && Math.abs(s.x - a.bx) < 38) { a.score += s.gold ? 3 : 1; tone(s.gold ? 1320 : 1046, .1, "sine", .12); return false; } return s.y < 410; }); }
     if (a.t <= 0) { a.t = 0; a.over = true; a.won = a.k === 2 ? Math.ceil(a.score / 2) : a.score; if (a.won > 0) gtAddTickets(a.won); sfx.win(); $("arcAgain").hidden = false; } }
@@ -2821,6 +2890,7 @@ function arcLoop(now) {
     if (a.flash > 0) { x.fillStyle = "#ffe066"; x.font = "bold 34px sans-serif"; x.fillText("PANIER !", 160, 220); } }
   if (a.k === 2) { a.stars.forEach(s => { x.fillStyle = s.gold ? "#ffb000" : "#ffe066"; x.font = (s.gold ? 40 : 28) + "px sans-serif"; x.fillText("★", s.x, s.y); });
     x.fillStyle = "#2fd3ff"; x.beginPath(); x.roundRect(a.bx - 38, 362, 76, 22, 8); x.fill(); x.fillStyle = "#1b1035"; x.fillRect(a.bx - 30, 366, 60, 6); }
+  arcCurseur(a, x);
   if (a.over) { x.fillStyle = "rgba(11,6,32,.85)"; x.fillRect(0, 130, 320, 140); x.fillStyle = "#ffffff"; x.font = "bold 28px sans-serif"; x.fillText("Bravo ! ⭐ " + a.score, 160, 185); x.fillStyle = "#ffe066"; x.font = "bold 24px sans-serif"; x.fillText("+" + a.won + " tickets 🎟️", 160, 230); }
   requestAnimationFrame(arcLoop);
 }
@@ -6291,7 +6361,7 @@ const M_materiaux = (() => {
 const { INDEX_OS } = M_squelette;
 
 const PART = o => { o.userData.partage = true; return o; };
-const ANISO = LOWQ ? 2 : 8;
+const ANISO = LOWQ ? 2 : ULTRA ? 16 : 8;
 const lin = c => new THREE.Color(c); // couleur du jeu (sRGB) → linéaire
 const fus = (a, b) => { const r = { ...a }; for (const k in b) if (b[k] !== undefined) r[k] = b[k]; return r; }; // options : les « undefined » ne comptent pas
 
@@ -6513,7 +6583,7 @@ const F_PEAU_GRAIN = `#ifdef P_GRAIN
 // réglages par défaut de la peau (exportés pour les essais)
 const PEAU = { rough: .56, w: [.46, .23, .15], pen: [.6, 1, 1.2], spec: .6, chaud: .9, rouge: [1, .88, .86], forceRouge: .5, grain: 55, relief: .00011 };
 function matPeau(color = 0xf1c6a0, opts = {}) {
-  const P = fus(PEAU, opts), grain = !!opts.grain && !LOWQ && P.relief > 0; // grain : seulement sur demande (style lisse, façon Mii)
+  const P = fus(PEAU, opts), grain = !!(opts.grain ?? ULTRA) && !LOWQ && P.relief > 0; // grain : seulement sur demande (style lisse, façon Mii)
   const m = new THREE.MeshStandardMaterial({ color, roughness: P.rough, map: opts.map || null, ...(opts.extra || {}) });
   retoucher(m, { cle: "pmat-peau-1" + (grain ? "g" : ""), defines: grain ? { P_GRAIN: "" } : null, style: style(opts),
     unif: { uPW: { value: new THREE.Vector3(...P.w) }, uPPen: { value: new THREE.Vector3(...P.pen) }, uPReg: { value: new THREE.Vector4(P.spec, P.chaud, P.forceRouge, 0) },
@@ -6560,7 +6630,7 @@ const F_TISSU_MAPS = `#ifdef USE_NORMALMAP_TANGENTSPACE
 diffuseColor.rgb = max( mix( vec3( pLum( diffuseColor.rgb ) ), diffuseColor.rgb, uTLum.w ), 0. );`;
 function matTissu(color = 0xffffff, opts = {}) {
   const sorte = TISSUS[opts.sorte] ? opts.sorte : "coton", P = fus(TISSUS[sorte], opts), e = typeof P.echelle === "number" ? [P.echelle, P.echelle] : P.echelle || [1, 1];
-  const fin = typeof opts.bump === "number" ? P.fin * opts.bump : P.fin, detail = !!opts.detail && !LOWQ;
+  const fin = typeof opts.bump === "number" ? P.fin * opts.bump : P.fin, detail = !!(opts.detail ?? ULTRA) && !LOWQ;
   const m = new THREE.MeshStandardMaterial({ color, roughness: P.rough, metalness: P.metal ?? 0, map: opts.map || null, normalMap: detail ? texTissu(P.tex || sorte) : null, normalScale: new THREE.Vector2(fin, fin), ...(opts.extra || {}) });
   const fil = lin(sorte === "jean" ? 0xd9dde4 : 0xffffff);
   retoucher(m, { cle: "pmat-tissu-1", style: style(opts, { lift: .85, rim: .85 }),
@@ -7798,7 +7868,7 @@ function corpsLeger(cle, geo, pieces, meta) {
 // ---- le personnage
 const ZONE_PERSO = new THREE.Sphere(new THREE.Vector3(0, 1.1, 0), 1.9);
 function personBrut(o) {
-  const type = typeDe(o), lite = !!o.lite, qualite = lite ? "leger" : "plein", { geo, meta } = construireCorps(type, qualite, "chausse"), { os, skeleton } = squelette(type);
+  const type = typeDe(o), lite = !!o.lite && !ULTRA, qualite = lite ? "leger" : "plein", { geo, meta } = construireCorps(type, qualite, "chausse"), { os, skeleton } = squelette(type);
   const g = new THREE.Group(); g.add(os.corps);
   const R = mulberry(o.seed ?? Math.floor(rnd() * 1e6)), skin = o.skin ?? 0xf1c6a0, hair = o.hair ?? 0x5a3a22, U = uniformesHabits(meta);
   U.uHYeux.value.setHex(o.eyes ?? 0x6b4424).multiplyScalar(.8); U.uHSourcil.value.setHex(hair).multiplyScalar(.8);
@@ -7852,7 +7922,7 @@ return M_index;
 })();
 const { apercuVisage, animPerson, liveFace, person, setOutfit, putGlasses, putterPoints, gGr, gTe, HANCHES_ANCIEN, ZIP_MAINS } = ATELIER_PERSOS;
 let player = person({ shirt: 0x2e86de, pants: 0xf39c12, shorts: true, cap: 0xff5a4e, shoe: 0xff5a4e, scale: .6 }); scene.add(player);
-const pLbl = label("Théo", "#2e86de", "#ffffff", .8); pLbl.position.y = 2.75; player.add(pLbl);
+const pLbl = label("Théo", "#2e86de", "#ffffff", .8); pLbl.position.y = 2.75; // pas posée sur le joueur : elle cachait les spectacles
 const SPAWN = { x: -16, z: 33 };
 
 const npcs = [
@@ -7914,7 +7984,8 @@ function updateCrowd(dt) {
   youpiT -= dt;
   for (const sl of slides) if (sl.queue.length && !sl.busy) { const a = sl.queue[0], [qx, qz] = sl.slot(0); if (Math.hypot(a.x - qx, a.z - qz) < .25) { sl.queue.shift(); a.st = "climb"; a.t = 0; sl.busy = 1; } }
   for (const a of crowd) {
-    const g = a.g; let mode = "idle", spd = 0; g.rotation.x = 0;
+    const g = a.g; let mode = "idle", spd = 0; // (pas de g.rotation.x = 0 ici : animPerson pose l'inclinaison du corps ; les baigneurs loin
+    // de la caméra ne sont animés qu'une image sur deux ou trois, et les nageurs se remettaient debout entre deux : ils clignotaient)
     if (a.kind === "slide") {
       const sl = a.sl;
       if (a.st === "queue") { const [qx, qz] = sl.slot(sl.queue.indexOf(a)); if (!stepTo(a, qx, qz, 1.2, dt)) { mode = "walk"; spd = 1.2; } else a.face = Math.atan2(-sl.qd[0], -sl.qd[1]); a.y = 0; }
@@ -7936,8 +8007,11 @@ function updateCrowd(dt) {
       if (!stepTo(a, a.tx, a.tz, 1.8, dt)) { mode = "walk"; spd = 2.4; } }
     else if (a.kind === "lounge") { g.rotation.x = -1.5; a.face = a.rot; }
     g.position.set(a.x, a.y, a.z); g.rotation.y = a.face;
-    if (mode === "walk") a.wt += dt * 3.5 * Math.max(1, spd); if (aAnimer(a, a.x, a.z)) animPerson(g, a.kind === "lounge" ? "lie" : mode, mode === "walk" ? a.wt : mode === "swim" ? time * 4 + a.wt : mode === "climb" ? time * 9 : time, mode === "walk" ? spd : undefined); if (a.kind === "lounge") g.rotation.x = -1.5;
-    liveFace(g, dt);
+    if (mode === "walk") a.wt += dt * 3.5 * Math.max(1, spd);
+    // loin de la caméra, on n'anime qu'une image sur deux ou trois ; le visage aussi (sinon liveFace remettait la pose « debout »
+    // entre deux images de nage : les nageurs se relevaient sans arrêt)
+    if (aAnimer(a, a.x, a.z)) { animPerson(g, a.kind === "lounge" ? "lie" : mode, mode === "walk" ? a.wt : mode === "swim" ? time * 4 + a.wt : mode === "climb" ? time * 9 : time, mode === "walk" ? spd : undefined); liveFace(g, dt); }
+    if (a.kind === "lounge") g.rotation.x = -1.5;
   }
 }
 
@@ -8145,7 +8219,7 @@ function updateTraffic(dt) {
     c.g.position.set(c.x, 0, c.z); c.g.rotation.y = c.dir > 0 ? Math.PI / 2 : -Math.PI / 2; if (aAnimer(c, c.x, c.z)) animPerson(c.rider, "bike", c.ca); }
 }
 // ---------- la terrasse : manger et bronzer ----------
-function lieDome(L) { seatT = { dome: L, kind: "lie", t: 0 }; $("dialog").hidden = true; talking = null; const [wx, wz] = lzW(L, 0, .78); player.position.set(wx, .8, wz); player.rotation.set(0, L.ry, 0); state = "lie"; toast("Ahhh… un petit repos au bord de la piscine 😎 (bouge pour te lever)", 2600); }
+function lieDome(L) { seatT = { dome: L, kind: "lie", t: 0 }; $("dialog").hidden = true; talking = null; const [wx, wz] = lzW(L, 0, .78); player.position.set(wx, .6, wz); player.rotation.set(0, L.ry, 0); state = "lie"; toast("Ahhh… un petit repos au bord de la piscine 😎 (bouge pour te lever)", 2600); }
 function sitDown(c, kind, k) {
   seatT = { c, kind, k, t: 0, done: false }; $("dialog").hidden = true; talking = null;
   if (kind === "eat") { const [lx, lz, a] = TERR.chairs[k], [wx, wz] = c.toWorld(lx, lz), [tx, tz] = TERR.table, [px, pz] = c.toWorld(tx + Math.sin(a) * .45, tz + Math.cos(a) * .45);
@@ -8416,7 +8490,7 @@ $("regFermer").onclick = () => $("resumeBtn").click();
 for (const id of ["mapClose", "shopClose", "arcClose", "prizeClose", "bfClose", "buyClose", "golfClose", "lockerClose", "multiClose", "partiesFermer", "sayClose"]) {
   const b = $(id); if (!b) continue; const boite = b.closest(".card"); if (!boite) continue;
   const x = document.createElement("button"); x.className = "xRouge"; x.setAttribute("aria-label", "Fermer"); x.onclick = e => { e.stopPropagation(); b.click(); }; boite.append(x);
-  b.hidden = true; b.style.display = "none"; const r = b.parentElement; if (r && r.classList.contains("row") && ![...r.children].some(c => c !== b && !c.hidden && c.style.display !== "none")) r.style.display = "none"; }
+  b.hidden = true; b.style.display = "none"; const r = b.parentElement; if (r && r.classList.contains("row") && ![...r.children].some(c => c !== b)) r.style.display = "none"; }
 $("resumeBtn").onclick = () => { sfx.click(); $("pauseView").hidden = true; paused = false; };
 function replay() {
   oublierObjectifs();
@@ -8451,9 +8525,11 @@ stick.addEventListener("pointermove", e => { if (e.pointerId === jid) moveStick(
 let yaw = Math.PI, pitch = .38, cid = null, lx = 0, ly = 0;
 const cv = renderer.domElement;
 cv.addEventListener("pointerdown", e => { cid = e.pointerId; lx = e.clientX; ly = e.clientY; cv.setPointerCapture(cid); });
-cv.addEventListener("pointermove", e => { if (e.pointerId !== cid) return; yaw -= (e.clientX - lx) * .008; pitch = Math.max(.06, Math.min(1.2, pitch + (e.clientY - ly) * .005)); lx = e.clientX; ly = e.clientY; });
+let camMain = -9, marcheT = 0; // dernière fois qu'on a tourné la caméra (en s) ; depuis quand on marche
+cv.addEventListener("pointermove", e => { if (e.pointerId !== cid) return; camMain = performance.now() / 1000; yaw -= (e.clientX - lx) * .008; pitch = Math.max(.06, Math.min(1.2, pitch + (e.clientY - ly) * .005)); lx = e.clientX; ly = e.clientY; });
 ["pointerup", "pointercancel"].forEach(ev => cv.addEventListener(ev, e => { if (e.pointerId === cid) cid = null; }));
-const keys = {}; addEventListener("keydown", e => { keys[e.key.toLowerCase()] = true; if (e.key === "Escape" && !paused) $("pauseBtn").click();
+if (matchMedia("(pointer: fine)").matches) document.documentElement.classList.add("clavier"); // les touches s'affichent sur les boutons d'action
+const keys = {}; addEventListener("keydown", e => { keys[e.key.toLowerCase()] = true; document.documentElement.classList.add("clavier"); if (e.key === "Escape" && !paused) $("pauseBtn").click();
   if (!paused && !e.repeat) { const k = e.key.toLowerCase(); if (k === "e" || k === " ") { e.preventDefault(); doAct(act1 || act2); } if (k === "f") doAct(act2); if (k === "t" || k === "enter") $("talkBtn").click(); } }); addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
 
 // dialogues
@@ -8491,7 +8567,8 @@ function renderLocker() {
   for (const id of owned) { const su = SUITS.find(x => x.id === id); L.append(suitCard(su, wearing === id ? "Je le porte ✓" : "Mettre", wearing === id, () => wear(id), su.price ? "Acheté" : "Offert")); }
 }
 function nomMaillot(su) { return player.userData.female ? su.name.replace(/^Short de bain/, "Maillot de bain").replace(/^Short/, "Maillot une pièce") : su.name; }
-function wear(id) { wearing = id; setOutfit(player, id); envoyerProfil(); sfx.click(); whoosh(.4, .06, 800, 300); renderLocker(); toast(id ? "Te voilà en maillot de bain ! Direction l'eau !" : "Tu as remis tes habits.", 2400); }
+let dernierMaillot = null; // pour le remettre en se téléportant à l'Aquaparc
+function wear(id) { if (id) dernierMaillot = id; wearing = id; setOutfit(player, id); envoyerProfil(); sfx.click(); whoosh(.4, .06, 800, 300); renderLocker(); toast(id ? "Te voilà en maillot de bain ! Direction l'eau !" : "Tu as remis tes habits.", 2400); }
 $("shopClose").onclick = () => { sfx.click(); fermer("shopView"); }; $("lockerClose").onclick = () => { sfx.click(); fermer("lockerView"); };
 updMoney();
 let state = "walk", tower = null, climbT = 0, riding = null, swimming = false, inCottage = null, inDome = false;
@@ -8566,17 +8643,31 @@ mc.addEventListener("pointermove", e => { const d = MAPV.drag; if (!d || d.id !=
 mc.addEventListener("pointercancel", () => { MAPV.drag = null; });
 // Points de téléportation (violets sur la carte) ; avant de partir, on demande confirmation
 function pointsTP() { const L = [
-    ["Ton cottage", ...myCottage.toWorld(0, 7)], ["L'accueil et le village", ACCUEIL.x, ACCUEIL.z - ACCUEIL.hz - 2.5], ["L'Aquaparc", 0, 10],
+    ["Ton cottage", ...myCottage.toWorld(0, 7)], ["L'accueil et le village", ACCUEIL.x, ACCUEIL.z - ACCUEIL.hz - 2.5], ["L'Aquaparc", 16, -24],
     ["Le lac", LAKE.x + DOCK.ux * (DOCK.u1 + 2), LAKE.z + DOCK.uz * (DOCK.u1 + 2)], ["Le Multi Parcs", GTW.x, GTW.z + GTW.hz + 2.5], ["Burger Fast", BFW.x, BFW.z + BFW.hz + 2.5],
     ["Le parking", 83, 50], ["Le minigolf", GOLF.kiosk[0], GOLF.kiosk[1] - 2.5], ["L'acrobranche", ACRO.gate[0], ACRO.gate[1] - 2.5], ["Le zoo", (ZOO.x1 + ZOO.x2) / 2, ZOO.z2 + 2.5],
     ["La ferme", (FARM.x1 + FARM.x2) / 2, FARM.z2 + 2.5], ["Le poney club", ARENA.x, ARENA.z - ARENA.rz - 3], ["Le cinéma", (CINE.x1 + CINE.x2) / 2, CINE.z1 - 2.5],
     ["La salle des fêtes", (FETE.x1 + FETE.x2) / 2, FETE.z2 + 2.5], ["La rivière sauvage", RDOCK.x, RDOCK.z]];
   if (HALLO.on) L.push(["Le manoir hanté", MANOR.x1 - 2.5, MANOR.door]); return L; }
+// Les lieux découverts (on est passé tout près à pied) : on peut s'y téléporter. À plusieurs, tous les lieux sont ouverts.
+const DECOUVERTS = new Set((() => { try { const v = JSON.parse(localStorage.getItem("pins-decouverts") || "[]"); return Array.isArray(v) ? v.filter(n => typeof n === "string") : []; } catch (e) { return []; } })());
+const tpOuvert = n => n === "Ton cottage" || DECOUVERTS.has(n) || !!(net && net.s >= 0);
+let decouvT = 0;
+function decouvrirTick(dt, P) {
+  if ((decouvT -= dt) > 0 || state !== "walk") return; decouvT = .5;
+  for (const [n, x, z] of pointsTP()) if (!DECOUVERTS.has(n) && n !== "Ton cottage" && Math.hypot(P.x - x, P.z - z) < 12) {
+    DECOUVERTS.add(n); try { localStorage.setItem("pins-decouverts", JSON.stringify([...DECOUVERTS])); } catch (e) {}
+    toast(`📍 Nouveau lieu découvert : ${n} ! Avec la carte, tu pourras t'y téléporter.`, 3200); sfx.duck(); }
+}
 function teleporter(x, z) {
   if (state === "drive") dismount(); if (state === "golf") golf3Stop();
   const P = player.position; P.set(x, 0, z); resolve(P, { x, z }); P.y = floorY({ x: P.x, y: 0, z: P.z }); prev.x = P.x; prev.z = P.z;
   whoosh(.5, .08, 600, 2400); tone(1046, .1, "sine", .08); tone(1568, .14, "sine", .07, 0, .1);
-  mapOpen = false; $("mapView").hidden = true; $("tpConf").hidden = true; toast("Hop ! Te voilà arrivé !", 1800);
+  // on se change en route : en maillot à l'Aquaparc, en habits partout ailleurs
+  const maillot = inSwimZone(P.x, P.z, .3), change = maillot !== !!wearing;
+  if (change) { wearing = maillot ? dernierMaillot || owned[0] : null; setOutfit(player, wearing); envoyerProfil(); renderLocker(); }
+  mapOpen = false; $("mapView").hidden = true; $("tpConf").hidden = true;
+  toast(!change ? "Hop ! Te voilà arrivé !" : maillot ? "Hop ! Te voilà à l'Aquaparc, en maillot de bain ! 🩱" : "Hop ! Te voilà arrivé, avec tes habits ! 👕", 2200);
 }
 let tpVers = null;
 $("tpOui").onclick = () => { if (tpVers) teleporter(tpVers[0], tpVers[1]); tpVers = null; };
@@ -8585,11 +8676,11 @@ $("mapc").parentNode.append($("tpConf"));
 mc.addEventListener("pointerup", e => { const d = MAPV.drag; MAPV.drag = null; if (!d || d.moved) return;
   if (state !== "walk" && state !== "drive") { toast("Termine d'abord ce que tu fais, puis réessaie.", 2000); return; }
   const r = mc.getBoundingClientRect(), S = 640, k = mapK(), px = (e.clientX - r.left) * S / r.width, pz = (e.clientY - r.top) * S / r.height;
-  // un point violet tout près ? on va à ce lieu
-  let nom = null, x, z, best = 26; for (const [n, tx, tz] of pointsTP()) { const dd = Math.hypot((tx - MAPV.cx) * k + S / 2 - px, (tz - MAPV.cz) * k + S / 2 - pz); if (dd < best) { best = dd; nom = n; x = tx; z = tz; } }
-  if (!nom) { x = (px - S / 2) / k + MAPV.cx; z = (pz - S / 2) / k + MAPV.cz; x = Math.max(-WORLD + 2, Math.min(WORLD - 2, x)); z = Math.max(-WORLD + 2, Math.min(WORLD - 2, z));
-    if (inWater(x, z) || inPoolRect(x, z, -1) || Math.hypot(x - 120, z - 95) < 9.5) { toast("Là, c'est de l'eau ! Touche un autre endroit sur la carte.", 2200); return; } }
-  sfx.click(); tpVers = [x, z]; $("tpTxt").textContent = nom ? "Aller à : " + nom + " ?" : "Aller à cet endroit ?"; $("tpConf").hidden = false;
+  // on ne se téléporte qu'aux lieux découverts (les points violets) : le plus proche du doigt
+  let nom = null, x, z, best = 30; for (const [n, tx, tz] of pointsTP()) { const dd = Math.hypot((tx - MAPV.cx) * k + S / 2 - px, (tz - MAPV.cz) * k + S / 2 - pz); if (dd < best) { best = dd; nom = n; x = tx; z = tz; } }
+  if (!nom) { toast("Touche un point violet pour t'y téléporter 📍", 2200); return; }
+  if (!tpOuvert(nom)) { toast(`🔒 ${nom} : tu ne l'as pas encore découvert. Va d'abord le visiter à pied !`, 2800); return; }
+  sfx.click(); tpVers = [x, z]; $("tpTxt").textContent = "Aller à : " + nom + " ?"; $("tpConf").hidden = false;
 });
 function drawMap() {
   const S = 640, k = mapK(), X = x => (x - MAPV.cx) * k + S / 2, Z = z => (z - MAPV.cz) * k + S / 2;
@@ -8640,11 +8731,13 @@ function drawMap() {
     const fx = X(o.g.position.x), fz = Z(o.g.position.z); mx.fillStyle = ANIMAUX[s][3]; mx.strokeStyle = "#fff"; mx.lineWidth = 3; mx.beginPath(); mx.arc(fx, fz, 10, 0, 7); mx.fill(); mx.stroke();
     mx.textBaseline = "middle"; mx.font = '13px sans-serif'; mx.fillText(ANIMAUX[s][0], fx, fz + 1); mx.textBaseline = "alphabetic";
     const nm = nomJoueur(s); mx.font = '800 12px "Baloo 2",sans-serif'; mx.lineWidth = 3; mx.strokeStyle = "#fff"; mx.strokeText(nm, fx, fz - 14); mx.fillStyle = ANIMAUX[s][3]; mx.fillText(nm, fx, fz - 14); }
-  // les points de téléportation
-  mx.textAlign = "center"; for (const [n, tx, tz] of pointsTP()) { const qx = X(tx), qz = Z(tz); if (qx < -20 || qx > S + 20 || qz < -20 || qz > S + 20) continue;
-    mx.fillStyle = "#8e44ad"; mx.strokeStyle = "#fff"; mx.lineWidth = 3; mx.beginPath(); mx.arc(qx, qz, 9, 0, 7); mx.fill(); mx.stroke();
-    mx.fillStyle = "#fff"; mx.beginPath(); mx.arc(qx, qz, 3.2, 0, 7); mx.fill();
-    if (MAPV.z > 1.5) { mx.font = '800 13px "Baloo 2",sans-serif'; mx.lineWidth = 4; mx.strokeStyle = "#fff"; mx.strokeText(n, qx, qz - 14); mx.fillStyle = "#5b2a86"; mx.fillText(n, qx, qz - 14); } }
+  // les points de téléportation : gros points violets avec leur nom pour les lieux découverts, petits points gris « ? » pour les autres
+  mx.textAlign = "center"; for (const [n, tx, tz] of pointsTP()) { const qx = X(tx), qz = Z(tz), ok = tpOuvert(n); if (qx < -20 || qx > S + 20 || qz < -20 || qz > S + 20) continue;
+    mx.fillStyle = ok ? "#8e44ad" : "#9aa0b4"; mx.strokeStyle = "#fff"; mx.lineWidth = 3; mx.beginPath(); mx.arc(qx, qz, ok ? 12 : 8, 0, 7); mx.fill(); mx.stroke();
+    mx.fillStyle = "#fff"; mx.textBaseline = "middle";
+    if (ok) { mx.beginPath(); mx.arc(qx, qz, 4.5, 0, 7); mx.fill(); } else { mx.font = '800 11px "Baloo 2",sans-serif'; mx.fillText("?", qx, qz + 1); }
+    mx.textBaseline = "alphabetic";
+    if (ok) { mx.font = `800 ${MAPV.z > 1.5 ? 14 : 12}px "Baloo 2",sans-serif`; mx.lineWidth = 4; mx.strokeStyle = "#fff"; mx.strokeText(n, qx, qz - 17); mx.fillStyle = "#5b2a86"; mx.fillText(n, qx, qz - 17); } }
   const px = X(player.position.x), pz = Z(player.position.z); mx.save(); mx.translate(px, pz); mx.rotate(-player.rotation.y + Math.PI);
   mx.fillStyle = "#2e86de"; mx.strokeStyle = "#fff"; mx.lineWidth = 2; mx.beginPath(); mx.moveTo(0, -11); mx.lineTo(8, 8); mx.lineTo(-8, 8); mx.closePath(); mx.fill(); mx.stroke(); mx.restore();
 }
@@ -8762,7 +8855,7 @@ function sauverPersos() { try { localStorage.setItem("pins-persos", JSON.stringi
 function appliquerPerso() {
   const p = monPerso(), o = optsDePerso(p), ancien = player;
   player = person(o); player.position.copy(ancien.position); player.rotation.copy(ancien.rotation);
-  ancien.remove(myLbl); player.add(myLbl); scene.add(player); scene.remove(ancien); libererPersonnage(ancien);
+  ancien.remove(myLbl); scene.add(player); scene.remove(ancien); libererPersonnage(ancien);
   putGlasses(player, o.lunettes); setOutfit(player, wearing); nommer(p.nom);
   $("multiPerso").textContent = (p.sexe === "f" ? "👧 " : "👦 ") + monNom;
 }
@@ -8931,7 +9024,7 @@ function bulle(text) {
   x.fillStyle = "#1d3b2a"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(text, 512, 78, w - 60);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false, depthTest: false, toneMapped: false })); sp.scale.set(5.6, 5.6 * 200 / 1024, 1); sp.renderOrder = 10;
-  sp.position.y = 3.75; return sp;
+  sp.position.y = 3.75; if (ULTRA) sp.layers.set(31); return sp;
 }
 function poserBulle(o, g, text) {
   if (o.bub) { g.remove(o.bub); o.bub.material.map.dispose(); o.bub.material.dispose(); }
@@ -8956,13 +9049,13 @@ function ajouter(s, annonce) {
 }
 function retirer(s, annonce) {
   const o = net.autres.get(s); if (!o) return;
-  const nom = nomJoueur(s); scene.remove(o.g); if (o.boat) scene.remove(o.boat); libererPersonnage(o.g); net.autres.delete(s); net.profils.delete(s); majUI();
+  const nom = nomJoueur(s); scene.remove(o.g); if (o.boat) scene.remove(o.boat); if (o.buoy) scene.remove(o.buoy); libererPersonnage(o.g); net.autres.delete(s); net.profils.delete(s); majUI();
   if (annonce) toast(`${ANIMAUX[s][0]} ${nom} est parti.`);
 }
 // En partie, on porte la couleur de son animal (comme les autres nous voient).
 function monLabel(text, bg, shirt) {
   player.remove(myLbl); if (myLbl !== pLbl) effacerLabel(myLbl);
-  myLbl = text ? label(text, bg, "#ffffff", .6) : pLbl; myLbl.position.y = 2.95; player.add(myLbl);
+  myLbl = text ? label(text, bg, "#ffffff", .6) : pLbl; myLbl.position.y = 2.95; // (on ne la pose plus sur le joueur)
 }
 // repère 📍 au-dessus du lieu du rendez-vous (et sur la carte), pendant une minute et demie
 function poserRdv(r) {
@@ -9020,6 +9113,7 @@ function recevoir(data) {
   } else if (d.t === "m" && Number.isInteger(d.i) && d.i >= 0 && d.i < PHRASES.length) dire(d.s, d.i);
   else if (d.t === "don" && Number.isInteger(d.o) && d.o >= 0 && d.o < DONS.length && net.autres.has(d.s)) recevoirDon(d);
   else if (d.t === "merci" && Number.isInteger(d.o)) merciDon(d);
+  else if (d.t === "vagues" && (d.on === 0 || d.on === 1)) { lancerVagues(d.on === 1, true); if (net.hote) net.mondeT = 0; }
   else if (d.t === "monde" && !net.hote && d.s !== net.s && Number.isFinite(d.h) && d.h >= 0 && d.h <= 1) recevoirMonde(d);
 }
 // Jouer à plusieurs : celui qui a lancé la partie (l'hôte) garde son monde (l'heure du jour, le thème) et les invités le voient ;
@@ -9029,16 +9123,20 @@ function recevoirMonde(d) {
   if (net.invite.cible === undefined) dayT = d.h; // en arrivant : tout de suite l'heure de l'hôte ; ensuite updateDayNight la suit en douceur
   net.invite.cible = d.h; dayFF = null;
   const th = d.th === 1; if (th !== HALLO.on) mettreHalloween(th);
+  if (d.b === 0 || d.b === 1) net.invite.boum = d.b === 1; // la boum de la piscine : celle de l'hôte
+  // les vagues : on suit l'hôte (sauf juste après avoir appuyé soi-même, le temps que l'appui lui arrive)
+  if (Number.isInteger(d.v) && d.v >= -1 && d.v <= WAVES.dur && performance.now() - (net.vaguesT || -1e4) > 3000) {
+    if (d.v < 0) lancerVagues(false, true); else { if (WAVES.t < 0) lancerVagues(true, true); if (Math.abs(WAVES.t - d.v) > 2) WAVES.t = d.v; } }
 }
 function quitter() {
   if (!net) return;
   const n = net; net = null; clearTimeout(n.attente);
   try { n.ws.close(1000); } catch (e) {}
-  for (const o of n.autres.values()) { scene.remove(o.g); if (o.boat) scene.remove(o.boat); libererPersonnage(o.g); }
+  for (const o of n.autres.values()) { scene.remove(o.g); if (o.boat) scene.remove(o.boat); if (o.buoy) scene.remove(o.buoy); libererPersonnage(o.g); }
   if (n.moi.bub) { player.remove(n.moi.bub); effacerLabel(n.moi.bub); }
   if (n.rdv) { scene.remove(n.rdv.sp); effacerLabel(n.rdv.sp); }
   for (const d of n.dons) rendreDon(d, false); // un cadeau pas encore arrivé revient dans le sac
-  if (n.invite) { dayT = n.invite.jour; dayFF = null; if (n.invite.hallo !== HALLO.on) mettreHalloween(n.invite.hallo); } // l'invité retrouve son monde
+  if (n.invite) { dayT = n.invite.jour; dayFF = null; if (n.invite.boum !== undefined) BOUM.active = false; if (n.invite.hallo !== HALLO.on) mettreHalloween(n.invite.hallo); } // l'invité retrouve son monde
   monLabel(null); majUI();
 }
 function majUI() {
@@ -9138,20 +9236,28 @@ function netTick(dt) {
       b.rotation.set(Math.sin(time * 1.3 + 1) * .015, h, Math.sin(time * 1.1 + 1) * .02);
       b.userData.wheel.rotation.x -= dt * o.vit * 2.2; b.userData.crank.rotation.x -= dt * o.vit * 2.2;
       animPerson(g, "pedal", b.userData.crank.rotation.x);
-    } else {
+    } else if (o.m === 4 && o.ty < 0) {
+      // sur la rivière sauvage (la seule glissade sous le niveau du sol) : sa bouée sous lui
       if (o.boat) o.boat.visible = false;
+      if (!o.buoy) { o.buoy = makeBuoy(); scene.add(o.buoy); }
+      o.buoy.visible = true; o.buoy.position.set(g.position.x, g.position.y + .3, g.position.z); o.buoy.rotation.y = g.rotation.y;
+      animPerson(g, "buoy", time);
+    } else {
+      if (o.boat) o.boat.visible = false; if (o.buoy) o.buoy.visible = false;
       o.walk += dt * 9; animPerson(g, MODES[o.m], o.m === 2 ? time * 4 : o.m === 3 ? time * 9 : o.walk, o.m === 1 ? o.vit : undefined);
     }
   }
   if (net.moi.bub && (net.moi.bubT -= dt) <= 0) { player.remove(net.moi.bub); net.moi.bub = null; }
   if (net.rdv) { const r = net.rdv; r.sp.position.y = r.h + Math.sin(time * 3) * .6; if ((r.t -= dt) <= 0) { scene.remove(r.sp); effacerLabel(r.sp); net.rdv = null; } }
   if (net.s < 0 || net.ws.readyState !== 1) return;
-  if (net.hote && (net.mondeT -= dt) <= 0) { net.mondeT = 1; net.ws.send(JSON.stringify({ t: "monde", h: Math.round(dayT * 1000) / 1000, th: HALLO.on ? 1 : 0 })); }
+  if (net.hote && (net.mondeT -= dt) <= 0) { net.mondeT = 1; net.ws.send(JSON.stringify({ t: "monde", h: Math.round(dayT * 1000) / 1000, th: HALLO.on ? 1 : 0, b: BOUM.active ? 1 : 0, v: WAVES.t < 0 ? -1 : Math.floor(WAVES.t) })); }
+  // invité sans l'heure de l'hôte au bout de 8 s avec lui : le relais est trop ancien (ou l'hôte est parti), on le dit une fois
+  if (!net.hote && !net.invite && net.autres.size && (net.sansMonde = (net.sansMonde || 0) + dt) > 8 && !net.ditSansMonde) { net.ditSansMonde = true; toast("⏰ Ici, chacun garde son heure : le serveur du jeu doit être mis à jour.", 4200); }
   net.hb -= dt; if ((net.sendT -= dt) > 0) return; net.sendT = .1;
   const P = player.position, ry = Math.atan2(Math.sin(player.rotation.y), Math.cos(player.rotation.y));
   const cur = { x: r2(P.x), y: r2(P.y), z: r2(P.z), r: r2(ry) }, L = net.last;
   const bouge = L && Math.hypot(cur.x - L.x, cur.z - L.z) > .02;
-  cur.m = state === "ride" || state === "boat" ? 4 : state.startsWith("climb") ? 3 : swimming ? 2 : bouge ? 1 : 0;
+  cur.m = state === "ride" || state === "boat" || state === "river" ? 4 : state.startsWith("climb") ? 3 : swimming ? 2 : bouge ? 1 : 0;
   if (L && L.x === cur.x && L.y === cur.y && L.z === cur.z && L.r === cur.r && L.m === cur.m && net.hb > 0) return;
   net.last = cur; net.hb = 2;
   net.ws.send(JSON.stringify({ t: "p", ...cur }));
@@ -9654,6 +9760,13 @@ for (const [id, k] of [["volGen", "gen"], ["volMus", "mus"], ["volFx", "fx"]]) {
   r.addEventListener("input", () => { VOL[k] = r.value / 100; try { localStorage.setItem("pins-volumes", JSON.stringify(VOL)); } catch (e) {} audioOn(); appliquerVolumes(); });
   r.addEventListener("change", () => { if (k !== "mus") sfx.click(); }); }
 // les thèmes (pour l'instant : normal ou Halloween)
+// la qualité des images : le jeu redémarre pour la changer (la partie est gardée)
+{ const DIT = { eco: "Fluide : moins de détails et pas d'ombres, pour les tablettes qui rament.", auto: "Auto : le jeu choisit selon l'appareil.", belle: "Belle : plus d'herbe, d'arbres et de reflets, des ombres douces. Pour un ordinateur ou un iPad récent.",
+    ultra: "Ultra : ombres dans les coins, relief sur tous les murs, personnages très détaillés. Pour un ordinateur puissant." };
+  document.querySelectorAll("[data-qual]").forEach(b => { b.setAttribute("aria-pressed", b.dataset.qual === QUAL ? "true" : "false");
+    b.onclick = () => { sfx.click(); const q = b.dataset.qual; if (q === QUAL) return;
+      demander("Changer la qualité des images ?", "Le jeu va redémarrer. Ta partie est gardée.", "Oui, redémarrer", () => { try { LS_VRAI.setItem("pins-qualite", q); } catch (e) {} sauverPartie(false); chargementEnCours = true; location.reload(); }); }; });
+  $("qualTxt").textContent = DIT[QUAL]; }
 document.querySelectorAll(".themes [data-theme]").forEach(t => t.onclick = () => { if ((t.dataset.theme === "halloween") !== HALLO.on) $("halloBtn").click(); else sfx.click(); });
 setHalloBtn();
 // jour / nuit et jeu à plusieurs : on ferme le menu pour voir le ciel changer ou choisir sa partie
@@ -9663,7 +9776,7 @@ $("pauseBtn").addEventListener("click", () => dessinerPersos());
 // le témoin de la manette (en haut et dans le menu)
 let gpNom = null;
 function temoinManette(g) { const n = g ? g.id.replace(/\s*\(.*?\)\s*/g, " ").trim().slice(0, 40) || "manette" : ""; if (n === gpNom) return; gpNom = n;
-  $("gpPill").hidden = !g; $("gpEtat").textContent = g ? "Manette reconnue : " + n : "Pas de manette"; }
+  document.documentElement.classList.toggle("manette", !!g); $("gpPill").hidden = !g; $("gpEtat").textContent = g ? "Manette reconnue : " + n : "Pas de manette"; }
 temoinManette(null);
 // le sac à dos : tout ce qu'on a acheté ou gagné (déjà gardé sur l'appareil : argent, maillots, courses, cadeaux)
 // manger : un aliment du sac donne 10 % de vitesse en plus pendant 2 minutes (marche et nage)
@@ -9786,7 +9899,7 @@ $("svCharger").onclick = () => { sfx.click(); if (!svAttente) return;
   PARTIES.id = o.parties[0].id; sauverParties(); chargementEnCours = true; toast("✅ Parties chargées ! Le jeu redémarre…", 2000); setTimeout(() => location.reload(), 900); };
 $("svExport").onclick = async () => { sfx.click(); const txt = JSON.stringify(svPaquet(), null, 1), nom = "domaine-des-pins-" + new Date().toISOString().slice(0, 10) + ".json";
   const f = new File([txt], nom, { type: "application/json" });
-  if (LOWQ && navigator.canShare?.({ files: [f] })) { try { await navigator.share({ files: [f], title: "Ma partie du Domaine des Pins" }); return; } catch (e) { if (e.name === "AbortError") return; } }
+  if (TACTILE && navigator.canShare?.({ files: [f] })) { try { await navigator.share({ files: [f], title: "Ma partie du Domaine des Pins" }); return; } catch (e) { if (e.name === "AbortError") return; } }
   const a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = nom; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast("📤 Fichier enregistré : " + nom, 2600); };
 $("svImport").onclick = () => { sfx.click(); $("svFichier").value = ""; $("svFichier").click(); };
 $("svFichier").onchange = async () => { const f = $("svFichier").files[0]; if (!f) return; let o = null; try { o = JSON.parse(await f.text()); } catch (e) {}
@@ -9818,7 +9931,14 @@ function manette() {
   const B = i => !!g.buttons[i]?.pressed, appui = i => B(i) && !GP.prec[i], ax = i => { const v = g.axes[i] ?? 0; return Math.abs(v) < .2 ? 0 : v; };
   const mx = THREE.MathUtils.clamp(ax(0) + (B(15) ? 1 : 0) - (B(14) ? 1 : 0), -1, 1), my = THREE.MathUtils.clamp(ax(1) + (B(13) ? 1 : 0) - (B(12) ? 1 : 0), -1, 1);
   const o = menuOuvert();
-  if (o) { // dans un menu : on choisit un bouton
+  if (o && o.id === "arcadeView" && arc) { // l'arcade : la croix (ou le stick) bouge le curseur, A agit, X et Y changent de tour, B ferme
+    if (GP.focus) poserFocus(null);
+    const dir = Math.max(Math.abs(mx), Math.abs(my)) > .5 ? (Math.abs(mx) > Math.abs(my) ? (mx > 0 ? "d" : "g") : (my > 0 ? "b" : "h")) : "";
+    if (dir && (dir !== GP.dir || now > GP.rep)) { arcBouger(dir === "d" ? 1 : dir === "g" ? -1 : 0, dir === "b" ? 1 : dir === "h" ? -1 : 0); GP.rep = now + (dir !== GP.dir ? 350 : 150); }
+    GP.dir = dir; arc.padX = arc.k === 2 ? mx : 0;
+    if (appui(0)) arcAgir(); if (appui(2) || appui(5)) arcTour((arc.td?.sel ?? 0) + 1); if (appui(3) || appui(4)) arcTour((arc.td?.sel ?? 0) - 1);
+    if (appui(1)) $("arcClose").click();
+  } else if (o) { // dans un menu : on choisit un bouton
     if (GP.moved && jid === null) { jx = jy = 0; GP.moved = false; }
     if (GP.focus && !o.contains(GP.focus)) poserFocus(null);
     const dir = Math.max(Math.abs(mx), Math.abs(my)) > .5 ? (Math.abs(mx) > Math.abs(my) ? (mx > 0 ? "d" : "g") : (my > 0 ? "b" : "h")) : "";
@@ -9840,7 +9960,7 @@ function manette() {
     if (enChoix && appui(1)) poserFocus(null);
     const mx = sx, my = sy;
     if (jid === null) { if (mx || my) { const L = Math.max(1, Math.hypot(mx, my)); jx = mx / L; jy = my / L; GP.moved = true; } else if (GP.moved) { jx = jy = 0; GP.moved = false; } }
-    const cx = ax(2), cy = ax(3); if (cx || cy) { yaw -= cx * dt * 2.8; pitch = Math.max(.06, Math.min(1.2, pitch + cy * dt * 1.6)); }
+    const cx = ax(2), cy = ax(3); if (cx || cy) { camMain = performance.now() / 1000; yaw -= cx * dt * 2.8; pitch = Math.max(.06, Math.min(1.2, pitch + cy * dt * 1.6)); }
     const court = B(4) || B(5) || B(6) || B(7) || B(10); if (court !== GP.court) { keys["shift"] = court; GP.court = court; }
     if (enChoix) { /* A et B servent au bouton choisi */ }
     else if (G3.on) { if (appui(0) || appui(1)) g3Charge(true); if ((!B(0) && GP.prec[0]) || (!B(1) && GP.prec[1])) g3Charge(false); }
@@ -9857,8 +9977,12 @@ function manette() {
 }
 /* ================= Boucle ================= */
 const clock = new THREE.Clock(); let walkT = 0, time = 0, stepAcc = 0, lastWhere = "";
+let camDedans = -9; // dernier moment où la caméra était dans un bâtiment
 const tv = new THREE.Vector3(), camO = new THREE.Vector3(), camDir = new THREE.Vector3(), prev = { x: 0, z: 0 };
 player.position.set(SPAWN.x, 0, SPAWN.z);
+// Ultra : toutes les images peintes des bâtiments (murs, sols, toits, bois…) reçoivent aussi leur relief
+if (ULTRA) { const vues = new Set(); scene.traverse(o => { if (!o.isMesh || o.isSkinnedMesh) return; for (const m of [].concat(o.material)) { const im = m && m.isMeshStandardMaterial && !m.transparent && !m.normalMap && m.map && m.map.image;
+  if (im && im instanceof HTMLCanvasElement && im.width >= 64 && !NMAP.has(im) && !vues.has(im)) { vues.add(im); try { withRelief(m.map, 2.5); } catch (e) {} } } }); }
 applyRelief();
 function setBtn(el, txt) { if (txt) { if (el.dataset.t !== txt) { el.dataset.t = txt; el.textContent = txt; } el.hidden = false; } else el.hidden = true; } // on compare au texte d'origine (l'émoticône devient une icône à l'écran)
 function inPoolRect(x, z, m = .35) { return x > POOL.x1 + m && x < POOL.x2 - m && z > POOL.z1 + m && z < POOL.z2 - m || x > PPOOL.x1 + m && x < PPOOL.x2 - m && z > PPOOL.z1 + m && z < PPOOL.z2 - m; }
@@ -10192,7 +10316,7 @@ function majObjectif(dt) {
   fl.hidden = d < 3; const fx = animDir.x, fz = animDir.z, n = Math.hypot(fx, fz) || 1, ang = Math.atan2((dx * -fz + dz * fx) / n, (dx * fx + dz * fz) / n);
   fl.style.transform = `rotate(${(ang * 180 / Math.PI).toFixed(1)}deg)`;
 }
-function oublierObjectifs() { OBJ_FAITS.clear(); sauverObjectifs(); for (const k in ETAPES) delete ETAPES[k]; sauverEtapes(); objId = null; }
+function oublierObjectifs() { DECOUVERTS.clear(); try { localStorage.removeItem("pins-decouverts"); } catch (e) {} OBJ_FAITS.clear(); sauverObjectifs(); for (const k in ETAPES) delete ETAPES[k]; sauverEtapes(); objId = null; }
 // le bouton d'action de l'étape en cours : on avance d'une étape
 function faireEtape() { const o = objectifCourant(), k = etapeDe(o.id), e = o.etapes?.[k]; if (!e) return;
   ETAPES[o.id] = k + 1; sauverEtapes(); toast(typeof e.ok === "function" ? e.ok() : e.ok, 3200); [784, 1046].forEach((f, i) => tone(f, .1, "triangle", .07, 0, i * .09)); }
@@ -10265,11 +10389,11 @@ function loop() {
   if (state === "golf") golf3Tick(dt, time, P);
   if (state === "bowl") bowlTick(dt, time, P);
   updateRoad(dt, P); updateFete(dt, time, P); updateBerger(dt, time, P); updateCine(dt, time, P); BOWL.inside = inBowl(P.x, P.z); if (BOWL.inside !== BOWL.wasIn) { BOWL.wasIn = BOWL.inside; BOWL.roof.visible = !BOWL.inside; } updateCombat(dt, time, P); if (Math.abs(P.x + 126) < 60 && Math.abs(P.z - 120) < 60) updateAcroSwing(time); updatePartyPool(dt, time, P); updateManor(dt, time, P);
-  updateRacks();
+  updateRacks(); decouvrirTick(dt, P);
 
   if (state === "walk" || state === "top") {
     if (player.rotation.x || player.rotation.z) { player.rotation.x = player.rotation.z = 0; seatT = null; } if (!pLbl.visible) pLbl.visible = true; // jamais couché en marchant
-    const [ix, iy] = inp();
+    const [ix, iy] = inp(); if (Math.hypot(ix, iy) <= .08) marcheT = 0;
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
     let mvx = fx * -iy + rx * ix, mvz = fz * -iy + rz * ix; const L = Math.hypot(mvx, mvz);
     swimming = state === "walk" && inPoolRect(P.x, P.z);
@@ -10277,6 +10401,9 @@ function loop() {
     if (!swimming) swimFast = false; const sp = (swimming ? (swimFast ? 4.4 : 1.8) : inKids(P.x, P.z) ? 3 : (runOn || keys["shift"] ? 7.5 : 4.2)) * (boostT > 0 ? 1.1 : 1); // marcher 4,2 m/s (avant 6,5 : on aurait dit qu'il courait), courir 7,5
     if (L > .08) { const s = Math.min(L, 1); mvx /= L; mvz /= L; P.x += mvx * sp * s * dt; P.z += mvz * sp * s * dt;
       const target = Math.atan2(mvx, mvz); let d = target - player.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); player.rotation.y += d * Math.min(1, dt * 12); walkT += dt * 9 * s * (!swimming && (runOn || keys["shift"]) ? 1.5 : 1);
+      // on marche longtemps (devant ou en biais, pas de côté ni en arrière) sans toucher la caméra : elle revient doucement derrière
+      marcheT = Math.abs(Math.atan2(ix, -iy)) < 1.1 ? marcheT + dt : 0;
+      if (marcheT > 1.5 && state === "walk" && performance.now() / 1000 - camMain > 2) { let dy = player.rotation.y + Math.PI - yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yaw += dy * Math.min(1, dt * .6); }
       if (!swimming && state === "walk") { stepAcc += dt * s; if (stepAcc > .32) { stepAcc = 0; if (inCottage || inDome) sfx.step(); } }
     }
     if (state === "top") { const t = tower, dx = P.x - t.cx, dz = P.z - t.cz, d = Math.hypot(dx, dz); if (d > 2.25) { P.x = t.cx + dx / d * 2.25; P.z = t.cz + dz / d * 2.25; } if (d < 1e-3) P.x += .01; P.y = 9.95; }
@@ -10288,7 +10415,6 @@ function loop() {
 
   // où suis-je ?
   // en maillot de bain, on ne sort pas de l'Aquaparc : il faut d'abord se rhabiller dans une cabine des vestiaires
-  const inSwimZone = (x, z, m) => Math.hypot(x - DOME.x, z - DOME.z) < DOME.r - m || (x > PP.x1 + m && x < PP.x2 - m && z > PP.z1 + m && z < PP.z2 - m);
   if (state === "walk" && wearing && inSwimZone(prev.x, prev.z, .3) && !inSwimZone(P.x, P.z, .3)) { P.x = prev.x; P.z = prev.z; if (time - suitToastT > 4) { suitToastT = time; toast("👕 Pas de maillot de bain dehors ! Va dans une cabine pour remettre tes habits.", 3200); } }
   // la route, c'est pour les voitures : à pied, on ne marche pas dessus
   if (state === "walk" && ((onRoad(P.x, P.z, .3) && P.z > PARK.z2 + .4 && !onRoad(prev.x, prev.z, .3)) || (onRing(P.x, P.z, .3) && !onRing(prev.x, prev.z, .3))) && !onCrossing(P.x, P.z)) { P.x = prev.x; P.z = prev.z; if (time - roadToastT > 4) { roadToastT = time; toast("🚗 La route, c'est pour les voitures ! Monte dans une voiture pour rouler dessus.", 3000); } }
@@ -10323,12 +10449,19 @@ function loop() {
 
   // caméra
   if (state !== "ride") {
-    if (inCottage || inAq || inBalo || inGT || inBF || inShop || MANOR.inside || FETE.inside || CINE.inside || BOWL.inside) { camDist = 7.5; minPitch = 1.0; } if (seatT && seatT.show) { camDist = 4.2; let dy = seatT.show.ry + Math.PI - yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yaw += dy * Math.min(1, dt * 2); pitch += (.12 - pitch) * Math.min(1, dt * 2); minPitch = .05; } if (state === "bowl") { camDist = 4.6; minPitch = .32; } if (inLock) { camDist = 6.5; minPitch = 1.05; } if (state === "golf") { camDist = 5; minPitch = .45; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
-    const pt = Math.min(1.3, Math.max(pitch, minPitch) + (minPitch < .9 ? CAMMUR.lift : 0)); const baseY = state === "top" ? 9.95 : state === "boat" ? .6 : Math.max(P.y, 0), FP = state === "bowl" ? BOWL.cam : P;
+    // dans les bâtiments : on arrive avec une vue d'en haut (les murs s'effacent), puis on peut baisser la caméra pour regarder
+    // autour de soi (glisser le doigt) ; les murs l'arrêtent comme dehors
+    const dedans = inCottage || inAq || inBalo || inGT || inBF || inShop || MANOR.inside || FETE.inside || CINE.inside || BOWL.inside;
+    // plus on baisse la caméra, plus elle se rapproche (elle reste dans la pièce) ; une entrée ne compte qu'après 0,6 s dehors
+    if (!dedans && marcheT > 1.5 && state === "walk" && performance.now() / 1000 - camMain > 2) pitch += (.38 - pitch) * Math.min(1, dt * .6); // et à sa hauteur habituelle
+    if (dedans) { if (time - camDedans > .6 && pitch < 1) pitch = 1; minPitch = .35; camDist = 3.2 + 4.3 * Math.min(1, Math.max(0, (pitch - .35) / .55)); camDedans = time; }
+    if (seatT && seatT.show) { camDist = 4.2; let dy = seatT.show.ry + Math.PI - yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yaw += dy * Math.min(1, dt * 2); pitch += (.12 - pitch) * Math.min(1, dt * 2); minPitch = .05; } if (state === "bowl") { camDist = 4.6; minPitch = .32; } if (inLock) { camDist = 6.5; minPitch = 1.05; } if (state === "golf") { camDist = 5; minPitch = .45; } if (state === "boat") camDist = 10; if (inBarn || inTreeHut || inCab) { camDist = 6.5; minPitch = .85; }
+    const pt = Math.min(1.3, Math.max(pitch, minPitch) + (minPitch < .9 && !dedans ? CAMMUR.lift : 0)); const baseY = state === "top" ? 9.95 : state === "boat" ? .6 : Math.max(P.y, 0), FP = state === "bowl" ? BOWL.cam : P;
     const cx = FP.x + Math.sin(yaw) * Math.cos(pt) * camDist, cz = FP.z + Math.cos(yaw) * Math.cos(pt) * camDist, cy = baseY + 1.5 + Math.sin(pt) * camDist;
     // devant un mur : la caméra se rapproche tout de suite, et ne repart en arrière que doucement
     let k = Math.min(1, dt * 7); tv.set(cx, Math.max(cy, .6), cz);
-    if (minPitch < .9 && state !== "top") { camO.set(FP.x, baseY + 1.4, FP.z); camDir.subVectors(tv, camO); const L = camDir.length(); camDir.divideScalar(L);
+    // (dedans, vue d'en haut : pas de collision, on voit par-dessus les murs effacés, comme avant)
+    if (minPitch < .9 && !(dedans && pt >= .9) && state !== "top") { camO.set(FP.x, baseY + 1.4, FP.z); camDir.subVectors(tv, camO); const L = camDir.length(); camDir.divideScalar(L);
       const libre = Math.max(.9, camLibre(camO, camDir, L + .4) - .4) / L;
       if (!(CAMMUR.d <= 1)) CAMMUR.d = 1;
       if (libre < CAMMUR.d) { CAMMUR.d = Math.max(libre, CAMMUR.d - dt * 6); k = Math.min(1, dt * 18); } else CAMMUR.d = Math.min(1, libre, CAMMUR.d + dt * 1.2);
@@ -10476,12 +10609,13 @@ function loop() {
     camera.setViewOffset(W, Hh, W / 2 - cxv, Hh / 2 - cyv, W, Hh); myLbl.visible = false;
   } else if (camera.view?.enabled) { camera.clearViewOffset(); myLbl.visible = true; }
   document.body.classList.toggle("crea-on", creaOn);
-  voituresTick(dt); trier(dt); suivreFeux(dt); majInterieurs(); if (!paused) majObjectif(dt); if (dejaVu) adapterResolution();
-  suivreVitres(); gel(); renderer.render(scene, camera); dejaVu = true; majPerf();
+  voituresTick(dt); trier(dt); suivreFeux(dt); majInterieurs(); if (!paused) majObjectif(dt); if (dejaVu && !ULTRA) adapterResolution(); // (Ultra : netteté fixe)
+  suivreVitres(); gel(); if (COMPO) COMPO.render(); else renderer.render(scene, camera); dejaVu = true; majPerf();
 }
-window.__pins = { ouvrirCrea, openBook, lvTourner, toast, MANOR, get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; } };
+window.__pins = { teleporter, pointsTP, get wearing() { return wearing; }, ouvrirCrea, GT_CABS, BOUM, WAVES, tpOuvert, get net() { return net; }, get arc() { return arc; }, openBook, lvTourner, toast, MANOR, get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; }, get pitch() { return pitch; }, get camDedans() { return camDedans; } };
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
 // (jusqu'à 6 s sur iPad) : la barre continue d'avancer doucement et les messages changent, pour qu'on voie que ça avance
+calquesAO(); // (après les regroupements d'objets du chargement : les groupes faits à la fin comptent aussi)
 await souffle(96, "Les maîtres-nageurs arrivent…");
 const compiler = () => Promise.race([renderer.compileAsync(scene, camera), new Promise(r => setTimeout(r, 6000))]).catch(() => {});
 { let pc = 96, n = 0; const MOTS = ["Les maîtres-nageurs arrivent…", "On gonfle les ballons…", "Le soleil se lève sur le domaine…", "On ouvre les portes…"];
@@ -10515,7 +10649,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.29-21"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.10.31-6"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.

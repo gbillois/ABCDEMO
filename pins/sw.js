@@ -2,7 +2,7 @@
 // Le jeu est gardé sur l'appareil et marche sans réseau (en solo). Il ne change que
 // lorsqu'on appuie sur « Mettre à jour » sur l'écran d'accueil du jeu.
 // Le relais du jeu à plusieurs passe par WebSocket : il n'est jamais intercepté ici.
-const CACHE = "pins-v12";
+const CACHE = "pins-v13";
 const BASE = "https://cdn.jsdelivr.net/npm/three@0.170.0/";
 const FICHIERS = [
   "./", "./manifest.webmanifest", "./icone-192.png", "./icone-512.png", "./apple-touch-icon.png",
@@ -12,6 +12,19 @@ const FICHIERS = [
   BASE + "examples/jsm/objects/Sky.js",
   BASE + "examples/jsm/objects/Water.js",
   BASE + "examples/jsm/geometries/RoundedBoxGeometry.js",
+  // qualité Ultra : retouche de l'image (occlusion ambiante)
+  BASE + "examples/jsm/postprocessing/EffectComposer.js",
+  BASE + "examples/jsm/postprocessing/RenderPass.js",
+  BASE + "examples/jsm/postprocessing/GTAOPass.js",
+  BASE + "examples/jsm/postprocessing/OutputPass.js",
+  BASE + "examples/jsm/postprocessing/Pass.js",
+  BASE + "examples/jsm/postprocessing/ShaderPass.js",
+  BASE + "examples/jsm/postprocessing/MaskPass.js",
+  BASE + "examples/jsm/shaders/GTAOShader.js",
+  BASE + "examples/jsm/shaders/PoissonDenoiseShader.js",
+  BASE + "examples/jsm/shaders/CopyShader.js",
+  BASE + "examples/jsm/shaders/OutputShader.js",
+  BASE + "examples/jsm/math/SimplexNoise.js",
   BASE + "examples/jsm/utils/BufferGeometryUtils.js",
 ];
 // Ce qu'on garde aussi au passage : la bibliothèque 3D et la police du jeu.
