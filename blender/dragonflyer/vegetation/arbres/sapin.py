@@ -1,4 +1,5 @@
-# Le sapin de la forêt : un tronc droit qui monte presque au sommet, sept étages d'aiguilles bombés et festonnés,
+# Le sapin de la forêt : un tronc droit qui monte presque au sommet, sept étages d'aiguilles bombés, au bord en
+# bourrelet arrondi ondulé en grappes,
 # du plus large (au ras de l'herbe) au plus petit (la pointe), qui se recouvrent tous : bien fourni jusqu'en bas,
 # jamais de trou. Le bord de chaque étage est frangé de brins. Fait seulement des pièces du kit.
 # 13 m de haut (le jeu l'agrandit de 0,9 à 1,8 fois), pied à l'origine.
@@ -6,7 +7,7 @@
 import sys, os; sys.path[:0] = [os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")]
 import math
 from mathutils import Vector
-from kit import Arbre, tube, racines, courbe, etage_aiguilles
+from kit import Arbre, tube, courbe, etage_aiguilles
 from materiaux import TEINTE_ECORCE
 
 H = 13.0          # hauteur
@@ -20,9 +21,8 @@ def rayon_tronc(z): return .42 * (1 - .85 * z / H) + .03
 def construire(graine=5):
     A = Arbre("T_sapin", graine, feuillage="Aiguilles"); R = A.R; e = TEINTE_ECORCE["sapin"]
     A.couronne = (Vector((0, 0, H * .42)), Vector((R0, R0, H * .58)))
-    # tronc et racines
+    # tronc (pas de racines : la jupe du bas les cacherait de toute façon)
     tube(A, courbe((0, 0, -.3), (R.uniform(-.1, .1), R.uniform(-.1, .1), H * .86), 0, 4, R, .05), [rayon_tronc(0) * 1.15, rayon_tronc(H * .86)], n=8, pas=1.4, teinte=e)
-    racines(A, rayon_tronc(0), n=4, long=1.0, teinte=e, z_haut=.55, cotes=6, pas=.6)   # cachées sous la jupe : légères
     # étages : du bas vers le haut (règle : rayon et hauteur diminuent, chaque étage recouvre le haut du précédent ;
     # hauteur et débord varient de ±10 % d'un étage à l'autre)
     for i in range(ETAGES):
@@ -31,8 +31,8 @@ def construire(graine=5):
         zb = .72 + t ** 1.08 * (H - 2.3 - .72) + (R.uniform(-.15, .15) if 0 < i < ETAGES - 1 else 0)
         if i == ETAGES - 1: h = H - zb
         Ri = ((R0 - R_HAUT) * (1 - t) ** .9 + R_HAUT) * R.uniform(.92, 1.08)
-        nd = round(4.5 + 4 * (1 - t))
-        etage_aiguilles(A, zb, h, Ri, nd=nd, rt=rayon_tronc(zb + h * .32), tombe=.42 - .18 * t, sommet=i == ETAGES - 1)
+        lobes = round(3.6 + 4 * (1 - t))
+        etage_aiguilles(A, zb, h, Ri, lobes=lobes, rt=rayon_tronc(zb + h * .32), tombe=.42 - .18 * t)
     return A
 
 if __name__ == "__main__":

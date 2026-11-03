@@ -36,7 +36,7 @@ def construire(graine=8):
         t = min(1, max(0, (z - (F.z - 1.0)) / 1.0)); r += .07 * t * t * (3 - 2 * t)
         return max(.16, r - max(0, z - (F.z + .15)) * .7)
     ph = R.uniform(0, 6.28)
-    contreforts = [(ph + 2 * math.pi * (k + R.uniform(-.15, .15)) / 5, R.uniform(1.0, 1.5), R.uniform(.38, .5)) for k in range(5)]
+    contreforts = [(ph + 2 * math.pi * (k + R.uniform(-.15, .15)) / 5, R.uniform(.85, 1.2), R.uniform(.5, .62)) for k in range(5)]
     hauteurs = [-.75, -.35, -.12, .02, .12, .25, .42, .68, 1.1, 1.8, 2.5, F.z - .3, F.z + .15, F.z + .6]
     n0 = len(A.bm.faces)
     pied_sculpte(A, hauteurs, rayon, contreforts, cols=28, teinte=e, axe=lambda z: Vector((F.x, F.y, 0)) * max(0, z) / F.z)

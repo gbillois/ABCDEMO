@@ -152,12 +152,12 @@ def pied_sculpte(A, hauteurs, rayon, contreforts, cols=32, rep=1.4, teinte=(1, 1
     def r_de(th, z):
         r = rayon(z)
         for a, L, W in contreforts:
-            g = math.exp(-max(z, 0) / .42) * (.85 + .65 * min(1, max(0, -z) / .4))   # surtout au ras du sol, et plus loin dessous (le bout plonge avant de s'amincir)
+            g = math.exp(-max(z, 0) / .42) * (.8 + .12 * min(1, max(0, -z) / .3))   # surtout au ras du sol ; dessous à peine plus loin : le bout, arrondi, plonge presque droit
             ext = L * g
             if ext < .01: continue
             w = min(1.2, W / max(.2, r + ext * .5))                                  # demi-largeur angulaire : largeur physique W
             d = math.atan2(math.sin(th - a), math.cos(th - a))
-            if abs(d) < w: r += ext * math.cos(d / w * math.pi / 2) ** 2
+            if abs(d) < w: r += ext * math.cos(d / w * math.pi / 2) ** 1.3   # dos rond (pas de crête ni de lame)
         return r
     m = max(1, round(2 * math.pi * rayon(1.0) / rep))
     anneaux = []
@@ -228,80 +228,69 @@ def touffe(A, centre, rayon, ech=(1, 1, .85), ncartes=16, taille=1.0, inclin=38,
         carte(A, p - axe * L * .3, axe, larg * L, L, A.R.randrange(2), n_fn, c_fn)
 
 # ------------------------------------------------------------------ 3. l'étage d'aiguilles (sapin)
-def etage_aiguilles(A, zb, h, R, nd=10, rt=.3, tombe=.35, brins=True, sommet=False, levre=.13):
-    """Un étage de sapin : cône bombé (aiguilles serrées, opaque) dont le bord retombe en nd lobes arrondis (trois sommets
-    par lobe, le milieu plus bas et plus avancé, puis un creux) ; le bord est arrondi : une lèvre de 13 cm part des mêmes
-    sommets que le dessus et la normale y tourne en douceur (pas de jupon en papier ni de dalle à coins droits) ; dessous
-    fermé jusqu'au tronc ; des brins en cartes de tailles et d'angles variés tout le long du bord, certains qui dépassent.
-    zb : hauteur du bord, h : hauteur de l'étage, R : rayon au bord, rt : rayon du tronc à cet endroit.
-    sommet : dernier étage, pointe arrondie."""
-    n = 4 * nd; ph = A.R.uniform(0, 6.28); pas = 2 * math.pi / nd
-    lobes = [(A.R.uniform(-.1, .1), A.R.uniform(-.25, .3), A.R.uniform(-.08, .08)) for _ in range(nd)]   # débord, retombée, décalage
-    def az(j):
-        k, r = divmod(j, 4); return ph + pas * (k + lobes[k][2] + (-.24, 0, .24, .5)[r])
-    def P(j, r, z): return Vector((math.cos(az(j)) * r, math.sin(az(j)) * r, z))
-    creux = lambda j: j % 4 == 3
-    def bord(j):
-        k, r = divmod(j, 4)
-        if creux(j): return P(j, R * .8, zb + .08 * h)
-        f = 1.0 if r == 1 else .97                                     # milieu du lobe à peine plus avancé : lobe rond
-        return P(j, R * (1 + lobes[k][0]) * f, zb - tombe * (1 + lobes[k][1]) * (1 if r == 1 else .9))
-    anneaux = [[bord(j) for j in range(n)],
-               [P(j, R * (.6 if creux(j) else .66), zb + h * (.33 if creux(j) else .29)) for j in range(n)],
-               [P(j, max(R * .32, rt + .12), zb + h * .68) for j in range(n)]]
-    if sommet: anneaux.append([P(j, max(R * .14, rt + .06), zb + h * .9) for j in range(n)])
-    haut = Vector((0, 0, zb + h * (1.0 if not sommet else .99)))
-    m = max(1, round(2 * math.pi * R / 5.5)); S = [0, .42, .78, .93][:len(anneaux)] + [1.]
-    vv = lambda t: FOND_V[0] + (FOND_V[1] - FOND_V[0]) * t
-    clair = lambda p, b=0.: A.lumiere_feuillage(p, b)
-    def nrm(p, dessous=False):
-        rad = Vector((p.x, p.y, 0)); rad = rad.normalized() if rad.length > 1e-3 else Vector((1, 0, 0))
-        return (rad * .8 + Vector((0, 0, .45))) if dessous else (rad * .62 + Vector((0, 0, .78)))
-    def nrm_bord(p):   # sur l'arrondi du bord : à mi-chemin entre le dessus et la lèvre
-        rad = Vector((p.x, p.y, 0)).normalized(); return rad * .9 + Vector((0, 0, .3))
-    levres = [Vector((p.x * .95, p.y * .95, p.z - levre * (.8 if creux(j) else 1))) for j, p in enumerate(anneaux[0])]
-    def nrm_forme(i, j):
-        """Normale de la forme réelle (perpendiculaire à la pente, dans le plan vertical), mêlée à la normale stylisée :
-        le dessus bombé et le bord arrondi se lisent, sans jamais tourner vers le bas."""
-        p = anneaux[i][j]; av = levres[j] if i == 0 else anneaux[i - 1][j]; ap = anneaux[i + 1][j] if i + 1 < len(anneaux) else haut
-        t = av - ap; rad = Vector((p.x, p.y, 0)); rad = rad.normalized() if rad.length > 1e-3 else Vector((1, 0, 0))
-        ng = rad * (-t.z) + Vector((0, 0, max(0., t.dot(rad))))
-        st = nrm_bord(p) if i == 0 else nrm(p)
-        return (ng.normalized() * .65 + st.normalized() * .35) if ng.length > 1e-4 else st
-    V = [[A.v(p, clair(p, .03 if (i == 0 and not creux(j)) else 0), nrm_forme(i, j)) for j, p in enumerate(an)] for i, an in enumerate(anneaux)]
+def etage_aiguilles(A, zb, h, R, lobes=6, rt=.3, tombe=.35, brins=True, H=13.):
+    """Un étage de sapin, modelé comme une surface de révolution (et non comme un polygone) : un cône bombé dont le bord
+    est un bourrelet à section ronde (tore aplati), ondulé en `lobes` grappes arrondies (le rayon et la retombée suivent
+    une sinusoïde, six points par lobe), puis le dessous qui remonte jusqu'au tronc. Le contour, vu de près comme de
+    loin, est fait de courbes ; les normales sont celles de la surface lisse, relevées vers le ciel (dessous jamais noir).
+    Par-dessus, un brin d'aiguilles au bout de chaque grappe et un dans chaque creux.
+    zb : hauteur du bord, h : hauteur de l'étage, R : rayon au bord, rt : rayon du tronc à cet endroit."""
+    n = 6 * lobes; ph = A.R.uniform(0, 6.28); bruit = [A.R.uniform(-.03, .03) for _ in range(n)]
+    dec = [A.R.uniform(-.25, .25) for _ in range(lobes)]                    # chaque grappe un peu différente
+    rho = max(.12, .05 * R)                                                  # rayon de la section du bourrelet
+    def th(j): return ph + 2 * math.pi * j / n
+    def onde(j):   # 1 au bout d'une grappe, 0 au creux
+        k = (j / 6.0); kk = int(k) % lobes
+        return .5 + .5 * math.cos(2 * math.pi * k) , kk
+    def profil(j):
+        w, kk = onde(j); Rr = R * (.88 + .12 * w) * (1 + bruit[j]) * (1 + .06 * dec[kk] * w)
+        zr = zb - tombe * w * (1 + dec[kk]) + .05 * h * (1 - w)
+        return [(Rr * .58, zb + h * .5), (Rr - rho * .75, zr + rho * .8),
+                (Rr, zr), (Rr - rho * .85, zr - rho * .65), (rt * 1.1, zb + h * .32)]
+    PR = [profil(j) for j in range(n)]; haut = Vector((0, 0, zb + h))
+    def pt(j, i):
+        r, z = PR[j][i]; return Vector((math.cos(th(j)) * r, math.sin(th(j)) * r, z))
+    # coordonnées de texture : du sommet (v haut) au bord (v bas), puis le dessous
+    vv = [.48, .3, .15, .12, .08, .03]
+    m = max(1, round(2 * math.pi * R / 5.5))
+    def nrm_profil(j, i):   # normale de la courbe de profil (pour orienter les faces), relevée vers le ciel
+        a = pt(j, i - 1) if i > 0 else haut; b = pt(j, i + 1) if i + 1 < 5 else pt(j, 4) + (pt(j, 4) - pt(j, 3))
+        t = b - a; rad = Vector((math.cos(th(j)), math.sin(th(j)), 0))
+        ng = rad * (-t.z) + Vector((0, 0, t.dot(rad)))
+        return (ng.normalized() if ng.length > 1e-5 else rad)
+    clair = lambda p, bo=0.: A.lumiere_feuillage(p, bo)
+    V = [[A.v(pt(j, i), clair(pt(j, i), (.03 * onde(j)[0] if i in (1, 2) else (-.06 if i >= 3 else 0))), nrm_profil(j, i)) for i in range(5)] for j in range(n)]
     vh = A.v(haut, clair(haut, .05), (0, 0, 1))
-    def bande(B0, B1, t0, t1, inv=False):
-        for j in range(n):
-            u0, u1 = j / n * m, (j + 1) / n * m
-            vs = [B0[j], B0[(j + 1) % n], B1[(j + 1) % n], B1[j]]; uv = [(u0, vv(t0)), (u1, vv(t0)), (u1, vv(t1)), (u0, vv(t1))]
-            A.f(vs[::-1] if inv else vs, uv[::-1] if inv else uv, FEUILLAGE)
-    for i in range(len(V) - 1): bande(V[i], V[i + 1], S[i], S[i + 1])
+    faces = []
     for j in range(n):
-        u0, u1 = j / n * m, (j + 1) / n * m
-        A.f([V[-1][j], V[-1][(j + 1) % n], vh], [(u0, vv(S[len(V) - 1])), (u1, vv(S[len(V) - 1])), ((u0 + u1) / 2, vv(1))], FEUILLAGE)
-    # lèvre : des mêmes sommets du bord, un peu en dedans et plus bas (épaisseur arrondie), puis le dessous jusqu'au tronc
-    Vl = [A.v(q, clair(anneaux[0][j], -.02), nrm(q, True)) for j, q in enumerate(levres)]
-    bande(V[0], Vl, 0, .06, inv=True)
-    dz = zb + h * .32
-    sous = [A.v(P(j, rt * 1.1, dz), tuple(x * .95 for x in clair(P(j, rt, dz), -.08)), nrm(P(j, 1, dz), True)) for j in range(n)]
-    bande(Vl, sous, .12, .45, inv=True)
+        j2 = (j + 1) % n; u0, u1 = j / n * m, (j + 1) / n * m
+        faces.append(A.f([vh, V[j][0], V[j2][0]], [((u0 + u1) / 2, vv[0]), (u0, vv[1]), (u1, vv[1])], FEUILLAGE))
+        for i in range(4):
+            faces.append(A.f([V[j][i], V[j][i + 1], V[j2][i + 1], V[j2][i]], [(u0, vv[i + 1]), (u0, vv[i + 2]), (u1, vv[i + 2]), (u1, vv[i + 1])], FEUILLAGE))
+    # normales : celles de la surface lisse (moyenne des faces voisines), relevées vers le ciel
+    tous = [v for col in V for v in col] + [vh]
+    for f in faces:
+        if f: f.normal_update()
+    for v in tous:
+        ng = sum((f.normal for f in v.link_faces), Vector())
+        ng = ng.normalized() if ng.length > 1e-5 else Vector((0, 0, 1))
+        rad = Vector((v.co.x, v.co.y, 0)); rad = rad.normalized() if rad.length > 1e-3 else Vector()
+        A.normales[v] = (ng * .7 + rad * .25 + Vector((0, 0, .5))).normalized()
     if not brins: return
-    n_fn = lambda p: nrm(p)
-    for j in range(n):   # frange : un brin sur chaque sommet du bord (le bord n'est jamais vu nu) ; long au milieu du lobe,
-        p = anneaux[0][j]; q = anneaux[1][j]; a = az(j)              # moyen sur ses côtés, plus court dans le creux
-        pente = (p - q).normalized(); tg = Vector((-math.sin(a), math.cos(a), 0))
-        nn = pente.cross(tg).normalized()
-        rot = Matrix.Rotation(math.radians(A.R.uniform(-22, 22)), 3, nn)          # angle varié dans le plan de la pente
-        if creux(j):
-            axe = (pente + Vector((0, 0, -.1))).normalized(); L = max(.7, min(1.4, R * .34)); k_ = .55
+    for j in range(0, n, 3):   # un brin au bout de chaque grappe (j multiple de 6) et un dans chaque creux (j = 6k + 3)
+        p = pt(j, 2); q = pt(j, 0); a = th(j); bout = j % 6 == 0
+        pente = (p - q).normalized(); tg = Vector((-math.sin(a), math.cos(a), 0)); nn = pente.cross(tg).normalized()
+        rot = Matrix.Rotation(math.radians(A.R.uniform(-20, 20)), 3, nn)
+        if bout:
+            axe = (pente + Vector((0, 0, -.2 + A.R.uniform(-.08, .08)))).normalized(); L = max(.9, min(1.8, R * .44)); k_ = .5
+            if A.R.random() < .3: L *= 1.3; k_ = .4
         else:
-            axe = (pente + Vector((0, 0, -.22 + A.R.uniform(-.1, .1)))).normalized(); L = max(.9, min(1.8, R * .44)); k_ = .5
-            if A.R.random() < .3: L *= 1.35; k_ = .38                             # quelques brins dépassent nettement du bord
-        if j % 4 in (0, 2): L *= .85; k_ = .5
-        L *= A.R.uniform(.75, 1.2); axe = rot @ axe; tg = rot @ tg
-        for _ in range(6):   # le bout du brin reste au-dessus du sol (brin relevé, au besoin raccourci)
+            axe = (pente + Vector((0, 0, -.1))).normalized(); L = max(.7, min(1.4, R * .34)); k_ = .55
+        L *= A.R.uniform(.75, 1.15); axe = rot @ axe; tg = rot @ tg
+        for _ in range(6):   # le bout du brin reste au-dessus du sol
             if (p - axe * L * k_ + axe * L).z > .12: break
             axe = (axe + Vector((0, 0, .18))).normalized()
         while (p - axe * L * k_ + axe * L).z < .12 and L > .4: L *= .85
         teinte = A.R.uniform(.82, .95)
-        carte(A, p - axe * L * k_, axe, tg * L * A.R.uniform(.8, 1.0), L, A.R.randrange(2), n_fn, lambda p, t=teinte: tuple(x * t for x in clair(p, 0)))
+        carte(A, p - axe * L * k_, axe, tg * L * A.R.uniform(.8, 1.0), L, A.R.randrange(2),
+              lambda q_, pp=p: A.normales.get(V[j][2], Vector((0, 0, 1))), lambda q_, t=teinte: tuple(x * t for x in clair(q_, 0)))

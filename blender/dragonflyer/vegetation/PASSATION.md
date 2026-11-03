@@ -129,8 +129,21 @@ Commandes (Blender : `/opt/blender-dl/blender-4.2.3-linux-x64/blender`) :
   - sapin : anneau d'arrondi retiré ; un brin sur CHAQUE sommet du bord (frange continue qui cache le bord), lobes
     plus ronds ; brins relevés ou raccourcis pour rester au-dessus du sol ; branches sous l'étage du bas retirées ;
   - imposteurs : seul le meilleur plan se montre (seuil 0,8 à 0,9).
-- Tour 5 (`scratchpad/arbres/t5/`) : sapin 2 272 triangles, feuillu 3 829 ; imposteurs : écart de couleur 0,2 % et 0,1 %,
-  surface 85 % et 91 %. En attente de l'inspection.
+- Tour 5 (`scratchpad/arbres/t5/`) : sapin 2 272 triangles, feuillu 3 829. Tout à 8 ou plus sauf le feuillage du sapin (7).
+  Feuillu réglé (œufs, coques, fourche) ; imposteur du sapin à 85 % accepté.
+  Restait : bord d'étage du sapin en plaque hexagonale, abat-jour à facettes, dessus plat (5e tour : changement
+  d'approche obligatoire) ; dessous de jupe à plis anguleux ; petit moignon sombre ; bouts de racines du feuillu pointus.
+  Corrigé (tour 6) :
+  - CHANGEMENT D'APPROCHE pour l'étage du sapin : `etage_aiguilles` refait comme une surface de révolution et non
+    comme un polygone : profil sommet → milieu bombé (58 % du rayon, mi-hauteur) → bourrelet à section ronde (tore
+    aplati : dessus, avant, dessous) → dessous qui remonte au tronc ; le rayon et la retombée ondulent en grappes
+    (sinusoïde, six points par grappe, petit bruit, chaque grappe un peu différente) ; normales de la surface lisse,
+    relevées vers le ciel ; un brin au bout de chaque grappe et un dans chaque creux. 4 à 8 grappes par étage ;
+  - sapin sans racines (la jupe les cache ; c'était le moignon) ;
+  - racines du feuillu : dos rond (cos^1,3 au lieu de cos²), plus larges, un peu plus courtes, et sous le sol elles ne
+    s'allongent presque plus : le bout, arrondi, plonge presque droit (plus de lame ni de pointe).
+- Tour 6 (`scratchpad/arbres/t6/`) : sapin 2 456 triangles, feuillu 3 829 ; imposteurs : écart 0,3 % et 0,2 %, surface 89 % et 91 %.
+  En attente de l'inspection.
 
 ## Intégration (quand tout est à 8+)
 Prévu : `arbres.glb` (T_pin_0/1, T_feuillu_0/1, matières écorce puis feuillage, `userData.matieres`) et les mêmes
