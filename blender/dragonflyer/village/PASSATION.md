@@ -160,6 +160,44 @@ l'ancien `../maisons.py` (le jeu les lit) : longère (7,4 × 14,6), (0, -7.6, 1.
   Leçon : vérifier soi-même chaque défaut signalé en agrandissant la zone du rendu avant de le corriger. La maison à
   colombages a les mêmes planches de rive : à regarder de près si l'inspecteur y voit un jour.
   21 452 triangles, capsule passe. Rendus : `scratchpad/qc/forge3/`.
+## Pêcheur (`maisons/pecheur.py`, agent séparé, worktree)
+Maison de Saltcliff (répétée 8 fois) : planches peintes à clin sur un plancher porté par 12 pilotis, terrasse côté terre
+avec garde-corps et escalier de bois, coursives, ponton et échelle côté mer, barque amarrée, filet qui sèche, casiers,
+bouée, rames, rouleau de corde, tonneau, lanterne. Trois variantes (`construire(graine, variante)`, défaut graine % 3) :
+rouge (bardeaux gris, porte et volets bleus), bleue (tuiles, porte rouge, volets crème), verte (bardeaux bruns, bois naturel).
+- Gardé de l'ancienne : emprise « pied » 6 × 7, point « porte » (0, -4.0, 1.45) sur la terrasse, intérieur « maison ».
+  Dépassent de l'emprise (comme l'ancienne terrasse) : l'escalier et sa dalle côté terre (jusqu'à y = -7,2) ; le ponton
+  (jusqu'à y = 6,2) et la barque (x jusqu'à 4,0, y jusqu'à 6,5) côté mer. Ils ne sont pas dans le rectangle de collision du jeu.
+- Eau : le jeu pose la maison à y = 0,2 au-dessus de la mer → eau à z = -0,2 dans le repère de la maison. La barque
+  flotte à z = -0,2. Aperçus : `apercu.py: apercu_maison_eau` (rivage en pente, terre à z = 0 côté porte, plan d'eau,
+  occlusion cuite avec le sol au niveau de l'eau) ; `apercu_maison` des autres est inchangée.
+- Kit (« # ---- ajouts pêcheur » à la fin de kit.py) : face_vers, plaque, mur_clins, coin_planches, encadrement,
+  ToitBardeaux (sous-classe de ToitTuiles, même forme), pilotis, plancher, garde_corps, escalier_bois, tore, tuyau_poele.
+  Aucune pièce existante modifiée. Matières ajoutées à la fin de materiaux.py (clin_*, blanc, goudron, algue, bardeau*, corde, filet, liege, bouee_r).
+- Objets : ponton, echelle, casier, filet, bouee, rame, barque, corde (objets/*.py).
+- Avant contrôle (corrigé par le fabricant) : aileron brun qui perçait le toit (plaque de cœur de comble supprimée) ;
+  filet en bâche → vrais fils en losanges ; capsule bloquée par la 2e contremarche (marches de 33 cm moins profondes que
+  le rayon de la capsule, 35 cm) → marches de 38 cm, escalier décalé devant la planche de rive ; mesure de la porte faussée
+  par l'anneau du kit (même hauteur que la mesure, 1 m) → porte de 1,2 m ; joint de plancher dans l'axe de la porte → 25 planches ;
+  caméras 09 et 12 ancrées à 0,6 m devant la porte (le point « porte » est 1,4 m devant, sur la terrasse) ; 14 308 → 12 214 triangles.
+- Premier jet : 12 214 triangles (ancienne : 5 620), capsule PASSE (5 marches de 24 cm), porte 0,86 × 2,06 m mesurés.
+  Rendus : scratchpad `qc/pecheur1/` (variantes dans `variante_bleue/`, `variante_verte/`). En attente de l'inspecteur.
+- Tour 1 (rouge) : posé 6, matières 8, formes 7, style 8, lisibilité 8, passage 8, coût 6 (12 214) → À REFAIRE.
+  Pied d'escalier qui flotte au-dessus du sable, pilotis et escalier mêlés à la plage, décrochage ponton / terrasse,
+  poteau de garde-corps qui cache le seuil en 09, façade arrière et pignon côté mer vides, porte brune de la verte
+  qui se perd, plus de 10 500 triangles.
+  Corrigé : marche du bas en pierre enterrée (kit : escalier_bois, 4 marches de bois + 1 de pierre, 24 cm) et dalle
+  d'approche ; aperçu avec la terre jusque sous la terrasse (y_rive -4,2), pieux de devant sur des plots de pierre,
+  contreventements à 30 cm au-dessus du sable et de l'eau ; ponton avec les mêmes planches de rive que le plancher
+  (dessus au même niveau) ; garde-corps de 80 cm (on voit le seuil par-dessus), bouée déplacée ; côté mer : lanterne,
+  caisse, bouée sur le pignon ; planches plus nuancées (passées, plus foncées) ; porte rouge pour la verte ;
+  allègements (bardeaux et tuiles plus grands, pilotis à 6 pans, rames, barque, corde, bouée, jardinière légère,
+  un tonneau en moins, chevrons tous les 70 cm). Mesure de la porte à 0,6 et 1,4 m dans `apercu_maison_eau`
+  (`ouverture_porte`, même logique que la correction faite ailleurs dans `capsule`).
+- Tour 2 : rouge 10 476, bleue 10 420, verte 10 476 triangles (vitres comprises) ; capsule PASSE, porte 1,20 × 2,05 m.
+  Objets nommés M_pecheur / M_pecheur_b / M_pecheur_c (et W_) ; .glb de chacun dans le dossier de ses rendus
+  (scratchpad `qc/pecheur2/`, `variante_bleue/`, `variante_verte/`). En attente de l'inspecteur.
+- À la fusion : `../maisons.py` doit appeler `construire(variante=0, 1, 2)` pour les trois maisons ; le jeu les répartit.
 
 ## Héros (agent séparé, worktree `worktree-agent-adb19e9034e46bb45`, voir `blender/dragonflyer/personnages/PASSATION.md` sur cette branche)
 - Tour 1 : proportions 8, visage 8, cheveux et vêtements 6, articulations 7, animations 5, style 8, coût 6 → À REFAIRE.
