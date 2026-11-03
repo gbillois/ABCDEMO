@@ -62,6 +62,10 @@ Fichier tenu à jour à chaque étape, pour qu'une nouvelle session reprenne ici
 - Tour 1 : proportions 8, visage 8, cheveux et vêtements 6, articulations 7, animations 5, style 8, coût 6 → À REFAIRE.
   Trou sur le crâne, fourrure en bretelles, jupe en boule, manche pincée, banc d'animation mal cadré, saut en T,
   épée absente du banc, allures trop proches, 28 748 triangles. Tour 2 demandé.
+- Tour 2 : proportions 8, visage 8, cheveux et vêtements 8, articulations 7, animations 7, style 8, coût 9 (14 728) →
+  À REFAIRE. Restent : dôme de jupe en écart (3e fois : changement d'approche imposé), disques de pied illisibles,
+  marche trop énergique, épée en fil trop long. Note : animations.glb du worktree est déjà refait (retouches des
+  allures) ; à la fusion, prendre version et cache sw après ceux de la chaumière (2026.11.03-1, v10). Tour 3 demandé.
 
 ## Prochaine étape
 Finir la chaumière (tout à 8+), l'intégrer : `../maisons.py` appelle `village/maisons/chaumiere.py:construire()`,
