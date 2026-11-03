@@ -9,7 +9,7 @@ Fichier tenu à jour à chaque étape, pour qu'une nouvelle session reprenne ici
   la crête), chevrons, arc de claveaux, porte, fenêtre, cheminée (fondation, épaulement, solin).
 - Aperçus : `apercu.py` (occlusion cuite, 12 caméras, planche, capsule du joueur, `controle.txt`).
 - Objets : `objets/banc.py`, `objets/tas_bois.py`.
-- Maisons : `maisons/chaumiere.py` en contrôle qualité. Les autres maisons sont encore dans l'ancien `../maisons.py`.
+- Maisons : `maisons/chaumiere.py` validée (tour 9, tout à 8+), dans le jeu. Les autres maisons sont encore dans l'ancien `../maisons.py`.
 
 ## Chaumière : tours de contrôle
 - Tour 1 : posé 4, matières 7, formes 6, style 8, lisibilité 7, passage 9, coût 4 → À REFAIRE.
@@ -53,7 +53,10 @@ Fichier tenu à jour à chaque étape, pour qu'une nouvelle session reprenne ici
 - Tour 8 : posé 8, matières 7, formes 8, style 8, lisibilité 9, passage 9, coût 8 → À REFAIRE (matières).
   Olive : disparu. Restaient une bande orange sous le faîtage (dessus de la coque passé au brun) et un dessous lisse.
   Corrigé : dessus de coque en paille sombre, dessous en bandes contrastées, chevrons tous les 55 cm. 18 684 triangles.
-- Tour 9 : en cours.
+- Tour 9 : posé 8, matières 8, formes 8, style 8, lisibilité 9, passage 9, coût 8 → PASSE.
+  Intégrée au jeu (village.glb refait par `../maisons.py`, meshopt 3,2 Mo), capture avant/après dans le jeu,
+  version 2026.11.03-1, cache sw v10. Reste au propriétaire de donner son avis (dernier mot).
+  Suggestions non faites : bandes plus claires entre les chevrons, plaquettes sous la collerette, mousse, marche.
 
 ## Héros (agent séparé, worktree `worktree-agent-adb19e9034e46bb45`, voir `blender/dragonflyer/personnages/PASSATION.md` sur cette branche)
 - Tour 1 : proportions 8, visage 8, cheveux et vêtements 6, articulations 7, animations 5, style 8, coût 6 → À REFAIRE.
