@@ -58,6 +58,21 @@ Fichier tenu à jour à chaque étape, pour qu'une nouvelle session reprenne ici
   version 2026.11.03-1, cache sw v10. Reste au propriétaire de donner son avis (dernier mot).
   Suggestions non faites : bandes plus claires entre les chevrons, plaquettes sous la collerette, mousse, marche.
 
+## Correction du kit (important)
+Une modification ratée avait laissé dans `kit.py` une deuxième copie de la fin du fichier (pignon, porte, fenêtre,
+cheminée) : Python prenait la dernière, avec l'ancien solin à quatre dalles. D'où les « plaquettes » de cheminée que
+l'inspecteur voyait à chaque tour. Doublon supprimé ; la chaumière du jeu sera refaite avec la bonne collerette au
+prochain export du village. Leçon : après chaque modification par script, vérifier `grep -c "^def " kit.py`.
+
+## Maison à colombages (`maisons/colombage.py`)
+Nouvelles pièces du kit : pan de bois (sablières, poteaux, décharges, croix de Saint-André, panneaux de torchis),
+toit de tuiles (`ToitTuiles` : rangs de tuiles bombées, faîtières, planches de rive, dessous brun), pignon en enduit et
+bois (prisme qui suit le toit), escalier, porte droite à linteau de bois, volets d'une autre couleur.
+- Avant contrôle : capsule bloquée par 3 marches de 30 cm (le joueur monte 30 cm au plus) → 4 marches de 22,5 cm et
+  40 cm de profondeur ; enduit de pignon rectangulaire qui perçait le toit → prisme ; caméras qui reculent pour les
+  maisons hautes. 30 468 triangles (ancienne : 40 560).
+- Tour 1 : en cours.
+
 ## Héros (agent séparé, worktree `worktree-agent-adb19e9034e46bb45`, voir `blender/dragonflyer/personnages/PASSATION.md` sur cette branche)
 - Tour 1 : proportions 8, visage 8, cheveux et vêtements 6, articulations 7, animations 5, style 8, coût 6 → À REFAIRE.
   Trou sur le crâne, fourrure en bretelles, jupe en boule, manche pincée, banc d'animation mal cadré, saut en T,
@@ -66,6 +81,11 @@ Fichier tenu à jour à chaque étape, pour qu'une nouvelle session reprenne ici
   À REFAIRE. Restent : dôme de jupe en écart (3e fois : changement d'approche imposé), disques de pied illisibles,
   marche trop énergique, épée en fil trop long. Note : animations.glb du worktree est déjà refait (retouches des
   allures) ; à la fusion, prendre version et cache sw après ceux de la chaumière (2026.11.03-1, v10). Tour 3 demandé.
+- Tour 3 : tout à 8 sauf animations 7 (jupe en deux pans : réglée). Restent : trot et course trop proches et vitesses
+  inversées, glissement de la marche 5,1 cm, contacts de pieds à prouver, coup d'épée raide et lame peu visible. Tour 4 demandé.
+
+## Arbres (agent séparé, worktree, `blender/dragonflyer/vegetation/PASSATION.md` sur sa branche)
+- Refaits de zéro par scripts (sapin, feuillu), contrôle par 12 caméras et planche « forêt ». Tour 1 en fabrication.
 
 ## Prochaine étape
 Finir la chaumière (tout à 8+), l'intégrer : `../maisons.py` appelle `village/maisons/chaumiere.py:construire()`,
