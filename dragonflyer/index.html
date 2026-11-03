@@ -1111,7 +1111,8 @@ function materiauTerrain() {
           { vec3 sv = solVillage(vW.xz);   // rues en terre battue, place et allées pavées, potagers et champs labourés
             if (sv.x + sv.y + sv.z > 0.01) {
               vec4 nb = texture(tBruit, vW.xz / 2.3), nc = texture(tBruit, vW.xz / 0.9);
-              vec3 terre = vec3(0.27, 0.19, 0.11) * (0.8 + 0.35 * nb.r) * (0.9 + 0.2 * nc.g);
+              vec3 terre = vec3(0.34, 0.26, 0.16) * (0.82 + 0.3 * nb.r) * (0.9 + 0.2 * nc.g);
+              terrN = normalize(mix(terrN, nB, 0.85 * smoothstep(0.1, 0.5, max(sv.x, sv.y))));   // rues et pavés : pas de relief de roche (plus de traits noirs)
               vec2 gp = vW.xz / 0.46; gp.x += floor(gp.y) * 0.5; vec2 fp = fract(gp);   // pavés en quinconce de 46 cm
               float hp = fract(sin(dot(floor(gp), vec2(12.9898, 78.233))) * 43758.5);
               float jt = 1.0 - smoothstep(0.05, 0.11, min(min(fp.x, 1.0 - fp.x), min(fp.y, 1.0 - fp.y)));
@@ -2000,13 +2001,16 @@ function batirVillage(v, r) {
     const dd = o.hz + 2; plats.push({ x: o.x + sn * dd, z: o.z + cs * dd, yaw: o.yaw, hx: 1.6, hz: 1.6, y: yp, palier: true });   // palier devant la porte (façade : +Z local)
     // murets de soutènement sur les côtés et à l'arrière quand la terrasse entaille la pente ou la remblaie de plus de 45 cm
     const bord = .6 + CEL * .75 + .3;   // au bord de la zone aplanie, là où le talus commence
-    for (const [cx_, cz_, ax, az, L] of [[o.hx + bord, 0, 0, 1, o.hz * 2 + 2 * bord], [-(o.hx + bord), 0, 0, 1, o.hz * 2 + 2 * bord], [0, -(o.hz + bord), 1, 0, o.hx * 2 + 2 * bord]]) {
-      const [mx_, mz_] = P(cx_, cz_), [ox_, oz_] = P(cx_ ? cx_ + Math.sign(cx_) * 1.5 : 0, cz_ ? cz_ + Math.sign(cz_) * 1.5 : 0);
-      const diff = SOL0(ox_, oz_) - yp; if (diff < .45) continue;   // seulement là où la terrasse entaille la pente (côté remblai : un talus doux suffit)
+    const cotes = [[o.hx + bord, 0, 0, 1, o.hz * 2 + 2 * bord], [-(o.hx + bord), 0, 0, 1, o.hz * 2 + 2 * bord], [0, -(o.hz + bord), 1, 0, o.hx * 2 + 2 * bord]];   // droite, gauche, arrière
+    const coupe = cotes.map(([cx_, cz_]) => { const [ox_, oz_] = P(cx_ ? cx_ + Math.sign(cx_) * 1.5 : 0, cz_ ? cz_ + Math.sign(cz_) * 1.5 : 0); const diff = SOL0(ox_, oz_) - yp; return diff >= .45 ? diff : 0; });   // là où la terrasse entaille la pente
+    const mur = (i, t0, t1, diff) => { const [cx_, cz_, ax, az] = cotes[i], [mx_, mz_] = P(cx_, cz_), L = t1 - t0;
       const n = Math.max(2, Math.round(L / 2)), ex = ax * cs + az * sn, ez = -ax * sn + az * cs, sy = Math.min(1.7, Math.max(.55, diff / .9 + .1));
-      for (let k = 0; k < n; k++) { const t = (k + .5 - n / 2) * (L / n);   // un mur continu sur tout le côté, même hauteur
-        v.murets.push({ x: mx_ + ex * t, z: mz_ + ez * t, yaw: Math.atan2(-ez, ex), y: yp - .1, sy, sx: L / n / 1.95 }); }
-    }
+      for (let k = 0; k < n; k++) { const t = t0 + (k + .5) * (L / n);   // un mur continu, même hauteur
+        v.murets.push({ x: mx_ + ex * t, z: mz_ + ez * t, yaw: Math.atan2(-ez, ex), y: yp - .1, sy, sx: L / n / 1.95 }); } };
+    coupe.forEach((d, i) => { if (d) mur(i, -cotes[i][4] / 2, cotes[i][4] / 2, d); });
+    // un muret seul se retourne à l'angle (jamais un mur droit détaché de la maison)
+    if (coupe[2]) [0, 1].forEach(i => { if (!coupe[i]) mur(i, -cotes[i][4] / 2, -cotes[i][4] / 2 + 4, coupe[2]); });
+    else [0, 1].forEach(i => { if (coupe[i]) mur(2, i ? -cotes[2][4] / 2 : cotes[2][4] / 2 - 4, i ? -cotes[2][4] / 2 + 4 : cotes[2][4] / 2, coupe[i]); });
     // un potager clôturé derrière une maison sur deux (chaumières, colombages, maisons de pierre)
     if (["chaumiere", "colombage", "pierre"].includes(o.type) && r() < .55) {
       const [gx, gz] = P(0, -(o.hz + 3.4)), hg = SOL0(gx, gz);
@@ -2051,6 +2055,7 @@ function batirVillage(v, r) {
     ru.L = Math.max(ru.L + 6, 26);
     if (peche && Math.hypot(C.x + ru.dx * 20 - v.x, C.z + ru.dz * 20 - v.z) > Math.hypot(C.x - v.x, C.z - v.z) + 12) ru.L = 22;   // côté terre du village de pêcheurs : rues courtes
     peindreSol(v, [[C.x + ru.dx * 6, C.z + ru.dz * 6], [C.x + ru.dx * ru.L, C.z + ru.dz * ru.L]], 3, "rgb(255,0,0)");
+    peindreSol(v, [[C.x + ru.dx * 8, C.z + ru.dz * 8], [C.x + ru.dx * 12.5, C.z + ru.dz * 12.5]], 3.2, "rgb(0,255,0)");   // entrée pavée de la rue, raccordée à la place
     for (let s_ = 12; s_ < ru.L + 28; s_ += 8) LIBRES.push({ x: C.x + ru.dx * s_, z: C.z + ru.dz * s_, r: 7 });
   }
   for (let k = 0; k < 6; k++) {   // entre deux rues : un banc et une lanterne au bord de la place (trois de chaque)
@@ -5474,7 +5479,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
 })();
 </script>
 <script>
-window.DRAGONFLYER_VERSION = "2026.11.03-3"; // à changer à chaque modification du jeu
+window.DRAGONFLYER_VERSION = "2026.11.03-4"; // à changer à chaque modification du jeu
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
