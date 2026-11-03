@@ -1466,39 +1466,54 @@ function geoArbres() {
   return [[sous(0, 0), sous(0, 1)], [sous(1, 0), sous(1, 1)]];
 }
 const LOD_ARBRES = 480;
-// Arbres du « Stylized Nature MegaKit » (Quaternius, CC0), préparés par blender/dragonflyer/arbres.py : sapin et feuillu détaillés
-// (~2 000 faces) près du joueur, imposteurs (trois plans croisés portant l'image de l'arbre) au loin. Sans ces fichiers, les arbres
-// faits en code (geoArbres) servent. Les couleurs suivent la palette du jeu (teinte de chaque arbre, sur les feuilles).
+// Arbres faits maison par scripts Blender (blender/dragonflyer/vegetation/, exporter.py) : sapin (2 456 triangles) et feuillu
+// (3 829) détaillés près du joueur, avec couleurs des sommets (lumière peinte et occlusion) et normales choisies ; imposteurs
+// au loin (trois plans croisés, chacun avec sa vue de l'arbre ; seul le plan qui fait face au regard se montre). Sans ces
+// fichiers, les arbres faits en code (geoArbres) servent. Chaque arbre a sa teinte (feuillage) et un léger penchant.
 let rayonPres = LOD_ARBRES, KIT_ARBRES = null;
 async function chargerArbresKit() {
   try {
-    const loader = new GLTFLoader(), tl = new THREE.TextureLoader();
+    const loader = new GLTFLoader(), tl = new THREE.TextureLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
     const [g, ...tex] = await Promise.all([loader.parseAsync(await fichier("assets/arbres.glb"), ""),
       ...["ecorce", "pin", "feuilles", "loin_pin", "loin_feuillu"].map(n => tl.loadAsync(`assets/arbres_${n}.webp`))]);
     for (const t of tex) { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; t.flipY = false; t.needsUpdate = true; }   // coordonnées de texture à la mode glTF (image non retournée)
     const [tEcorce, tPin, tFeuilles, tLoinPin, tLoinFeuillu] = tex;
+    for (const t of [tEcorce, tPin, tFeuilles]) t.wrapS = t.wrapT = THREE.RepeatWrapping;   // écorce et fonds d'aiguilles et de feuilles se répètent
     g.scene.updateMatrixWorld(true);
     const geo = nom => {   // les morceaux d'un objet (une partie par matière), fusionnés en une géométrie à groupes
       const o = g.scene.getObjectByName(nom), parts = [];
       const noms = o.userData.matieres || []; let i = 0;   // noms des matières, dans l'ordre des morceaux (écrits par arbres.py)
-      o.traverse(m => { if (m.isMesh) { const gg = m.geometry.clone(); gg.applyMatrix4(m.matrixWorld); for (const k of Object.keys(gg.attributes)) if (!["position", "normal", "uv"].includes(k)) gg.deleteAttribute(k); parts.push({ gg, nom: noms[i++] || m.material.name || "" }); } });
+      const flottant = a => {   // attributs quantifiés par meshopt (entiers normalisés) → flottants, avant d'appliquer la matrice du nœud
+        if (!a.normalized && a.array instanceof Float32Array) return a;
+        const n = a.itemSize, f = new Float32Array(a.count * n), lire = [a.getX, a.getY, a.getZ, a.getW];
+        for (let i = 0; i < a.count; i++) for (let c = 0; c < n; c++) f[i * n + c] = lire[c].call(a, i);
+        return new THREE.BufferAttribute(f, n);
+      };
+      o.traverse(m => { if (m.isMesh) { const gg = m.geometry.clone(); for (const k of Object.keys(gg.attributes)) if (!["position", "normal", "uv", "color"].includes(k)) gg.deleteAttribute(k); else gg.setAttribute(k, flottant(gg.attributes[k]));
+        gg.applyMatrix4(m.matrixWorld); parts.push({ gg, nom: noms[i++] || m.material.name || "" }); } });
       parts.sort((a, b) => (/Ecorce/.test(a.nom) ? 0 : 1) - (/Ecorce/.test(b.nom) ? 0 : 1));   // écorce puis feuilles
+      if (parts.some(p => p.gg.attributes.color) && parts.some(p => !p.gg.attributes.color))   // fusion : mêmes attributs partout
+        for (const p of parts) if (!p.gg.attributes.color) p.gg.setAttribute("color", new THREE.Float32BufferAttribute(new Float32Array(p.gg.attributes.position.count * 3).fill(1), 3));
       return parts.length > 1 ? BUFU.mergeGeometries(parts.map(p => p.gg), true) : parts[0].gg;
     };
     rayonPres = TACTILE ? 70 : 95;
-    const ecorce = new THREE.MeshStandardMaterial({ map: tEcorce, roughness: .95 });
-    ecorce.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace("#include <color_fragment>", ""); };   // l'écorce garde sa couleur
+    const ecorce = new THREE.MeshStandardMaterial({ map: tEcorce, roughness: .95, vertexColors: true });
+    ecorce.onBeforeCompile = sh => {   // l'écorce garde sa couleur (couleurs des sommets), sans la teinte de l'arbre (faite pour le feuillage)
+      sh.vertexShader = sh.vertexShader.replace("#include <color_vertex>", THREE.ShaderChunk.color_vertex.replace("vColor.xyz *= instanceColor.xyz;", "")); };
     avecVent(ecorce, .006); ecorce.customProgramCacheKey = () => "ecorce";
     const feuilles = (map, g) => {
-      const m = new THREE.MeshStandardMaterial({ map, roughness: .85, alphaTest: .5, side: THREE.DoubleSide, alphaToCoverage: true });
+      const m = new THREE.MeshStandardMaterial({ map, roughness: .85, alphaTest: .5, side: THREE.DoubleSide, alphaToCoverage: true, vertexColors: true });
       cleProgramme(m, "translucide");
       m.onBeforeCompile = sh => {
         sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", THREE.ShaderChunk.normal_fragment_begin.replace("normal *= faceDirection;", ""))
+          .replace("#include <map_fragment>", `#include <map_fragment>
+            if (vMapUv.y < 0.5) {   // cartes (haut de la texture) vues presque de profil : effacées (sinon un trait fin)
+              vec3 fn = normalize(cross(dFdx(vViewPosition), dFdy(vViewPosition)));
+              diffuseColor.a *= smoothstep(0.03, 0.1, abs(dot(fn, normalize(vViewPosition)))); }`)
           .replace("#include <lights_fragment_end>", `#include <lights_fragment_end>
             { vec3 Vw = normalize(vFogW - cameraPosition); totalEmissiveRadiance += diffuseColor.rgb * SUN_COL * pow(max(dot(Vw, SUN_DIR), 0.0), 4.0) * 1.2; }`);   // lumière à travers les feuilles
       };
-      avecVent(m, .012);
-      const b = boiteGroupe(g, 1); avecBoule(m, b.getCenter(new THREE.Vector3()), b.getSize(new THREE.Vector3()).multiplyScalar(.5), .75, .45);
+      avecVent(m, .012);   // les normales du feuillage sont déjà « de boule » (choisies dans Blender) : pas d'avecBoule
       return m;
     };
     const loin = map => {   // imposteur : caché près du joueur (l'arbre détaillé prend le relais)
@@ -1506,7 +1521,12 @@ async function chargerArbresKit() {
       cleProgramme(m, "imposteur");
       m.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
         { float dA = distance((modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz, cameraPosition);
-          if (dA < ${(rayonPres - 6).toFixed(1)} || dA > ${(Q.dist + 200).toFixed(1)}) transformed = vec3(0.0); }`); };
+          if (dA < ${(rayonPres - 6).toFixed(1)} || dA > ${(Q.dist + 200).toFixed(1)}) transformed = vec3(0.0); }`);
+        // normales vers le haut des deux côtés (pas de face sombre) ; seul le plan qui fait face au regard (ramené à l'horizontale) se montre
+        sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", THREE.ShaderChunk.normal_fragment_begin.replace("normal *= faceDirection;", ""))
+          .replace("#include <map_fragment>", `#include <map_fragment>
+            { vec3 fw = normalize(cross(dFdx(vFogW), dFdy(vFogW))); vec3 vu = cameraPosition - vFogW; vu.y = 0.0;
+              diffuseColor.a *= smoothstep(0.8, 0.9, abs(dot(fw, normalize(vu + vec3(1e-4, 0.0, 0.0))))); }`); };
       avecVent(m, .006); return m;
     };
     const pres = [geo("T_pin_0"), geo("T_feuillu_0")];
@@ -1534,9 +1554,11 @@ function creerArbres() {
     if (foret < .66 + h / 900 || r() > .75) continue;
     if (horsVillage(px, pz)) continue;
     const t = h > 160 || r() < .55 ? 0 : 1, sc = (.75 + r() * .7) * (t ? 1.1 : 1.25);
-    const c = KIT_ARBRES ? new THREE.Color().setHSL(.2 + (r() - .5) * .1, .35, .8 + r() * .15)   // arbres du kit : légère teinte (la texture porte la couleur)
-                         : new THREE.Color().setHSL(.22 + (r() - .5) * .08, .25 + r() * .25, t ? .38 + r() * .2 : .5 + r() * .25);
-    const a = { x: px, y: hauteurFine(px, pz) - .3, z: pz, t, sc, sy: sc * (.9 + r() * .3), rot: r() * 6.28, c };
+    let c;
+    if (KIT_ARBRES) { const lum = .92 + r() * .16, j = r() ** 3; c = new THREE.Color(lum * (1 + .05 * j), lum, lum * (1 - .2 * j)); }   // teinte du feuillage : luminosité ±8 %, quelques-uns plus jaunes (vegetation/materiaux.teinte_arbre)
+    else c = new THREE.Color().setHSL(.22 + (r() - .5) * .08, .25 + r() * .25, t ? .38 + r() * .2 : .5 + r() * .25);
+    const hs = k => { const v = Math.sin(px * 12.9898 + pz * 78.233 + k) * 43758.5453; return v - Math.floor(v) - .5; };   // penchant ±3° (sans toucher au tirage)
+    const a = { x: px, y: hauteurFine(px, pz) - .3, z: pz, t, sc, sy: sc * (.9 + r() * .3), rot: r() * 6.28, c, px: hs(1) * .105, pz: hs(2) * .105 };
     ARBRES.liste.push(a);
     const k = Math.floor(px / CASE_A) + "," + Math.floor(pz / CASE_A);
     if (!ARBRES.grille.has(k)) ARBRES.grille.set(k, []); ARBRES.grille.get(k).push(a);
@@ -1569,8 +1591,8 @@ function creerArbres() {
   }
   return ARBRES.liste.length;
 }
-const _qe = new THREE.Quaternion(), _ve = new THREE.Vector3(), _se = new THREE.Vector3(), _axeY = new THREE.Vector3(0, 1, 0);
-function matArbre(a, m4) { _qe.setFromAxisAngle(_axeY, a.rot); return m4.compose(_ve.set(a.x, a.y, a.z), _qe, _se.set(a.sc, a.sy, a.sc)); }
+const _qe = new THREE.Quaternion(), _ve = new THREE.Vector3(), _se = new THREE.Vector3(), _axeY = new THREE.Vector3(0, 1, 0), _eu = new THREE.Euler(0, 0, 0, "YXZ");
+function matArbre(a, m4) { _qe.setFromEuler(_eu.set(a.px || 0, a.rot, a.pz || 0)); return m4.compose(_ve.set(a.x, a.y, a.z), _qe, _se.set(a.sc, a.sy, a.sc)); }
 function majArbres() {
   const cp = camera.position;
   if (ARBRES.dernier.distanceToSquared(cp) < 400) return;
@@ -1704,7 +1726,7 @@ function ombresPeintes() {
   const P = (x, z) => [(x / MONDE + .5) * N, (z / MONDE + .5) * N];
   c.globalCompositeOperation = "lighter";
   for (const a of ARBRES.liste) {
-    const H = (a.t ? 10 : 13) * a.sy, larg = (a.t ? 7.5 : 6) * a.sc, debut = (a.t ? .35 : .12) * H, fin = .95 * H;   // feuillu : couronne haute ; sapin : cône depuis le bas
+    const H = (a.t ? 10 : 13) * a.sy, larg = (a.t ? 9.3 : 9.2) * a.sc, debut = (a.t ? .35 : .05) * H, fin = .95 * H;   // feuillu : couronne haute ; sapin : cône dès le bas (largeurs des arbres de vegetation/)
     const d0 = debut * k, d1 = fin * k, [cx, cy] = P(a.x + ux * (d0 + d1) / 2, a.z + uz * (d0 + d1) / 2), lo = Math.max(larg, (d1 - d0) * (a.t ? .9 : .75)) * px, la = larg * px;
     c.globalAlpha = a.t ? .5 : .42;
     c.setTransform(ux * lo, uz * lo, -uz * la, ux * la, cx, cy); c.drawImage(sp, -.5, -.5, 1, 1);
