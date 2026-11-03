@@ -484,3 +484,150 @@ def auvent(P, centre, l=1.7, prof=.75, z=None, rz=0.0):
     for k in range(3):   # bardeaux en trois rangs
         d = prof * (k + .5) / 3
         P.boite((x, y - d, z0 + .12 + (prof - d) * math.tan(ang) * .6), (l + .2, prof / 3 * 1.25, .06), M("tuile").couleur(P.R), rx=ang * .6, bev=.015)
+
+# ---- ajouts longère et forge
+class ToitTourne:
+    """Un toit construit faîte selon X (ToitChaume, ToitTuiles), tourné d'un quart de tour : faîte selon Y (longère,
+    porte dans le pignon). forme(x, y) répond dans le repère de la maison (pignons, rives, cheminées)."""
+    def __init__(s, toit): s.t = toit; s.ep, s.zf, s.zb = toit.ep, toit.zf, toit.zb
+    def forme(s, x, y): return s.t.forme(y, -x)
+    def construire(s, P, **k):
+        T = Piece("tmp_toit", P.R.randrange(1 << 30)); s.t.construire(T, **k)
+        P.ajouter(T, Matrix.Rotation(math.pi / 2, 4, "Z")); T.bm.free(); return s
+
+def planches_verticales(P, a, b, z0, haut, trous=(), larg=.3, ep=.1, saillie=.05, mat="chene", sabliere=True):
+    """Mur ou pignon de planches verticales jointives sur la face extérieure de a vers b (la face regarde à droite de
+    a→b), du bas z0 jusqu'à haut(x, y) (le haut de chaque planche suit exactement la pente : ni jour ni pointe).
+    trous : [(u0, u1, z0, z1)] le long du mur (porte, fenêtre) : les planches s'arrêtent au bord, coupées à la largeur."""
+    a, b = Vector((*a[:2], 0)), Vector((*b[:2], 0)); d = b - a; L = d.length; t = d / L; n = Vector((t.y, -t.x, 0)); rz = math.atan2(t.y, t.x)
+    k = max(1, round(L / larg)); w = L / k
+    for i in range(k):
+        morceaux = [(i * w, (i + 1) * w, z0, None)]
+        for (u0, u1, hz0, hz1) in trous:
+            nm = []
+            for (q0, q1, za, zb) in morceaux:
+                if q1 <= u0 or q0 >= u1: nm.append((q0, q1, za, zb)); continue
+                if u0 > q0: nm.append((q0, u0, za, zb))
+                if u1 < q1: nm.append((u1, q1, za, zb))
+                m0, m1 = max(q0, u0), min(q1, u1)
+                if hz0 > za + .05: nm.append((m0, m1, za, hz0))
+                nm.append((m0, m1, hz1, zb))
+            morceaux = nm
+        c = M(mat).couleur(P.R, .16); off = saillie + (.018 if i % 2 else 0)
+        for (q0, q1, za, zb) in morceaux:
+            if q1 - q0 < .04: continue
+            uc = (q0 + q1) / 2; p = a + t * uc + n * off
+            zt = haut(p.x, p.y) if zb is None else zb
+            if zt - za < .06: continue
+            vs = P.boite((p.x, p.y, (za + zt) / 2), ((q1 - q0) * (1.05 if q1 - q0 > w * .9 else 1), ep, zt - za), c, rz=rz, bev=0)
+            if zb is None:
+                for v in vs:
+                    if v.co.z > (za + zt) / 2: v.co.z = haut(v.co.x, v.co.y)
+    if sabliere:
+        p = a + t * (L / 2) + n * (saillie + .05)
+        P.boite((p.x, p.y, z0 + .07), (L + .04, .12, .16), M("chene").sombre, rz=rz, bev=0)
+
+def dalles(P, x0, x1, y0, y1, z, taille=.62, mat="moellon"):
+    """Sol de grandes dalles de pierre (forge, seuil) : rangs de largeur variable, joints décalés, dessus à z."""
+    R = P.R; y = y0
+    while y < y1 - .05:
+        h = min(y1 - y, taille * R.uniform(.7, 1.0))
+        if y1 - y - h < .25: h = y1 - y
+        x = x0 - R.uniform(0, taille * .5)
+        while x < x1 - .05:
+            l = taille * R.uniform(.8, 1.4); xa, xb = max(x, x0), min(x + l, x1)
+            if xb - xa > .08:
+                c = M(mat).couleur(R, .1); c = tuple(min(1, v * 1.08) for v in c)
+                P.boite(((xa + xb) / 2, y + h / 2, z - .06), (xb - xa - .035, h - .035, .12), c, bev=.02, jit=.008)
+            x += l
+        y += h
+
+def tete_dragon(P, base, rz=0.0, ech=1.0, mat="chene"):
+    """Tête de dragon sculptée au bout d'une poutre (rives croisées de la longère) : cou recourbé, crâne, museau,
+    mâchoire entrouverte, langue rouge, yeux jaunes, cornes, crête. Regarde +X tourné de rz ; base = bout de la poutre."""
+    H = Piece("tmp_tete", P.R.randrange(1 << 30)); c = M(mat).couleur(H.R, .04); cc = M("chene_c").couleur(H.R, .04)
+    rouge, jaune = M("fleur").teintes[0], M("fleur").teintes[1]
+    poutre(H, (-.02, 0, -.05), (.14, 0, .36), l=.16, h=.24, c=c, bev=.03)            # cou recourbé
+    poutre(H, (.1, 0, .3), (.42, 0, .56), l=.15, h=.22, c=c, bev=.03)
+    H.boite((.56, 0, .6), (.42, .27, .3), c, ry=-.08, bev=.06)                        # crâne
+    H.boite((.88, 0, .57), (.38, .2, .19), c, ry=-.04, bev=.05)                       # museau
+    H.boite((.84, 0, .42), (.36, .16, .07), c, ry=.28, bev=.02)                       # mâchoire entrouverte
+    H.boite((1.02, 0, .5), (.08, .17, .1), rouge, bev=.02)                            # lèvre peinte
+    poutre(H, (.8, 0, .47), (1.06, 0, .44), l=.06, h=.03, c=rouge, bev=0)             # langue
+    poutre(H, (1.06, 0, .44), (1.14, 0, .53), l=.06, h=.03, c=rouge, bev=0)
+    for sy in (-1, 1):
+        H.sphere((.68, sy * .13, .68), .058, jaune, sub=1)                            # yeux
+        H.sphere((.71, sy * .17, .685), .03, M("fer").teintes[0], sub=1)
+        H.sphere((1.05, sy * .065, .63), .026, M("fer").teintes[0], sub=1)            # naseaux
+        H.cylindre((.46, sy * .08, .74), (.18, sy * .15, .98), .055, .012, cc, n=5)   # cornes
+        H.cylindre((.4, sy * .14, .62), (.22, sy * .25, .66), .05, .01, c, n=4)       # oreilles
+    for (x, z) in ((.0, .22), (.12, .42), (.3, .58)):                                  # crête le long du cou
+        H.cylindre((x - .02, 0, z + .08), (x - .14, 0, z + .2), .05, .008, cc, n=4)
+    P.ajouter(H, Matrix.Translation(Vector(base)) @ Matrix.Rotation(rz, 4, "Z") @ Matrix.Scale(ech, 4)); H.bm.free()
+
+def rives_croisees(P, toit, y, sens, x_bord, depasse=1.05, ech=1.0):
+    """Planches de rive d'un pignon (plan y, sens = -1 si le pignon regarde -Y) : elles suivent le bord du toit depuis
+    l'égout, se croisent au faîte, le dépassent et finissent chacune en tête de dragon tournée vers le dehors."""
+    zc = toit.forme(0, y)[0]
+    for k, s in enumerate((-1, 1)):
+        yy = y + sens * (.1 + .13 * k)
+        A = Vector((s * x_bord, yy, toit.forme(s * x_bord, y)[0] + .04)); C = Vector((0, yy, zc + .16))
+        d = (C - A).normalized(); E = C + d * depasse
+        poutre(P, A - d * .1, E, l=.12, h=.3, mat="bois_s")
+        for f in (.18, .5, .82): P.boite(tuple(A + (C - A) * f + Vector((0, sens * .07, .0))), (.07, .03, .07), M("chene_c").couleur(P.R), bev=0)   # chevilles
+        tete_dragon(P, E - d * .05, rz=0 if s < 0 else math.pi, ech=ech)
+        # sous le débord du pignon : une volige de planches (pas de dessous de chaume en plein jour)
+        A2 = Vector((s * (x_bord - .12), y - sens * .17, toit.forme(s * x_bord / .97, y)[0] - toit.ep - .03)); C2 = Vector((0, y - sens * .17, toit.forme(0, y)[0] - toit.ep - .03))
+        poutre(P, A2, C2, l=.36, h=.05, mat="bois_s", bev=0)
+
+def mousse(P, toit, x, y, r=.35):
+    """Plaque de mousse posée à plat sur un toit (suit la pente) : quelques coussins verts écrasés."""
+    e = .05; gx = (toit.forme(x + e, y)[0] - toit.forme(x - e, y)[0]) / (2 * e); gy = (toit.forme(x, y + e)[0] - toit.forme(x, y - e)[0]) / (2 * e)
+    q = Vector((0, 0, 1)).rotation_difference(Vector((-gx, -gy, 1)).normalized())
+    H = Piece("tmp_mousse", P.R.randrange(1 << 30))
+    for i in range(3):
+        H.sphere((H.R.uniform(-r, r) * .6, H.R.uniform(-r, r) * .6, 0), r * H.R.uniform(.6, 1.0), M("mousse").couleur(H.R), (1.3, 1.0, .28), sub=1, jit=.02)
+    P.ajouter(H, Matrix.Translation((x, y, toit.forme(x, y)[0] + .1)) @ q.to_matrix().to_4x4()); H.bm.free()
+
+def fumoir(P, x, y, z0, z1, l=.9, p=1.1):
+    """Lanterneau à fumée sur le faîte (halle viking, pas de cheminée) : caisson de planches à claire-voie et petit toit
+    de planches à deux pans, faîte selon Y."""
+    for sx in (-1, 1):
+        for sy in (-1, 1): poutre(P, (x + sx * l / 2, y + sy * p / 2, z0), (x + sx * l / 2, y + sy * p / 2, z1), l=.1, h=.1, mat="bois_s")
+    for k in range(3):   # lattes à claire-voie (la fumée passe entre)
+        z = z0 + (z1 - z0) * (k + .5) / 3
+        for sx in (-1, 1): P.boite((x + sx * l / 2, y, z), (.05, p, .1), M("bois_s").couleur(P.R, .1), bev=0)
+        for sy in (-1, 1): P.boite((x, y + sy * p / 2, z), (l, .05, .1), M("bois_s").couleur(P.R, .1), bev=0)
+    ang = .6
+    for sx in (-1, 1):
+        P.boite((x + sx * (l / 4 + .06), y, z1 + .12), (l / 2 / math.cos(ang) + .18, p + .3, .06), M("bois_s").couleur(P.R, .08), ry=sx * ang, bev=.015)
+    P.boite((x, y, z1 + .32), (.12, p + .34, .1), M("bois_s").sombre, bev=0)
+
+def foyer_forge(V, P, x, y, z, l=1.5, p=1.1, h=.8):
+    """Foyer de forge : bloc de pierres taillées contre le mur du fond (y + p/2), margelle de pierres plates, lit de
+    charbon et braises (les braises vont dans V : elles brillent la nuit)."""
+    R = P.R
+    P.boite((x, y, z + h / 2), (l - .08, p - .08, h - .02), M("mortier").couleur(R), bev=0)   # cœur
+    rangs = 3; hz = h / rangs
+    for r_ in range(rangs):
+        zc = z + hz * (r_ + .5)
+        for (ax, ay, bx, by) in ((x - l / 2, y - p / 2, x + l / 2, y - p / 2), (x - l / 2, y + p / 2, x - l / 2, y - p / 2), (x + l / 2, y - p / 2, x + l / 2, y + p / 2)):
+            L = math.hypot(bx - ax, by - ay); n = max(2, round(L / .42)); tx, ty = (bx - ax) / L, (by - ay) / L; nx, ny = ty, -tx
+            cuts = [i * L / n for i in range(n + 1)] if r_ % 2 == 0 else [0] + [(i - .5) * L / n for i in range(1, n + 1)] + [L]
+            for u0, u1 in zip(cuts, cuts[1:]):
+                if u1 - u0 < .1: continue
+                um = (u0 + u1) / 2
+                P.boite((ax + tx * um + nx * .03, ay + ty * um + ny * .03, zc), (u1 - u0 - .04, .16, hz - .04), M("moellon").couleur(R, .1), rz=math.atan2(ty, tx), bev=.04, jit=.01)
+    zt = z + h
+    for (cx, cy, sx, sy) in ((x, y - p / 2 + .1, l + .06, .26), (x - l / 2 + .12, y + .08, .26, p - .2), (x + l / 2 - .12, y + .08, .26, p - .2)):   # margelle
+        P.boite((cx, cy, zt + .05), (sx, sy, .12), M("moellon").couleur(R, .05), bev=.035, jit=.006)
+    P.boite((x, y + .08, zt + .02), (l - .4, p - .3, .06), M("charbon").couleur(R), bev=0)
+    for i in range(16):   # charbons et braises
+        px, py = x + R.uniform(-l / 2 + .3, l / 2 - .3), y + R.uniform(-p / 2 + .28, p / 2 - .2)
+        if i % 3: V.sphere((px, py, zt + .06), R.uniform(.07, .11), M("braise").couleur(R), (1, 1, .7), sub=1, jit=.01)
+        else: P.sphere((px, py, zt + .07), R.uniform(.07, .1), M("charbon").couleur(R), (1, 1, .7), sub=1, jit=.012)
+
+def poteau(P, x, y, z0, z1, cote=.3, mat="chene", de=True):
+    """Poteau de bois sur un dé de pierre (il ne touche pas le sol : il ne pourrit pas)."""
+    if de: P.boite((x, y, z0 + .12), (cote + .16, cote + .16, .24), M("moellon").couleur(P.R, .05), bev=.04, jit=.006)
+    poutre(P, (x, y, z0 + (.24 if de else 0)), (x, y, z1), l=cote, h=cote, mat=mat)

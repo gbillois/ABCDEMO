@@ -79,6 +79,23 @@ bois (prisme qui suit le toit), escalier, porte droite à linteau de bois, volet
   Dans le jeu (village.glb refait, la chaumière a aussi sa vraie collerette), version 2026.11.03-2, cache sw v11.
   Suggestions non faites : pignons un peu plus chauds, mousse au soubassement, chevrons sous l'avant-toit.
 
+## Longère et forge (agent séparé, worktree)
+Deux fichiers : `maisons/longere.py` puis `maisons/forge.py`. Emprise, point « porte » et intérieur gardés comme dans
+l'ancien `../maisons.py` (le jeu les lit) : longère (7,4 × 14,6), (0, -7.6, 1.0), « halle » ; forge (7,4 × 6,4), (0, -3.6, 0.5), sans intérieur.
+- Kit, section « ajouts longère et forge » (fin de `kit.py`, aucune pièce existante modifiée) : `ToitTourne` (un toit à
+  faîte selon X tourné d'un quart de tour : faîte selon Y, porte dans le pignon), `planches_verticales` (bardage ou pignon,
+  haut de chaque planche qui suit la pente, trous pour porte et fenêtres), `dalles`, `tete_dragon`, `rives_croisees`
+  (planches de rive croisées au faîte + têtes de dragon + volige sous le débord), `mousse` (plaque posée selon la pente),
+  `fumoir` (lanterneau à fumée), `foyer_forge`, `poteau`. Matières ajoutées : cuir, eau, braise, charbon, bois_s (bois goudronné).
+- Objets : `objets/bouclier.py` (rond peint, trois motifs).
+- Longère, avant contrôle : chaume `ToitChaume` (égout à 0,85 m, faîte 5,8 m, pignons droits), soubassement de moellons
+  jusqu'au plancher (1 m), pignons de planches goudronnées, porte à linteau de bois + 4 marches de 25 cm, rives croisées
+  en têtes de dragon, lanterneau, mousse, boucliers, banc, tonneau, tas de bois. Corrigé soi-même avant contrôle : petit
+  toit du lanterneau en V (sens de rotation), têtes trop petites et trop sombres (× 1,5, bois clair), dessous de chaume
+  jaune sous le débord des pignons (volige de planches). 25 124 triangles (ancienne : 50 932). Capsule : passe (sol au
+  seuil 0,75 m) ; ouverture mesurée 0,86 × 2,06 m (la mesure bute sur l'anneau de la porte, à 1 m ; 1,2 m entre les montants).
+  Rendus : `scratchpad/qc/longere1/`. En attente du tour 1 de contrôle.
+
 ## Héros (agent séparé, worktree `worktree-agent-adb19e9034e46bb45`, voir `blender/dragonflyer/personnages/PASSATION.md` sur cette branche)
 - Tour 1 : proportions 8, visage 8, cheveux et vêtements 6, articulations 7, animations 5, style 8, coût 6 → À REFAIRE.
   Trou sur le crâne, fourrure en bretelles, jupe en boule, manche pincée, banc d'animation mal cadré, saut en T,
