@@ -15,6 +15,7 @@ from mathutils import Vector, Matrix
 OUT = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else "/tmp/village"
 os.makedirs(OUT, exist_ok=True)
 APERCU = "--sans-apercu" not in sys.argv
+SEULE = sys.argv[sys.argv.index("--seule") + 1] if "--seule" in sys.argv else None   # « --seule chaumiere » : une maison, aperçus sous plusieurs angles (contrôle qualité)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
 R = random.Random(7)
@@ -191,7 +192,7 @@ def maison(nom, pied, porte_xyz, interieur, construire):
     if V.bm.verts: V.objet(parent=None).name = "W_" + nom
     else: V.bm.free()
     for e in extra: pass
-    MAISONS[nom] = ob
+    MAISONS[nom] = ob; print("FACES", nom, len(ob.data.polygons), sum(len(p.vertices) - 2 for p in ob.data.polygons))
     return ob
 
 def longere(P, V):   # longère viking : bas, long, toit de chaume jusqu'au sol, poutres croisées en têtes de dragon
@@ -324,6 +325,16 @@ def moulin(P, V):   # moulin à vent : tour de pierre, chapeau de bardeaux ; les
     ob = A.objet({"axe": [0, -3.15, 8.4]}); ob.location = (0, -3.15, 8.4)
 
 MAISONS_PROPS = {}
+# Les maisons refaites selon la méthode (un fichier par maison, kit commun) : blender/dragonflyer/village/maisons/<nom>.py
+sys.path[:0] = [os.path.join(os.path.dirname(os.path.abspath(__file__)), "village"), os.path.join(os.path.dirname(os.path.abspath(__file__)), "village", "maisons"),
+                os.path.join(os.path.dirname(os.path.abspath(__file__)), "village", "objets")]
+import importlib
+NOUVELLES = {"chaumiere"}
+def maison_nouvelle(nom, pied, port, inter, ancienne):
+    T, U = Piece("tmp"), Piece("tmp2"); ancienne(T, U); T.bm.free(); U.bm.free()   # même tirage au sort qu'avant pour les autres maisons
+    Pn, Vn = importlib.import_module(nom).construire()
+    ob = Pn.objet({"pied": list(pied), "porte": list(port), "interieur": inter}); Vn.objet()
+    MAISONS[nom] = ob; print("FACES", nom, len(ob.data.polygons), sum(len(p.vertices) - 2 for p in ob.data.polygons))
 for nom, pied, port, inter, f in (
     ("longere", (7.4, 14.6), (0, -7.6, 1.0), "halle", longere),
     ("colombage", (7.6, 7.6), (-1.2, -4.2, .9), "maison", colombage),
@@ -332,7 +343,8 @@ for nom, pied, port, inter, f in (
     ("pierre", (6.8, 7.6), (0, -4.3, 0), "maison", pierre),
     ("forge", (7.4, 6.4), (0, -3.6, .5), "", forge),
     ("moulin", (6.2, 6.2), (0, -3.6, 0), "", moulin),
-): maison(nom, pied, port, inter, f)
+):
+    if SEULE is None or nom == SEULE: (maison_nouvelle if nom in NOUVELLES else maison)(nom, pied, port, inter, f)
 
 # ------------------------------------------------------------------ accessoires (un objet chacun, instanciés dans le jeu)
 def accessoire(nom, f, pied=None):
