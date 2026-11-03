@@ -1863,7 +1863,12 @@ function aplanirExact(plats) {   // dans l'ordre : chaque plat (et un point de g
 }
 function batirVillage(v, r) {
   const nl = Math.hypot(v.mx, v.mz) || 1, mx = v.mx / nl, mz = v.mz / nl, lx = -mz, lz = mx;
-  const C = { x: v.x - mx * 38, z: v.z - mz * 38 }; v.place = C; v.maisons = [];
+  let C = { x: v.x - mx * 38, z: v.z - mz * 38 };
+  if (v.style.maisons.includes("pecheur")) {   // village de pêcheurs : la place sur le premier terrain doux derrière la plage
+    for (let d = 6; d <= 60; d += 2) { const x = v.x - mx * d, z = v.z - mz * d, h = hauteur(x, z);
+      if (h >= 1.8 && pente(x, z) < .2 && Math.abs(hauteur(x - mx * 8, z - mz * 8) - h) < 2.5) { C = { x: x - mx * 6, z: z - mz * 6 }; break; } }
+  }
+  v.place = C; v.maisons = [];
   const hC = Math.max(1.5, hauteur(C.x, C.z));
   // trois rues qui partent de la place, vers le terrain le plus doux et loin de l'eau
   let meilleur = null;
