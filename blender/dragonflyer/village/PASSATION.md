@@ -125,6 +125,18 @@ instanciée) : pour varier il faudrait exporter M_pierre_1, M_pierre_2… (à d�
 - Tour 2 à inspecter : `qc/pierre2/` (+ `variantes.png`), 22 247 triangles (62 % de l'ancienne), capsule PASSE, porte
   0,86 × 2,14 m. Ajout en cours de tour : planche d'égout le long des égouts (`ToitArdoises`), le bord ne brille plus en vue 12.
 
+### Moulin (`maisons/moulin.py`)
+Même emprise (6,2 × 6,2), même point « porte » (0, -3.6, 0), pas d'intérieur. Tour ronde de pierre qui s'affine (rayon
+2,8 → 2,05 m, haut 8 m), couronne de bois sur corbeaux, chapeau de bardeaux bombé (pointe à 11,5 m avec l'épi), nez
+qui abrite l'arbre, queue de manœuvre (borne au sol à y = 3,75 : hors emprise). Ailes `A_moulin` : même convention que
+l'ancien (`axe` en repère Blender, objet placé à l'axe, maillage centré, rotation autour de l'axe Y de Blender) ; axe
+déplacé de (0, -3.15, 8.4) à (0, -3.4, 9.0) et ailes de 5,8 m au lieu de 6,6 m : le bout passe à 3,2 m du sol et
+0,6 m devant la tour (avant, il balayait la porte à hauteur du joueur). Sacs de grain et meule (objets/).
+- Premier jet vu par moi : porte de 1,1 m mesurée à 0,78 m (la mesure bute sur l'anneau) → 1,2 m ; tour d'un gris
+  uniforme → `teinter` (écarts de clarté, pied plus chaud) ; chapeau un peu juste → débord 0,62 m.
+- Tour 1 à inspecter : `qc/moulin1/`, 8 956 triangles (M 8 036 + vitres 60 + ailes 860 ; ancien 9 324), capsule PASSE
+  (elle s'arrête au point « porte », 8 cm devant le seuil), porte 0,86 × 2,09 m.
+
 ## Prochaine étape
 Finir la chaumière (tout à 8+), l'intégrer : `../maisons.py` appelle `village/maisons/chaumiere.py:construire()`,
 puis capture dans le jeu, puis montrer au propriétaire. Ensuite : une maison à la fois (colombage, longère…).

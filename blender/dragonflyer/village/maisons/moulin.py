@@ -7,7 +7,7 @@
 import sys, os; sys.path[:0] = [os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."), os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "objets")]
 import math
 from mathutils import Vector, Matrix
-from kit import Piece, poutre, porte, fenetre, tour_pierres, cone_bardeaux, nb_sommets
+from kit import Piece, poutre, porte, fenetre, tour_pierres, cone_bardeaux, nb_sommets, teinter
 from materiaux import M, melange
 import sacs_grain, meule
 
@@ -54,13 +54,15 @@ def construire(graine=41):
     P = Piece("M_moulin", graine); V = Piece("W_moulin", graine + 1); R = P.R
     # tour : cœur (cône de mortier) et pierres en assises, ouvertes pour la porte et les fenêtres
     P.cylindre((0, 0, Z_BAS), (0, 0, Z_TOUR), R0 + (R0 - R1) * (Z_PIERRE - Z_BAS) / (Z_TOUR - Z_PIERRE), R1, M("mortier").couleur(R), n=20)
-    ouv = [(FACE - .32, FACE + .32, -1, 1.65), (FACE - .23, FACE + .23, 1.65, 2.45)]
+    ouv = [(FACE - .35, FACE + .35, -1, 1.7), (FACE - .25, FACE + .25, 1.7, 2.5)]
     for (a, z) in FENETRES:
         da = .52 / rayon(z); ouv.append((a - da, a + da, z - .52, z + .5))
+    n0 = nb_sommets(P)
     tour_pierres(P, R0, R1, Z_PIERRE, Z_TOUR, ouv, taille=.85)
+    teinter(P, n0, "moellon", graine)                                   # pierres plus ou moins claires, pied plus chaud
     # porte (en retrait dans l'épaisseur du mur, arc de claveaux), seuil, fenêtres
-    yp = -math.sqrt(R0 ** 2 - .6 ** 2) - .08
-    porte(P, (0, yp, 0), l=1.1, h=2.05, mat="peint")
+    yp = -math.sqrt(R0 ** 2 - .66 ** 2) - .08
+    porte(P, (0, yp, 0), l=1.2, h=2.1, mat="peint")
     for (a, z) in FENETRES:
         r = rayon(z) + .1; fenetre(V, P, (math.cos(a) * r, math.sin(a) * r, z), rz=a + math.pi / 2, l=.5, h=.62, volets=False, jardiniere=False)
     # couronne de bois en haut de la tour, sous le chapeau
@@ -70,7 +72,7 @@ def construire(graine=41):
         poutre(P, d * (R1 + .02) + Vector((0, 0, Z_TOUR - .3)), d * (R1 + .3) + Vector((0, 0, Z_TOUR - .02)), l=.12, h=.12, bev=0)
     # chapeau de bardeaux et épi de faîtage
     zc0, zc1 = Z_TOUR + .32, Z_TOUR + 3.1
-    cone_bardeaux(P, 0, 0, zc0, R1 + .5, zc1, bombe=.3, rang=.34, larg=.38)
+    cone_bardeaux(P, 0, 0, zc0, R1 + .62, zc1, bombe=.3, rang=.34, larg=.38)
     P.cylindre((0, 0, zc1 - .15), (0, 0, zc1 + .35), .1, .06, M("chene").sombre, n=6)
     P.sphere((0, 0, zc1 + .42), .13, M("chene").sombre, sub=1)
     # nez : petit toit à deux pans qui abrite l'arbre des ailes
