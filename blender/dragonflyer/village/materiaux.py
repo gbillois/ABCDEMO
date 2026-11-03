@@ -53,5 +53,5 @@ MATIERES.update({
     "bardeau":   Matiere("bardeau",   ["#946240", "#875a38", "#9e6c46", "#7e5434"], .07, "#553824"),             # bardeaux de bois (chapeau du moulin)
     "bardeau_d": Matiere("bardeau_d", ["#6e4830", "#62402c"], .04),
     "toile":     Matiere("toile",     ["#eee2c0", "#e6d6ac", "#f2e8cc"], .03),                                    # toile des ailes
-    "jute":      Matiere("jute",      ["#cdb27c", "#c2a670", "#d6bc88"], .05),                                    # sacs de grain
+    "jute":      Matiere("jute",      ["#d0a258", "#c4954c", "#d8ae64", "#b98a46"], .05),                                  # sacs de grain
 })

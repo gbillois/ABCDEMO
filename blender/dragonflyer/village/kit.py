@@ -643,10 +643,11 @@ class ToitArdoises:
                 P.boite(p, (.08, d1 - d0, .3), M("chene").couleur(R), rx=-sg * ang, bev=.015)
         return s
 
-def tour_pierres(P, r0, r1, z0, z1, ouvertures=(), taille=.6, saillie=.08):
+def tour_pierres(P, r0, r1, z0, z1, ouvertures=(), taille=.6, saillie=.08, fines=()):
     """Tour ronde qui s'affine (rayon r0 en z0, r1 en z1) : pierres en assises, joints décalés d'un rang à l'autre.
     ouvertures : [(a0, a1, oz0, oz1)] en angle (radians, 0 = +X, -π/2 = la façade -Y) : les pierres s'arrêtent au bord.
-    Le cœur (un cône de mortier) est à part. Pierres en moellons (teinter() pour une autre matière)."""
+    Le cœur (un cône de mortier) est à part. Pierres en moellons (teinter() pour une autre matière).
+    fines : [(angle, demi_angle, z_max)] : là, les pierres sont coupées en deux (blocs plus petits autour d'une porte)."""
     rr = lambda z: r0 + (r1 - r0) * (z - z0) / (z1 - z0)
     for rang, (z, hz) in enumerate(assises(z0, z1, taille * .8)):
         r = rr(z + hz / 2); n = max(8, round(2 * math.pi * r / (taille * 1.45))); dec = (rang % 2) * .5 + random.Random(rang).uniform(-.15, .15)
@@ -673,9 +674,14 @@ def tour_pierres(P, r0, r1, z0, z1, ouvertures=(), taille=.6, saillie=.08):
                 for dec2 in (0, -2 * math.pi):
                     v0, v1 = max(u0, g0 + dec2), min(u1, g1 + dec2)
                     if (v1 - v0) * r < .12: continue
-                    am = (v0 + v1) / 2; nrm = Vector((math.cos(am), math.sin(am), 0))
-                    p = nrm * (r + saillie * .5 + P.R.uniform(-.012, .015))
-                    moellon(P, (p.x, p.y, z + hz / 2), (v1 - v0) * r - .045, hz - .045, am + math.pi / 2 + P.R.uniform(-.02, .02), nrm, ep=.24)
+                    am = (v0 + v1) / 2
+                    fin = any(abs((am - fa + math.pi) % (2 * math.pi) - math.pi) < fd and z < fz for (fa, fd, fz) in fines)
+                    morceaux = [(v0, v1)]
+                    if fin and (v1 - v0) * r > .5: c_ = v0 + (v1 - v0) * P.R.uniform(.4, .6); morceaux = [(v0, c_), (c_, v1)]
+                    for (w0, w1) in morceaux:
+                        am = (w0 + w1) / 2; nrm = Vector((math.cos(am), math.sin(am), 0))
+                        p = nrm * (r + saillie * .5 + P.R.uniform(-.012, .015))
+                        moellon(P, (p.x, p.y, z + hz / 2), (w1 - w0) * r - .045, hz - .045, am + math.pi / 2 + P.R.uniform(-.02, .02), nrm, ep=.24)
 
 def cone_bardeaux(P, cx, cy, z0, r0, z1, bombe=.25, rang=.3, larg=.3, mat="bardeau"):
     """Chapeau conique un peu bombé couvert de bardeaux de bois en rangs (du bas, rayon r0 en z0, jusqu'à la pointe z1) ;

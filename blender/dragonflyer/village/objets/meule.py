@@ -16,8 +16,8 @@ def construire(graine=19, r=.6, ep=.24, penche=.22):
     P.cylindre(c0 + n * (ep / 2 - .02), c0 + n * (ep / 2 + .02), r * .26, r * .26, M("fer").couleur(P.R), n=8)           # cercle de fer de l'œil
     P.cylindre(c0 + n * (ep / 2 - .01), c0 + n * (ep / 2 + .03), r * .16, r * .16, M("moellon").sombre, n=4)              # l'œil (sombre)
     t = Vector((1, 0, 0))
-    for k in range(6):   # rainures rayonnantes
-        a = k * math.pi / 3 + .3; u = t * math.cos(a) + d * math.sin(a)
+    for k in range(4):   # rainures rayonnantes
+        a = k * math.pi / 2 + .3; u = t * math.cos(a) + d * math.sin(a)
         p0 = c0 + n * (ep / 2 + .005) + u * r * .3; p1 = c0 + n * (ep / 2 + .005) + u * r * .9
         poutre(P, p0, p1, l=.05, h=.02, c=M("moellon").sombre, bev=0)
     for s in (-1, 1): P.boite((s * r * .55, -.1, .06), (.16, .3, .12), M("chene").couleur(P.R), bev=.02)                  # cales

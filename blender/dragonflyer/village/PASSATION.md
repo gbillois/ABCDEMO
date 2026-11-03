@@ -134,8 +134,23 @@ déplacé de (0, -3.15, 8.4) à (0, -3.4, 9.0) et ailes de 5,8 m au lieu de 6,6 
 0,6 m devant la tour (avant, il balayait la porte à hauteur du joueur). Sacs de grain et meule (objets/).
 - Premier jet vu par moi : porte de 1,1 m mesurée à 0,78 m (la mesure bute sur l'anneau) → 1,2 m ; tour d'un gris
   uniforme → `teinter` (écarts de clarté, pied plus chaud) ; chapeau un peu juste → débord 0,62 m.
-- Tour 1 à inspecter : `qc/moulin1/`, 8 956 triangles (M 8 036 + vitres 60 + ailes 860 ; ancien 9 324), capsule PASSE
-  (elle s'arrête au point « porte », 8 cm devant le seuil), porte 0,86 × 2,09 m.
+- Tour 1 (`qc/moulin1/`, 8 956 triangles) : posé 7, matières 8, formes 7, style 7, lisibilité 8, passage 7, coût 8
+  → À REFAIRE. Ailes non prouvées sans danger, nez quasi absent, couronne lisse sans corbeaux, queue trop maigre qui
+  cachait la fenêtre du dos, sacs et meule timides, pied nu, porte et fenêtres petites, sac enfoncé dans le mur.
+  Corrigé : contrôle des ailes sur un tour complet dans `controle.txt` (bord le plus bas, et rayons le long de chaque
+  arête des ailes contre le moulin, 120 positions) ; casquette de bardeaux à deux pans qui sort du chapeau, pignon de
+  planches d'où sort l'arbre, moyeu plus petit et bout en pointe ; 16 corbeaux de pierre à deux assises sous une
+  couronne de bois plus large ; queue de perches de 15 cm vers l'arrière gauche (dans l'emprise : borne à 3,9 m de l'axe,
+  en (-2.76, 2.76)), traverse, barre du treuil, borne sur une pierre d'appui ; tas de 5 sacs ocre (un ouvert plein de
+  grain), tonnelet près du seuil, posé tangent à la tour ; touffes d'herbe et fleurs au pied du mur, lanterne à gauche de
+  la porte ; porte 1,15 × 2,3 m, fenêtres 0,6 × 0,74 m, pierres coupées en deux autour de la porte (`tour_pierres`,
+  paramètre `fines`) ; cœur en mortier gris-brun, ouvertures resserrées. Budget tenu en allégeant (corbeaux sans
+  biseau, tour en pierres de 1 m, bardeaux plus larges, 8 barreaux par aile).
+- Tour 2 à inspecter : `qc/moulin2/`, 9 306 triangles (M 8 494 + vitres 72 + ailes 740), capsule PASSE, porte mesurée
+  0,82 × 2,29 m (la mesure va du montant à l'anneau ; l'ouverture réelle fait 1,15 m), ailes : bord le plus bas à
+  3,11 m, aucun contact.
+- Maison de pierre : PASSE au tour 2 (tout à 8, passage 9). Suggestions non faites : pierres d'encadrement autour des
+  fenêtres latérales, épi plus épais, pied du mur moins régulier.
 
 ## Prochaine étape
 Finir la chaumière (tout à 8+), l'intégrer : `../maisons.py` appelle `village/maisons/chaumiere.py:construire()`,
