@@ -119,6 +119,39 @@ où le trouver, comment le dresser, notes du héros qui se remplissent en jouant
 - Animations « à la main » en code (principes des animateurs : anticipation, chevauchement, rebond, arcs),
   cycles de marche, vol, idle vivants.
 
+## 7 bis. Méthode de fabrication des modèles 3D (règle)
+
+Ne jamais demander « un village » d'un coup : on avance par étages, et chaque étage est vérifié avant de passer au suivant.
+
+1. **Matières d'abord** : écorce, pierre, chaume, bois, tissu… (couleurs de la palette, textures cuites, échelle en mètres).
+2. **Kit de pièces réutilisables** : poutres, murs, toits, portes, fenêtres, marches… chacune avec son pied à l'origine,
+   ses dimensions exactes et ses matières. Les objets se construisent à partir du kit, jamais à main levée.
+3. **Un objet à la fois** (une maison, un arbre, un rocher), **un script par objet ou par famille**, puis l'assemblage
+   (village, forêt) seulement quand chaque objet est validé.
+
+**Boucle fabrication → contrôle qualité, avec deux agents séparés.** L'agent qui écrit les scripts Blender ne valide
+pas son propre travail (on est indulgent avec soi-même). Après chaque rendu, un **second agent, d'un autre modèle**,
+sans le contexte du fabricant, joue l'inspecteur exigeant :
+- il reçoit seulement les rendus (plusieurs angles, de près et de loin, de jour, plus une vue dans le jeu) et la grille ;
+- il donne une **note sur 10 par critère** et une **liste de corrections obligatoires**, précises et vérifiables ;
+- le fabricant corrige et refait les rendus ; on recommence **jusqu'à 8/10 au moins partout** (3 tours au plus,
+  sinon on revoit l'approche avec le propriétaire).
+
+Grille de l'inspecteur :
+- **Posé** : rien ne flotte, rien ne s'enfonce, pas d'objets qui se traversent, pieds bien sur le sol.
+- **Textures** : pas d'étirement ni de couture visible, bonne échelle (une planche ≈ 20 cm), pas de moiré.
+- **Formes** : silhouette lisible de loin, proportions justes, pas de trous, pas de faces à l'envers,
+  pas de morceaux arrachés par une simplification (cartes de feuilles, branches).
+- **Style** : couleurs de la palette du jeu, lumière cuite cohérente, pas de noir pur ni de blanc brûlé.
+- **Coût** : nombre de faces et de matières dans le budget (`OPTIMISATION-3D.md`), version de loin prévue.
+
+**Leçons déjà apprises** (à ajouter à la grille quand une nouvelle erreur passe) :
+- Une simplification automatique casse les feuilles et les branches : simplifier seulement ce qui le supporte, et
+  comparer avant/après sur un rendu de près.
+- Tout effet d'image qui lit la profondeur (ex. GTAO) ignore la transparence des cartes d'arbres : rectangles noirs.
+  Vérifier chaque effet dans le jeu, à tous les niveaux de qualité (Ultra compris) et sur ordinateur comme sur tablette.
+- Après un changement de modèle, changer le nom du cache de `sw.js`, sinon les appareils gardent l'ancien fichier.
+
 ## 8. Technique
 
 - Garder `dragonflyer/` (PWA). Les modèles sortent de `index.html` pour devenir des fichiers (`assets/*.glb`,

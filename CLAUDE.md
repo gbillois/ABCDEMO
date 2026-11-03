@@ -116,6 +116,8 @@ comme le Domaine des Pins (`manifest.webmanifest`, `sw.js`, bouton « Update » 
 - `jeux/dragonflyer.html` ne fait que rediriger vers `../dragonflyer/`.
 - Les nouveaux modèles (kit de village…) sont des fichiers de `dragonflyer/assets/` faits par les scripts Blender,
   lus depuis le même site et gardés hors ligne par `sw.js` (`FICHIERS`). Conception du jeu : `dragonflyer/CONCEPTION.md`.
+  Pour fabriquer un modèle 3D, suivre la méthode de `CONCEPTION.md` (§ 7 bis : étages matières → kit → un objet à la fois,
+  et contrôle qualité des rendus par un second agent séparé, jusqu'à 8/10).
 - Le jeu est en anglais (demande du propriétaire).
 - L'icône et le blason (`icone-*.png`, `apple-touch-icon.png`, `blason.webp`) viennent d'une image fournie par le propriétaire.
 - Nom affiché : « The Dragon Apprentice Chronicles » (sur l'écran d'accueil : « Dragon Apprentice ») ; le dossier reste `dragonflyer/`. Menus en grimoire : `ui-cuir.webp`, `ui-parchemin.webp`, `ui-gravure.webp`
