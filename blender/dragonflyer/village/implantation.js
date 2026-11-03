@@ -41,8 +41,8 @@ fs.mkdirSync(OUT, { recursive: true });
       L.push(["07_plongee_so", [C.x - R * .8, hc + R * .55, C.z + R * .8], [C.x, hc, C.z]]);
       for (const [n, a] of [["08_cote_est", 0], ["09_cote_ouest", Math.PI]]) { const x = C.x + Math.cos(a) * R * 1.1, z = C.z + Math.sin(a) * R * 1.1; L.push([n, [x, h(x, z) + 4, z], [C.x, hc + 3, C.z]]); }
       const portes = d.PORTES.filter(q => v.maisons.includes(q.maison));
-      portes.slice(0, 2).forEach((q, i) => { const ox = Math.sin(q.yaw), oz = Math.cos(q.yaw), x = q.x + ox * 7, z = q.z + oz * 7;
-        L.push([`1${i}_rue_porte_${q.maison.type}`, [x, h(x, z) + 1.7, z], [q.x, q.y + 1.2, q.z]]); });
+      portes.slice(0, 2).forEach((q, i) => { const ox = Math.sin(q.yaw), oz = Math.cos(q.yaw), x = q.x + ox * 4.2 + oz * 1.2, z = q.z + oz * 4.2 - ox * 1.2;   // dans la rue, un peu de biais
+        L.push([`1${i}_rue_porte_${q.maison.type}`, [x, h(x, z) + 2.2, z], [q.x, q.y + 1.2, q.z]]); });
       L.push(["12_approche", [C.x + R * 1.6, hc + 14, C.z + R * .6], [C.x, hc, C.z]]);
       return L;
     }, nom);
@@ -55,7 +55,12 @@ fs.mkdirSync(OUT, { recursive: true });
       const d = window.__df, v = d.VILLAGES.find(v => v.nom === nom), C = v.place, L = [`${nom} : ${v.maisons.length} maisons, ${v.props.length} accessoires, rayon ${v.rayon.toFixed(0)} m`];
       v.maisons.forEach((o, i) => {
         const [mn, mx] = d.terrainSous(o.x, o.z, o.yaw, o.hx, o.hz), dc = Math.hypot(o.x - C.x, o.z - C.z);
-        let pres = 1e9; v.maisons.forEach((q, j) => { if (j !== i) pres = Math.min(pres, Math.hypot(q.x - o.x, q.z - o.z) - Math.hypot(q.hx, q.hz) - Math.hypot(o.hx, o.hz)); });
+        // écart réel entre emprises (rectangles tournés) : points du bord de l'une, distance au rectangle de l'autre
+        const dRect = (q, x, z) => { const dx = x - q.x, dz = z - q.z, c = Math.cos(q.yaw), s = Math.sin(q.yaw), lx = Math.abs(dx * c - dz * s) - q.hx, lz = Math.abs(dx * s + dz * c) - q.hz;
+          return Math.hypot(Math.max(lx, 0), Math.max(lz, 0)) + Math.min(Math.max(lx, lz), 0); };
+        let pres = 1e9; v.maisons.forEach((q, j) => { if (j === i) return; const c = Math.cos(o.yaw), s = Math.sin(o.yaw);
+          for (let k = 0; k < 40; k++) { const t = k / 40 * 4, a = t % 1 * 2 - 1, cote = t | 0, lx = cote === 0 ? a : cote === 1 ? 1 : cote === 2 ? -a : -1, lz = cote === 0 ? -1 : cote === 1 ? a : cote === 2 ? 1 : -a;
+            pres = Math.min(pres, dRect(q, o.x + lx * o.hx * c + lz * o.hz * s, o.z - lx * o.hx * s + lz * o.hz * c)); } });
         const pt = d.PORTES.find(q => q.maison === o); let porte = "pas de porte";
         if (pt) {
           const ox = Math.sin(pt.yaw), oz = Math.cos(pt.yaw), devant = [1, 2, 3].map(k => d.hauteur(pt.x + ox * k, pt.z + oz * k));

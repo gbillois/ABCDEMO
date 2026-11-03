@@ -1864,14 +1864,15 @@ function batirVillage(v, r) {
   let tour = 0;
   function placeDansLePlan(type, k, essai) {
     const hx = k.pied.hx, hz = k.pied.hz;
-    const essayer = (x, z, yaw) => {
+    const essayer = (x, z, yaw, yRef) => {   // yRef : hauteur de la place ou du profil adouci de la rue (voisins au même niveau)
       const [mn, mxh] = terrainSous(x, z, yaw, hx, hz);
       if (mn < 1.2 || mxh - mn > 4.5 || mxh > 90) return null;
       if (!libre(x, z, yaw, hx, hz, 3)) return null;
-      return { x, z, yaw, y: Math.max(1.5, (mn + mxh) / 2) };
+      return { x, z, yaw, y: Math.max(1.5, Math.min(mxh + .3, Math.max(mn - 1, yRef))) };
     };
+    const profil = (ru, s) => { let t = 0, n = 0; for (let e = -8; e <= 8; e += 2) { t += hauteur(C.x + ru.dx * Math.max(6, s + e), C.z + ru.dz * Math.max(6, s + e)); n++; } return Math.max(1.5, t / n); };
     if (PRINCIPALES.has(type)) for (const an of anneau) if (!an.pris) {
-      const d = 9 + hz + 2.5, x = C.x + Math.cos(an.a) * d, z = C.z + Math.sin(an.a) * d, pl = essayer(x, z, Math.atan2(C.x - x, C.z - z));
+      const d = 9 + hz + 2.5, x = C.x + Math.cos(an.a) * d, z = C.z + Math.sin(an.a) * d, pl = essayer(x, z, Math.atan2(C.x - x, C.z - z), hC);
       if (pl) { an.pris = true; return pl; }
     }
     for (let n = 0; n < 6; n++) {   // la rue et le côté les moins avancés
@@ -1881,7 +1882,7 @@ function batirVillage(v, r) {
         const ru = rues[i], side = c ? 1 : -1, px = -ru.dz * side, pz = ru.dx * side;
         while (ru.curseur[c] < 66) {
           const sC = ru.curseur[c] + hx, d = hz + 3.2, x = C.x + ru.dx * sC + px * d, z = C.z + ru.dz * sC + pz * d;
-          const pl = essayer(x, z, Math.atan2(-px, -pz));   // la façade regarde la rue
+          const pl = essayer(x, z, Math.atan2(-px, -pz), profil(ru, sC));   // la façade regarde la rue
           if (pl) { ru.curseur[c] = sC + hx + 3.5 + r() * 2.5; ru.L = Math.max(ru.L, sC + hx + 4); tour++; return pl; }
           ru.curseur[c] += 2.5;
         }
