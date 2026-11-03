@@ -174,6 +174,14 @@ Le contrôle se fait sur trois planches, toujours les mêmes caméras :
   poids crédible, mouvement calme et lisible.
 Les mêmes notes sur 10 (8 au moins partout), le même inspecteur séparé, le même « 3 fois le même défaut = autre approche ».
 
+**Implantation des villages : même méthode, dans le vrai jeu.** `blender/dragonflyer/village/implantation.js` prend,
+pour chaque village, 12 vues toujours les mêmes (depuis la place vers les 4 points cardinaux, de dessus, en plongée,
+de côté depuis les champs, dans deux rues devant une porte, à l'approche) et écrit un rapport chiffré (terrain sous
+chaque maison, soubassement découvert, seuil au-dessus du sol devant la porte, pente devant, porte bouchée, écarts,
+eau). L'inspecteur (grille : `.claude/skills/modele-3d/inspecteur_implantation.md`) juge le posé, l'accès aux portes,
+l'organisation, le sol et les chemins, le dénivelé (terrasses, murets, talus), les abords (barrières, jardins, herbes,
+accessoires) et le charme ; même barre de 8, même règle des 3 tours.
+
 **Leçons déjà apprises** (à ajouter à la grille quand une nouvelle erreur passe) :
 - Une simplification automatique casse les feuilles et les branches : simplifier seulement ce qui le supporte, et
   comparer avant/après sur un rendu de près.

@@ -61,7 +61,7 @@ def decor(taille):
 
 def douze_cameras(taille, haut, porte, fenetre):
     """Les 12 caméras, toujours les mêmes (à l'échelle de la maison). Façade vers -Y."""
-    d = taille * 1.9; c = Vector((0, 0, haut * .55)); cams = []
+    d = max(taille * 1.9, haut * 2.1); c = Vector((0, 0, haut * .5)); cams = []   # recule pour les maisons hautes
     for k, (nom, az) in enumerate((("face", 0), ("droite", 90), ("dos", 180), ("gauche", 270))):   # à hauteur d'homme
         a = math.radians(az); cams.append((f"{k + 1:02d}_{nom}_homme", Vector((math.sin(a) * d, -math.cos(a) * d, 1.6)), c, 35))
     for k, (nom, az) in enumerate((("face_droite", 45), ("dos_droite", 135), ("dos_gauche", 225), ("face_gauche", 315))):   # en plongée
@@ -113,11 +113,17 @@ def capsule(ob, porte, rayon=.35, haut=1.7, marche_max=.3, depart=4.5):
         if h[0]: ok = False; lignes.append(f"tête bloquée à y={y:.2f} (z={h[0].z:.2f})"); break
     lignes.insert(0, f"capsule (rayon {rayon} m, {haut} m) de 4,5 m devant jusqu'au seuil : {'PASSE' if ok else 'BLOQUÉE'} (sol au seuil {sol:.2f} m)")
     # ouverture de la porte : rayons juste devant les planches
-    hd = bvh.ray_cast(Vector((px, py, 1.0)), Vector((0, 1, 0)), 3)
-    yp = (hd[0].y - .05) if hd[0] else py + .5   # juste devant les planches, entre les montants
-    g = bvh.ray_cast(Vector((px, yp, 1.0)), Vector((-1, 0, 0)), 2); d = bvh.ray_cast(Vector((px, yp, 1.0)), Vector((1, 0, 0)), 2)
-    u = bvh.ray_cast(Vector((px, yp - .07, .3)), Vector((0, 0, 1)), 4)   # un peu plus devant : pas les pentures, mais l'arc
-    larg = (d[0].x - g[0].x) if g[0] and d[0] else float("nan"); hp = (u[0].z) if u[0] else float("nan")
+    # mesures depuis le plancher de la maison (point « porte »), pas depuis le sol ; la largeur est prise à 0,6 m et à
+    # 1,4 m au-dessus du plancher et on garde la plus grande (une poignée ou un anneau ne réduit pas le passage)
+    larg, yp = float("nan"), py + .5
+    for zp in (pz + .6, pz + 1.4):
+        hd = bvh.ray_cast(Vector((px, py, zp)), Vector((0, 1, 0)), 3)
+        y_ = (hd[0].y - .02) if hd[0] else py + .5   # juste devant les planches, entre les montants
+        g = bvh.ray_cast(Vector((px, y_, zp)), Vector((-1, 0, 0)), 2); d = bvh.ray_cast(Vector((px, y_, zp)), Vector((1, 0, 0)), 2)
+        l_ = (d[0].x - g[0].x) if g[0] and d[0] else float("nan")
+        if l_ == l_ and (larg != larg or l_ > larg): larg, yp = l_, y_
+    u = bvh.ray_cast(Vector((px, yp - .07, pz + .3)), Vector((0, 0, 1)), 4)   # un peu plus devant : pas les pentures, mais le linteau ou l'arc
+    hp = (u[0].z - pz) if u[0] else float("nan")
     porte_ok = larg >= 2 * rayon + .1 and hp >= haut + .1
     lignes.append(f"ouverture de la porte : {larg:.2f} m de large, {hp:.2f} m sous l'arc → {'assez grande pour la capsule' if porte_ok else 'TROP PETITE pour la capsule'}")
     return ok and porte_ok, lignes
@@ -142,3 +148,60 @@ def apercu_objet(P, pied=(1, 1)):
     f, t = faces([ob]); open(os.path.join(dossier, "controle.txt"), "w").write(f"{ob.name} : {f} faces, {t} triangles\n"); print(ob.name, f, "faces")
     materiaux_rendu([ob]); decor(max(pied) * 2); s = max(pied)
     rendre(dossier, douze_cameras(s, 1.0, (0, -pied[1] / 2, 0), (0, -pied[1] / 2, .5)))
+
+# ---- ajouts pêcheur : maison au bord de l'eau (rivage en pente et plan d'eau, comme le jeu la pose)
+def rivage(y_rive=-6.2, y_fond=-1.5, z_fond=-1.8, taille=80):
+    """Terrain des aperçus d'une maison sur pilotis : terre plate (z = 0) côté porte (-Y) jusqu'à y_rive, plage en pente,
+    fond à z_fond côté mer (+Y). Herbe, sable sec, sable mouillé, fond (couleurs par sommet, ternes comme le jeu)."""
+    me = bpy.data.meshes.new("Rivage"); ob = bpy.data.objects.new("Rivage", me); bpy.context.scene.collection.objects.link(ob)
+    bm = bmesh.new(); col = bm.verts.layers.float_color.new("Col")
+    rangs = [(-taille, 0, "#6a7350"), (y_rive - 2.2, 0, "#6a7350"), (y_rive - .6, 0, "#b3a27c"), (y_rive, 0, "#b3a27c"),
+             (y_rive + .8, -.3, "#8f8466"), (y_fond, z_fond, "#7a755e"), (taille, z_fond, "#7a755e")]
+    V = []
+    for (y, z, h) in rangs:
+        r = [bm.verts.new((x, y, z)) for x in (-taille, taille)]
+        for v in r: v[col] = (*lin(h), 1)
+        V.append(r)
+    for a, b in zip(V, V[1:]): bm.faces.new((a[0], a[1], b[1], b[0]))
+    bm.normal_update(); bm.to_mesh(me); bm.free()
+    m = bpy.data.materials.new("Rivage"); m.use_nodes = True; nt = m.node_tree; ca = nt.nodes.new("ShaderNodeVertexColor"); ca.layer_name = "Col"
+    bs = nt.nodes["Principled BSDF"]; nt.links.new(ca.outputs["Color"], bs.inputs["Base Color"]); bs.inputs["Roughness"].default_value = 1
+    me.materials.append(m); return ob
+
+def plan_eau(z, taille=80):
+    """Eau des aperçus : plan bleu-vert un peu transparent (on devine les pieux dessous)."""
+    me = bpy.data.meshes.new("Eau"); ob = bpy.data.objects.new("Eau", me); bpy.context.scene.collection.objects.link(ob)
+    bm = bmesh.new(); bmesh.ops.create_grid(bm, x_segments=1, y_segments=1, size=taille); bm.to_mesh(me); bm.free(); ob.location.z = z
+    m = bpy.data.materials.new("Eau"); m.use_nodes = True; bs = m.node_tree.nodes["Principled BSDF"]
+    bs.inputs["Base Color"].default_value = (*lin("#3e8d9c"), 1); bs.inputs["Roughness"].default_value = .12; bs.inputs["Alpha"].default_value = .72
+    me.materials.append(m); return ob
+
+def ouverture_porte(ob, porte, rayon=.35, haut=1.7):
+    """Ouverture de la porte, mesurée à 0,6 m et à 1,4 m au-dessus du plancher (on garde la plus grande : à 1 m, l'anneau
+    de la porte du kit coupait la mesure) ; hauteur sous le linteau."""
+    dg = bpy.context.evaluated_depsgraph_get(); bvh = BVHTree.FromObject(ob, dg); px, py, pz = porte; larg = 0.0
+    for dz in (.6, 1.4):
+        hd = bvh.ray_cast(Vector((px, py, pz + dz)), Vector((0, 1, 0)), 3); yp = (hd[0].y - .02) if hd[0] else py + .5
+        g = bvh.ray_cast(Vector((px, yp, pz + dz)), Vector((-1, 0, 0)), 2); d = bvh.ray_cast(Vector((px, yp, pz + dz)), Vector((1, 0, 0)), 2)
+        if g[0] and d[0]: larg = max(larg, d[0].x - g[0].x)
+    u = bvh.ray_cast(Vector((px, yp - .07, pz + .3)), Vector((0, 0, 1)), 4); hp = (u[0].z - pz) if u[0] else float("nan")
+    ok = larg >= 2 * rayon + .1 and hp >= haut + .1
+    return ok, f"ouverture de la porte : {larg:.2f} m de large (mesures à 0,6 et 1,4 m), {hp:.2f} m sous le linteau → {'assez grande pour la capsule' if ok else 'TROP PETITE pour la capsule'}"
+
+def apercu_maison_eau(objets, nom, taille, haut, porte_seuil, fenetre, eau=-.2, porte_cam=None, **rive):
+    """Comme apercu_maison, pour une maison posée au bord de l'eau : l'occlusion est cuite avec un sol au niveau de
+    l'eau (dans le jeu, la maison est posée à y = 0,2 au-dessus de la mer, soit l'eau à z = -0,2 dans son repère) ;
+    les rendus montrent le rivage (terre à z = 0 côté porte) et l'eau. La capsule part de la terre (z = 0).
+    porte_cam : point où s'ancrent les caméras 09 et 12 (à 0,6 m devant la porte comme pour les autres maisons) quand le
+    point « porte » est loin du mur (terrasse)."""
+    dossier = sortie(); nettoyer_depart()
+    ok, lignes = capsule(objets[0], porte_seuil)
+    ok_p, ligne_p = ouverture_porte(objets[0], porte_seuil)
+    lignes = [l for l in lignes if not l.startswith("ouverture de la porte")] + [ligne_p]
+    cuire_occlusion(objets, sol_z=eau)
+    exporter(objets, os.path.join(dossier, nom + ".glb"))
+    f, t = faces(objets); lignes.insert(0, f"{nom} : {f} faces, {t} triangles")
+    open(os.path.join(dossier, "controle.txt"), "w").write("\n".join(lignes) + "\n"); print("\n".join(lignes))
+    materiaux_rendu(objets); decor(taille)
+    bpy.data.objects.remove(bpy.data.objects["Pre"]); rivage(**rive); plan_eau(eau)
+    rendre(dossier, douze_cameras(taille, haut, porte_cam or porte_seuil, fenetre))
