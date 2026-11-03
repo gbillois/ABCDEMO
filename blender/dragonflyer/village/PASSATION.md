@@ -308,3 +308,10 @@ puis capture dans le jeu, puis montrer au propriétaire. Ensuite : une maison à
 - Herbe : sa largeur suit sa hauteur (plus de brins couchés à plat sur les pavés).
 - Bordure basse de pierres autour de la place (muret à 20 %), 3 bancs et 3 lanternes, murets de place jamais isolés,
   accessoires hors d'un couloir de 4,5 m devant chaque seuil (selon leur taille), caméras 08/09 jamais dans un mur.
+- Résultat : les quatre villages PASSENT (tout à 8 ou plus) : Mistholm (non-régression), Fernhollow tour 6, Saltcliff tour 4,
+  Stonebrook tour 8. Derniers changements : rampe droite et exacte au départ de chaque rue (pavée seulement si douce),
+  murets contre les maisons avec la terre relevée derrière (jamais sur un palier), anciens pas japonais vers les portes
+  supprimés, galets jamais sur une rue, rues en pente aussi claires que les plates.
+  Suggestions non faites : rocher vert clair voyant à Stonebrook, rampe de l'ouest un peu plus beige, fleurs le long de la
+  bordure, banc de Mistholm dans l'axe d'une porte (hors du couloir de 4,5 m), bout des rues en fondu plus long.
+- Reste : les arbres (agent séparé, tour 6 en fabrication), puis leur intégration au jeu (arbres.glb).
