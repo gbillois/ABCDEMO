@@ -13,8 +13,7 @@ def construire(graine=5, L=1.4, rangs=4):
         for i in range(n):
             x = -L / 2 + r + (i + k * .5) * 2 * r + P.R.uniform(-.01, .01)
             y0, y1 = -.22 + P.R.uniform(-.04, .04), .22 + P.R.uniform(-.04, .04)
-            P.cylindre((x, y0, z), (x, y1, z), r * P.R.uniform(.88, 1.0), r * P.R.uniform(.88, 1.0), M("chene_c").couleur(P.R), n=8)
-            for yy in (y0 - .005, y1 + .005): P.cylindre((x, yy - .004, z), (x, yy + .004, z), r * .75, r * .75, M("paille").couleur(P.R), n=8)  # bois clair des coupes
+            P.cylindre((x, y0, z), (x, y1, z), r * P.R.uniform(.88, 1.0), r * P.R.uniform(.88, 1.0), M("chene_c").couleur(P.R), n=6)
     h = .1 + rangs * r * 1.75 + .25
     for s in (-1, 1): poutre(P, (s * (L / 2 + .05), .2, 0), (s * (L / 2 + .05), .2, h), l=.09, h=.09)
     for i in range(3): planche(P, (0, -.05 + i * .17, h + .05 - i * .04), (L + .3, .18, .04), rz=0)   # auvent

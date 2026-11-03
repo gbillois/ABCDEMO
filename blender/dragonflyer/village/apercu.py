@@ -114,9 +114,9 @@ def capsule(ob, porte, rayon=.35, haut=1.7, marche_max=.3, depart=4.5):
     lignes.insert(0, f"capsule (rayon {rayon} m, {haut} m) de 4,5 m devant jusqu'au seuil : {'PASSE' if ok else 'BLOQUÉE'} (sol au seuil {sol:.2f} m)")
     # ouverture de la porte : rayons juste devant les planches
     hd = bvh.ray_cast(Vector((px, py, 1.0)), Vector((0, 1, 0)), 3)
-    yp = (hd[0].y - .03) if hd[0] else py + .5
+    yp = (hd[0].y - .05) if hd[0] else py + .5   # juste devant les planches, entre les montants
     g = bvh.ray_cast(Vector((px, yp, 1.0)), Vector((-1, 0, 0)), 2); d = bvh.ray_cast(Vector((px, yp, 1.0)), Vector((1, 0, 0)), 2)
-    u = bvh.ray_cast(Vector((px, yp, .3)), Vector((0, 0, 1)), 4)
+    u = bvh.ray_cast(Vector((px, yp - .07, .3)), Vector((0, 0, 1)), 4)   # un peu plus devant : pas les pentures, mais l'arc
     larg = (d[0].x - g[0].x) if g[0] and d[0] else float("nan"); hp = (u[0].z) if u[0] else float("nan")
     porte_ok = larg >= 2 * rayon + .1 and hp >= haut + .1
     lignes.append(f"ouverture de la porte : {larg:.2f} m de large, {hp:.2f} m sous l'arc → {'assez grande pour la capsule' if porte_ok else 'TROP PETITE pour la capsule'}")

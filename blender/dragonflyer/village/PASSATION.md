@@ -1,0 +1,25 @@
+# Passation : village de DragonFlyer (méthode de dragonflyer/CONCEPTION.md § 7 bis)
+
+Fichier tenu à jour à chaque étape, pour qu'une nouvelle session reprenne ici. Marche à suivre : `.claude/skills/modele-3d/`.
+
+## Où on en est
+- Matières : `materiaux.py` (fait).
+- Kit : `kit.py` : poutre, planche, moellon, mur de moellons (assises communes, chaînage d'angle, pierres coupées au bord
+  des ouvertures), toit de chaume (`ToitChaume` : croupes, rangs, mèches, rebord en deux rangs, frange, faîtage posé dans
+  la crête), chevrons, arc de claveaux, porte, fenêtre, cheminée (fondation, épaulement, solin).
+- Aperçus : `apercu.py` (occlusion cuite, 12 caméras, planche, capsule du joueur, `controle.txt`).
+- Objets : `objets/banc.py`, `objets/tas_bois.py`.
+- Maisons : `maisons/chaumiere.py` en contrôle qualité. Les autres maisons sont encore dans l'ancien `../maisons.py`.
+
+## Chaumière : tours de contrôle
+- Tour 1 : posé 4, matières 7, formes 6, style 8, lisibilité 7, passage 9, coût 4 → À REFAIRE.
+  Faîtage qui flotte, cheminée démesurée et mal posée, chaume « pâte » sans bord, trous de mortier dans les murs,
+  toit en coussin vu de dessus, 36 712 triangles.
+  Corrigé : faîtage qui suit la crête, nouveau mur (pierres coupées au bord des ouvertures, face cachée supprimée),
+  toit à rangs + mèches + rebord en deux rangs + frange + chevrons, coins moins ronds, cheminée à fondation et solin,
+  hauteur du faîte + 0,55 m, marche de 12 cm, objets allégés → 18 394 triangles.
+- Tour 2 : en cours.
+
+## Prochaine étape
+Finir la chaumière (tout à 8+), l'intégrer : `../maisons.py` appelle `village/maisons/chaumiere.py:construire()`,
+puis capture dans le jeu, puis montrer au propriétaire. Ensuite : une maison à la fois (colombage, longère…).
