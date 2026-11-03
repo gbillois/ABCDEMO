@@ -48,6 +48,8 @@ Points faibles déjà repérés :
 - jupe à vérifier dans l'écart et l'accroupi (planche B, cases 16, 19, 20) ;
 - les bras serrés par les animations (SERRE de `animations.py`) peuvent frôler la jupe : planche C à regarder ;
 - l'épée dans le dos et le baudrier (jeu, `majEpeeDos`) sont réglés pour l'ancien buste : à vérifier dans le jeu ;
+- planche C : pour trot et course, le personnage sort à moitié du cadre de côté (images 1 et 6) et grossit de face
+  (il s'approche de la caméra) : élargir le cadre ou faire suivre la caméra en gardant le quadrillage ;
 - coût à réduire vers 20 000 triangles (fourrure, bottes et mèches sont les plus chers, voir `heros.txt`).
 
 ## Prochaine étape
