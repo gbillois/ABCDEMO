@@ -146,6 +146,45 @@ Facultatif fait : respiration du repos 3,2°, bord de fourrure un peu plus étro
   la direction épaule → main.
 - la main droite est en poing au repos (elle tient l'épée) ; si on la veut ouverte hors combat, il faudra deux mains.
 
+## Tour 3 : contrôle : À REFAIRE (de très peu)
+
+Notes : proportions 8, visage 8, cheveux et vêtements 8, articulations 8 (jupe validée), animations 7, style 8, coût 9.
+Restait (animations) : trot et course trop proches et vitesses inversées, glissement de la marche 5,1 cm, disques
+qui apparaissent sans pied posé, coup d'épée raide (bras en croix 3 images), lame peu contrastée.
+
+## Tour 4 (planches dans `t4/`)
+
+Tout est dans `animations.py` (le héros n'a pas changé depuis le tour 3, sauf la lame de l'épée du banc) :
+1. Trot et course refaits : trot léger (amplitude des jambes 74 %, bras 70 %, buste penché 8°), course ample (jambes
+   115 %, bras 135 %, bassin 135 %, penché 17°). Les amplitudes sont multipliées autour de la pose moyenne du clip (par
+   l'angle : au-delà de 100 % le mouvement s'agrandit). Vitesses naturelles mesurées : marche 0,64 < trot 1,81 <
+   course 3,64 m/s.
+2. Pieds au sol, trois passes après les retouches : (a) pied d'appui remis à plat (le transfert enfonçait la pointe
+   de 6 cm et relevait le talon au milieu de l'appui) ; à la marche, la pointe du pied qui passe se relève de 22° ;
+   (b) pieds verrouillés : pendant chaque appui, la cheville suit une droite à vitesse constante, par une IK à deux
+   os cuite image par image (appuis à cheval sur la boucle recousus ; à la marche le verrou commence une image avant
+   et se relâche sur deux images après) ; les clips sur place (repos, parler, ramasser, épée, sauts) sont verrouillés
+   à vitesse nulle ; (c) bassin à la hauteur qui pose la semelle sur le sol (réception comprise).
+   Mesure (la même dans `animations.py` et au banc) : un point de semelle (talon, plante, bout) qui touche le sol
+   (< 2 cm) ne doit pas bouger tant qu'il le touche. Glissement maximal : marche 3,0 cm, trot 0,5 cm, course 0,8 cm.
+   Interpolation linéaire entre les images, comme dans le jeu.
+3. Banc : disque seulement sous un pied qui touche vraiment le sol (au milieu des points qui touchent) ; `t4/glissement.txt`
+   donne pour chaque clip la vitesse, le glissement et les images où chaque pied touche le sol.
+4. Coup d'épée : le buste arme (28° vers la droite, bras droit levé de 35°), frappe (62° de l'autre côté), revient,
+   bras qui redescend aussitôt (plus de bras tendu immobile) ; la tête garde la cible. Lame du banc en acier bleuté
+   foncé avec un liseré sombre.
+
+Encore imparfait (vu dans `t4/glissement.txt`, hors des corrections demandées) : la réception (`saut_fin`) et le coup
+d'épée gardent un pied qui glisse (environ 10 et 18 cm) : la source fait un pas pendant ces gestes et le verrou à
+vitesse nulle ne suit pas ce pas. À traiter au prochain tour si l'inspecteur le relève (verrou par appui au lieu d'un
+verrou moyen).
+
+À changer dans le jeu (`animerClips`), avec ces vitesses (le héros marche jusqu'à 2,6 m/s, court jusqu'à 4,6 m/s) :
+- poids : repos → marche `lisse(.06, .3, v)` ; marche → trot `lisse(.9, 1.4, v)` (au lieu de 1,1-1,9) ;
+  trot → course `lisse(2.6, 3.4, v)` (au lieu de 3,3-4,6) ;
+- la cadence v / V reste bornée à 0,7-1,8 : marche jusqu'à 1,15 m/s, trot 1,27-3,26 m/s, course dès 2,55 m/s : les
+  plages se recouvrent, aucun clip n'est joué hors de ses bornes avec ces seuils.
+
 ## Prochaine étape
 
 1. Faire contrôler les planches `t2/` par l'inspecteur.

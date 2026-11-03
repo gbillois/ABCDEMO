@@ -150,6 +150,7 @@ if "c" in QUOI and ANIM:
     for o in [o for o in scene.objects if o not in avant]: bpy.data.objects.remove(o)
     acts = {a.name.rsplit("_PietonRig", 1)[0]: a for a in bpy.data.actions}
     ORDRE = [n for n in ("repos", "marche", "trot", "course", "saut_debut", "saut_air", "saut_fin", "epee", "parle", "prendre") if n in acts]
+    ORDRE_TOUS = list(ORDRE)
     if os.environ.get("APERCU_CLIPS"): ORDRE = [n for n in ORDRE if n in os.environ["APERCU_CLIPS"].split(",")]   # essai rapide
     scene.render.resolution_x = scene.render.resolution_y = 320; scene.cycles.samples = 16
     rig.animation_data_create(); fps = scene.render.fps
@@ -162,9 +163,9 @@ if "c" in QUOI and ANIM:
         V = [(sx * lx, y, sz * lz) for y in (y0, y1) for sx in (-1, 1) for sz in (-1, 1)]
         if pointe: V[4:] = [(0, y1, 0)] * 4
         return V, [(0, 1, 3, 2), (4, 6, 7, 5), (0, 4, 5, 1), (2, 3, 7, 6), (0, 2, 6, 4), (1, 5, 7, 3)]
-    PIECES = [(boite(.0, .58, .016, .005), 0), (boite(.58, .65, .016, .005, True), 0), (boite(-.018, .018, .075, .02), 1),
+    PIECES = [(boite(.0, .58, .016, .005), 0), (boite(.58, .65, .016, .005, True), 0), (boite(.0, .6, .019, .0035), 3), (boite(-.018, .018, .075, .02), 1),
               (boite(-.15, -.018, .014, .014), 2), (boite(-.18, -.15, .024, .024), 1)]
-    COULS = [(.86, .85, .83, 1), (.85, .6, .2, 1), (.3, .16, .08, 1)]
+    COULS = [(.52, .56, .62, 1), (.85, .6, .2, 1), (.3, .16, .08, 1), (.08, .07, .07, 1)]   # acier bleuté, laiton, cuir, liseré sombre
     me_e = bpy.data.meshes.new("Epee"); epee = bpy.data.objects.new("Epee", me_e); scene.collection.objects.link(epee)
     for c in COULS:
         m = bpy.data.materials.new("epee"); m.use_nodes = True; b_ = m.node_tree.nodes["Principled BSDF"]
@@ -197,23 +198,36 @@ if "c" in QUOI and ANIM:
         bpy.ops.mesh.primitive_cube_add(size=1, location=(0, k * .5, .0012)); t_ = bpy.context.active_object
         t_.scale = (.5, .012, .002); t_.data.materials.append(MAT_REP["L"].copy()); t_.data.materials[0].node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (1, 1, 1, 1)
         t_.data.materials[0].node_tree.nodes["Principled BSDF"].inputs["Emission Color"].default_value = (1, 1, 1, 1)
-    def semelle(s_):
-        pb = rig.pose.bones[f"Foot.{s_}"]; hd, tl = rig.matrix_world @ pb.head, rig.matrix_world @ pb.tail
-        return hd, tl, hd + (tl - hd) * .35
-    # mesure du glissement (dense : 4 positions par image) : pour chaque appui, distance maximale entre le milieu de la
-    # semelle et sa position au début de l'appui
+    from squelette import semelle_monde, CONTACT
+    def contact(s_):
+        """Points de la semelle (talon, plante, bout) qui touchent vraiment le sol (< 2 cm), et leur milieu (ou None)."""
+        P = semelle_monde(rig, s_); T = [p for p in P.values() if p.z < CONTACT]
+        return (sum(T, Vector()) / len(T)) if T else None, {k: p for k, p in P.items() if p.z < CONTACT}
+    # mesure du glissement (4 positions par image), même mesure que animations.py : un point de semelle qui touche le
+    # sol ne doit pas bouger tant qu'il le touche (le roulé talon → plante → bout n'est pas compté, un glissement l'est).
+    # On écrit aussi, pour chaque clip, les images où chaque pied touche le sol.
     rapport = []
-    for nom in [n for n in ("marche", "trot", "course") if n in acts]:
-        act = acts[nom]; rig.animation_data.action = act; f0, f1 = act.frame_range; v = vit.get(nom, 0); appui = {}; pire = 0
+    for nom in ORDRE_TOUS:
+        act = acts[nom]; rig.animation_data.action = act; f0, f1 = act.frame_range
+        v = vit.get(nom, 0) if nom in ("marche", "trot", "course") else 0; pose, pire, imgs = {}, 0, {"L": [], "R": []}
         for k in range(int((f1 - f0) * 4) + 1):
             f = f0 + k / 4; scene.frame_set(int(f), subframe=f - int(f)); rig.location = (0, -v * (f - f0) / fps, 0); bpy.context.view_layer.update()
             for s_ in "LR":
-                hd, tl, c = semelle(s_)
-                if tl.z < .05 and hd.z < .115:
-                    if s_ not in appui: appui[s_] = c.copy()
-                    pire = max(pire, (c.xy - appui[s_].xy).length)
-                else: appui.pop(s_, None)
-        rapport.append(f"{nom}: vitesse {v} m/s, glissement maximal d'un pied posé {pire * 100:.1f} cm")
+                c, T = contact(s_)
+                if T and k % 4 == 0: imgs[s_].append(int(f))
+                for nom_p in ("talon", "plante", "bout"):
+                    cle = (s_, nom_p)
+                    if nom_p in T:
+                        pose.setdefault(cle, T[nom_p].copy()); pire = max(pire, (T[nom_p].xy - pose[cle].xy).length)
+                    else: pose.pop(cle, None)
+        def plages(l):
+            out = []
+            for x in sorted(set(l)):
+                if out and x == out[-1][1] + 1: out[-1][1] = x
+                else: out.append([x, x])
+            return ", ".join(f"{a}-{b}" if b > a else f"{a}" for a, b in out) or "aucune"
+        ligne = f"{nom}: vitesse d'avance {v} m/s ; glissement maximal d'un point posé {pire * 100:.1f} cm ; images au sol (sur {int(f1 - f0) + 1}) : gauche {plages(imgs['L'])} | droit {plages(imgs['R'])}"
+        rapport.append(ligne)
     rig.location = (0, 0, 0); open(os.path.join(OUT, "glissement.txt"), "w").write("\n".join(rapport) + "\n"); print("GLISSEMENT", rapport)
     N_IMG = 8
     for part, noms in ((1, ORDRE[:5]), (2, ORDRE[5:])):
@@ -229,8 +243,8 @@ if "c" in QUOI and ANIM:
                 if nom == "epee": placer_epee()
                 if vue == "côté":
                     for s_ in "LR":
-                        hd, tl, c = semelle(s_)
-                        if tl.z < .05 and hd.z < .115 and not any((r_.location.xy - c.xy).length < .1 for r_ in reperes): reperes.append(disque(c, s_))
+                        c, T = contact(s_)   # disque seulement si le pied touche vraiment le sol, sous le point qui touche
+                        if c is not None and not any((r_.location.xy - c.xy).length < .1 for r_ in reperes): reperes.append(disque(c, s_))
                     viser((2.9, y, .9), (0, y, .68), 45)            # la caméra suit le héros ; le sol et les repères défilent
                 else: viser((.35, y - 2.9, 1.0), (0, y, .7), 45)    # de face : toujours à la même distance
                 cases.append({"image": rendre(os.path.join(OUT, f"c_{nom}_{'cote' if vue == 'côté' else 'face'}_{i}.png")), "legende": f"{nom} {vue} {i + 1}/{N_IMG}"})
