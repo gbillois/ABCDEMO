@@ -11,7 +11,7 @@ import math
 from mathutils import Vector, Matrix
 from kit import Piece, poutre, porte, fenetre, tour_pierres, cone_bardeaux, nb_sommets, teinter
 from materiaux import M, melange
-import sacs_grain, meule, tonneau, lanterne
+import sacs_grain, meule, tonnelet, lanterne
 
 PIED, PORTE, INTERIEUR = (6.2, 6.2), (0, -3.6, 0), ""
 Z_BAS, Z_PIERRE, Z_TOUR = -2.8, -.6, 8.0     # cœur sous le sol (pentes), pierres dès -0,6 m, haut de la tour
@@ -19,7 +19,7 @@ R0, R1 = 2.8, 2.05                           # rayon du cœur en Z_PIERRE et en 
 AXE = (0, -3.4, 9.0)                         # centre des ailes (repère Blender) : les ailes tournent dans le plan y = -3,4
 L_AILE = 5.8                                 # bout des ailes à 3,1 m du sol au plus bas, 0,6 m devant la tour
 FACE = -math.pi / 2                          # angle de la façade (-Y)
-FENETRES = [(FACE, 4.4), (0.0, 2.6), (math.pi * .5, 3.6), (math.pi, 5.6), (FACE + .5, 6.6)]   # (angle, hauteur)
+FENETRES = [(FACE, 4.4), (0.0, 2.6), (math.pi * .5, 3.6), (math.pi, 5.6)]   # (angle, hauteur)
 FL, FH = .6, .74                             # fenêtres
 FENETRE_FACE = (0, -(R0 + (R1 - R0) * (4.4 - Z_PIERRE) / (Z_TOUR - Z_PIERRE)) - .12, 4.4)
 L_PORTE, H_PORTE = 1.15, 2.3                 # porte (la mesure du contrôle va du montant à l'anneau : 0,82 m)
@@ -37,8 +37,8 @@ def ailes(graine=41):
         a = math.pi / 4 + k * math.pi / 2; d = Vector((math.cos(a), 0, math.sin(a))); p = Vector((-math.sin(a), 0, math.cos(a)))
         poutre(A, d * .15, d * L_AILE, l=.17, h=.17, mat="chene")                                        # vergue
         r0, r1, lg = 1.25, L_AILE - .1, 1.2
-        for j in range(8):                                                                              # barreaux
-            t = r0 + (r1 - r0) * j / 7
+        for j in range(7):                                                                              # barreaux
+            t = r0 + (r1 - r0) * j / 6
             poutre(A, d * t - p * .12 + Vector((0, -.06, 0)), d * t + p * lg + Vector((0, -.06, 0)), l=.055, h=.055, mat="chene_c", bev=0)
         poutre(A, d * r0 + p * lg + Vector((0, -.06, 0)), d * (r1 + .05) + p * lg + Vector((0, -.06, 0)), l=.07, h=.07, mat="chene_c", bev=0)   # longeron
         # toile crème, gonflée au milieu (vers +Y, côté tour), bords un peu plus sombres
@@ -84,16 +84,16 @@ def construire(graine=41):
     zl = 2.2; L_ = Vector((-1.05, -math.sqrt((rayon(zl) + .16) ** 2 - 1.05 ** 2) + .02, zl)); rl = -math.asin(1.05 / (rayon(zl) + .16))
     bras = Matrix.Rotation(rl, 3, "Z") @ Vector((0, -.5, 0))                  # la vitre suit le bras tourné face au mur rond
     P.ajouter(lanterne.construire(V, L_ + bras - Vector((0, -.5, 0))), Matrix.Translation(L_) @ Matrix.Rotation(rl, 4, "Z"))
-    # corbeaux de pierre (deux assises en encorbellement) qui portent la couronne de bois
-    for k in range(16):
-        a = 2 * math.pi * (k + .5) / 16
+    # 12 corbeaux de pierre (deux assises en encorbellement) qui portent la couronne de bois
+    for k in range(12):
+        a = 2 * math.pi * (k + .5) / 12
         for (z0, z1, sail, larg) in ((Z_COUR - .5, Z_COUR - .26, .26, .26), (Z_COUR - .26, Z_COUR, .46, .32)):
             r_in = R1 + .02; r_out = R1 + .16 + sail
             P.boite(pol(a, (r_in + r_out) / 2, (z0 + z1) / 2), (r_out - r_in, larg, z1 - z0 - .02), M("moellon").couleur(R, .08), rz=a, bev=0)
     P.cylindre((0, 0, Z_COUR), (0, 0, Z_COUR + .3), R1 + .62, R1 + .62, M("chene").couleur(R), n=24)     # couronne
     # chapeau de bardeaux et épi de faîtage
     zc0, zc1 = Z_COUR + .3, Z_COUR + 3.1
-    cone_bardeaux(P, 0, 0, zc0, R1 + .78, zc1, bombe=.3, rang=.38, larg=.44)
+    cone_bardeaux(P, 0, 0, zc0, R1 + .78, zc1, bombe=.3, rang=.38, larg=.5)
     P.cylindre((0, 0, zc1 - .15), (0, 0, zc1 + .35), .1, .06, M("chene").sombre, n=6)
     P.sphere((0, 0, zc1 + .42), .13, M("chene").sombre, sub=1)
     # casquette : petit toit de bardeaux à deux pans qui sort du chapeau vers l'avant et abrite l'arbre des ailes
@@ -124,14 +124,19 @@ def construire(graine=41):
     P.boite(pol(Q_ANGLE, Q_R, .05), (.66, .62, .3), M("moellon").couleur(R), rz=Q_ANGLE, bev=.08, jit=.02)   # pierre d'appui
     # la vie autour : tas de sacs, tonnelet près du seuil, meule de rechange, touffes et fleurs au pied du mur
     a_s = -.85; P.ajouter(sacs_grain.construire(), Matrix.Translation(pol(a_s, 3.58)) @ Matrix.Rotation(a_s + math.pi / 2, 4, "Z"))
-    P.ajouter(tonneau.construire(r=.24, h=.58, n=8), Matrix.Translation((.95, -3.52, 0)))
+    P.ajouter(tonnelet.construire(), Matrix.Translation((1.15, -3.5, 0)))                                     # tonnelet bombé, posé droit
     P.ajouter(meule.construire(), Matrix.Translation((-1.75, -2.75, 0)) @ Matrix.Rotation(-.57, 4, "Z"))   # adossée à la tour
-    occupe = [(FACE, .3), (a_s, .42), (-2.13, .25), (Q_ANGLE, .2)]                                         # porte, sacs, meule, queue
-    for k in range(18):
-        a = 2 * math.pi * k / 18 + R.uniform(-.05, .05)
+    occupe = [(FACE, .4), (a_s, .42), (-2.13, .25), (Q_ANGLE, .2), (-2.5, .2)]                             # porte, sacs, meule, queue, massif
+    for k in range(12):
+        a = 2 * math.pi * k / 12 + R.uniform(-.05, .05)
         if any(abs((a - b + math.pi) % (2 * math.pi) - math.pi) < d for (b, d) in occupe): continue
-        p = pol(a, 3.05 + R.uniform(0, .12)); touffe(P, p.x, p.y, fleurs=k % 3 == 0)
-    for x in (-.78, .6): touffe(P, x, -3.25)                                                               # de part et d'autre du seuil
+        p = pol(a, 3.05 + R.uniform(0, .12)); touffe(P, p.x, p.y, fleurs=False)
+    # trois massifs fleuris : de chaque côté de la porte et au pied du mur à gauche (roses, blanches, rouges)
+    for (mx, my) in ((-.68, -3.32), (.62, -3.32), tuple(pol(-2.5, 3.12))[:2]):
+        for i in range(3):
+            P.sphere((mx + R.uniform(-.14, .14), my + R.uniform(-.08, .08), .12), R.uniform(.13, .17), M("feuillage").couleur(R), (1, 1, .8), sub=1, jit=.02)
+        for i in range(4):
+            P.sphere((mx + R.uniform(-.17, .17), my + R.uniform(-.12, .1), .27 + R.uniform(0, .1)), .08, M("fleur").teintes[(0, 2, 3, 2)[i]], sub=1)
     for (bx, by) in ((2.6, 2.3),):
         for i in range(3):
             P.sphere((bx + R.uniform(-.25, .25), by + R.uniform(-.25, .25), .16), R.uniform(.2, .28), M("feuillage").couleur(R), (1, 1, .85), sub=1, jit=.04)
@@ -167,6 +172,14 @@ if __name__ == "__main__":
     P, V, A = construire()
     props = {"pied": list(PIED), "porte": list(PORTE), "interieur": INTERIEUR}
     obM = P.objet(props); lignes = controle_ailes(obM, A)
+    # largeur de la porte entre les montants, mesurée à 0,6 m et 1,4 m au-dessus du plancher (hors de l'anneau, à 1 m)
+    import bpy
+    from mathutils.bvhtree import BVHTree
+    bvh = BVHTree.FromObject(obM, bpy.context.evaluated_depsgraph_get()); px, py, pz = PORTE
+    hp = bvh.ray_cast(Vector((px, py, pz + 1.0)), Vector((0, 1, 0)), 3)[0]; yp = hp.y - .02
+    for zz in (.6, 1.4):
+        g = bvh.ray_cast(Vector((px, yp, pz + zz)), Vector((-1, 0, 0)), 2)[0]; d = bvh.ray_cast(Vector((px, yp, pz + zz)), Vector((1, 0, 0)), 2)[0]
+        lignes.append(f"largeur de la porte entre les montants à {zz:.1f} m : {d.x - g.x:.2f} m")
     obA = A.objet({"axe": list(AXE)}); obA.location = AXE
     objets = [obM, V.objet(), obA]
     apercu_maison(objets, "moulin", taille=max(PIED), haut=12.0, porte_seuil=PORTE, fenetre=FENETRE_FACE)

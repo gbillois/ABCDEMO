@@ -149,6 +149,17 @@ déplacé de (0, -3.15, 8.4) à (0, -3.4, 9.0) et ailes de 5,8 m au lieu de 6,6 
 - Tour 2 à inspecter : `qc/moulin2/`, 9 306 triangles (M 8 494 + vitres 72 + ailes 740), capsule PASSE, porte mesurée
   0,82 × 2,29 m (la mesure va du montant à l'anneau ; l'ouverture réelle fait 1,15 m), ailes : bord le plus bas à
   3,11 m, aucun contact.
+- Tour 2 : posé 8, matières 8, formes 8, style 7, lisibilité 8, passage 8, coût 8 → À REFAIRE (style, au pied).
+  Sacs lus comme des pots ou des cailloux, tonnelet en étoile (douelles écartées : `tonneau` à 8 douelles et petit
+  rayon), fleurs invisibles.
+  Corrigé : sacs refaits en cylindres renflés plus hauts que larges, col plissé, ficelle et houppe, toile crème-ocre
+  plus claire ; tas de deux sacs couchés, un troisième dessus, un debout noué, un debout ouvert ; tonnelet : le tonneau
+  du village réduit restait en étoile (avec `poutre`, chaque douelle prend sa propre orientation au lieu d'être tangente :
+  à surveiller aussi sur `objets/tonneau.py`), d'où `objets/tonnelet.py` (fût bombé lisse, 2 cerclages, fond, joints) ; trois massifs fleuris (rose, blanc, rouge, 12 fleurs) de chaque côté de la porte et au pied
+  du mur ; mesure de largeur de la porte à 0,6 et 1,4 m dans le rapport. Pour le budget : 12 corbeaux au lieu de 16,
+  7 barreaux par aile, bardeaux plus larges, la fenêtre la plus haute retirée, moins de touffes.
+- Tour 3 à inspecter : `qc/moulin3/`, 9 288 triangles (M 8 536 + vitres 60 + ailes 692), capsule PASSE, porte 1,15 m
+  entre les montants (à 0,6 et 1,4 m), ailes : bord le plus bas à 3,11 m, aucun contact.
 - Maison de pierre : PASSE au tour 2 (tout à 8, passage 9). Suggestions non faites : pierres d'encadrement autour des
   fenêtres latérales, épi plus épais, pied du mur moins régulier.
 
