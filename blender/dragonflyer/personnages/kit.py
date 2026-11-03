@@ -177,8 +177,10 @@ class Tete:
         d = nrm(d); e1, e2 = repere(d, EZ if abs(d[2]) < .95 else A([1., 0, 0])); h = 1e-3
         a = s.r(d + e1 * h) - s.r(d - e1 * h); b = s.r(d + e2 * h) - s.r(d - e2 * h)
         n = nrm(np.cross(a, b)); return n if n @ d > 0 else -n
-    def crane(s, M, n=14):
-        """Peau de la tête : sphère « cube » (carreaux réguliers, pas de pôles serrés), rose des joues."""
+    def crane(s, M, n=12, cheveux=1.06):
+        """Peau de la tête : sphère « cube » (carreaux réguliers, pas de pôles serrés), rose des joues. Au-dessus de la
+        ligne des cheveux, la même peau devient la calotte (gonflée de 6 %, couleur des cheveux) : un seul volume plein,
+        sans bord ni trou, qui reste fermé quelle que soit l'inclinaison de la tête."""
         V, F = [], []; idx = {}
         def sommet(key, d):
             if key not in idx: idx[key] = len(V); V.append(s.surf(d))
@@ -201,6 +203,11 @@ class Tete:
         C = MAT.teinte("peau", V)
         w = MAT.joues(V, [s.surf(A([.5, -.8, -.3])), s.surf(A([-.5, -.8, -.3]))], s.R * .2)[:, None]
         C = C * (1 - w) + MAT.COUL["joues"][None, :] * w
+        if cheveux:
+            ch = MAT.teinte("cheveux", V, np.full(len(V), .4), 2)
+            for i, p in enumerate(V):
+                d = nrm(p - s.c); h = float(lisse(ligne_cheveux(d) - .07, ligne_cheveux(d) + .01, d[2]))
+                if h > 0: V[i] = s.c + s.r(d) * (1 + (cheveux - 1) * h); C[i] = C[i] * (1 - h) + ch[i] * h
         M.ajouter(V, F, C, "Head", "crane")
     # -------- décalques
     def plan(s, d0):
@@ -284,10 +291,8 @@ def visage(T, M):
     T.trait(M, d, [(-.026 * k, .006), (0, .004), (.026 * k, .006)], [.002, .003, .002], .0024, C["levres"] * .6)
     for sx in (1, -1):   # oreilles
         dd = A([sx, .05, -.06]); p, n = T.surf(dd), T.normale(dd)
-        V, F = ellipsoide(p - n * .01, .022, .036, .05, 12, 8)
+        V, F = ellipsoide(p - n * .008, .02, .032, .045, 8, 5)
         M.ajouter(V, F, MAT.teinte("peau", V), "Head", "oreilles")
-        V, F = ellipsoide(p + n * .006 + A([0, -.004, 0]), .008, .02, .03, 10, 6)
-        M.ajouter(V, F, MAT.COUL["peau_ombre"], "Head", "oreilles")
 
 # ---------------------------------------------------------------- cheveux
 def ligne_cheveux(d):
@@ -299,17 +304,8 @@ def cheveux(T, M, graine=3, epais=1.07):
     """Calotte épaisse + grosses mèches stylisées en pétales (racine foncée, pointes cuivrées) + petite tresse."""
     R = T.R; rng = np.random.default_rng(graine)
     def coquille(d, k=epais): d = nrm(d); return T.c + T.r(d) * k
-    # calotte : grille (angle autour, hauteur) jusqu'à la ligne des cheveux
-    def f(u, v):
-        ph = -math.pi + 2 * math.pi * u; dd = A([math.sin(ph), -math.cos(ph), 0])
-        zmin = ligne_cheveux(dd); th = math.acos(np.clip(zmin, -1, 1)) * v
-        d = A([math.sin(th) * math.sin(ph), -math.sin(th) * math.cos(ph), math.cos(th)])
-        return coquille(d), nrm(T.r(d))
-    V, F = coque(f, 40, 12, .025 * R / .19, ferme_u=True)
-    t = A([.15 + .25 * (np.linalg.norm(p - T.c) < R * 1.03) for p in V])
-    M.ajouter(V, F, MAT.teinte("cheveux", V, t * 0 + .38, graine), "Head", "calotte")
     # mèches : (racine, direction de départ, longueur, largeur, retombée, relève de la pointe)
-    def meche(racine, dirc, L, w, chute=.6, releve=.0, n=9, ep=.42, g=0):
+    def meche(racine, dirc, L, w, chute=.6, releve=.0, n=7, ep=.45, g=0):
         d = nrm(racine); p = coquille(d, epais * .99); dirc = nrm(dirc); pts = [p]; normales = []
         for k in range(1, n):
             t = k / (n - 1); nn = nrm(p - T.c)
@@ -319,16 +315,18 @@ def cheveux(T, M, graine=3, epais=1.07):
             if np.linalg.norm(p - T.c) < rmin: p = T.c + dd * rmin
             p = p + nrm(p - T.c) * releve * .02 * t ** 3
             pts.append(p)
-        refs = [nrm(q - T.c) for q in pts]
         larg = [w * (1 - (k / (n - 1)) ** 1.6) ** .7 * (.8 + .2 * math.sin(math.pi * k / (n - 1))) for k in range(n)]
-        V, F, tt = tube(pts, larg, 8, refs=[np.cross(nrm(pts[min(k + 1, n - 1)] - pts[max(k - 1, 0)]), r_) for k, r_ in enumerate(refs)], aplat=ep)
+        # racine fermée et enfoncée dans la calotte (sinon on voit l'intérieur du tube : trou noir)
+        pts = [T.c + nrm(pts[0] - T.c) * np.linalg.norm(T.r(nrm(pts[0] - T.c))) * .985 - nrm(pts[1] - pts[0]) * w * .3] + pts; larg = [0] + larg
+        refs = [nrm(q - T.c) for q in pts]; n = len(pts)
+        V, F, tt = tube(pts, larg, 6, refs=[np.cross(nrm(pts[min(k + 1, n - 1)] - pts[max(k - 1, 0)]), r_) for k, r_ in enumerate(refs)], aplat=ep)
         M.ajouter(V, F, MAT.teinte("cheveux", V, tt, g), "Head", "meches")
     k = R / .19
     # dessus et arrière : rayonnent depuis l'épi (en haut, un peu en arrière)
     for i in range(16):
         ph = -math.pi + 2 * math.pi * (i + .5) / 16 + rng.uniform(-.1, .1)   # 0 devant
         if abs(ph) < .9: continue                                             # devant : la frange s'en charge
-        el = .78 + rng.uniform(-.05, .05)
+        el = .86 + rng.uniform(-.04, .04)
         d = A([math.sin(ph) * math.cos(el), -math.cos(ph) * math.cos(el) + .15, math.sin(el)])
         out = A([math.sin(ph), -math.cos(ph), 0])
         L = (.2 + .05 * rng.random()) * k * (1.15 if abs(ph) > 2.2 else 1)
@@ -352,7 +350,7 @@ def cheveux(T, M, graine=3, epais=1.07):
     # petite tresse derrière l'oreille gauche, nouée de cuir, avec un petit pinceau au bout
     d0 = nrm(A([.82, .38, -.12])); p0 = coquille(d0, epais); pas = A([.006, .012, -.028]) * k
     for j in range(6):
-        V, F = ellipsoide(p0 + pas * j, .017 * k, .017 * k, .019 * k, 10, 7)
+        V, F = ellipsoide(p0 + pas * j, .017 * k, .017 * k, .019 * k, 8, 5)
         M.ajouter(V, F, MAT.teinte("cheveux", V, A([.4 + .08 * j] * len(V)), 70 + j), "Head", "tresse")
     c = p0 + pas * 5.9
     V, F = ellipsoide(c, .014 * k, .014 * k, .011 * k, 10, 6); M.ajouter(V, F, MAT.teinte("cuir_fonce", V), "Head", "tresse")
@@ -381,17 +379,17 @@ def main(M, poignet, bout, sx, os_="Hand", repli=.55, taille=1.0):
     n = nrm(A([-sx, 0, 0]) - f * (A([-sx, 0, 0]) @ f))           # paume vers le corps
     th = nrm(-sx * np.cross(f, n))                                # côté du pouce (devant)
     C = MAT.COUL; peau = lambda V: MAT.teinte("peau", V); debut = len(M.V)
-    V, F = superquadrique(W + f * .045 - n * .004, (th * .043, n * .024, f * .046), 14, 10, .8)
+    V, F = superquadrique(W + f * .045 - n * .004, (th * .043, n * .024, f * .046), 10, 7, .8)
     M.ajouter(V, F, peau(V), os_, "mains")
     for i, o in enumerate((-.027, -.009, .009, .027)):
         b = W + f * .082 + th * o - n * .002; ln = (.03, .036, .034, .028)[i]
         d1 = nrm(f * math.cos(repli * .6) + n * math.sin(repli * .6)); d2 = nrm(f * math.cos(repli * 1.6) + n * math.sin(repli * 1.6))
         j1 = b + d1 * ln * .55; j2 = j1 + d2 * ln * .55
-        V, F, _ = tube([b - f * .008, b, j1, j2, j2 + d2 * .012, j2 + d2 * .0125], [.0122, .0125, .0118, .0108, .007, 0], 8)
+        V, F, _ = tube([b - f * .008, j1, j2, j2 + d2 * .011, j2 + d2 * .0125], [.0122, .0118, .0108, .007, 0], 6)
         M.ajouter(V, F, peau(V), os_, "mains")
     tb = W + f * .03 + th * .036 + n * .008
     dt = nrm(f * .55 + th * .6 + n * .55); j = tb + dt * .03; dt2 = nrm(dt + n * .6)
-    V, F, _ = tube([tb - dt * .01, tb, j, j + dt2 * .02, j + dt2 * .028, j + dt2 * .029], [.014, .0145, .013, .011, .006, 0], 8)
+    V, F, _ = tube([tb - dt * .01, j, j + dt2 * .02, j + dt2 * .028, j + dt2 * .029], [.014, .013, .011, .006, 0], 6)
     M.ajouter(V, F, peau(V), os_, "mains")
 
 def bague(centre, axe, r, epais, haut, nu=20, nv=6, bosses=0.0, graine=0):

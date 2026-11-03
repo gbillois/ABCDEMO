@@ -109,7 +109,7 @@ POSES = [
     ("épaules : bras levés 150° (côté)", F34, [("UpperArm.L", "Y", -126), ("UpperArm.R", "Y", 126)]),
     ("épaules : bras en avant 90° / en arrière 45°", PROFIL, [("UpperArm.L", "X", -90), ("UpperArm.R", "X", 45)]),
     ("épaules : bras à l'horizontale (T)", F34, [("UpperArm.L", "Y", -66), ("UpperArm.R", "Y", 66)]),
-    ("épaules : bras croisés devant", F34, [("UpperArm.L", "X", -75), ("UpperArm.L", "Z", -40), ("UpperArm.R", "X", -70), ("UpperArm.R", "Z", 40)]),
+    ("épaules : bras ramenés devant (mains qui se rejoignent)", F34, [("UpperArm.L", "X", -60), ("UpperArm.L", "Z", -22), ("LowerArm.L", "X", -35), ("UpperArm.R", "X", -55), ("UpperArm.R", "Z", 22), ("LowerArm.R", "X", -35)]),
     ("coudes : pliés 140° / 90°", F34, [("LowerArm.L", "X", -140), ("UpperArm.R", "X", -30), ("LowerArm.R", "X", -90)]),
     ("poignets : pliés 70° / relevés 60°, avant-bras tourné 80°", F34, [("LowerArm.L", "X", -60), ("Hand.L", "Y", 70), ("LowerArm.R", "X", -60), ("LowerArm.R", (.1, -.3, -.95), 80), ("Hand.R", "Y", 60)]),
     ("colonne : penché en avant 45°", PROFIL, [("Spine", "X", 22), ("Chest", "X", 23)]),
@@ -152,18 +152,55 @@ if "c" in QUOI and ANIM:
     ORDRE = [n for n in ("repos", "marche", "trot", "course", "saut_debut", "saut_air", "saut_fin", "epee", "parle", "prendre") if n in acts]
     scene.render.resolution_x = scene.render.resolution_y = 320; scene.cycles.samples = 16
     rig.animation_data_create(); fps = scene.render.fps
+    # épée dans la main droite pour le clip « epee » : garde au bout du poing, lame dans le prolongement épaule → main
+    # (un peu relevée), comme dans le jeu ; poignée au creux de la main (voir PASSATION : réglage du jeu à suivre)
+    def piece(nom, verts, faces, coul):
+        me = bpy.data.meshes.new(nom); me.from_pydata(verts, [], faces); me.update()
+        m = bpy.data.materials.new(nom); m.use_nodes = True; m.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = coul
+        m.node_tree.nodes["Principled BSDF"].inputs["Metallic"].default_value = .6 if "lame" in nom else 0
+        me.materials.append(m); o = bpy.data.objects.new(nom, me); scene.collection.objects.link(o); return o
+    def boite(y0, y1, lx, lz, pointe=False):
+        V = [(sx * lx, y, sz * lz) for y in (y0, y1) for sx in (-1, 1) for sz in (-1, 1)]
+        if pointe: V[4:] = [(0, y1, 0)] * 4
+        return V, [(0, 1, 3, 2), (4, 6, 7, 5), (0, 4, 5, 1), (2, 3, 7, 6), (0, 2, 6, 4), (1, 5, 7, 3)]
+    epee = bpy.data.objects.new("Epee", None); scene.collection.objects.link(epee)
+    for nom, (V, F), c in (("lame", boite(.0, .62, .03, .009), (.85, .84, .82, 1)), ("lame_pointe", boite(.62, .7, .03, .009, True), (.85, .84, .82, 1)),
+                           ("garde", boite(-.02, .02, .11, .022), (.8, .55, .18, 1)), ("poignee", boite(-.17, -.02, .016, .016), (.25, .14, .07, 1)),
+                           ("pommeau", boite(-.2, -.17, .028, .028), (.8, .55, .18, 1))):
+        o = piece(nom, V, [list(f) for f in F], c); o.parent = epee
+    epee.hide_render = True
+    def placer_epee():
+        bpy.context.view_layer.update()
+        mw = rig.matrix_world; S_ = mw @ rig.pose.bones["UpperArm.R"].head; W_ = mw @ rig.pose.bones["Hand.R"].head; T_ = mw @ rig.pose.bones["Hand.R"].tail
+        d = (W_ - S_).normalized(); d.z += .35; d.normalize()
+        paume = W_ + (T_ - W_) * .55
+        epee.matrix_world = Matrix.Translation(paume + d * .1) @ d.to_track_quat("Y", "Z").to_matrix().to_4x4()
+    # repères au sol : un disque sous chaque pied posé (rouge = gauche, bleu = droit), gardé pour les images suivantes ;
+    # un pied qui ne glisse pas reste sur son disque
+    def disque(pos, coul):
+        bpy.ops.mesh.primitive_cylinder_add(radius=.035, depth=.004, location=(pos.x, pos.y, .002)); o = bpy.context.active_object
+        m = bpy.data.materials.new("rep"); m.use_nodes = True; m.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = coul
+        o.data.materials.append(m); return o
+    N_IMG = 8
     for part, noms in ((1, ORDRE[:5]), (2, ORDRE[5:])):
       cases = []
       for nom in noms:
         act = acts[nom]; rig.animation_data.action = act; f0, f1 = act.frame_range; v = vit.get(nom, 0) if nom in ("marche", "trot", "course") else 0
-        n_img = 6
+        epee.hide_render = nom != "epee"
+        for o in epee.children: o.hide_render = epee.hide_render
+        reperes = []
         for vue in ("côté", "face"):
-            for i in range(n_img):
-                f = f0 + (f1 - f0) * i / n_img; scene.frame_set(int(f), subframe=f - int(f))
-                t = (f - f0) / fps; rig.location = (0, -v * t, 0)
-                y0 = -v * (f1 - f0) / fps / 2
-                if vue == "côté": viser((2.9, y0, .95), (0, y0, .7), 45)
-                else: viser((.35, y0 - 2.9, 1.0), (0, y0, .7), 45)
-                cases.append({"image": rendre(os.path.join(OUT, f"c_{nom}_{'cote' if vue == 'côté' else 'face'}_{i}.png")), "legende": f"{nom} {vue} {i + 1}/{n_img}"})
+            for i in range(N_IMG):
+                f = f0 + (f1 - f0) * i / N_IMG; scene.frame_set(int(f), subframe=f - int(f))
+                t = (f - f0) / fps; y = -v * t; rig.location = (0, y, 0); bpy.context.view_layer.update()
+                if nom == "epee": placer_epee()
+                if vue == "côté":
+                    for s_, coul in (("L", (.85, .15, .1, 1)), ("R", (.1, .3, .9, 1))):
+                        pb = rig.pose.bones[f"Foot.{s_}"]; hd, tl = rig.matrix_world @ pb.head, rig.matrix_world @ pb.tail
+                        if tl.z < .05 and hd.z < .115 and not any((r_.location.xy - (hd.xy + tl.xy) / 2).length < .03 for r_ in reperes): reperes.append(disque((hd + tl) / 2, coul))
+                    viser((2.9, y, .9), (0, y, .68), 45)            # la caméra suit le héros ; le sol et les repères défilent
+                else: viser((.35, y - 2.9, 1.0), (0, y, .7), 45)    # de face : toujours à la même distance
+                cases.append({"image": rendre(os.path.join(OUT, f"c_{nom}_{'cote' if vue == 'côté' else 'face'}_{i}.png")), "legende": f"{nom} {vue} {i + 1}/{N_IMG}"})
+        for r_ in reperes: bpy.data.objects.remove(r_)
         rig.location = (0, 0, 0)
-      planche(f"Planche C{part} : animations du jeu, une ligne de côté et une de face par clip (avance à la vitesse du clip ; carreaux de 20 cm)", cases, f"planche_c{part}", 6)
+      planche(f"Planche C{part} : animations, une ligne de côté et une de face par clip ; caméra qui suit le héros, sol en carreaux de 20 cm, disques = pieds posés (rouge gauche, bleu droit)", cases, f"planche_c{part}", N_IMG)

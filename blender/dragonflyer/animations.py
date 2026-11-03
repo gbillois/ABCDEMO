@@ -49,6 +49,19 @@ REF = {n: (HAUT if n.startswith("Foot") else AVANT) for n in BONES}
 HANCHES = "hips"
 SERRE = {"repos": .2, "parle": .15, "marche": .5, "trot": .55, "course": .5, "saut_debut": .3, "saut_air": .25, "saut_fin": .3, "epee": 0, "prendre": .2}   # radians
 ECH = .5 / .406   # hauteur des hanches : héros / source
+# Retouches calmes, clip par clip (degrés) : buste penché en avant (de plus en plus de la marche à la course),
+# respiration au repos, bras en l'air qui se balancent doucement, jambes repliées en l'air.
+RETOUCHE = {
+    "repos": dict(souffle=2.2),
+    "parle": dict(souffle=1.5),
+    "marche": dict(penche=2),
+    "trot": dict(penche=7),
+    "course": dict(penche=13),
+    "saut_debut": dict(penche=9),
+    "saut_air": dict(penche=8, serre=.55, oscille=.12, cuisse=-28, genou=48),
+    "saut_fin": dict(penche=10, genou=10, serre=.4),
+}
+HAUT_DU_CORPS = ["Spine", "Chest", "Head"] + [f"{p}.{s}" for s in "LR" for p in ("UpperArm", "LowerArm", "Hand")]
 
 def rot3(M): return M.to_3x3().normalized()
 def cadre(a, p):   # repère orthonormé : a (direction de l'os), p (axe « avant » rendu perpendiculaire)
@@ -72,7 +85,7 @@ for nom, act_nom in CLIPS:
     pieds = []
     for f in range(f0, f1 + 1):
         scene.frame_set(f)
-        Rw = {}
+        Rw = {}; RT = RETOUCHE.get(nom, {}); tc = 2 * math.pi * (f - f0) / max(1, f1 - f0)   # tc : un tour par clip (boucle)
         for n in ORDRE:
             pb = src.pose.bones[CORR[n]]; Mw = src.matrix_world @ pb.matrix
             Rs, ds = rot3(Mw), (src.matrix_world @ pb.tail - src.matrix_world @ pb.head).normalized()
@@ -84,7 +97,22 @@ for nom, act_nom in CLIPS:
             Rw[n] = (C1 @ C0.transposed()) @ Rt_rest[n]
             if "Arm" in n or n.startswith("Hand"):   # bras ramenés le long du corps (toute la chaîne tourne ensemble autour de l'axe avant)
                 sx = 1 if n.endswith("L") else -1
-                Rw[n] = Matrix.Rotation(sx * SERRE.get(nom, .3), 3, "Y") @ Rw[n]
+                serre = SERRE.get(nom, .3) + RT.get("serre", 0) + sx * RT.get("oscille", 0) * math.sin(tc)
+                Rw[n] = Matrix.Rotation(sx * serre, 3, "Y") @ Rw[n]
+        R_ = lambda deg: Matrix.Rotation(math.radians(deg), 3, "X")
+        if RT.get("penche"):          # tout le haut du corps penche en avant ; la tête se redresse à moitié (regard devant)
+            for n in HAUT_DU_CORPS: Rw[n] = R_(RT["penche"]) @ Rw[n]
+            Rw["Head"] = R_(-RT["penche"] * .5) @ Rw["Head"]
+        if RT.get("souffle"):         # respiration : la poitrine se soulève et revient (la tête reste stable)
+            k = RT["souffle"] * math.sin(tc)
+            for n in HAUT_DU_CORPS[1:]: Rw[n] = R_(-k) @ Rw[n]
+            Rw["Head"] = R_(k * .8) @ Rw["Head"]
+        for s_ in "LR":               # jambes repliées en l'air, genoux fléchis à la réception
+            if RT.get("cuisse"):
+                for n in (f"Thigh.{s_}", f"Shin.{s_}", f"Foot.{s_}"): Rw[n] = R_(RT["cuisse"]) @ Rw[n]
+            if RT.get("genou"):
+                for n in (f"Shin.{s_}", f"Foot.{s_}"): Rw[n] = R_(RT["genou"]) @ Rw[n]
+                Rw[f"Foot.{s_}"] = R_(-RT["genou"] * .6) @ Rw[f"Foot.{s_}"]
         for n in ORDRE:
             par = BONES[n][2]
             Rr = Rt_rest[n]; Rpr = Rt_rest[par] if par else Matrix.Identity(3); Rp = Rw[par] if par else Matrix.Identity(3)

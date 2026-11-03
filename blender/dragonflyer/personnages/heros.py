@@ -27,98 +27,102 @@ def tronc_point(a, z, off=0.0):
     return p + n * off, n
 
 def poids_jupe(p):
-    x, y, z = p; h = float(np.clip((.63 - z) / (.63 - .43), 0, 1)) ** 1.4
-    devant = .22 + .38 * lisse(.04, -.12, y); g = lisse(-.05, .05, x) * h * devant; d = (1 - lisse(-.05, .05, x)) * h * devant
-    w = {"Hips": 1 - g - d}
-    if g > 1e-3: w["Thigh.L"] = g
-    if d > 1e-3: w["Thigh.R"] = d
+    """Jupe : les hanches en haut ; vers l'ourlet, chaque côté suit sa cuisse (jusqu'à 85 % devant, 58 % sur le côté,
+    30 % derrière), partage gauche/droite progressif au milieu : la jupe s'ouvre avec les jambes sans rien de rigide."""
+    x, y, z = p; h = float(np.clip((.63 - z) / (.63 - .49), 0, 1)) ** 1.3
+    a = math.atan2(y, x); fr = .575 - .275 * math.sin(a); k = fr * h; g = lisse(-.06, .06, x)
+    w = {"Hips": 1 - k}
+    if k * g > 1e-3: w["Thigh.L"] = k * g
+    if k * (1 - g) > 1e-3: w["Thigh.R"] = k * (1 - g)
     return w
 
 def construire():
     M = K.Maillage(); C = MAT.COUL
     # ---- tronc (la tunique verte), cou
     chemin = [A([0, s[3], s[0]]) for s in TRONC]
-    V, F, _ = K.tube(chemin, [s[1] for s in TRONC], 28, ref=(1, 0, 0), aplat=[s[2] / s[1] if s[1] else 1 for s in TRONC], expo=EXPO)
+    V, F, _ = K.tube(chemin, [s[1] for s in TRONC], 24, ref=(1, 0, 0), aplat=[s[2] / s[1] if s[1] else 1 for s in TRONC], expo=EXPO)
     M.ajouter(V, F, MAT.teinte("tunique", V), [K.poids_tronc(v[2]) for v in V], "tronc")
-    V, F, _ = K.tube([A([0, .01, .95]), A([0, .0, 1.04]), A([0, -.01, 1.12])], [.066, .064, .06], 16)
+    V, F, _ = K.tube([A([0, .01, .95]), A([0, .0, 1.04]), A([0, -.01, 1.12])], [.066, .064, .06], 12)
     M.ajouter(V, F, MAT.teinte("peau", V), [K.poids_tronc(v[2]) for v in V], "cou")
-    # ---- gilet de cuir ouvert devant (en V), épais, bordé de fourrure
+    # ---- gilet de cuir ouvert devant (en V), épais
     beta = lambda z: .34 + .4 * lisse(.62, .99, z)
     def gilet(u, v):
         z = .6 + .39 * v; b = beta(z); a = -math.pi / 2 + b + u * (2 * math.pi - 2 * b)
         return tronc_point(a, z, .016 if z < .97 else .016 - (z - .97) * .3)
-    V, F = K.coque(gilet, 36, 10, .009)
+    V, F = K.coque(gilet, 28, 8, .009)
     M.ajouter(V, F, MAT.teinte("cuir", V), [K.poids_tronc(v[2]) for v in V], "gilet")
-    for sx in (1, -1):   # revers de fourrure le long de l'ouverture, qui rejoignent le col
-        pts = []
-        for z in np.linspace(.62, .985, 10):
-            b = beta(z); p, n = tronc_point(-math.pi / 2 + (b if sx > 0 else -b), z, .03); pts.append(p)
-        K.boudin_fourrure(M, pts, .024, lambda v: K.poids_tronc(v[2]), .28, 20 + sx)
+    # ---- bord de fourrure du gilet : large au col (châle), fin vers le bas, bord intérieur irrégulier
+    for sx in (1, -1):
+        def revers(u, v, sx=sx):
+            z = .74 + .25 * v; b = beta(z); a0 = -math.pi / 2 + (b if sx > 0 else -b)
+            larg = (.016 + .085 * lisse(.74, .99, z) ** 1.5) * (1 + .2 * math.sin(z * 71 + sx * 1.3) + .1 * math.sin(z * 157 + sx))
+            rx, ry, _ = tronc_rayons(z); r = (rx + ry) / 2
+            bord = .012 * (1 + .6 * math.sin(z * 93 + 2 * sx))                                 # dépasse dans l'ouverture, en vagues
+            a = a0 + sx * (u * (larg + bord) - bord) / r
+            bombe = math.sin(math.pi * min(1, max(0, .08 + .84 * u))) ** .6
+            return tronc_point(a, z, .018 + .02 * bombe * (1 + .25 * math.sin(z * 120 + u * 7)))
+        V, F = K.coque(revers, 4, 12, .012)
+        M.ajouter(V, F, MAT.teinte("fourrure", V, .45 + .35 * MAT.bruit(V, 70), 20 + sx), [K.poids_tronc(v[2]) for v in V], "fourrure")
     # ---- col de fourrure : deux rangs bosselés, le second plus large et plus bas, qui retombe sur les épaules
-    V, F, T = K.anneau(A([0, .01, 1.005]), .108, .094, .04, .036, 40, 9, bosses=.18, graine=4)
+    V, F, T = K.anneau(A([0, .01, 1.005]), .108, .094, .04, .036, 30, 6, bosses=.18, graine=4)
     M.ajouter(V, F, MAT.teinte("fourrure", V, .35 + .6 * T, 4), "Chest", "fourrure")
-    V, F, T = K.anneau(A([0, .015, .975]), .15, .125, .036, .03, 44, 8, bosses=.24, graine=5)
+    V, F, T = K.anneau(A([0, .015, .975]), .15, .125, .036, .03, 34, 6, bosses=.24, graine=5)
     M.ajouter(V, F, MAT.teinte("fourrure", V, .25 + .6 * T, 5), "Chest", "fourrure")
-    # ---- jupe de la tunique (épaisse), galon doré
+    # ---- jupe de la tunique, épaisse, d'une seule pièce ; poids progressifs vers les cuisses (voir poids_jupe)
     def jupe(u, v):
-        z = .67 - .23 * v; a = -math.pi + 2 * math.pi * u
-        rx, ry, cy = tronc_rayons(min(z, .66)); k = lisse(.67, .43, z)
-        rx, ry = rx + .012 + .075 * k ** 1.2, ry + .012 + .05 * k ** 1.2
-        vague = 1 + .035 * k * math.sin(6 * a + .5)
-        p = A([rx * vague * math.cos(a), cy + ry * vague * math.sin(a), z]); n = nrm(A([math.cos(a) / rx, math.sin(a) / ry, .25 * k]))
-        return p, n
-    V, F = K.coque(jupe, 40, 8, .008, ferme_u=True)
-    M.ajouter(V, F, MAT.teinte("tunique", V) * A([1, 1, 1]), [poids_jupe(v) for v in V], "jupe")
-    def galon(u, v):
-        p, n = jupe(u, .95 + .05 * v); return p + n * .004, n
-    V, F = K.coque(galon, 40, 2, .014, ferme_u=True)
-    M.ajouter(V, F, MAT.teinte("galon", V), [poids_jupe(v) for v in V], "jupe")
+        z = .67 - .18 * v; a = -math.pi + 2 * math.pi * u
+        rx, ry, cy = tronc_rayons(min(z, .66)); k = lisse(.67, .49, z)
+        rx, ry = rx + .012 + .055 * k ** 1.2, ry + .012 + .035 * k ** 1.2
+        vague = 1 + .03 * k * math.sin(6 * a + .5)
+        return A([rx * vague * math.cos(a), cy + ry * vague * math.sin(a), z]), nrm(A([math.cos(a) / rx, math.sin(a) / ry, .25 * k]))
+    V, F = K.coque(jupe, 32, 6, .008, ferme_u=True)
+    M.ajouter(V, F, MAT.teinte("tunique", V), [poids_jupe(v) for v in V], "jupe")
+    V, F = K.coque(lambda u, v: (lambda p, n: (p + n * .003, n))(*jupe(u, .93 + .07 * v)), 32, 1, .012, ferme_u=True)   # ourlet roulé, même tissu
+    M.ajouter(V, F, MAT.teinte("tunique_fonce", V), [poids_jupe(v) for v in V], "jupe")
     # ---- ceinture, boucle, bourse
     rx, ry, cy = tronc_rayons(.655)
-    V, F, _ = K.anneau(A([0, cy, .655]), rx + .02, ry + .02, .012, .024, 36, 6)
+    V, F, _ = K.anneau(A([0, cy, .655]), rx + .02, ry + .02, .012, .024, 30, 4)
     M.ajouter(V, F, MAT.teinte("cuir_fonce", V), "Hips", "ceinture")
-    V, F = K.ellipsoide(A([0, cy - ry - .036, .655]), .03, .009, .027, 12, 6, e=.6)
+    V, F = K.ellipsoide(A([0, cy - ry - .036, .655]), .03, .009, .027, 10, 5, e=.6)
     M.ajouter(V, F, MAT.teinte("laiton", V), "Hips", "ceinture")
-    V, F = K.ellipsoide(A([0, cy - ry - .042, .655]), .016, .006, .014, 10, 6, e=.6)
+    V, F = K.ellipsoide(A([0, cy - ry - .042, .655]), .016, .006, .014, 8, 4, e=.6)
     M.ajouter(V, F, MAT.teinte("cuir_fonce", V), "Hips", "ceinture")
     bx, by = .165, -.07
-    V, F = K.ellipsoide(A([bx, by, .6]), .042, .03, .05, 12, 8, e=.8); M.ajouter(V, F, MAT.teinte("cuir", V), "Hips", "bourse")
-    V, F = K.ellipsoide(A([bx + .004, by - .012, .635]), .044, .024, .02, 12, 6, e=.8); M.ajouter(V, F, MAT.teinte("cuir_fonce", V), "Hips", "bourse")
-    V, F = K.ellipsoide(A([bx + .006, by - .036, .625]), .008, .004, .008, 8, 4); M.ajouter(V, F, MAT.teinte("laiton", V), "Hips", "bourse")
+    V, F = K.ellipsoide(A([bx, by, .6]), .042, .03, .05, 10, 6, e=.8); M.ajouter(V, F, MAT.teinte("cuir", V), "Hips", "bourse")
+    V, F = K.ellipsoide(A([bx + .004, by - .012, .635]), .044, .024, .02, 10, 5, e=.8); M.ajouter(V, F, MAT.teinte("cuir_fonce", V), "Hips", "bourse")
     # ---- bassin (pantalon sous la jupe)
-    V, F = K.ellipsoide(A([0, 0, .515]), .17, .118, .075, 18, 9); M.ajouter(V, F, MAT.teinte("pantalon", V), "Hips", "jambes")
-    # ---- jambes et bottes
+    V, F = K.ellipsoide(A([0, 0, .515]), .17, .118, .075, 14, 7); M.ajouter(V, F, MAT.teinte("pantalon", V), "Hips", "jambes")
+    # ---- jambes et bottes (la cheville est la demi-sphère du bas de la tige : une seule rotule)
     for s, sx in (("L", 1), ("R", -1)):
         H, Kn, Ak, To = (A(BONES[f"Thigh.{s}"][0]), A(BONES[f"Shin.{s}"][0]), A(BONES[f"Foot.{s}"][0]), A(BONES[f"Foot.{s}"][1]))
-        V, F, _ = K.capsule(H, Kn, .08, .068, 16, 4, 4); M.ajouter(V, F, MAT.teinte("pantalon", V), f"Thigh.{s}", "jambes")
-        V, F, _ = K.capsule(Kn, Ak + A([0, 0, .1]), .066, .058, 16, 3, 4); M.ajouter(V, F, MAT.teinte("pantalon", V), f"Shin.{s}", "jambes")
+        V, F, _ = K.capsule(H, Kn, .084, .072, 12, 3, 3); M.ajouter(V, F, MAT.teinte("pantalon", V), f"Thigh.{s}", "jambes")
+        V, F, _ = K.capsule(Kn, Ak + A([0, 0, .1]), .07, .064, 12, 2, 3); M.ajouter(V, F, MAT.teinte("pantalon", V), f"Shin.{s}", "jambes")
         haut = A([Ak[0], -.008, .25])
-        V, F, _ = K.capsule(Ak, haut, .07, .076, 16, 3, 4); M.ajouter(V, F, MAT.teinte("botte", V), f"Shin.{s}", "bottes")
-        V, F, T = K.anneau(haut + A([0, 0, -.004]), .08, .08, .022, .028, 28, 7, bosses=.28, graine=10 + sx)
+        V, F, _ = K.capsule(Ak, haut, .072, .078, 12, 2, 3); M.ajouter(V, F, MAT.teinte("botte", V), f"Shin.{s}", "bottes")
+        V, F, T = K.anneau(haut + A([0, 0, -.004]), .082, .082, .022, .028, 20, 5, bosses=.28, graine=10 + sx)
         M.ajouter(V, F, MAT.teinte("fourrure", V, T, 11), f"Shin.{s}", "bottes")
-        V, F = K.ellipsoide(Ak, .07, .07, .07, 16, 9); M.ajouter(V, F, MAT.teinte("botte", V), f"Foot.{s}", "bottes")
-        V, F = K.superquadrique(A([Ak[0], -.05, .06]), (A([.07, 0, 0]), A([0, .128, 0]), A([0, 0, .058])), 18, 10, .75)
-        V = [v + A([0, 0, .14 * max(0, -.1 - v[1]) ** 1.3 * 3]) for v in V]   # bout un peu relevé
-        M.ajouter(V, F, MAT.teinte("botte", V), f"Foot.{s}", "bottes")
-        V, F = K.superquadrique(A([Ak[0], -.05, .017]), (A([.074, 0, 0]), A([0, .132, 0]), A([0, 0, .017])), 18, 6, .45)
-        V = [v + A([0, 0, .14 * max(0, -.1 - v[1]) ** 1.3 * 3]) for v in V]
-        M.ajouter(V, F, MAT.teinte("semelle", V), f"Foot.{s}", "bottes")
-        # lanière croisée sur le cou-de-pied
-        V, F, _ = K.bague(A([Ak[0], -.065, .085]), A([0, .45, 1]), .062, .007, .009, 20, 4)
+        releve = lambda V: [v + A([0, 0, .14 * max(0, -.1 - v[1]) ** 1.3 * 3]) for v in V]   # bout un peu relevé
+        V, F = K.superquadrique(A([Ak[0], -.05, .06]), (A([.07, 0, 0]), A([0, .128, 0]), A([0, 0, .058])), 12, 7, .75)
+        V = releve(V); M.ajouter(V, F, MAT.teinte("botte", V), f"Foot.{s}", "bottes")
+        V, F = K.superquadrique(A([Ak[0], -.05, .017]), (A([.074, 0, 0]), A([0, .132, 0]), A([0, 0, .017])), 12, 4, .45)
+        V = releve(V); M.ajouter(V, F, MAT.teinte("semelle", V), f"Foot.{s}", "bottes")
+        V, F, _ = K.bague(A([Ak[0], -.065, .085]), A([0, .45, 1]), .062, .007, .009, 12, 3)   # lanière sur le cou-de-pied
         M.ajouter(V, F, MAT.teinte("cuir_fonce", V), f"Foot.{s}", "bottes")
-    # ---- bras, brassards, mains
+    # ---- bras, aisselles, brassards, mains
     for s, sx in (("L", 1), ("R", -1)):
         S, E, Wr, Ht = (A(BONES[f"UpperArm.{s}"][0]), A(BONES[f"LowerArm.{s}"][0]), A(BONES[f"Hand.{s}"][0]), A(BONES[f"Hand.{s}"][1]))
-        V, F, _ = K.capsule(S, E, .068, .058, 16, 4, 4); M.ajouter(V, F, MAT.teinte("tunique", V), f"UpperArm.{s}", "bras")
-        c = E + (S - E) * .2
-        V, F, T = K.bague(c, S - E, .061, .012, .02, 22, 6); M.ajouter(V, F, MAT.teinte("tunique_fonce", V), f"UpperArm.{s}", "bras")
-        V, F, _ = K.capsule(E, Wr, .054, .046, 14, 4, 4); M.ajouter(V, F, MAT.teinte("peau", V), f"LowerArm.{s}", "bras")
+        V, F, _ = K.capsule(S, E, .07, .06, 12, 3, 3); M.ajouter(V, F, MAT.teinte("tunique", V), f"UpperArm.{s}", "bras")
+        # aisselle : un coussin de tissu partagé entre la poitrine et le bras, qui garde le volume bras levé
+        V, F = K.ellipsoide(A([sx * .215, .0, .875]), .045, .07, .06, 10, 6)
+        M.ajouter(V, F, MAT.teinte("tunique", V), {"Chest": .5, f"UpperArm.{s}": .5}, "bras")
+        V, F, T = K.bague(E + (S - E) * .2, S - E, .063, .012, .02, 14, 4); M.ajouter(V, F, MAT.teinte("tunique_fonce", V), f"UpperArm.{s}", "bras")
+        V, F, _ = K.capsule(E, Wr, .055, .047, 10, 3, 3); M.ajouter(V, F, MAT.teinte("peau", V), f"LowerArm.{s}", "bras")
         a, b = E + (Wr - E) * .42, Wr + (Wr - E) * .02
-        V, F, _ = K.capsule(a, b, .058, .053, 16, 3, 3); M.ajouter(V, F, MAT.teinte("cuir", V), f"LowerArm.{s}", "brassards")
-        for u in (.55, .75, .93):
-            V, F, _ = K.bague(E + (Wr - E) * u, Wr - E, .058 - .005 * u, .006, .005, 18, 4)
+        V, F, _ = K.capsule(a, b, .059, .054, 12, 2, 2); M.ajouter(V, F, MAT.teinte("cuir", V), f"LowerArm.{s}", "brassards")
+        for u in (.6, .88):
+            V, F, _ = K.bague(E + (Wr - E) * u, Wr - E, .058 - .005 * u, .006, .005, 12, 3)
             M.ajouter(V, F, MAT.teinte("cuir_fonce", V), f"LowerArm.{s}", "brassards")
-        K.main(M, Wr, Ht, sx, f"Hand.{s}", taille=1.22)
+        K.main(M, Wr, Ht, sx, f"Hand.{s}", taille=1.3)
     # ---- tête
     T = K.Tete(A([0, -.02, 1.255]), .205)
     T.crane(M); K.visage(T, M); K.cheveux(T, M)
