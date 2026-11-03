@@ -191,8 +191,8 @@ class ToitChaume:
         for i in range(nx):
             for j in range(ny):
                 x = cx - X + 2 * X * i / (nx - 1); y = cy - Y + 2 * Y * j / (ny - 1); z = s.forme(x, y)[0]
-                v = bm.verts.new((x, y, z - .04)); v[col] = (*M("chaume_d").teintes[(i + j) % 3], 1); Vd[i][j] = v
-                w = bm.verts.new((cx + (x - cx) * .97, cy + (y - cy) * .97, z - s.ep)); w[col] = (*[min(1, c_ * 1.5) for c_ in M("chaume_d").teintes[(i * 2 + j) % 3]], 1); Vs[i][j] = w   # dessous brun chaud, en bandes (l'occlusion cuite l'assombrit)
+                v = bm.verts.new((x, y, z - .04)); v[col] = (*melange(M("chaume_f").teintes[1], M("chaume").teintes[0], .25), 1); Vd[i][j] = v   # entre les rangs : paille sombre (pas d'orange)
+                w = bm.verts.new((cx + (x - cx) * .97, cy + (y - cy) * .97, z - s.ep)); w[col] = (*[min(1, c_ * (1.75 if (i + j) % 2 else 1.25)) for c_ in melange(M("chaume_d").teintes[(i * 2 + j) % 3], M("chaume").teintes[0], .2)], 1); Vs[i][j] = w   # dessous brun chaud, en bandes (l'occlusion cuite l'assombrit)
         for i in range(nx - 1):
             for j in range(ny - 1):
                 quad(Vd[i][j], Vd[i + 1][j], Vd[i + 1][j + 1], Vd[i][j + 1]); quad(Vs[i][j], Vs[i][j + 1], Vs[i + 1][j + 1], Vs[i + 1][j])
@@ -258,7 +258,7 @@ class ToitChaume:
         for p in pts[1:-1:2]: P.cylindre(p - Vector((.035, 0, 0)), p + Vector((.035, 0, 0)), .22, .22, M("chene").sombre, n=6)
         return s
 
-def chevrons(P, toit, murs, z_mur, pas_=.95):
+def chevrons(P, toit, murs, z_mur, pas_=.55):
     """Chevrons de bois sous l'avant-toit : du haut du mur jusque sous le rebord, tous les 95 cm.
     murs : [(a, b)] segments des faces de murs (l'extérieur à droite de a→b)."""
     for (a, b) in murs:
