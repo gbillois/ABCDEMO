@@ -165,6 +165,26 @@ Les objets validés ne suffisent pas : il faut contrôler **comment ils sont pos
   village (terre battue, pavés, terre labourée) lue par le terrain et l'herbe ; murets de soutènement là où la terrasse
   entaille la pente ; potagers et champs clôturés ; trouées sans arbres dans l'axe des rues.
 
+### 7 bis. Vues aériennes (le jeu se joue aussi en vol)
+- Même principe, autre point de vue : **12 vues fixes par village prises dans le vrai jeu, le véhicule (ici le dragon)
+  placé en vol à l'endroit de la caméra**, pour que le jeu charge exactement ce qu'il chargerait (détails lointains,
+  imposteurs d'arbres, terrain) : arrivées depuis 4 côtés, plongée, très haut, rase-mottes, verticale, forêt, rivage,
+  la même vue au coucher du soleil, et le village à l'horizon de très loin.
+- Rapport : appels de dessin, triangles, temps de rendu par vue (à comparer entre deux tours, pas en absolu).
+- Inspecteur dédié (grille § 8) : lisibilité du village d'en haut, sol vu d'en haut (pas de rectangles plats, pas de
+  coutures), végétation (pas de clones, passage près/loin invisible), détails lointains (rien qui clignote ou apparaît
+  d'un coup), lumière et atmosphère, composition, coût.
+
+### 7 ter. Intérieurs
+- Objets du kit un par un, puis une pièce à la fois, avec le même contrat d'export que le jeu attend.
+- **12 caméras fixes dans la pièce** : depuis la porte à hauteur d'homme, les 4 coins vers le centre, à hauteur
+  d'enfant vers le foyer, vers la porte depuis le fond, 2 gros plans sur les coins meublés, la charpente, une vue en
+  coupe de dessus (plafond retiré), la lumière du soir (le feu seul).
+- **Carte d'accès de la capsule du joueur** (grille de 25 cm depuis la porte) : le foyer, chaque lit et chaque table
+  atteignables, aucun passage de moins de 0,9 m, rien dans les murs ni qui flotte.
+- Inspecteur dédié (grille § 8) : posé, circulation, matières et lumière, ameublement et vie, échelle humaine,
+  lisibilité de la coupe, coût.
+
 ---
 
 ## 8. Les grilles des inspecteurs (à donner telles quelles)
@@ -193,6 +213,20 @@ Les objets validés ne suffisent pas : il faut contrôler **comment ils sont pos
 > depuis la place, rien ne la bouche). 3. Organisation (place, rues, orientation, espacement). 4. Sol et chemins.
 > 5. Dénivelé (terrasses, murets, talus). 6. Abords (clôtures, jardins, herbes, accessoires bien posés). 7. Lisibilité
 > et charme. Même format de réponse.
+
+### Vues aériennes
+> Tu juges le paysage vu du ciel (maisons, arbres et implantation déjà validés de près). Critères : 1. Lisibilité du
+> village à chaque altitude. 2. Sol vu d'en haut (rues, champs, plages lisibles, pas de rectangles plats ni de
+> coutures ou motifs répétés). 3. Végétation (pas de rangées ni de clones, passage près/loin invisible, rien dans
+> l'eau ou les maisons). 4. Détails lointains (rien ne clignote, ne disparaît par blocs ni n'apparaît d'un coup).
+> 5. Lumière et atmosphère (y compris le soir). 6. Composition et charme. 7. Coût (appels de dessin, triangles).
+> Même format de réponse.
+
+### Intérieur
+> Tu juges une pièce intérieure. Critères : 1. Posé (rien ne flotte, ne traverse un mur ni un autre meuble).
+> 2. Accès et circulation (carte de la capsule : foyer, lits, tables atteignables, passages de 0,9 m). 3. Matières et
+> lumière (feu chaud, pas de coin noir illisible). 4. Ameublement et vie (la pièce raconte qui y vit). 5. Échelle
+> humaine (portes, tables, lits, bancs à la bonne taille). 6. Lisibilité de la vue en coupe. 7. Coût. Même format.
 
 ---
 

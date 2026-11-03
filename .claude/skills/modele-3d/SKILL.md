@@ -44,3 +44,17 @@ Lire `blender/dragonflyer/village/PASSATION.md` : où on en est, notes des tours
 Même marche à suivre (CONCEPTION.md § 7 bis, « Personnages ») : fichiers dans `blender/dragonflyer/personnages/`,
 squelette commun `squelette.py` (noms d'os inchangés : le jeu et `animations.glb` en dépendent). L'inspecteur reçoit
 trois planches : 12 vues au repos, postures et articulations aux limites, animations en images fixes (côté et face).
+
+## Intérieurs
+Même marche à suivre : objets du kit un par un (`village/objets/`), puis une pièce à la fois (`village/interieurs/<nom>.py`),
+contrat du jeu inchangé (objets I_<nom> et IL_<nom>, propriétés « taille » et « porte »). Banc `apercu_interieur` :
+12 caméras fixes DANS la pièce (porte à hauteur d'homme, 4 coins, hauteur d'enfant vers le foyer, vers la porte, 2 gros
+plans, charpente, vue en coupe de dessus, lumière du soir), carte d'accès de la capsule (grille de 25 cm depuis la porte :
+foyer, lits, tables atteignables, passages de 0,9 m au moins). Grille : `inspecteur_interieur.md`.
+
+## Vues aériennes
+Le joueur vole : chaque village se contrôle aussi vu du ciel, dans le vrai jeu, avec
+`blender/dragonflyer/village/vues_aeriennes.js` (12 vues fixes, le dragon en vol à l'endroit de la caméra pour que le jeu
+charge ce qu'il chargerait vraiment : arrivées depuis 4 côtés, plongée, très haut, rase-mottes, verticale, forêt,
+rivage, soir, horizon ; rapport des appels de dessin et triangles). Grille : `inspecteur_aerien.md`. À refaire après
+tout changement des arbres, du terrain, des villages ou des détails lointains.
