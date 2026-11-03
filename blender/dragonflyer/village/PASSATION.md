@@ -108,6 +108,27 @@ l'ancien `../maisons.py` (le jeu les lit) : longère (7,4 × 14,6), (0, -7.6, 1.
   de 25 cm : le point « porte » est sur le palier (sol au seuil 1,00 m). Banc de test commun (`apercu.py`) : la largeur de
   porte est mesurée à 0,6 m et à 1,4 m au-dessus du plancher, on garde la plus grande (une poignée ne la réduit plus).
   29 300 triangles, capsule passe, porte 1,20 × 2,06 m. Rendus : `scratchpad/qc/longere2/`.
+- Longère, tour 2 : posé 8, matières 8, formes 8, style 8, lisibilité 8, passage 9, coût 8 → PASSE.
+  Après : fumée en géométrie retirée (en boules figées elle se lit comme des blocs ; le jeu la fera s'il le faut ; la pièce
+  `fumee` reste au kit mais n'est plus utilisée), chaume un peu plus vieilli en bas (vieilli 0,7).
+  **Pied changé** : 9,2 × 14,6 m (avant 7,4 × 14,6) pour couvrir les objets des longs côtés (posés à ±4,25 à ±4,32 m) :
+  à reporter dans la table MAISONS de `../maisons.py` à la fusion. Point « porte » (0, -7.6, 1.0) et intérieur « halle » inchangés.
+  Contrôle final : `scratchpad/qc/longere3/`. À intégrer au jeu à la fusion (pas fait ici).
+
+## Forge (`maisons/forge.py`)
+- Objets : `objets/enclume.py`, `soufflet.py`, `etabli.py` (et `fer_a_cheval`), `ratelier.py`, `baquet.py`, `enseigne.py`.
+- Premier jet : plateforme de pierre à 0,5 m (dalles, 2 marches de 25 cm), façade ouverte entre quatre poteaux sur dés,
+  grosse poutre et aisseliers, entraits et poinçons, toit de tuiles (`ToitTuiles`), mur du fond en pierre avec le foyer de
+  forge (braises dans W_), hotte sur manteau de bois et cheminée, murets de pierre et planches sur les côtés, fenêtre à
+  droite, enseigne pendue sous la poutre. Emprise 7,4 × 6,4 m inchangée. **Point « porte » changé** : (0, -2.0, 0.5) sur le
+  sol de la forge (avant (0, -3.6, 0.5), dans le vide devant la plateforme) ; sans intérieur, le jeu ne le lit pas.
+  `controle.txt` : la mesure de porte commune (montants, arc) est remplacée par « sans objet », et une ligne mesure le
+  côté ouvert (largeur entre les poteaux du milieu, hauteur libre sous l'enseigne).
+  Corrigé soi-même avant contrôle : intérieur presque noir (seule la façade éclairait) → côté droit ouvert au-dessus du
+  muret (poteau, sablière, aisseliers, pignon de planches seulement en haut), la fenêtre de ce côté est supprimée.
+  18 288 triangles (ancienne : 26 352, soit 69 %). Capsule : passe (sol au seuil 0,50 m) ; côté ouvert 2,21 m de large,
+  1,95 m sous l'enseigne. Rendus : `scratchpad/qc/forge1/`. En attente du tour 1 de contrôle.
+  Points faibles connus : dessous du toit très sombre en vue 12, grand mur du fond en pierre nu (vue 03).
 
 ## Héros (agent séparé, worktree `worktree-agent-adb19e9034e46bb45`, voir `blender/dragonflyer/personnages/PASSATION.md` sur cette branche)
 - Tour 1 : proportions 8, visage 8, cheveux et vêtements 6, articulations 7, animations 5, style 8, coût 6 → À REFAIRE.
