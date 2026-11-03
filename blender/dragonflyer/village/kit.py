@@ -69,7 +69,7 @@ def moellon(P, centre, lu, hz, rz, n, ep=.24):
     bord = list(devant.edges)
     bmesh.ops.delete(P.bm, geom=[dedans], context="FACES_ONLY")
     c = M("moellon").couleur(P.R, .1)
-    if P.R.random() < .12: c = tuple(x * P.R.choice((.8, .88, 1.07)) for x in c)   # quelques pierres nettement plus sombres ou plus claires
+    if P.R.random() < .12: c = tuple(x * P.R.choice((.82, .9)) for x in c)   # quelques pierres plus sombres   # quelques pierres nettement plus sombres ou plus claires
     for v in vs: v[P.col] = (*c, 1); v.co += Vector((P.R.uniform(-.02, .02), P.R.uniform(-.02, .02), P.R.uniform(-.02, .02)))
     rb = bmesh.ops.bevel(P.bm, geom=bord, offset=min(.07, hz * .25, lu * .2), segments=1, affect="EDGES", profile=.5)
     for v in rb["verts"]: v[P.col] = (*c, 1)
@@ -137,7 +137,6 @@ class ToitChaume:
         z = _smin(g, h, .35)
         for (sx, sl, sh) in s.sourcils:
             if dy < 0: z += sh * math.exp(-((dx - sx) / sl) ** 2) * max(0.0, min(1.0, (-dy - s.Y * .35) / (s.Y * .5)))
-        for (hx, hy, hr) in s.cheminees: z += .3 * max(0.0, 1 - math.hypot(x - hx, y - hy) / (hr + .5)) ** 2
         return z, (1.0 if h < g and h > s.zd + .02 else 0.0)
     def dessus(s, x, y):
         z, cr = s.forme(x, y); pente = s.kc if cr else s.k
@@ -178,7 +177,7 @@ class ToitChaume:
         e = .05; gx = (s.forme(x + e, y)[0] - s.forme(x - e, y)[0]) / (2 * e); gy = (s.forme(x, y + e)[0] - s.forme(x, y - e)[0]) / (2 * e)
         l = math.hypot(gx, gy) or 1; return -gx / l, -gy / l
     def dedans(s, x, y): return abs(x - s.cx) <= s.X + 1e-6 and abs(y - s.cy) <= s.Y + 1e-6
-    def construire(s, P, pas=.3, dz=.3, pas_meche=.11):
+    def construire(s, P, pas=.3, dz=.3, pas_meche=.13):
         """Coque grossière (forme, dessous, rebord), puis le chaume posé en RANGS : chaque rang suit une courbe de niveau
         du toit, descend la pente en recouvrant le rang du dessous, et finit en mèches de longueurs inégales.
         Le rang du bas fait la frange de l'avant-toit."""
@@ -193,7 +192,7 @@ class ToitChaume:
             for j in range(ny):
                 x = cx - X + 2 * X * i / (nx - 1); y = cy - Y + 2 * Y * j / (ny - 1); z = s.forme(x, y)[0]
                 v = bm.verts.new((x, y, z - .04)); v[col] = (*M("chaume_f").teintes[1], 1); Vd[i][j] = v
-                w = bm.verts.new((cx + (x - cx) * .97, cy + (y - cy) * .97, z - s.ep)); w[col] = (*M("chaume_f").teintes[0], 1); Vs[i][j] = w
+                w = bm.verts.new((cx + (x - cx) * .97, cy + (y - cy) * .97, z - s.ep)); w[col] = (*melange(M("chaume").teintes[(i + j) % 3], M("chaume_f").teintes[0], .45), 1); Vs[i][j] = w
         for i in range(nx - 1):
             for j in range(ny - 1):
                 quad(Vd[i][j], Vd[i + 1][j], Vd[i + 1][j + 1], Vd[i][j + 1]); quad(Vs[i][j], Vs[i][j + 1], Vs[i + 1][j + 1], Vs[i + 1][j])
@@ -201,13 +200,13 @@ class ToitChaume:
         bas = []
         for (i, j) in tour:
             v = Vd[i][j]; dx, dy = v.co.x - cx, v.co.y - cy; dl = math.hypot(dx, dy) or 1
-            b = bm.verts.new((v.co.x + dx / dl * .06, v.co.y + dy / dl * .06, v.co.z - .3)); b[col] = (*M("chaume_f").teintes[0], 1); bas.append(b)
+            b = bm.verts.new((v.co.x + dx / dl * .02, v.co.y + dy / dl * .02, v.co.z - .16)); b[col] = (*M("chaume").teintes[1], 1); bas.append(b)
         nT = len(tour)
         for t in range(nT):
             (i0, j0), (i1, j1) = tour[t], tour[(t + 1) % nT]; u = (t + 1) % nT
             quad(Vd[i0][j0], bas[t], bas[u], Vd[i1][j1]); quad(bas[t], Vs[i0][j0], Vs[i1][j1], bas[u])
         # 2. rangs de chaume
-        zc = s.zf + .05; rang = 0
+        zc = max(s.forme(s.cx, s.cy)[0], s.forme(s.cx + s.xr * .5, s.cy)[0]) + .01; rang = 0
         while zc > s.zb - .3:
             for ligne in s._contours(zc):
                 # rééchantillonnage régulier le long de la courbe
@@ -225,19 +224,20 @@ class ToitChaume:
                     bx, by = x, y; n_ = 0
                     while n_ < 60 and s.dedans(bx + gx * .05, by + gy * .05) and s.forme(bx, by)[0] > zc - dz * 1.25: bx += gx * .05; by += gy * .05; n_ += 1
                     zb_ = s.forme(bx, by)[0]
-                    lg = R.choice((.05, .09, .13, .17)) * (1.4 if not s.dedans(bx + gx * .06, by + gy * .06) else 1)
+                    bord = not s.dedans(bx + gx * .06, by + gy * .06)
+                    lg = R.choice((.05, .09, .13, .17)) * (1.0 if not bord else 1.9)
                     teinte = M("chaume").teintes[R.randrange(3)]
                     h = bm.verts.new((x, y, zc + .02)); h[col] = (*melange(teinte, M("chaume_f").teintes[0], .55), 1)
                     m = bm.verts.new((bx, by, zb_ + .09)); m[col] = (*melange(teinte, (1, .92, .66), .08 + .1 * (k % 2)), 1)
-                    p = bm.verts.new((bx + gx * lg, by + gy * lg, zb_ + .09 - lg * .9)); p[col] = (*melange(teinte, (1, .95, .75), .22), 1)
+                    p = bm.verts.new((bx + gx * lg, by + gy * lg, zb_ + .09 - lg * (.9 if not bord else 1.4))); p[col] = (*melange(teinte, (1, .95, .75), .22), 1)
                     rh.append(h); rm.append(m); rp.append(p)
                 for k in range(len(pts) - 1):
                     quad(rh[k], rm[k], rm[k + 1], rh[k + 1]); quad(rm[k], rp[k], rp[k + 1], rm[k + 1])
             zc -= dz; rang += 1
         # 3. faîtage : boudin tressé posé dans la crête (enfoncé d'un tiers), qui suit la vraie hauteur du toit
         xs = [cx - s.xr - .2 + k * .45 for k in range(int((2 * s.xr + .4) / .45) + 1)]
-        pts = [Vector((x, cy, s.forme(x, cy)[0] + .12)) for x in xs]
-        for k in range(len(pts) - 1): P.cylindre(pts[k], pts[k + 1] + (pts[k + 1] - pts[k]) * .06, .19, .19, M("chaume_f").couleur(R), n=6)
+        pts = [Vector((x, cy, s.forme(x, cy)[0] + .1)) for x in xs]
+        for k in range(len(pts) - 1): P.cylindre(pts[k], pts[k + 1] + (pts[k + 1] - pts[k]) * .06, .23, .23, M("chaume_f").couleur(R), n=6)
         for p in pts[1:-1:2]: P.cylindre(p - Vector((.035, 0, 0)), p + Vector((.035, 0, 0)), .22, .22, M("chene").sombre, n=6)
         return s
 

@@ -29,7 +29,18 @@ Fichier tenu à jour à chaque étape, pour qu'une nouvelle session reprenne ici
   rangs qui suivent les courbes de niveau du toit (carrés de marche), chacun recouvre le suivant et finit en mèches ;
   la coque n'est plus que la forme. Aussi : pierres d'angle et de mur arrêtées au bord des volets (revenait depuis
   3 tours), planches de pignon jointives, collerette basse à la cheminée → 19 228 triangles.
-- Tour 4 : en cours.
+- Tour 4 : posé 7, matières 7, formes 7, style 8, lisibilité 8, passage 9, coût 7 → À REFAIRE.
+  Chaume en rangs : « vraie réussite ». Restaient : bourrelet lisse au bord, plaquettes près de la cheminée (venaient
+  de la bosse du chaume autour du conduit : contours en petites boucles), bande lisse sous le faîtage, sommet de
+  demi-croupe en désordre, pierre sur un volet, 19 228 triangles.
+  Corrigé : pignons droits, plus de bosse autour de la cheminée, rebord mince, frange = mèches longues du rang du bas,
+  dessous en paille, rangs depuis le sommet, fenêtres décalées, 18 208 triangles.
+- Tour 5 : en cours.
+
+## Héros (agent séparé, worktree `worktree-agent-adb19e9034e46bb45`, voir `blender/dragonflyer/personnages/PASSATION.md` sur cette branche)
+- Tour 1 : proportions 8, visage 8, cheveux et vêtements 6, articulations 7, animations 5, style 8, coût 6 → À REFAIRE.
+  Trou sur le crâne, fourrure en bretelles, jupe en boule, manche pincée, banc d'animation mal cadré, saut en T,
+  épée absente du banc, allures trop proches, 28 748 triangles. Tour 2 demandé.
 
 ## Prochaine étape
 Finir la chaumière (tout à 8+), l'intégrer : `../maisons.py` appelle `village/maisons/chaumiere.py:construire()`,
