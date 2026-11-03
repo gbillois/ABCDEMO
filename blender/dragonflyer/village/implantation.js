@@ -39,7 +39,9 @@ fs.mkdirSync(OUT, { recursive: true });
       L.push(["05_dessus", [C.x + .1, hc + R * 1.7, C.z + .1], [C.x, hc, C.z]]);
       for (const [n, sx, sz] of [["06_plongee_ne", .8, -.8], ["07_plongee_so", -.8, .8]]) { const Rv = Math.min(R, 75), x = C.x + Rv * sx, z = C.z + Rv * sz; L.push([n, [x, Math.max(hc + Rv * .55, h(x, z) + 12), z], [C.x, hc, C.z]]); }   // jamais dans le sol
       const rues = v.rues || [];   // vues de côté et d'approche dans l'axe des rues d'entrée (là où les trouées dégagent la vue)
-      for (const [n, k] of [["08_cote_rue2", 1], ["09_cote_rue3", 2]]) { const ru = rues[k] || { dx: Math.cos(k * 2.1), dz: Math.sin(k * 2.1), L: 30 }, d0 = (ru.L || 30) + 14, x = C.x + ru.dx * d0, z = C.z + ru.dz * d0; L.push([n, [x, h(x, z) + 4, z], [C.x, hc + 3, C.z]]); }
+      for (const [n, k] of [["08_cote_rue2", 1], ["09_cote_rue3", 2]]) { const ru = rues[k] || { dx: Math.cos(k * 2.1), dz: Math.sin(k * 2.1), L: 30 }, d0 = (ru.L || 30) + 14, x0 = C.x + ru.dx * d0, z0 = C.z + ru.dz * d0;
+        let x = x0, z = z0; for (let e = 0; e < 30 && d.dansUnRect(x, z, 1.5); e++) { x = x0 + ru.dx * (e + 1) * 1.5; z = z0 + ru.dz * (e + 1) * 1.5; }   // jamais dans un mur
+        L.push([n, [x, h(x, z) + 4, z], [C.x, hc + 3, C.z]]); }
       const portes = d.PORTES.filter(q => v.maisons.includes(q.maison));
       portes.slice(0, 2).forEach((q, i) => { const ox = Math.sin(q.yaw), oz = Math.cos(q.yaw), x = q.x + ox * 4.2 + oz * 1.2, z = q.z + oz * 4.2 - ox * 1.2;   // dans la rue, un peu de biais
         L.push([`1${i}_rue_porte_${q.maison.type}`, [x, h(x, z) + 2.2, z], [q.x, q.y + 1.2, q.z]]); });
@@ -62,12 +64,12 @@ fs.mkdirSync(OUT, { recursive: true });
         let pres = 1e9; v.maisons.forEach((q, j) => { if (j === i) return; const c = Math.cos(o.yaw), s = Math.sin(o.yaw);
           for (let k = 0; k < 40; k++) { const t = k / 40 * 4, a = t % 1 * 2 - 1, cote = t | 0, lx = cote === 0 ? a : cote === 1 ? 1 : cote === 2 ? -a : -1, lz = cote === 0 ? -1 : cote === 1 ? a : cote === 2 ? 1 : -a;
             pres = Math.min(pres, dRect(q, o.x + lx * o.hx * c + lz * o.hz * s, o.z - lx * o.hx * s + lz * o.hz * c)); } });
-        const pt = d.PORTES.find(q => q.maison === o) || o.seuil; let porte = "pas de porte";
+        const pt = (o.seuil && o.seuil.pied ? o.seuil : null) || d.PORTES.find(q => q.maison === o) || o.seuil; let porte = "pas de porte";   // cabane sur pilotis : au pied de son escalier
         if (pt) {
           const ox = Math.sin(pt.yaw), oz = Math.cos(pt.yaw), devant = [1, 2, 3].map(k => d.hauteur(pt.x + ox * k, pt.z + oz * k));
           const bouche = [1, 2, 3].some(k => { const c = d.dansUnRect(pt.x + ox * k, pt.z + oz * k, .3); return c && Math.abs(c.x - o.x) + Math.abs(c.z - o.z) > .01; });
           const vers = (Math.atan2(C.x - pt.x, C.z - pt.z) - pt.yaw + 3 * Math.PI) % (2 * Math.PI) - Math.PI;
-          porte = `seuil ${(pt.y - devant[0]).toFixed(2)} m au-dessus du sol devant, pente devant ${(Math.max(...devant) - Math.min(...devant)).toFixed(2)} m sur 3 m, ` +
+          porte = `${pt.pied ? "pied de l'escalier" : "seuil"} ${(pt.y - devant[0]).toFixed(2)} m au-dessus du sol devant, pente devant ${(Math.max(...devant) - Math.min(...devant)).toFixed(2)} m sur 3 m, ` +
             `${bouche ? "PORTE BOUCHÉE par un autre objet" : "passage libre"}, tournée à ${Math.round(Math.abs(vers) * 180 / Math.PI)}° de la place`;
         }
         L.push(`- ${o.type} n°${i + 1} à ${dc.toFixed(0)} m de la place : terrain ${mn.toFixed(1)} à ${mx.toFixed(1)} m (soubassement découvert ${(o.y - mn).toFixed(2)} m), ` +

@@ -289,3 +289,22 @@ déplacé de (0, -3.15, 8.4) à (0, -3.4, 9.0) et ailes de 5,8 m au lieu de 6,6 
 ## Prochaine étape
 Finir la chaumière (tout à 8+), l'intégrer : `../maisons.py` appelle `village/maisons/chaumiere.py:construire()`,
 puis capture dans le jeu, puis montrer au propriétaire. Ensuite : une maison à la fois (colombage, longère…).
+
+## Fusion des maisons validées (3 novembre, fin de journée)
+- Forge (tour 3), longère (tour 2), maison de pierre et ses 2 variantes, moulin (tour 3), maison de pêcheur et ses 2 variantes
+  (tour 2) : toutes PASSE, fusionnées dans la branche de travail. `../maisons.py` les fabrique toutes (`NOUVELLES`, `VARIANTES`),
+  avec l'emprise, la porte et l'intérieur de leur propre fichier ; les ailes du moulin viennent de `moulin.py` (axe `AXE`).
+- Conflits de fusion réglés : la matière « bardeau » du pêcheur s'appelle maintenant `bardeau_p` / `bardeau_pd` (celle du moulin
+  garde « bardeau ») ; l'échelle du quai est `objets/echelle_quai.py` (celle de la forge reste `objets/echelle.py`).
+- Le jeu répartit les variantes (`VARIANTES_MAISON`) ; `ENFONCE` est vide (la longère et la forge ont leurs marches).
+- Barques au large : `objets/barque.py` exportée en P_barque, P_barque_r, P_barque_v (avant : des boîtes de couleur).
+
+## Implantation, tours suivants
+- Cabanes de pêcheur : le pied de l'escalier (7,3 m devant le centre) sur la terre ferme, palier aplani devant et sous
+  l'escalier, rang continu (3,5 m entre deux cabanes). Le rapport mesure le « pied de l'escalier » au lieu du seuil.
+- La place n'était pas plate : les paliers des maisons voisines plus hautes la rognaient (jusqu'à 3 m à Stonebrook). Désormais
+  la place et le dessous de chaque maison ne sont jamais rognés par la marge d'un autre plat (`coeur` dans `aplanirExact`),
+  et une maison à moins de 8 m du bord de la place est à son niveau ; pas de voisines proches à des étages différents.
+- Herbe : sa largeur suit sa hauteur (plus de brins couchés à plat sur les pavés).
+- Bordure basse de pierres autour de la place (muret à 20 %), 3 bancs et 3 lanternes, murets de place jamais isolés,
+  accessoires hors d'un couloir de 4,5 m devant chaque seuil (selon leur taille), caméras 08/09 jamais dans un mur.

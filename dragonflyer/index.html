@@ -1772,7 +1772,8 @@ const STYLES_VILLAGES = [
   { nom: "Stonebrook", maisons: ["longere", "pierre", "pierre", "pierre", "forge", "pierre", "pierre", "pierre", "pierre"],
     props: { puits: 1, tonneau: 5, caisse: 5, lanterne: 5 } },
 ];
-const ENFONCE = { longere: .75, forge: .3 };   // maisons dont le seuil est haut sans marches : posées plus bas dans le terrain
+const VARIANTES_MAISON = { pierre: ["", "_1", "_2"], pecheur: ["", "_b", "_c"] };   // M_pierre_1… : faites par blender/dragonflyer/village/maisons/
+const ENFONCE = {};   // maisons à enfoncer dans le terrain (aucune : la longère et la forge ont maintenant leurs marches)   // maisons dont le seuil est haut sans marches : posées plus bas dans le terrain
 // collisions (rectangles tournés, pour le cavalier à pied), rangées dans une grille de 32 m
 const COLLISIONS = new Map(), PORTES = [], MOULINS = [];
 const cleC = (i, j) => i * 100003 + j;
@@ -1860,12 +1861,16 @@ function aplanir(plats) {   // plats : [{ x, z, yaw, hx, hz, y }] (hx, hz : demi
   for (const [i, h] of neuf) HAUT[i] = h;
 }
 function aplanirExact(plats) {   // dans l'ordre : chaque plat (et un point de grille autour) exactement à sa hauteur
-  const gi = x => Math.round((x + MONDE / 2) / CEL - .5);
+  const gi = x => Math.round((x + MONDE / 2) / CEL - .5), coeur = new Set();
   for (const q of plats) {
     const R = Math.hypot(q.hx, q.hz) + CEL * 2, cs = Math.cos(q.yaw), sn = Math.sin(q.yaw);
     for (let iz = Math.max(0, gi(q.z - R)); iz <= Math.min(NRES - 1, gi(q.z + R)); iz++) for (let ix = Math.max(0, gi(q.x - R)); ix <= Math.min(NRES - 1, gi(q.x + R)); ix++) {
       const x = (ix + .5) * CEL - MONDE / 2, z = (iz + .5) * CEL - MONDE / 2, dx = x - q.x, dz = z - q.z;
-      if (q.rond ? Math.hypot(dx, dz) <= q.hx + CEL * .75 : Math.abs(dx * cs - dz * sn) <= q.hx + CEL * .75 && Math.abs(dx * sn + dz * cs) <= q.hz + CEL * .75) HAUT[iz * NRES + ix] = q.y;
+      const i = iz * NRES + ix, ax = Math.abs(dx * cs - dz * sn), az = Math.abs(dx * sn + dz * cs);
+      if (q.rond ? Math.hypot(dx, dz) <= q.hx + CEL * .75 : ax <= q.hx + CEL * .75 && az <= q.hz + CEL * .75) {
+        if (q.rond ? Math.hypot(dx, dz) <= q.hx + CEL * .3 : q.maison && ax <= q.hx + CEL * .3 && az <= q.hz + CEL * .3) { if (!coeur.has(i)) HAUT[i] = q.y; coeur.add(i); }   // la place et le dessous des maisons : à eux seuls
+        else if (!coeur.has(i)) HAUT[i] = q.y;   // la marge d'un plat ne rogne jamais l'emprise d'une maison voisine
+      }
     }
   }
 }
@@ -1896,7 +1901,10 @@ function batirVillage(v, r) {
       const [mn, mxh] = terrainSous(x, z, yaw, hx, hz);
       if (mn < 1.2 || mxh - mn > 4.5 || mxh > 90) return null;
       if (!libre(x, z, yaw, hx, hz, type === "moulin" ? 7 : type === "chaumiere" ? 4 : 3.2)) return null;   // le moulin garde la place de ses ailes
-      return { x, z, yaw, y: Math.max(1.5, Math.min(mxh + .3, Math.max(mn - 1, yRef))) };
+      const y = Math.max(1.5, Math.min(mxh + .3, Math.max(mn - 1, yRef)));
+      if (Math.hypot(x - C.x, z - C.z) < 10 + Math.hypot(hx, hz) + 8 && Math.abs(y - hC) > .05) return null;   // près de la place : à son niveau (sinon son palier rognerait la place)
+      if (v.maisons.some(o => Math.hypot(o.x - x, o.z - z) < Math.hypot(o.hx, o.hz) + Math.hypot(hx, hz) + 5 && Math.abs(o.y - y) > 1.2)) return null;   // pas de voisine proche à un autre étage (talus impossible entre les deux)
+      return { x, z, yaw, y };
     };
     const profil = (ru, s) => { let t = 0, n = 0; for (let e = -8; e <= 8; e += 2) { t += hauteur(C.x + ru.dx * Math.max(6, s + e), C.z + ru.dz * Math.max(6, s + e)); n++; } return Math.max(1.5, t / n); };
     if (type !== "moulin") for (const an of anneau) if (!an.pris) {   // les premières maisons font le tour de la place, à des distances et des angles variés
@@ -1910,7 +1918,7 @@ function batirVillage(v, r) {
         const ru = rues[i], side = c ? 1 : -1, px = -ru.dz * side, pz = ru.dx * side;
         while (ru.curseur[c] < 66) {
           const sC = ru.curseur[c] + hx, d = hz + 3.2, x = C.x + ru.dx * sC + px * d, z = C.z + ru.dz * sC + pz * d;
-          const pl = essayer(x, z, Math.atan2(-px, -pz), profil(ru, sC));   // la façade regarde la rue
+          const pl = essayer(x, z, sC < 16 ? Math.atan2(C.x - x, C.z - z) : Math.atan2(-px, -pz), profil(ru, sC));   // la façade regarde la rue (la place pour les premières)
           if (pl) { ru.curseur[c] = sC + hx + 3.5 + r() * 2.5; ru.L = Math.max(ru.L, sC + hx + 4); tour++; return pl; }
           ru.curseur[c] += 2.5;
         }
@@ -1931,6 +1939,8 @@ function batirVillage(v, r) {
   };
   const poser = (type, x, z, y, yaw) => {
     const k = KIT["M_" + type]; const o = { type, x, y, z, yaw, hx: k.pied.hx, hz: k.pied.hz };
+    const vars = (VARIANTES_MAISON[type] || [""]).filter(s => KIT["M_" + type + s]);   // variantes (même emprise, même porte) réparties dans le village
+    o.modele = type + (vars.length ? vars[v.maisons.filter(m => m.type === type).length % vars.length] : "");
     if (!k.geo.boundingBox) k.geo.computeBoundingBox();
     pris.push(o); v.maisons.push(o); ajouterCollision({ x, z, yaw, hx: k.pied.hx, hz: k.pied.hz, haut: y + k.geo.boundingBox.max.y });
     if (k.porte) { const cs = Math.cos(yaw), sn = Math.sin(yaw), p = k.porte; o.seuil = { x: x + p.x * cs + p.z * sn, z: z - p.x * sn + p.z * cs, y: y + p.y, yaw }; }   // seuil (porte ou côté ouvert, ex. forge)
@@ -1939,23 +1949,36 @@ function batirVillage(v, r) {
     if (type === "moulin") MOULINS.push(o);
     return o;
   };
-  const QUAI = [-50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50].map(a => a + (r() - .5) * 1.5), QUAI_PRIS = new Set();
+  // cabanes de pêcheur : pilotis au bord de l'eau, escalier vers la terre ; le pied de l'escalier est sur la terre ferme, au niveau d'un palier aplani
+  const RANG = { g: null, d: null }, DPIED = 7.3;   // DPIED : du centre de la cabane au pied de l'escalier (blender/dragonflyer/village/maisons/pecheur.py)
+  const siteCabane = (along, k) => {
+    const yaw = Math.atan2(-mx, -mz);   // la porte (+Z local) regarde la terre
+    for (let out = -14; out <= 24; out += 1) {
+      const x = v.x + lx * along + mx * out, z = v.z + lz * along + mz * out, hc = hauteur(x, z);
+      if (hc > .2 || hc < -1.6) continue;   // la cabane au bord de l'eau, sur ses pilotis
+      const fx = x - mx * DPIED, fz = z - mz * DPIED, hf = hauteur(fx, fz); if (hf < .15 || hf > 1.4) continue;
+      const y = Math.max(.2, hf);
+      if ([1, 2, 3].some(e => hauteur(x - mx * e, z - mz * e) > y + .9)) continue;            // sous la terrasse
+      if ([4.6, 5.6, 6.6].some(e => hauteur(x - mx * e, z - mz * e) > y + .45)) continue;     // sous l'escalier (aplani ensuite)
+      if (Math.abs(hauteur(fx - mx * 3, fz - mz * 3) - y) > .9) continue;                     // le palier devant l'escalier reste doux
+      if (!libre(x, z, yaw, k.pied.hx, k.pied.hz, 2.5)) continue;
+      return { x, z, yaw, y, fx, fz };
+    }
+    return null;
+  };
   for (const type of v.style.maisons) {
     const k = KIT["M_" + type]; if (!k) continue; let fait = false;
+    if (type === "pecheur") {   // en rang continu le long du rivage : 3,5 à 5 m entre deux cabanes
+      const cands = [];
+      if (RANG.g === null) for (let a = 0; a <= 70; a += 2.5) cands.push(a, -a);
+      else { for (const d of [9.5, 10, 10.5, 11, 11.5]) cands.push(RANG.d + d, RANG.g - d); for (let d = 13; d < 70; d += 2.5) cands.push(RANG.d + d, RANG.g - d); }
+      for (const along of cands) { const s = siteCabane(along, k); if (!s) continue;
+        const o = poser(type, s.x, s.z, s.y, s.yaw); o.seuil = { x: s.fx, z: s.fz, y: s.y, yaw: s.yaw, pied: true };   // « seuil » d'une cabane : le pied de son escalier
+        RANG.g = RANG.g === null ? along : Math.min(RANG.g, along); RANG.d = RANG.d === null ? along : Math.max(RANG.d, along); break; }
+      continue;
+    }
     for (let essai = 0; essai < 140 && !fait; essai++) {
-      if (type === "pecheur") {   // sur pilotis, en rang le long du rivage (une place tous les 10 m), porte vers la terre
-        if (essai >= QUAI.length) break;
-        const along = QUAI[(QUAI.length >> 1) + (essai % 2 ? 1 : -1) * ((essai + 1) >> 1)] ?? QUAI[essai]; if (along === undefined || QUAI_PRIS.has(along)) continue;
-        let x = 0, z = 0, ok = false;
-        for (let out = -2; out <= 24 && !ok; out += 1) { x = v.x + lx * along + mx * out; z = v.z + lz * along + mz * out; const h = hauteur(x, z); ok = h > -1.4 && h < .2; }
-        if (!ok) continue;
-        const yaw = Math.atan2(-mx, -mz) + (r() - .5) * .08; if (!libre(x, z, yaw, k.pied.hx, k.pied.hz, 3)) continue;
-        { let tx = x, tz = z, n_ = 0; while (n_++ < 30 && hauteur(tx, tz) < .9) { tx -= mx; tz -= mz; }   // la terre derrière la porte doit être douce
-          if (Math.abs(hauteur(tx - mx * 3, tz - mz * 3) - hauteur(tx, tz)) > 1.2) continue;
-          const kp = KIT.M_pecheur, dy = Math.abs((kp && kp.porte) ? kp.porte.z : 4);
-          if ([1, 2, 3].some(e => hauteur(x + Math.sin(yaw) * (dy + e), z + Math.cos(yaw) * (dy + e)) > 1.2)) continue; }   // sur 3 m devant la porte, le sol reste sous la terrasse
-        QUAI_PRIS.add(along); poser(type, x, z, .2, yaw); fait = true;
-      } else {
+      {
         const pl = placeDansLePlan(type, k, essai); if (!pl) break;
         poser(type, pl.x, pl.z, pl.y - (ENFONCE[type] || 0), pl.yaw); pl.o = v.maisons[v.maisons.length - 1]; fait = true;
       }
@@ -1966,7 +1989,12 @@ function batirVillage(v, r) {
   v.murets = []; v.potagers = []; v.props = [];
   const SOL0 = (x, z) => hauteur(x, z);   // relief d'origine (avant l'aplanissement)
   for (const o of v.maisons) {
-    if (o.type === "pecheur") continue;
+    if (o.type === "pecheur") {   // sous l'escalier et devant son pied : terre aplanie au niveau du pied
+      const sn = Math.sin(o.yaw), cs = Math.cos(o.yaw);
+      plats.push({ x: o.x + sn * 5.9, z: o.z + cs * 5.9, yaw: o.yaw, hx: 1.1, hz: 1.4, y: o.y, palier: true });
+      plats.push({ x: o.x + sn * (DPIED + 1.6), z: o.z + cs * (DPIED + 1.6), yaw: o.yaw, hx: 1.6, hz: 1.6, y: o.y, palier: true });
+      continue;
+    }
     const yp = o.y + (ENFONCE[o.type] || 0), sn = Math.sin(o.yaw), cs = Math.cos(o.yaw), P = (lx, lz) => [o.x + lx * cs + lz * sn, o.z - lx * sn + lz * cs];
     plats.push({ x: o.x, z: o.z, yaw: o.yaw, hx: o.hx + .6, hz: o.hz + .6, y: yp, maison: true });
     const dd = o.hz + 2; plats.push({ x: o.x + sn * dd, z: o.z + cs * dd, yaw: o.yaw, hx: 1.6, hz: 1.6, y: yp, palier: true });   // palier devant la porte (façade : +Z local)
@@ -1998,13 +2026,15 @@ function batirVillage(v, r) {
     plats.push({ x: fx, z: fz, yaw, hx: 6, hz: 8.5, y: hf });
     ru.L = Math.max(ru.L, d0 - 8.5);
   }
+  const mPlace = [];
   for (let k = 0; k < 28; k++) {   // muret de soutènement au bord de la place, là où le terrain monte de plus de 60 cm
     const a = k / 28 * Math.PI * 2, ex = Math.cos(a), ez = Math.sin(a), diff = SOL0(C.x + ex * 14.5, C.z + ez * 14.5) - hC;
     if (diff < .6 || rues.some(ru => Math.abs(Math.atan2(Math.sin(a - ru.a), Math.cos(a - ru.a))) < .3)) continue;   // pas en travers d'une rue
     const mx2 = C.x + ex * 10.9, mz2 = C.z + ez * 10.9;
     if (v.maisons.some(o => o.seuil && Math.hypot(o.seuil.x - mx2, o.seuil.z - mz2) < 4.5)) continue;   // ni devant une porte
-    v.murets.push({ x: C.x + ex * 10.9, z: C.z + ez * 10.9, yaw: Math.atan2(-ex, -ez), y: hC - .1, sy: Math.min(1.7, Math.max(.6, diff / 1.2)), sx: 2 * Math.PI * 10.9 / 28 / 1.9 });
+    mPlace[k] = { x: C.x + ex * 10.9, z: C.z + ez * 10.9, yaw: Math.atan2(-ex, -ez), y: hC - .1, sy: Math.min(1.7, Math.max(.6, diff / 1.2)), sx: 2 * Math.PI * 10.9 / 28 / 1.9 };
   }
+  for (let k = 0; k < 28; k++) if (mPlace[k] && (mPlace[(k + 1) % 28] || mPlace[(k + 27) % 28])) v.murets.push(mPlace[k]);   // jamais un tronçon isolé
   for (const ru of rues) {   // les rues : terrain adouci le long de leur axe (profil moyen), sans bosse ni marche brutale
     const L_ = Math.max(ru.L + 6, 26), yaw = Math.atan2(ru.dx, ru.dz);
     for (let s_ = 9; s_ <= L_; s_ += 3) {
@@ -2012,7 +2042,7 @@ function batirVillage(v, r) {
       plats.push({ x: C.x + ru.dx * s_, z: C.z + ru.dz * s_, yaw, hx: 1.4, hz: 1.6, y: Math.max(1.5, s_ < 14 ? hC + (t / n - hC) * (s_ - 9) / 5 : t / n), rue: true });
     }
   }
-  aplanir(plats);
+  aplanir(plats); v.plats = plats;   // (gardés pour le banc de test d'implantation)
   const rang = q => q.rond ? 0 : q.maison ? 3 : q.palier ? 2 : 1;   // la place d'abord, puis potagers, paliers, et les maisons en dernier (rien ne rogne leur emprise)
   aplanirExact(plats.filter(q => !q.rue).sort((a, b) => rang(a) - rang(b)));   // les rues restent un mélange doux
   peindreSol(v, [[C.x, C.z]], 19, "rgb(0,255,0)");   // place pavée
@@ -2023,9 +2053,19 @@ function batirVillage(v, r) {
     peindreSol(v, [[C.x + ru.dx * 6, C.z + ru.dz * 6], [C.x + ru.dx * ru.L, C.z + ru.dz * ru.L]], 3, "rgb(255,0,0)");
     for (let s_ = 12; s_ < ru.L + 28; s_ += 8) LIBRES.push({ x: C.x + ru.dx * s_, z: C.z + ru.dz * s_, r: 7 });
   }
-  for (let k = 0; k < 4; k++) {   // deux bancs et deux lanternes au bord de la place, entre les rues
-    const a = rues[k % 3].a + Math.PI / 3 + (k < 2 ? -.25 : .25) + (k === 3 ? Math.PI / 1.5 : 0), d = k % 2 ? 9.3 : 8.6, x = C.x + Math.cos(a) * d, z = C.z + Math.sin(a) * d;
+  for (let k = 0; k < 6; k++) {   // entre deux rues : un banc et une lanterne au bord de la place (trois de chaque)
+    const a = rues[k >> 1].a + Math.PI / 3 + (k % 2 ? .3 : -.3), d = k % 2 ? 9.3 : 8.5, x = C.x + Math.cos(a) * d, z = C.z + Math.sin(a) * d;
+    if (v.maisons.some(o => o.seuil && Math.hypot(o.seuil.x - x, o.seuil.z - z) < 3)) continue;   // jamais devant une porte
     v.props.push({ nom: k % 2 ? "lanterne" : "banc", x, y: hC - .02, z, yaw: Math.atan2(C.x - x, C.z - z) + Math.PI });
+  }
+  // bordure de pierres basse tout autour de la place, ouverte aux rues et devant les portes
+  v.bordures = [];
+  for (let k = 0; k < 44; k++) {
+    const a = k / 44 * Math.PI * 2, x = C.x + Math.cos(a) * 9.65, z = C.z + Math.sin(a) * 9.65;
+    if (rues.some(ru => Math.abs(Math.atan2(Math.sin(a - ru.a), Math.cos(a - ru.a))) < .2)) continue;
+    if (v.maisons.some(o => o.seuil && Math.hypot(o.seuil.x - x, o.seuil.z - z) < 3.5)) continue;
+    if (v.murets.some(m => Math.hypot(m.x - x, m.z - z) < 1.6)) continue;   // là où un muret de soutènement borde déjà la place
+    v.bordures.push({ x, y: hC - .06, z, yaw: Math.atan2(-Math.cos(a), -Math.sin(a)), sy: .2, sx: 2 * Math.PI * 9.65 / 44 / 1.9 });
   }
   for (const g of v.potagers) {   // terre labourée et clôture tout autour (portillon du côté de la maison pour les potagers)
     const cs = Math.cos(g.yaw), sn = Math.sin(g.yaw), P = (lx, lz) => [g.x + lx * cs + lz * sn, g.z - lx * sn + lz * cs];
@@ -2039,7 +2079,7 @@ function batirVillage(v, r) {
     if (g.champ) for (let k = 0; k < 3; k++) { const [x, z] = P((r() - .5) * g.hx, (r() - .5) * g.hz * 1.4); v.props.push({ nom: "foin", x, y: hauteur(x, z) - .1, z, yaw: r() * 6.28 }); }
   }
   if (peche) {   // promenade de terre le long du rivage, derrière les maisons de pêcheur, reliée à la place
-    const pts = v.maisons.filter(o => o.type === "pecheur").map(o => { let x = o.x, z = o.z, k = 0; while (k++ < 40 && hauteur(x, z) < .9) { x -= mx; z -= mz; } return [x - mx * 2.5, z - mz * 2.5, (x - v.x) * lx + (z - v.z) * lz]; }).sort((a, b) => a[2] - b[2]);
+    const pts = v.maisons.filter(o => o.type === "pecheur" && o.seuil).map(o => { const x = o.seuil.x - mx * 3.2, z = o.seuil.z - mz * 3.2; return [x, z, (x - v.x) * lx + (z - v.z) * lz]; }).sort((a, b) => a[2] - b[2]);   // juste derrière le palier de chaque escalier
     if (pts.length) { peindreSol(v, pts.map(q => [q[0], q[1]]), 2.8, "rgb(255,0,0)");
       const mil = pts[pts.length >> 1]; peindreSol(v, [[C.x, C.z], [mil[0], mil[1]]], 3, "rgb(255,0,0)"); v.promenade = pts; }
   }
@@ -2067,16 +2107,18 @@ function batirVillage(v, r) {
       else { const o = v.maisons[(r() * v.maisons.length) | 0], a = r() * 6.28, d = 3 + r() * 5; if (!o) break; x = o.x + Math.cos(a) * (Math.max(o.hx, o.hz) + d); z = o.z + Math.sin(a) * (Math.max(o.hx, o.hz) + d); yaw = r() * 6.28; }
       const h = hauteur(x, z); if (nom !== "ponton" && (h < 1 || pente(x, z) > .35)) continue;
       const hx = k.pied ? k.pied.hx : .3, hz = k.pied ? k.pied.hz : .3;
-      if (nom !== "ponton" && nom !== "puits" && !libreProp(x, z)) continue;
+      if (nom !== "ponton" && nom !== "puits" && !libreProp(x, z, Math.max(hx, hz))) continue;
       const y = nom === "ponton" ? 0 : terrainSous(x, z, yaw, hx, hz)[0] - .05;
       v.props.push({ nom, x, y, z, yaw }); if (k.pied && nom !== "ponton") ajouterCollision({ x, z, yaw, hx, hz });
       break;
     }
   }
-  function libreProp(x, z) {
+  function libreProp(x, z, rp = .5) {
     if (Math.hypot(x - C.x, z - C.z) < 10.8) return false;   // pas d'accessoire épars sur la place
     for (const ru of (v.rues || [])) if (ru.L > 0) { const t = (x - C.x) * ru.dx + (z - C.z) * ru.dz; if (t > 5 && t < ru.L + 1 && Math.abs((x - C.x) * -ru.dz + (z - C.z) * ru.dx) < 2.2) return false; }   // ni dans les rues
-    for (const q of PORTES) if (Math.hypot(x - q.x, z - q.z) < 2.8) return false;   // ni devant une porte
+    for (const q of [...PORTES, ...v.maisons.map(o => o.seuil).filter(Boolean)]) {   // ni devant une porte : couloir de 4,5 m devant chaque seuil, selon la taille de l'objet
+      const dx = x - q.x, dz = z - q.z, av = dx * Math.sin(q.yaw) + dz * Math.cos(q.yaw), lat = dx * Math.cos(q.yaw) - dz * Math.sin(q.yaw);
+      if (Math.hypot(dx, dz) < 2.8 + rp || (av > -1 && av < 4.5 + rp && Math.abs(lat) < 1.3 + rp)) return false; }
     for (const o of pris) { const dx = x - o.x, dz = z - o.z, cs = Math.cos(o.yaw), sn = Math.sin(o.yaw); if (Math.abs(dx * cs - dz * sn) < o.hx + 1.6 && Math.abs(dx * sn + dz * cs) < o.hz + 1.6) return false; }
     for (const p of v.props) if (Math.hypot(p.x - x, p.z - z) < 1.6) return false; return true; }
   v.rayon = 30 + Math.max(0, ...v.maisons.map(o => Math.hypot(o.x - C.x, o.z - C.z)));
@@ -2089,10 +2131,11 @@ function batirVillage(v, r) {
     liste.forEach((o, i) => { m4.compose(p.set(o.x, o.y, o.z), q.setFromAxisAngle(Y, o.yaw), o.sy || o.sx ? new THREE.Vector3(o.sx || 1, o.sy || 1, 1) : un); im.setMatrixAt(i, m4); });
     im.castShadow = ombre; im.receiveShadow = true; im.computeBoundingSphere(); v.groupe.add(im);
   };
-  const types = [...new Set(v.maisons.map(o => o.type))];
-  for (const t of types) { const L = v.maisons.filter(o => o.type === t); instancier(KIT["M_" + t]?.geo, MAT_VILLAGE, L); instancier(KIT["W_" + t]?.geo, MAT_VITRES, L, false); }
+  const types = [...new Set(v.maisons.map(o => o.modele || o.type))];
+  for (const t of types) { const L = v.maisons.filter(o => (o.modele || o.type) === t); instancier(KIT["M_" + t]?.geo, MAT_VILLAGE, L); instancier(KIT["W_" + t]?.geo, MAT_VITRES, L, false); }
   for (const nom of new Set(v.props.map(o => o.nom))) instancier(KIT["P_" + nom]?.geo, MAT_VILLAGE, v.props.filter(o => o.nom === nom));
   instancier(KIT.P_muret?.geo, MAT_VILLAGE, v.murets);
+  if (v.bordures?.length) instancier(KIT.P_muret?.geo, MAT_VILLAGE, v.bordures);   // la bordure : un muret très bas (sans collision : on l'enjambe)
   for (const m of v.murets) ajouterCollision({ x: m.x, z: m.z, yaw: m.yaw, hx: 1, hz: .3, haut: m.y + .9 * m.sy });
   for (const o of v.maisons.filter(o => o.type === "moulin")) {   // ailes du moulin, qui tournent
     const k = KIT.A_moulin; if (!k) continue; const pivot = new THREE.Group(); pivot.position.set(o.x, o.y, o.z); pivot.rotation.y = o.yaw;
@@ -2366,7 +2409,7 @@ function creerVillages() {
     const nl = Math.hypot(v.mx, v.mz) || 1, mx = v.mx / nl, mz = v.mz / nl, lx = -mz, lz = mx;
     for (let k = 0; k < 3; k++) {
       const x = v.x + mx * (45 + r() * 40) + lx * (r() - .5) * 120, z = v.z + mz * (45 + r() * 40) + lz * (r() - .5) * 120;
-      if (hauteur(x, z) < -1.5) BATEAUX.push({ x, z, yaw: r() * 6.28, ph: r() * 6.28, c: [0xe8e2d6, 0x2a5aa8, 0xc8302a][k] });
+      if (hauteur(x, z) < -1.5) BATEAUX.push({ x, z, yaw: r() * 6.28, ph: r() * 6.28, k });
     }
   }
   const up = new THREE.Vector3(0, 1, 0);
@@ -2376,10 +2419,12 @@ function creerVillages() {
     liste.forEach((o, i) => { f(o, p, q, s); m4.compose(p, q, s); im.setMatrixAt(i, m4); if (o.c != null) im.setColorAt(i, c.setHex(o.c)); });
     im.castShadow = true; im.receiveShadow = true; im.computeBoundingSphere(); im.matrixAutoUpdate = false; scene.add(im); return im;
   };
-  // bateaux
-  const coque = new THREE.BoxGeometry(2.4, 1.2, 7).translate(0, .3, 0);
-  const bateaux = placer(coque, BATEAUX, new THREE.MeshStandardMaterial({ roughness: .6 }), (o, p, q, s) => { p.set(o.x, 0, o.z); q.setFromAxisAngle(up, o.yaw); s.set(1, 1, 1); });
-  bateaux.matrixAutoUpdate = true; BATEAUX.mesh = bateaux;
+  // bateaux : les barques du kit (blender/dragonflyer/village/objets/barque.py), une couleur par barque
+  ["", "_r", "_v"].forEach((suf, k) => {
+    const kb = KIT["P_barque" + suf], L = BATEAUX.filter(o => o.k === k); if (!L.length) return;
+    if (kb) placer(kb.geo, L, MAT_VILLAGE, (o, p, q, s) => { p.set(o.x, 0, o.z); q.setFromAxisAngle(up, o.yaw); s.set(1, 1, 1); });
+    else placer(new THREE.BoxGeometry(1.2, .6, 3).translate(0, .15, 0), L, new THREE.MeshStandardMaterial({ roughness: .6, color: [0x2a5aa8, 0xc8302a, 0x4a8a7a][k] }), (o, p, q, s) => { p.set(o.x, 0, o.z); q.setFromAxisAngle(up, o.yaw); s.set(1, 1, 1); });
+  });
   // phare : sur le site côtier le plus exposé qui reste
   const sp = sites.find(s => choisis.every(c => Math.hypot(c.x - s.x, c.z - s.z) > 700));
   if (sp) {
@@ -2958,7 +3003,8 @@ function creerHerbe() {
             vec2 so = textureLod(tSol, (q + vec2(float(i - (i / 2) * 2), float(i / 2))) * 0.5, 0.0).rg; pres *= 1.0 - smoothstep(0.02, 0.16, max(max(so.x, so.y), textureLod(tSol, (q + vec2(float(i - (i / 2) * 2), float(i / 2))) * 0.5, 0.0).b)); } } }   // plus d'herbe avant même que les pavés commencent   // ni sur les rues et les allées
         float s = (1.0 - smoothstep(uR * 0.72, uR * 0.98, d)) * pres * (0.55 + 0.9 * rnd);
         float fl = aFleur * step(0.93, fract(rnd * 37.0));
-        vec3 q = position * vec3(1.0, s, 1.0) * mix(1.0, 0.0, aFleur * (1.0 - fl));
+        float lw = step(0.1, s) * min(1.0, s * 2.5);   // une herbe qui s'efface rétrécit aussi en largeur (jamais de brin couché à plat)
+        vec3 q = position * vec3(lw, s, lw) * mix(1.0, 0.0, aFleur * (1.0 - fl));
         float a = rnd * 40.0; q.xz = mat2(cos(a), -sin(a), sin(a), cos(a)) * q.xz * max(s, 0.001) / max(s, 0.001);
         float w = sin(uTemps * 1.9 + p.x * 0.17 + p.y * 0.11) * 0.22 + sin(uTemps * 3.3 + p.x * 0.6 + p.y * 0.4) * 0.07;
         q.xz += vec2(w, w * 0.6) * aCote * aCote * s;
@@ -4052,7 +4098,6 @@ function image(now, dtForce) {
   majAnneaux(); majFeuxAllumes(dt); majPeche(dt); majHutte(dt); animerBebes(dt); majMouettes();
   if (!auto) { const ok = !etat.sol && peutSePoser(); $("btPoser").hidden = !TACTILE || !ok; if (etat.sol !== "pied") { if (!$("indice").hidden !== (!TACTILE && ok)) $("indice").innerHTML = `${ico("atterrir")} <b>L</b>&nbsp;to land`; $("indice").hidden = TACTILE || !ok; } }
   flammes.maj(dt, 2.2, 6, 2.2); fumee.maj(dt, .4, 2, 2.5); gouttes.maj(dt, .5, -14, .5);
-  for (const b of BATEAUX) { if (!BATEAUX.mesh) break; }
   majTerrain();
   mer.position.set(Math.round(camera.position.x / 30) * 30, 0, Math.round(camera.position.z / 30) * 30);
   const centreOmbre = etat.sol === "pied" ? marche.pos : etat.pos;
@@ -5429,7 +5474,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
 })();
 </script>
 <script>
-window.DRAGONFLYER_VERSION = "2026.11.03-2"; // à changer à chaque modification du jeu
+window.DRAGONFLYER_VERSION = "2026.11.03-3"; // à changer à chaque modification du jeu
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
