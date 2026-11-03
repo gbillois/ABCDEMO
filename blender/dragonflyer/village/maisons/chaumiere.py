@@ -5,7 +5,7 @@
 import sys, os; sys.path[:0] = [os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."), os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "objets")]
 import math
 from mathutils import Matrix
-from kit import Piece, mur_moellons, ToitChaume, chevrons, porte, fenetre, cheminee
+from kit import Piece, mur_moellons, ToitChaume, chevrons, pignon_planches, porte, fenetre, cheminee
 from materiaux import M
 import banc, tas_bois
 
@@ -27,10 +27,11 @@ def construire(graine=11):
     fenetre(V, P, (-1.6, -Y - .07, 1.2)); fenetre(V, P, FENETRE_FACE)
     fenetre(V, P, (X + .07, -1.3, 1.2), rz=math.pi / 2)
     fenetre(V, P, (-1.0, Y + .07, 1.2), rz=math.pi, jardiniere=False)
-    toit = ToitChaume(0, 0, X + .65, Y + .65, 2.3, 5.4, croupe=1.5, ep=.45, sourcils=[(0, 1.0, .55)], cheminees=[(*CHEMINEE, .5)]).construire(P)
-    chevrons(P, toit, [((-X, -Y), (X, -Y)), ((X, -Y), (X, Y)), ((X, Y), (-X, Y)), ((-X, Y), (-X, -Y))], Z_HAUT)
+    toit = ToitChaume(0, 0, X + .4, Y + .65, 2.3, 5.3, croupe=.9, z_demi=4.3, ep=.45, sourcils=[(0, 1.0, .55)], cheminees=[(*CHEMINEE, .5)]).construire(P)
+    for sx in (-1, 1): pignon_planches(P, sx * X, -Y, Y, Z_HAUT, toit, sens=sx, sauf=[(CHEMINEE[1] - .5, CHEMINEE[1] + .5)] if sx < 0 else ())
+    chevrons(P, toit, [((-X, -Y), (X, -Y)), ((X, Y), (-X, Y))], Z_HAUT)                     # sous les pans (les pignons ont leurs planches)
     faite = toit.forme(0, 0)[0]
-    cheminee(P, *CHEMINEE, Z_PIERRE, faite + .55, larg=.85, toit=toit)
+    cheminee(P, *CHEMINEE, Z_PIERRE, faite + .45, larg=.85, toit=toit)
     P.ajouter(banc.construire(), Matrix.Translation((X + .38, 1.3, 0)) @ Matrix.Rotation(math.pi / 2, 4, "Z"))
     P.ajouter(tas_bois.construire(), Matrix.Translation((1.15, Y + .38, 0)) @ Matrix.Rotation(math.pi, 4, "Z"))
     for (bx, by) in ((-2.3, -3.75), (2.25, -3.7), (-2.95, 2.4)):      # touffes de buissons et de fleurs au pied des murs

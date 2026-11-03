@@ -69,7 +69,7 @@ def moellon(P, centre, lu, hz, rz, n, ep=.24):
     bord = list(devant.edges)
     bmesh.ops.delete(P.bm, geom=[dedans], context="FACES_ONLY")
     c = M("moellon").couleur(P.R, .1)
-    if P.R.random() < .12: c = tuple(x * P.R.choice((.78, 1.15)) for x in c)   # quelques pierres nettement plus sombres ou plus claires
+    if P.R.random() < .12: c = tuple(x * P.R.choice((.8, .88, 1.07)) for x in c)   # quelques pierres nettement plus sombres ou plus claires
     for v in vs: v[P.col] = (*c, 1); v.co += Vector((P.R.uniform(-.02, .02), P.R.uniform(-.02, .02), P.R.uniform(-.02, .02)))
     rb = bmesh.ops.bevel(P.bm, geom=bord, offset=min(.07, hz * .25, lu * .2), segments=1, affect="EDGES", profile=.5)
     for v in rb["verts"]: v[P.col] = (*c, 1)
@@ -118,26 +118,30 @@ class ToitChaume:
     paille dans le sens de la pente, un peu de mousse ; rebord en deux rangs avec une frange ; dessous en paille claire
     porté par des chevrons ; faîtage tressé posé dans la crête. sourcils : [(x, largeur, hauteur)] : le bord avant se
     soulève au-dessus d'une porte. cheminees : [(x, y, r)] : le chaume remonte autour (solin)."""
-    def __init__(s, cx, cy, X, Y, z_bord, z_faite, croupe=1.5, ep=.42, sourcils=(), cheminees=()):
+    def __init__(s, cx, cy, X, Y, z_bord, z_faite, croupe=1.0, ep=.42, sourcils=(), cheminees=(), z_demi=None):
+        """z_demi : hauteur où commence la demi-croupe (en dessous, les bouts sont des pignons droits)."""
         s.cx, s.cy, s.X, s.Y, s.zb, s.zf, s.croupe, s.ep, s.sourcils, s.cheminees = cx, cy, X, Y, z_bord, z_faite, croupe, ep, sourcils, cheminees
-        s.k = (z_faite - z_bord) / Y; s.xr = X - croupe; s.kc = (z_faite - z_bord) / croupe
+        s.zd = z_demi if z_demi is not None else z_bord
+        s.k = (z_faite - z_bord) / Y; s.xr = X - croupe; s.kc = (z_faite + .1 - s.zd) / croupe
     def forme(s, x, y):
         """Hauteur lisse du dessus, et 1 si on est sur une croupe (mèches selon Y) ou 0 sur un pan (mèches selon X)."""
         dx, dy = x - s.cx, y - s.cy
         g = s.zf - s.k * math.sqrt(dy * dy + .02)
         h = s.zf + .1 - s.kc * max(0.0, math.sqrt(dx * dx + .01) - s.xr)
-        z = _smin(g, h, .5)
+        h = max(h, s.zd)                               # demi-croupe : la croupe s'arrête à z_demi, dessous c'est un pignon
+        z = _smin(g, h, .35)
         for (sx, sl, sh) in s.sourcils:
             if dy < 0: z += sh * math.exp(-((dx - sx) / sl) ** 2) * max(0.0, min(1.0, (-dy - s.Y * .35) / (s.Y * .5)))
         for (hx, hy, hr) in s.cheminees: z += .3 * max(0.0, 1 - math.hypot(x - hx, y - hy) / (hr + .5)) ** 2
-        return z, (1.0 if h < g else 0.0)
+        return z, (1.0 if h < g and h > s.zd + .02 else 0.0)
     def dessus(s, x, y):
         z, cr = s.forme(x, y); pente = s.kc if cr else s.k
         d = (s.zf - z) / max(pente, .3)
-        return z - .09 * ((d / .45) % 1.0), d, cr
-    def construire(s, P, pas=.22):
+        u = y if cr else x; b = math.sin(u * 13.0 + math.sin(u * 3.1) * 2) * .5 + math.sin(u * 5.3 + 1.3) * .5   # mèches : creux et bosses le long de la pente
+        return z - .12 * ((d / .5) % 1.0) + .025 * b, d, cr
+    def construire(s, P, pas=.22, pas_x=.13):
         R = P.R; cx, cy, X, Y = s.cx, s.cy, s.X, s.Y
-        nx, ny = int(2 * X / pas) + 1, int(2 * Y / pas) + 1
+        nx, ny = int(2 * X / pas_x) + 1, int(2 * Y / pas) + 1
         bandes = [R.uniform(-1, 1) for _ in range(97)]
         def coord(i, j):
             x = cx - X + 2 * X * i / (nx - 1); y = cy - Y + 2 * Y * j / (ny - 1)
@@ -147,10 +151,11 @@ class ToitChaume:
             return x, y
         def teinte(x, y, d, cr):
             u = y if cr else x                                     # mèches dans le sens de la pente : bandes de 30 cm
-            b = bandes[int((u + 50) / .3) % 97]
+            b = bandes[int((u + 50) / .26) % 97] * .6 + (math.sin(u * 13.0 + math.sin(u * 3.1) * 2) * .5 + math.sin(u * 5.3 + 1.3) * .5) * .4
             c = melange(M("chaume").teintes[0], M("chaume").teintes[1 if b < 0 else 2], abs(b))
-            c = melange(c, M("chaume_f").teintes[0], .55 * (((d / .45) % 1.0) ** 2.5))   # ombre sous chaque rang
-            c = melange(c, M("chaume_f").teintes[1], .18 * min(1, d / 3))
+            c = melange(c, M("chaume_f").teintes[0], .6 * (((d / .5) % 1.0) ** 2.5))    # ombre sous chaque rang
+            c = melange(c, M("chaume_f").teintes[1], .3 * min(1, d / 3.2))              # le haut plus clair, le bas plus vieux
+            c = melange(c, (1, .93, .7), .12 * max(0, 1 - d / 1.2))
             nn = math.sin(x * 2.3 + y * .7) * math.sin(x * .9 - y * 2.1) + R.uniform(-.1, .1)
             if nn > .82 and d > 1.2: c = melange(c, M("mousse").teintes[0], .5)            # petites plaques de mousse, rares
             return c
@@ -183,9 +188,13 @@ class ToitChaume:
             quad(r1[t], r2[t][0], r2[u][0], r1[u]); quad(r2[t][0], r2[t][1], r2[u][1], r2[u][0])
             quad(r2[t][1], Vs[i0][j0], Vs[i1][j1], r2[u][1])
         # frange : mèches de paille qui pendent sous le rang d'égout, une tous les 35 cm environ
-        for t in range(0, nT, 2):
+        t = 0
+        while t < nT:   # mèches groupées par deux ou trois, longueurs et écarts variés
             c = r2[t][1].co
-            P.cylindre((c.x, c.y, c.z + .05), (c.x + R.uniform(-.03, .03), c.y + R.uniform(-.03, .03), c.z - R.uniform(.1, .18)), .06, .012, M("chaume_f").couleur(R), n=4)
+            for m in range(R.choice((1, 2, 2, 3))):
+                ox, oy = R.uniform(-.07, .07), R.uniform(-.07, .07)
+                P.cylindre((c.x + ox, c.y + oy, c.z + .05), (c.x + ox + R.uniform(-.04, .04), c.y + oy + R.uniform(-.04, .04), c.z - R.uniform(.04, .2)), R.uniform(.04, .065), .01, M("chaume_f").couleur(R), n=4)
+            t += R.choice((1, 2, 2, 3, 4))
         # faîtage : boudin tressé posé dans la crête (enfoncé d'un tiers), qui suit la vraie hauteur du toit
         xs = [cx - s.xr - .35 + k * .45 for k in range(int((2 * s.xr + .7) / .45) + 1)]
         pts = [Vector((x, cy, s.forme(x, cy)[0] + .07)) for x in xs]
@@ -203,6 +212,18 @@ def chevrons(P, toit, murs, z_mur, pas_=.95):
             q = p + n * .55
             zq = toit.forme(q.x, q.y)[0] - toit.ep - .06
             poutre(P, (p.x - n.x * .1, p.y - n.y * .1, z_mur - .1), (q.x, q.y, zq), l=.12, h=.12, bev=0)
+
+def pignon_planches(P, x, y0, y1, z0, toit, sens=1, larg=.3, sauf=()):
+    """Pignon en planches verticales (bois patiné) entre le haut du mur (z0) et le dessous du toit, sur le plan x ;
+    sens : +1 si l'extérieur est vers +X. sauf : [(y0, y1)] : pas de planche (cheminée). Une planche de rive le borde."""
+    n = int((y1 - y0) / larg)
+    for i in range(n):
+        y = y0 + (i + .5) * (y1 - y0) / n
+        if any(a_ < y < b_ for (a_, b_) in sauf): continue
+        zt = toit.forme(x, y)[0] - toit.ep * .6
+        if zt - z0 < .08: continue
+        P.boite((x + sens * .02, y, (z0 + zt) / 2), (.1, (y1 - y0) / n * .95, zt - z0), M("chene").couleur(P.R, .12), bev=0)
+    P.boite((x + sens * .07, (y0 + y1) / 2, z0 + .05), (.12, y1 - y0, .14), M("chene").sombre, bev=0)   # sablière sous les planches
 
 # ------------------------------------------------------------------ 4. ouvertures : porte et fenêtre
 def arc_pierres(P, centre, rayon, profondeur=.3, n=9, rz=0.0):
@@ -270,7 +291,8 @@ def cheminee(P, x, y, z0, z1, larg=.9, rz=0.0, toit=None, base=1.35, z_epaule=1.
     P.boite((x, y, z + .06), (larg * 1.12, larg * 1.12, .14), M("moellon").couleur(P.R, .03), rz=rz, bev=.04)
     P.cylindre((x, y, z + .1), (x, y, z + .5), .17, .14, M("terre").couleur(P.R), n=8)
     if toit is not None:
-        zr = toit.forme(x, y)[0] + .02
-        for k in range(4):
+        c = M("moellon").couleur(P.R, .03)
+        for k in range(4):   # quatre dalles qui ne se croisent pas, posées sur le chaume
             a = rz + k * math.pi / 2; ox, oy = math.cos(a), math.sin(a)
-            P.boite((x + ox * (larg * .5 + .08), y + oy * (larg * .5 + .08), zr), (.22, larg + .4, .12), M("moellon").couleur(P.R, .05), rz=a, bev=.04)
+            px, py = x + ox * (larg * .5 + .12), y + oy * (larg * .5 + .12)
+            P.boite((px, py, toit.dessus(px, py)[0] + .05), (.24, larg + .2 if k % 2 else larg - .02, .1), c, rz=a, bev=.03)
