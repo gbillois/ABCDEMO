@@ -174,16 +174,30 @@ Tout est dans `animations.py` (le héros n'a pas changé depuis le tour 3, sauf 
    bras qui redescend aussitôt (plus de bras tendu immobile) ; la tête garde la cible. Lame du banc en acier bleuté
    foncé avec un liseré sombre.
 
-Encore imparfait (vu dans `t4/glissement.txt`, hors des corrections demandées) : la réception (`saut_fin`) et le coup
-d'épée gardent un pied qui glisse (environ 10 et 18 cm) : la source fait un pas pendant ces gestes et le verrou à
-vitesse nulle ne suit pas ce pas. À traiter au prochain tour si l'inspecteur le relève (verrou par appui au lieu d'un
-verrou moyen).
-
 À changer dans le jeu (`animerClips`), avec ces vitesses (le héros marche jusqu'à 2,6 m/s, court jusqu'à 4,6 m/s) :
 - poids : repos → marche `lisse(.06, .3, v)` ; marche → trot `lisse(.9, 1.4, v)` (au lieu de 1,1-1,9) ;
   trot → course `lisse(2.6, 3.4, v)` (au lieu de 3,3-4,6) ;
 - la cadence v / V reste bornée à 0,7-1,8 : marche jusqu'à 1,15 m/s, trot 1,27-3,26 m/s, course dès 2,55 m/s : les
   plages se recouvrent, aucun clip n'est joué hors de ses bornes avec ces seuils.
+
+## Tour 4 : contrôle : À REFAIRE (un seul point)
+
+Tout à 8 (coût 9) sauf animations 7. Restait : réception du saut (10,5 cm), glissement par contact du coup d'épée,
+lame qui pend contre la cuisse au retour.
+
+## Tour 5 (planches dans `t5/`)
+
+1. Clips sur place (repos, parler, ramasser, épée, réception, début de saut) : verrou par appui RÉEL, avec la même
+   règle que le banc (un point de semelle sous 2 cm). Le pied qui touche est mis à plat et sa cheville reste là où il
+   s'est posé jusqu'à ce qu'il se lève (IK cuite, deux passes, bassin reposé ensuite). Entre deux contacts d'un même
+   pied, un pas se fait en levant le pied (il se soulève d'abord, avance en arc de 7 cm, se repose, reste à plat).
+   Coup d'épée : bassin gardé au-dessus des pieds et deux pieds plantés tout le geste (le pas glissé de la source est
+   supprimé). Résultat (`t5/glissement.txt`) : réception 2,3 cm au pire, épée 1,9 cm, ramasser 0,1 cm, repos et
+   parler 0 cm ; marche 3,0 / trot 0,5 / course 0,8 cm inchangés.
+2. `glissement.txt` donne maintenant le glissement de CHAQUE contact de chaque pied (images de début et de fin,
+   au quart d'image).
+3. Retour de l'épée : coude plié de 50° vers l'avant et poignet tourné vers l'extérieur : la lame reste devant le corps,
+   loin de la cuisse et de la ceinture. Facultatif fait : fil clair sur la lame du banc.
 
 ## Prochaine étape
 

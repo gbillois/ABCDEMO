@@ -121,6 +121,9 @@ for nom, act_nom in CLIPS:
             for n in ("UpperArm.R", "LowerArm.R", "Hand.R"): Rw[n] = Matrix.Rotation(math.radians(lev), 3, "Y") @ Rw[n]
             bas = 55 * lisse_(.36, .72, u)                                                           # puis redescend tout de suite le long du corps
             for n in ("UpperArm.R", "LowerArm.R", "Hand.R"): Rw[n] = Matrix.Rotation(math.radians(-bas), 3, "Y") @ Rw[n]
+            garde = lisse_(.4, .75, u)                                                                # au retour, l'épée reste devant
+            for n in ("LowerArm.R", "Hand.R"): Rw[n] = Matrix.Rotation(math.radians(-50 * garde), 3, "X") @ Rw[n]
+            Rw["Hand.R"] = Matrix.Rotation(math.radians(-25 * garde), 3, "Z") @ Rw["Hand.R"]
         for s_ in "LR":               # jambes repliées en l'air, genoux fléchis à la réception
             if RT.get("cuisse"):
                 for n in (f"Thigh.{s_}", f"Shin.{s_}", f"Foot.{s_}"): Rw[n] = R_(RT["cuisse"]) @ Rw[n]
@@ -135,6 +138,7 @@ for nom, act_nom in CLIPS:
             pb.keyframe_insert("rotation_quaternion", frame=f - f0 + 1)
         # les hanches montent, descendent et se balancent (pas d'avancée moyenne : le jeu déplace le héros)
         h = (src.matrix_world @ src.pose.bones[HANCHES].head - hips0) * ECH   # le balancement avant/arrière des hanches est gardé : sans lui, le pied posé glisse (le corps avance par à-coups)
+        if RT.get("coup"): h.x = h.y = 0   # coup d'épée : le bassin reste au-dessus des pieds (sinon les pieds posés ne peuvent pas rester en place)
         pb = rig.pose.bones["Hips"]; pb.location = Rt_rest["Hips"].inverted() @ h; pb.keyframe_insert("location", frame=f - f0 + 1)
         pieds.append((src.matrix_world @ src.pose.bones["foot.l"].head).y - (src.matrix_world @ src.pose.bones[HANCHES].head).y)
     if nom == "repos":   # contrôle : plus grand saut d'orientation d'une image à l'autre, os par os (en degrés)
@@ -252,6 +256,67 @@ for nom, act_nom in CLIPS:
             dz = -b_ if SOL[nom] == "colle" else max(0, -b_)
             hb.location = hb.location + Rh @ Vector((0, 0, dz)); hb.keyframe_insert("location", frame=fr)
         for fc in out.fcurves: fc.update()
+    # 4) clips sur place (repos, parler, ramasser, épée, réception) : verrou par appui RÉEL. Un pied qui touche le sol
+    # (un point de semelle sous 2 cm, la même règle que le banc) est mis à plat et sa cheville reste là où le pied
+    # s'est posé, jusqu'à ce qu'il se lève ; un pas se fait donc en levant le pied. Le bassin est ensuite reposé.
+    def cuire(cibles_pos, infl):
+        bpy.context.view_layer.objects.active = rig; vides = []
+        for s_ in "LR":
+            e = bpy.data.objects.new(f"cible{s_}", None); scene.collection.objects.link(e); vides.append(e)
+            c = rig.pose.bones[f"Shin.{s_}"].constraints.new("IK"); c.target = e; c.chain_count = 2; c.use_tail = True
+            for k in range(N):
+                e.location = cibles_pos[s_][k]; e.keyframe_insert("location", frame=k + 1)
+                c.influence = infl[s_][k]; c.keyframe_insert("influence", frame=k + 1)
+        rig.select_set(True); bpy.ops.object.mode_set(mode="POSE"); bpy.ops.pose.select_all(action="SELECT")
+        bpy.ops.nla.bake(frame_start=1, frame_end=N, only_selected=True, visual_keying=True, clear_constraints=True, use_current_action=True, bake_types={"POSE"})
+        bpy.ops.object.mode_set(mode="OBJECT")
+        for e in vides: bpy.data.objects.remove(e)
+        for pb in rig.pose.bones: pb.rotation_mode = "QUATERNION"
+    def bassin():
+        hb = rig.pose.bones["Hips"]; Rh = Rt_rest["Hips"].inverted()
+        for fr in range(1, N + 1):
+            scene.frame_set(fr); b_ = min(p.z for s_ in "LR" for p in semelle_monde(rig, s_).values())
+            dz = -b_ if SOL[nom] == "colle" else max(0, -b_)
+            hb.location = hb.location + Rh @ Vector((0, 0, dz)); hb.keyframe_insert("location", frame=fr)
+    if nom in SOL and nom not in ("marche", "trot", "course"):
+        for passe in range(2):
+            touche, cheville = {s_: [] for s_ in "LR"}, {s_: [] for s_ in "LR"}
+            for fr in range(1, N + 1):
+                scene.frame_set(fr)
+                for s_ in "LR":   # coup d'épée : les deux pieds restent plantés tout le geste (pas de pas glissé)
+                    touche[s_].append(RT.get("coup", False) or min(p.z for p in semelle_monde(rig, s_).values()) < CONTACT + .004)
+                    cheville[s_].append((rig.matrix_world @ rig.pose.bones[f"Shin.{s_}"].tail).copy())
+            cibles_pos, infl = {}, {}
+            for s_ in "LR":
+                cibles_pos[s_] = [c.copy() for c in cheville[s_]]; infl[s_] = [0.0] * N; ancre = None
+                for k in range(N):
+                    if touche[s_][k]:
+                        if ancre is None: ancre = cheville[s_][k].copy()
+                        cibles_pos[s_][k].x, cibles_pos[s_][k].y = ancre.x, ancre.y; infl[s_][k] = 1.0
+                    else: ancre = None
+                # un pas entre deux contacts du même pied : le pied se lève d'abord, avance en arc, puis se repose (à plat)
+                k = 0; pas_ = set()
+                while k < N:
+                    if touche[s_][k]: k += 1; continue
+                    a = k - 1; b = k
+                    while b < N and not touche[s_][b]: b += 1
+                    if a >= 0 and b < N and b - a <= 12:
+                        A0, B0 = cibles_pos[s_][a], cibles_pos[s_][b]
+                        for m in range(a + 1, b):
+                            t = (m - a) / (b - a); h = lisse_(.3, .9, t)
+                            cibles_pos[s_][m].x = A0.x + (B0.x - A0.x) * h; cibles_pos[s_][m].y = A0.y + (B0.y - A0.y) * h
+                            base = max(cheville[s_][m].z, A0.z + (B0.z - A0.z) * h)
+                            cibles_pos[s_][m].z = base + .07 * math.sin(math.pi * t) ** .5; infl[s_][m] = 1.0; pas_.add(m)
+                    k = b
+                for fr in range(1, N + 1):   # pied à plat pendant le contact
+                    if not touche[s_][fr - 1] and fr - 1 not in pas_: continue
+                    scene.frame_set(fr); pb = rig.pose.bones[f"Foot.{s_}"]
+                    pb.matrix = Matrix.Translation(pb.matrix.to_translation()) @ pb.bone.matrix_local.to_quaternion().to_matrix().to_4x4()
+                    bpy.context.view_layer.update(); pb.keyframe_insert("rotation_quaternion", frame=fr)
+            cuire(cibles_pos, infl); bassin()
+            for fc in out.fcurves:
+                for kp in fc.keyframe_points: kp.interpolation = "LINEAR"
+        print("  verrou par appui :", {s_: sum(touche[s_]) for s_ in "LR"}, "images au sol sur", N)
     for fc in out.fcurves:
         for kp in fc.keyframe_points: kp.interpolation = "LINEAR"
     # vitesse naturelle mesurée sur NOTRE squelette : un point de la semelle (talon, plante, bout) qui touche le sol
