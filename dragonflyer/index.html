@@ -1855,14 +1855,15 @@ function aplanir(plats) {   // plats : [{ x, z, yaw, hx, hz, y }] (hx, hz : demi
       const dx = x - q.x, dz = z - q.z, cs = Math.cos(q.yaw), sn = Math.sin(q.yaw), lx = Math.abs(dx * cs - dz * sn) - q.hx, lz = Math.abs(dx * sn + dz * cs) - q.hz;
       const e = Math.hypot(Math.max(lx, 0), Math.max(lz, 0));   // distance au bord du plat (0 dedans)
       const w = e <= CEL * 1.1 ? 1000 : Math.exp(-(((e - CEL * 1.1) / 4.5) ** 2));   // dedans (et un point autour) : plat exact ; puis talus doux
-      sw += w; sy += w * q.y; wmax = Math.max(wmax, Math.min(1, w));
+      const yq = q.pz ? q.y + Math.max(-q.hz, Math.min(q.hz, dx * sn + dz * cs)) * q.pz : q.y;   // rampe : la hauteur du point de la rampe le plus proche
+      sw += w; sy += w * yq; wmax = Math.max(wmax, Math.min(1, w));
     }
     if (sw > 1e-4) neuf.push([i, (sy + (1 - wmax) * HAUT[i]) / (sw + (1 - wmax))]);
   }
   for (const [i, h] of neuf) HAUT[i] = h;
 }
 function aplanirExact(plats) {   // dans l'ordre : chaque plat (et un point de grille autour) exactement à sa hauteur
-  const gi = x => Math.round((x + MONDE / 2) / CEL - .5), coeur = new Set();
+  const gi = x => Math.round((x + MONDE / 2) / CEL - .5), coeur = new Set(), seuils = new Set();
   for (const q of plats) {
     const R = Math.hypot(q.hx, q.hz) + CEL * 2, cs = Math.cos(q.yaw), sn = Math.sin(q.yaw);
     for (let iz = Math.max(0, gi(q.z - R)); iz <= Math.min(NRES - 1, gi(q.z + R)); iz++) for (let ix = Math.max(0, gi(q.x - R)); ix <= Math.min(NRES - 1, gi(q.x + R)); ix++) {
@@ -1870,7 +1871,7 @@ function aplanirExact(plats) {   // dans l'ordre : chaque plat (et un point de g
       const i = iz * NRES + ix, ax = Math.abs(dx * cs - dz * sn), az = Math.abs(dx * sn + dz * cs);
       if (q.rond ? Math.hypot(dx, dz) <= q.hx + CEL * .75 : ax <= q.hx + CEL * .75 && az <= q.hz + CEL * .75) {
         if (q.rond ? Math.hypot(dx, dz) <= q.hx + CEL * .3 : q.maison && ax <= q.hx + CEL * .3 && az <= q.hz + CEL * .3) { if (!coeur.has(i)) HAUT[i] = q.y; coeur.add(i); }   // la place et le dessous des maisons : à eux seuls
-        else if (!coeur.has(i)) HAUT[i] = q.y;   // la marge d'un plat ne rogne jamais l'emprise d'une maison voisine
+        else if (!coeur.has(i) && !(q.derriere && seuils.has(i))) { HAUT[i] = q.y + (q.pz ? (dx * sn + dz * cs) * q.pz : 0); if (q.palier) seuils.add(i); }   // la terre derrière un muret ne recouvre jamais un palier de porte   // la marge d'un plat ne rogne jamais l'emprise d'une maison voisine ; pz : rampe (pente le long de z local)
       }
     }
   }
@@ -2000,13 +2001,16 @@ function batirVillage(v, r) {
     plats.push({ x: o.x, z: o.z, yaw: o.yaw, hx: o.hx + .6, hz: o.hz + .6, y: yp, maison: true });
     const dd = o.hz + 2; plats.push({ x: o.x + sn * dd, z: o.z + cs * dd, yaw: o.yaw, hx: 1.6, hz: 1.6, y: yp, palier: true });   // palier devant la porte (façade : +Z local)
     // murets de soutènement sur les côtés et à l'arrière quand la terrasse entaille la pente ou la remblaie de plus de 45 cm
-    const bord = .6 + CEL * .75 + .3;   // au bord de la zone aplanie, là où le talus commence
+    const bord = 1.3;   // tout près de la maison (un mur de terrasse qui lui appartient, jamais un mur détaché au loin)
     const cotes = [[o.hx + bord, 0, 0, 1, o.hz * 2 + 2 * bord], [-(o.hx + bord), 0, 0, 1, o.hz * 2 + 2 * bord], [0, -(o.hz + bord), 1, 0, o.hx * 2 + 2 * bord]];   // droite, gauche, arrière
     const coupe = cotes.map(([cx_, cz_]) => { const [ox_, oz_] = P(cx_ ? cx_ + Math.sign(cx_) * 1.5 : 0, cz_ ? cz_ + Math.sign(cz_) * 1.5 : 0); const diff = SOL0(ox_, oz_) - yp; return diff >= .45 ? diff : 0; });   // là où la terrasse entaille la pente
     const mur = (i, t0, t1, diff) => { const [cx_, cz_, ax, az] = cotes[i], [mx_, mz_] = P(cx_, cz_), L = t1 - t0;
       const n = Math.max(2, Math.round(L / 2)), ex = ax * cs + az * sn, ez = -ax * sn + az * cs, sy = Math.min(1.7, Math.max(.55, diff / .9 + .1));
       for (let k = 0; k < n; k++) { const t = t0 + (k + .5) * (L / n);   // un mur continu, même hauteur
-        v.murets.push({ x: mx_ + ex * t, z: mz_ + ez * t, yaw: Math.atan2(-ez, ex), y: yp - .1, sy, sx: L / n / 1.95 }); } };
+        v.murets.push({ x: mx_ + ex * t, z: mz_ + ez * t, yaw: Math.atan2(-ez, ex), y: yp - .1, sy, sx: L / n / 1.95 }); }
+      // derrière le mur, la terre monte jusqu'à son sommet (un vrai mur de soutènement, pas un mur posé devant un talus)
+      const [bx, bz] = P(cx_ ? cx_ + Math.sign(cx_) * 1.7 : 0, cz_ ? cz_ - 1.7 : 0), tm = (t0 + t1) / 2, haut = yp - .1 + .9 * sy;
+      plats.push({ x: bx + ex * tm, z: bz + ez * tm, yaw: o.yaw, hx: ax ? L / 2 : 1.3, hz: ax ? 1.3 : L / 2, y: Math.max(yp, Math.min(haut, SOL0(bx + ex * tm, bz + ez * tm))), derriere: true }); };
     coupe.forEach((d, i) => { if (d) mur(i, -cotes[i][4] / 2, cotes[i][4] / 2, d); });
     // un muret seul se retourne à l'angle (jamais un mur droit détaché de la maison)
     if (coupe[2]) [0, 1].forEach(i => { if (!coupe[i]) mur(i, -cotes[i][4] / 2, -cotes[i][4] / 2 + 4, coupe[2]); });
@@ -2041,13 +2045,16 @@ function batirVillage(v, r) {
   for (let k = 0; k < 28; k++) if (mPlace[k] && (mPlace[(k + 1) % 28] || mPlace[(k + 27) % 28])) v.murets.push(mPlace[k]);   // jamais un tronçon isolé
   for (const ru of rues) {   // les rues : terrain adouci le long de leur axe (profil moyen), sans bosse ni marche brutale
     const L_ = Math.max(ru.L + 6, 26), yaw = Math.atan2(ru.dx, ru.dz);
-    for (let s_ = 9; s_ <= L_; s_ += 3) {
+    { let t = 0, n = 0; for (let e = -6; e <= 6; e += 3) { t += SOL0(C.x + ru.dx * (22 + e), C.z + ru.dz * (22 + e)); n++; }   // départ de la rue : une rampe droite et régulière (exacte) de la place à 22 m
+      const yF = Math.max(1.5, t / n), pz = (yF - hC) / 13; ru.rampe = Math.abs(pz);
+      plats.push({ x: C.x + ru.dx * 15.5, z: C.z + ru.dz * 15.5, yaw, hx: 1.9, hz: 6.5, y: (hC + yF) / 2, pz, rampe: true }); }
+    for (let s_ = 24; s_ <= L_; s_ += 3) {
       let t = 0, n = 0; for (let e = -9; e <= 9; e += 3) { t += SOL0(C.x + ru.dx * Math.max(6, s_ + e), C.z + ru.dz * Math.max(6, s_ + e)); n++; }
       plats.push({ x: C.x + ru.dx * s_, z: C.z + ru.dz * s_, yaw, hx: 1.4, hz: 1.6, y: Math.max(1.5, s_ < 14 ? hC + (t / n - hC) * (s_ - 9) / 5 : t / n), rue: true });
     }
   }
   aplanir(plats); v.plats = plats;   // (gardés pour le banc de test d'implantation)
-  const rang = q => q.rond ? 0 : q.maison ? 3 : q.palier ? 2 : 1;   // la place d'abord, puis potagers, paliers, et les maisons en dernier (rien ne rogne leur emprise)
+  const rang = q => q.rond ? 0 : q.derriere ? 4 : q.maison ? 3 : q.palier ? 2 : q.rampe ? 1.5 : 1;   // la terre derrière les murets en dernier (hors de l'emprise des maisons)   // la place d'abord, puis potagers, paliers, et les maisons en dernier (rien ne rogne leur emprise)
   aplanirExact(plats.filter(q => !q.rue).sort((a, b) => rang(a) - rang(b)));   // les rues restent un mélange doux
   peindreSol(v, [[C.x, C.z]], 19, "rgb(0,255,0)");   // place pavée
   const peche = v.maisons.some(o => o.type === "pecheur");
@@ -2055,7 +2062,7 @@ function batirVillage(v, r) {
     ru.L = Math.max(ru.L + 6, 26);
     if (peche && Math.hypot(C.x + ru.dx * 20 - v.x, C.z + ru.dz * 20 - v.z) > Math.hypot(C.x - v.x, C.z - v.z) + 12) ru.L = 22;   // côté terre du village de pêcheurs : rues courtes
     peindreSol(v, [[C.x + ru.dx * 6, C.z + ru.dz * 6], [C.x + ru.dx * ru.L, C.z + ru.dz * ru.L]], 3, "rgb(255,0,0)");
-    peindreSol(v, [[C.x + ru.dx * 8, C.z + ru.dz * 8], [C.x + ru.dx * 12.5, C.z + ru.dz * 12.5]], 3.2, "rgb(0,255,0)");   // entrée pavée de la rue, raccordée à la place
+    if ((ru.rampe || 0) < .1) peindreSol(v, [[C.x + ru.dx * 8, C.z + ru.dz * 8], [C.x + ru.dx * 12.5, C.z + ru.dz * 12.5]], 3.2, "rgb(0,255,0)");   // entrée pavée de la rue (si elle ne monte pas trop), raccordée à la place
     for (let s_ = 12; s_ < ru.L + 28; s_ += 8) LIBRES.push({ x: C.x + ru.dx * s_, z: C.z + ru.dz * s_, r: 7 });
   }
   for (let k = 0; k < 6; k++) {   // entre deux rues : un banc et une lanterne au bord de la place (trois de chaque)
@@ -5479,7 +5486,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
 })();
 </script>
 <script>
-window.DRAGONFLYER_VERSION = "2026.11.03-4"; // à changer à chaque modification du jeu
+window.DRAGONFLYER_VERSION = "2026.11.03-5"; // à changer à chaque modification du jeu
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
