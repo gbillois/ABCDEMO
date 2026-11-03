@@ -975,6 +975,8 @@ import { Sky } from "three/addons/objects/Sky.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { Water } from "three/addons/objects/Water.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 
 const $ = id => document.getElementById(id);
 /* ================= Les parties : chaque partie a un numéro unique (6 chiffres) et un surnom =================
@@ -1690,23 +1692,37 @@ function numTex(num, sub) {
   else { x.font = '800 120px "Baloo 2", "Trebuchet MS", sans-serif'; x.fillText(num, 128, 96, 210); }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
 }
+// le cottage fait par Blender (blender/pins/batiments/cottage.py → assets/cottage.glb) : C_rdc (murs du rez-de-chaussée,
+// qui s'effacent quand on entre), C_etage, C_toit (origine au haut des murs), C_terrasse, W_rdc / W_etage (vitres).
+// Sans le fichier (page ouverte sans serveur), le jeu garde l'ancien cottage dessiné en code.
+const COT3D = await (async () => { try {
+  const r = await fetch("assets/cottage.glb"); if (!r.ok) return null;
+  const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder); const gltf = await loader.parseAsync(await r.arrayBuffer(), "");
+  gltf.scene.updateMatrixWorld(true); const out = {}; let hautEtage = 6.45;
+  gltf.scene.traverse(o => { if (!o.isMesh) return; // la compression range les sommets entre -1 et 1 et met l'échelle dans le nœud : on remet tout en mètres
+    const g = o.geometry.clone(), P = g.attributes.position, v = new THREE.Vector3(), t = new Float32Array(P.count * 3), m = o.matrixWorld;
+    if (o.name === "C_rdc" && o.userData.haut_etage) hautEtage = o.userData.haut_etage; // (la compression déplace l'origine des nœuds : la hauteur vient des « extras »)
+    for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i).applyMatrix4(m); t.set([v.x, v.y, v.z], i * 3); }
+    g.setAttribute("position", new THREE.BufferAttribute(t, 3)); g.deleteAttribute("normal"); g.computeVertexNormals(); g.computeBoundingSphere(); g.userData.partage = true; out[o.name] = g; });
+  if (out.C_toit) out.C_toit.translate(0, -hautEtage, 0); // le toit : origine au haut des murs (le jeu le pose sur l'étage ou sur le rez-de-chaussée)
+  return out.C_rdc && out.C_toit ? out : null; } catch (e) { console.warn("cottage.glb", e); return null; } })();
 // certains cottages n'ont qu'un rez-de-chaussée (le tien garde son étage)
 const SINGLE = new Set([1, 3, 5, 7, 8, 10, 12]);
 let PART_MAT = null;
 function cottage(cx, cz, rot, mine, num) {
   PART_MAT ??= mat(0xf6efe2, .85, { map: woodTex });
   const g = new THREE.Group(); g.position.set(cx, 0, cz); g.rotation.y = rot; scene.add(g);
-  const wallMat = mat(0xffffff, .85, { map: woodTex, transparent: false });
+  const wallMat = COT3D ? new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .86, side: THREE.DoubleSide, shadowSide: THREE.FrontSide }) : mat(0xffffff, .85, { map: woodTex, transparent: false });
   const floor = new THREE.Mesh(boxUV(new THREE.BoxGeometry(10.3, .16, 8.3), 10.3, .16, 8.3, 2), mat(0xffffff, .7, { map: floorTex })); floor.position.y = .08; floor.receiveShadow = true; g.add(floor);
   const walls = new THREE.Group(); g.add(walls);
   const H = 3.2;
-  L_WALLS.slice(0, 5).forEach(([x1, x2, z1, z2]) => { const w = x2 - x1, d = z2 - z1, m = new THREE.Mesh(boxUV(new THREE.BoxGeometry(w, H, d), w, H, d, 2.5), wallMat); m.position.set((x1 + x2) / 2, H / 2 + .1, (z1 + z2) / 2); walls.add(m); });
+  if (!COT3D) L_WALLS.slice(0, 5).forEach(([x1, x2, z1, z2]) => { const w = x2 - x1, d = z2 - z1, m = new THREE.Mesh(boxUV(new THREE.BoxGeometry(w, H, d), w, H, d, 2.5), wallMat); m.position.set((x1 + x2) / 2, H / 2 + .1, (z1 + z2) / 2); walls.add(m); });
   // cloisons des chambres : elles ne s'effacent pas quand on entre, elles s'abaissent (on voit les pièces, comme une maison de poupée)
   const parts = new THREE.Group(); g.add(parts);
   const cloison = (grp, [x1, x2, z1, z2], h, y0) => { const w = x2 - x1, d = z2 - z1, m = new THREE.Mesh(boxUV(new THREE.BoxGeometry(w, h, d), w, h, d, 2.5), PART_MAT); m.position.set((x1 + x2) / 2, y0 + h / 2, (z1 + z2) / 2); grp.add(m); };
   L_WALLS.slice(5, 7).forEach(w => cloison(parts, w, H, 0));
-  const lintel = new THREE.Mesh(boxUV(new THREE.BoxGeometry(1.1, .95, .3), 1.1, .95, .3, 2.5), wallMat); lintel.position.set(0, 2.83, 4); walls.add(lintel);
-  const jambM = mat(0xf2eadb, .6); for (const sx of [-.6, .6]) { const j = rbox(.12, 2.4, .36, jambM, .02); j.position.set(sx, 1.3, 4); walls.add(j); } const head = rbox(1.32, .14, .36, jambM, .02); head.position.set(0, 2.42, 4); walls.add(head);
+  if (!COT3D) { const lintel = new THREE.Mesh(boxUV(new THREE.BoxGeometry(1.1, .95, .3), 1.1, .95, .3, 2.5), wallMat); lintel.position.set(0, 2.83, 4); walls.add(lintel);
+  const jambM = mat(0xf2eadb, .6); for (const sx of [-.6, .6]) { const j = rbox(.12, 2.4, .36, jambM, .02); j.position.set(sx, 1.3, 4); walls.add(j); } const head = rbox(1.32, .14, .36, jambM, .02); head.position.set(0, 2.42, 4); walls.add(head); }
   // fenêtres
   const winGlass = mat(0x9fc6dc, .08, { metalness: .4 }), winFrame = mat(0xffffff, .5); winMats.push(winGlass);
   const upper = new THREE.Group(); g.add(upper);
@@ -1718,13 +1734,16 @@ function cottage(cx, cz, rot, mine, num) {
     const sill = rbox(1.7, .08, .5, winFrame, .02); sill.position.set(x, y - .66, z); sill.rotation.y = ry; grp.add(sill);
     for (const sd of [-1, 1]) { const sh = rbox(.55, 1.3, .06, mat(0x2f6b4f, .6), .02); const ox = Math.cos(ry) * sd * 1.05, oz = -Math.sin(ry) * sd * 1.05; sh.position.set(x + ox, y, z + oz + (ry ? 0 : Math.sign(z) * .2)); if (ry) sh.position.x += Math.sign(x) * .2; sh.rotation.y = ry; grp.add(sh); }
   };
-  [[-5, 0, Math.PI / 2], [5, -2.2, Math.PI / 2], [5, 2, Math.PI / 2], [3.2, -4, 0], [-.4, -4, 0], [-3, 4, 0], [3, 4, 0]].forEach(([x, z, ry]) => windowAt(walls, x, 1.95, z, ry));
+  const cotKeep = [];
+  if (COT3D) { // les murs, l'étage et leurs vitres faits par Blender (les vitres gardent la matière du jeu, qui s'allume la nuit)
+    for (const [grp, k, m] of [[walls, "C_rdc", wallMat], [walls, "W_rdc", winGlass], [upper, "C_etage", wallMat], [upper, "W_etage", winGlass]]) { if (!COT3D[k]) continue; const me = new THREE.Mesh(COT3D[k], m); me.receiveShadow = true; grp.add(me); cotKeep.push(me); }
+  } else [[-5, 0, Math.PI / 2], [5, -2.2, Math.PI / 2], [5, 2, Math.PI / 2], [3.2, -4, 0], [-.4, -4, 0], [-3, 4, 0], [3, 4, 0]].forEach(([x, z, ry]) => windowAt(walls, x, 1.95, z, ry));
   // étage : plancher (avec la trémie de l'escalier), murs, fenêtres, garde-corps
   const H2 = 2.95, slabM = mat(0xffffff, .7, { map: floorTex });
-  [[-5.25, 3.2, -4.25, 4.25], [3.2, 5.25, -4.25, -.15], [3.2, 5.25, 3.75, 4.25]].forEach(([x1, x2, z1, z2]) => { const w = x2 - x1, d = z2 - z1, m = new THREE.Mesh(boxUV(new THREE.BoxGeometry(w, .2, d), w, .2, d, 2), slabM); m.position.set((x1 + x2) / 2, UP - .1, (z1 + z2) / 2); upper.add(m); });
-  const trimM = mat(0xf2eadb, .6); for (const [w, d, x, z] of [[10.6, .3, 0, 4.2], [10.6, .3, 0, -4.2], [.3, 8.6, 5.2, 0], [.3, 8.6, -5.2, 0]]) { const tr = rbox(w, .28, d, trimM, .04); tr.position.set(x, UP - .12, z); g.add(tr); }
-  L_WALLS_UP.slice(0, 4).forEach(([x1, x2, z1, z2]) => { const w = x2 - x1, d = z2 - z1, m = new THREE.Mesh(boxUV(new THREE.BoxGeometry(w, H2, d), w, H2, d, 2.5), wallMat); m.position.set((x1 + x2) / 2, UP + H2 / 2, (z1 + z2) / 2); upper.add(m); });
-  [[-5, -1.5, Math.PI / 2], [5, -2, Math.PI / 2], [-2.6, -4, 0], [2, -4, 0], [-2.8, 4, 0], [2.2, 4, 0]].forEach(([x, z, ry]) => windowAt(upper, x, UP + 1.55, z, ry));
+  (COT3D ? [[-4.86, 3.2, -3.86, 3.86], [3.2, 4.86, -3.86, -.15], [3.2, 4.86, 3.75, 3.86]] : [[-5.25, 3.2, -4.25, 4.25], [3.2, 5.25, -4.25, -.15], [3.2, 5.25, 3.75, 4.25]]).forEach(([x1, x2, z1, z2]) => { const w = x2 - x1, d = z2 - z1, m = new THREE.Mesh(boxUV(new THREE.BoxGeometry(w, .2, d), w, .2, d, 2), slabM); m.position.set((x1 + x2) / 2, UP - .1, (z1 + z2) / 2); upper.add(m); });
+  const trimM = mat(0xf2eadb, .6); if (!COT3D) for (const [w, d, x, z] of [[10.6, .3, 0, 4.2], [10.6, .3, 0, -4.2], [.3, 8.6, 5.2, 0], [.3, 8.6, -5.2, 0]]) { const tr = rbox(w, .28, d, trimM, .04); tr.position.set(x, UP - .12, z); g.add(tr); }
+  if (!COT3D) L_WALLS_UP.slice(0, 4).forEach(([x1, x2, z1, z2]) => { const w = x2 - x1, d = z2 - z1, m = new THREE.Mesh(boxUV(new THREE.BoxGeometry(w, H2, d), w, H2, d, 2.5), wallMat); m.position.set((x1 + x2) / 2, UP + H2 / 2, (z1 + z2) / 2); upper.add(m); });
+  if (!COT3D) [[-5, -1.5, Math.PI / 2], [5, -2, Math.PI / 2], [-2.6, -4, 0], [2, -4, 0], [-2.8, 4, 0], [2.2, 4, 0]].forEach(([x, z, ry]) => windowAt(upper, x, UP + 1.55, z, ry));
   const railM = mat(0x8a5a35, .6);
   for (const [x1, z1, x2, z2] of [[3.28, -.1, 3.28, 3.68], [3.28, 3.68, 4.85, 3.68]]) {
     const L = Math.hypot(x2 - x1, z2 - z1), top = rbox(x1 === x2 ? .08 : L, .07, x1 === x2 ? L : .08, railM, .02); top.position.set((x1 + x2) / 2, UP + .95, (z1 + z2) / 2); upper.add(top);
@@ -1741,11 +1760,13 @@ function cottage(cx, cz, rot, mine, num) {
   for (let k = 0; k < 6; k++) { const t = .25 + k * .14, z = ST.zBot - (ST.zBot - ST.zTop) * t, b = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .9, 8), railM); b.position.set(ST.x1 - .12, UP * t + .45, z); stairs.add(b); }
   shadowAll(stairs);
   const roof = new THREE.Group(); g.add(roof);
+  if (COT3D) { const r = new THREE.Mesh(COT3D.C_toit, wallMat.clone()); r.material.transparent = false; r.position.y = UP + 2.95; roof.add(r); cotKeep.push(r); } else {
   const r = new THREE.Mesh(roofGeo, roofMat); r.position.y = UP + 2.97; roof.add(r);
-  const chim = new THREE.Mesh(boxUV(new THREE.BoxGeometry(.9, 2.2, .9), .9, 2.2, .9, 1.5), mat(0xffffff, .9, { map: stoneTex })); chim.position.set(-2.5, UP + 4.6, -3.2); chim.scale.y = 1.3; roof.add(chim);
+  const chim = new THREE.Mesh(boxUV(new THREE.BoxGeometry(.9, 2.2, .9), .9, 2.2, .9, 1.5), mat(0xffffff, .9, { map: stoneTex })); chim.position.set(-2.5, UP + 4.6, -3.2); chim.scale.y = 1.3; roof.add(chim); }
   shadowAll(roof);
   // grande terrasse au rez-de-chaussée : transats, table pour manger, parasol
-  const deck = new THREE.Mesh(boxUV(new THREE.BoxGeometry(10.3, .2, 4.9), 10.3, .2, 4.9, 2), mat(0xffffff, .8, { map: floorTex })); deck.position.set(0, .1, 6.6); deck.receiveShadow = true; g.add(deck);
+  if (COT3D?.C_terrasse) { const deck = new THREE.Mesh(COT3D.C_terrasse, COT3D.matTerrasse ??= new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .85 })); deck.castShadow = deck.receiveShadow = true; g.add(deck); }
+  else { const deck = new THREE.Mesh(boxUV(new THREE.BoxGeometry(10.3, .2, 4.9), 10.3, .2, 4.9, 2), mat(0xffffff, .8, { map: floorTex })); deck.position.set(0, .1, 6.6); deck.receiveShadow = true; g.add(deck); }
   g.add(terraceTpl.clone());
   // porte d'entrée qui tourne sur ses gonds (on l'ouvre et on la ferme soi-même)
   const door = new THREE.Group(), doorM = mat(0x6b4226, .55); door.position.set(-.55, 0, 4.06);
@@ -1762,9 +1783,9 @@ function cottage(cx, cz, rot, mine, num) {
   }
   // numéro du cottage : plaque à côté de la porte (pour se donner rendez-vous)
   const plaque = new THREE.Mesh(new THREE.PlaneGeometry(.62, .44), new THREE.MeshStandardMaterial({ map: numTex(num), roughness: .3, metalness: .1 }));
-  plaque.position.set(1.45, 2.05, 4.21); g.add(plaque);
+  plaque.position.set(1.45, 2.05, COT3D ? 4.165 : 4.21); g.add(plaque);
   // tout ce qui ne bouge pas est fusionné (murs, étage, escalier, toit, terrasse) : bien moins d'objets à dessiner
-  [walls, upper, stairs, roof].forEach((part, i) => fondre(part, [], "cottage-" + i)); fondre(parts, [], "cottage-cl");
+  [walls, upper, stairs, roof].forEach((part, i) => fondre(part, cotKeep, "cottage-" + i)); fondre(parts, [], "cottage-cl");
   const s = rot ? -1 : 1;
   const single = !mine && SINGLE.has(num);
   if (single) { // un seul étage : pas d'étage, pas d'escalier, le toit posé sur le rez-de-chaussée
@@ -1779,7 +1800,7 @@ function cottage(cx, cz, rot, mine, num) {
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(.07, .08, 1.36, 10), wood); pole.position.y = .68; post.add(pole); // s'arrête sous le panneau
     const board = rbox(1.06, .92, .08, wood, .03); board.position.y = 1.78; post.add(board);
     for (const side of [1, -1]) { const face = new THREE.Mesh(new THREE.PlaneGeometry(.92, .8), new THREE.MeshStandardMaterial({ map: numTex(num, "Cottage"), roughness: .4 })); face.position.set(0, 1.78, side * .046); if (side < 0) face.rotation.y = Math.PI; post.add(face); }
-    const [px, pz] = c.toWorld(2.6, 9.6); post.position.set(px, 0, pz); post.rotation.y = rot; shadowAll(post); scene.add(post); circles.push({ x: px, z: pz, r: .25 }); }
+    const [px, pz] = c.toWorld(-1.9, 10.3); post.position.set(px, 0, pz); post.scale.setScalar(.78); /* au bord de l'allée, sans cacher la terrasse */ post.rotation.y = rot; shadowAll(post); scene.add(post); circles.push({ x: px, z: pz, r: .25 }); }
   cottages.push(c); return c;
 }
 
@@ -1880,7 +1901,7 @@ const terraceTpl = (() => {
     for (const [y, h] of [[1.1, .09], [.62, .06]]) { const r = rbox(ax ? .1 : L, h, ax ? L : .1, railM, .03); r.position.set((x1 + x2) / 2, y, (z1 + z2) / 2); g.add(r); }
     const n = Math.max(1, Math.round(L / 1.15)); for (let k = 0; k <= n; k++) { const t = k / n, p = rbox(.12, .95, .12, railM, .03); p.position.set(x1 + (x2 - x1) * t, .67, z1 + (z2 - z1) * t); g.add(p); }
     for (let k = 0; k < n * 4; k++) { const t = (k + .5) / (n * 4), b = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, .46, 6), railM); b.position.set(x1 + (x2 - x1) * t, .86, z1 + (z2 - z1) * t); g.add(b); } };
-  rail(-5.1, 4.3, -5.1, 9); rail(5.1, 4.3, 5.1, 9); rail(-5.1, 9, -.8, 9); rail(.8, 9, 5.1, 9);
+  if (!COT3D) { rail(-5.1, 4.3, -5.1, 9); rail(5.1, 4.3, 5.1, 9); rail(-5.1, 9, -.8, 9); rail(.8, 9, 5.1, 9); } // (le garde-corps du cottage Blender est dans C_terrasse)
   // deux transats
   TERR.loungers.forEach((x, i) => { const c = mat([0x2fa7d6, 0xff8a65][i], .85), l = new THREE.Group();
     const frame = rbox(.75, .12, 1.9, white, .05); frame.position.y = .38; const cu = rbox(.68, .1, 1.3, c, .05); cu.position.set(0, .48, .25); const bk = rbox(.68, .1, .8, c, .05); bk.position.set(0, .7, -.62); bk.rotation.x = .7;
@@ -10649,7 +10670,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.10.31-6"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.11.03-1"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.

@@ -7,6 +7,7 @@ Structure :
 - `jeux/<nom>.html` — un fichier par jeu.
 - `pins/` — Le Domaine des Pins, en application installable (voir plus bas).
 - `dragonflyer/` — DragonFlyer, en application installable (voir plus bas).
+- `blender/pins/` — scripts Blender qui fabriquent les modèles du Domaine des Pins (`pins/assets/*.glb`) ; méthode : `blender/pins/METHODE.md`.
 - `blender/dragonflyer/` — scripts (Blender, numpy) qui fabriquent le dragon, le héros et le relief de DragonFlyer,
   embarqués en base64 dans `dragonflyer/index.html`, et le kit de village (`dragonflyer/assets/village.glb`) (voir le README du dossier).
 
@@ -103,6 +104,10 @@ Accord du propriétaire : le jeu vit dans `pins/` pour avoir sa propre adresse
 - Icônes : fichiers PNG (obligatoires pour une application), générés à partir de
   `pins/icone.svg`, lui-même dessiné en code. Pas d'image téléchargée.
 - Dans l'application installée, les liens vers le site des jeux (classe `site`) sont cachés.
+- Modèles 3D faits par Blender (accord du propriétaire, novembre 2026) : `pins/assets/*.glb` (le cottage d'abord), fabriqués
+  par les scripts de `blender/pins/` selon `blender/pins/METHODE.md` (étages matières → kit → un objet à la fois → implantation,
+  contrôle par un second agent jusqu'à 8/10 ; marche à suivre : compétence `modele-3d-pins`). Lus depuis le même site, gardés hors
+  ligne par `sw.js` (`FICHIERS`) ; sans le fichier, le jeu garde l'ancien modèle dessiné en code.
 - Version affichée dans Réglages → Plus : `window.PINS_VERSION` (en bas de `pins/index.html`), à changer à chaque modification.
 - Parties : chaque partie a un numéro unique à 6 chiffres et un surnom (liste `pins-parties`, partie choisie `pins-active`).
   Dans le module du jeu, `localStorage` est remplacé par une version qui range les clés de la partie sous
