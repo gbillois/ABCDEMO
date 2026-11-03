@@ -37,8 +37,7 @@ fs.mkdirSync(OUT, { recursive: true });
       [["01_place_nord", 0, -1], ["02_place_est", 1, 0], ["03_place_sud", 0, 1], ["04_place_ouest", -1, 0]].forEach(([n, dx, dz]) =>
         L.push([n, [C.x + dx * 4, h(C.x + dx * 4, C.z + dz * 4) + 1.7, C.z + dz * 4], [C.x + dx * 40, hc + 3, C.z + dz * 40]]));   // à 4 m du centre (le puits est au milieu)
       L.push(["05_dessus", [C.x + .1, hc + R * 1.7, C.z + .1], [C.x, hc, C.z]]);
-      L.push(["06_plongee_ne", [C.x + R * .8, hc + R * .55, C.z - R * .8], [C.x, hc, C.z]]);
-      L.push(["07_plongee_so", [C.x - R * .8, hc + R * .55, C.z + R * .8], [C.x, hc, C.z]]);
+      for (const [n, sx, sz] of [["06_plongee_ne", .8, -.8], ["07_plongee_so", -.8, .8]]) { const Rv = Math.min(R, 75), x = C.x + Rv * sx, z = C.z + Rv * sz; L.push([n, [x, Math.max(hc + Rv * .55, h(x, z) + 12), z], [C.x, hc, C.z]]); }   // jamais dans le sol
       for (const [n, a] of [["08_cote_est", 0], ["09_cote_ouest", Math.PI]]) { const x = C.x + Math.cos(a) * R * 1.1, z = C.z + Math.sin(a) * R * 1.1; L.push([n, [x, h(x, z) + 4, z], [C.x, hc + 3, C.z]]); }
       const portes = d.PORTES.filter(q => v.maisons.includes(q.maison));
       portes.slice(0, 2).forEach((q, i) => { const ox = Math.sin(q.yaw), oz = Math.cos(q.yaw), x = q.x + ox * 4.2 + oz * 1.2, z = q.z + oz * 4.2 - ox * 1.2;   // dans la rue, un peu de biais

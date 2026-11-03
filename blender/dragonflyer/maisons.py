@@ -427,6 +427,10 @@ for nom, f, pied in (("puits", puits, (2.6, 2.6)), ("tonneau", tonneau, (.9, .9)
                      ("etal", etal, (3.0, 1.6)), ("cloture", cloture, None), ("lanterne", lanterne, None), ("foin", foin, (2.4, 2.4)), ("ponton", ponton, None)):
     accessoire(nom, f, pied)
 
+# objets faits avec la méthode (village/objets/) que le jeu pose lui-même dans les villages
+import muret as _muret
+_muret.construire().objet({"pied": [2.0, .5]})
+
 # ------------------------------------------------------------------ intérieurs (pièces fermées, la porte regarde -Y)
 def interieur(nom, l, p, h, meubler):
     P = Piece("I_" + nom); V = Piece("IL_" + nom)   # IL : ce qui brille (foyer, bougies)
