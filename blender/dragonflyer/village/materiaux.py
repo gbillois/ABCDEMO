@@ -45,6 +45,8 @@ MATIERES = {
     "eau":      Matiere("eau",      ["#3e6a7a", "#46727e"], .03),                                             # baquet de trempe
     "braise":   Matiere("braise",   ["#ff8a2a", "#ffb040", "#f06a1e"], .05),                                  # charbons ardents (dans W_ : brillent la nuit)
     "charbon":  Matiere("charbon",  ["#3a3230", "#46403a"], .06),                                             # charbon éteint (jamais noir pur)
-    "bois_s":   Matiere("bois_s",   ["#5a3c26", "#4f3622", "#644430"], .08),                                  # bois goudronné des longères vikings
+    "bois_s":   Matiere("bois_s",   ["#7a5032", "#6a452c", "#86593a"], .08, "#4e3422"),                      # bois goudronné des longères vikings (brun chaud, jamais noir)
+    "peint_r":  Matiere("peint_r",  ["#a8452e", "#9c3f2a"], .04),                                             # porte peinte rouge
+    "fumee":    Matiere("fumee",    ["#e8e2d6", "#cfc9be"], .02),                                             # fumée stylisée
 }
 def M(nom): return MATIERES[nom]

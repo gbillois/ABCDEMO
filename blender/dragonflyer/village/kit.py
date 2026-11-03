@@ -292,7 +292,7 @@ def arc_pierres(P, centre, rayon, profondeur=.3, n=9, rz=0.0):
         px, pz = math.cos(a) * r, math.sin(a) * r
         P.boite((x + ca * px, y + sa * px, z + pz), (.3, profondeur, rayon * math.pi / n * .92), M("moellon").couleur(P.R, .04), rz=rz, ry=-a, bev=.05, jit=.01)
 
-def porte(P, centre, l=1.15, h=2.0, mat="peint", rz=0.0, cintree=True, seuil=True):
+def porte(P, centre, l=1.15, h=2.0, mat="peint", rz=0.0, cintree=True, seuil=True, mat_cadre="chene"):
     """Porte cintrée en planches (bleues), pentures de fer, anneau, seuil de pierre ; arc de claveaux au-dessus.
     centre = milieu du seuil, sur la face du mur."""
     x, y, z = centre; r = l / 2; hd = h - r if cintree else h; n = 5
@@ -301,19 +301,19 @@ def porte(P, centre, l=1.15, h=2.0, mat="peint", rz=0.0, cintree=True, seuil=Tru
         P.boite((x + u, y + .02, z + ht / 2), (l / n * .94, .1, ht), M(mat).couleur(P.R, .13), bev=.015)
     for zz in (.35, hd - .15): P.boite((x - .1, y - .05, z + zz), (l * .8, .04, .09), M("fer").couleur(P.R), bev=0)   # pentures
     P.cylindre((x + r * .55, y - .08, z + 1.0), (x + r * .55, y - .03, z + 1.0), .07, .07, M("fer").couleur(P.R), n=8)  # anneau
-    for s in (-1, 1): poutre(P, (x + s * (r + .08), y, z), (x + s * (r + .08), y, z + hd), l=.16, h=.24, mat="chene")
+    for s in (-1, 1): poutre(P, (x + s * (r + .08), y, z), (x + s * (r + .08), y, z + hd), l=.16, h=.24, mat=mat_cadre)
     if cintree: arc_pierres(P, (x, y - .02, z + hd), r)
-    else: poutre(P, (x - r - .3, y - .02, z + h + .1), (x + r + .3, y - .02, z + h + .1), l=.22, h=.24)   # linteau de bois
+    else: poutre(P, (x - r - .3, y - .02, z + h + .1), (x + r + .3, y - .02, z + h + .1), l=.22, h=.24, mat=mat_cadre)   # linteau de bois
     if seuil: P.boite((x, y - .34, z + .01), (l + .45, .72, .22), M("moellon").couleur(P.R), bev=.07, jit=.015)   # seuil : une vraie marche (12 cm)
 
-def fenetre(V, P, centre, rz=0.0, l=.75, h=.8, volets=True, jardiniere=True, mat_volet="peint", appui="moellon"):
+def fenetre(V, P, centre, rz=0.0, l=.75, h=.8, volets=True, jardiniere=True, mat_volet="peint", appui="moellon", mat_cadre="chene"):
     """Fenêtre à petits carreaux : cadre de poutres, croisillons, appui de pierre, volets bleus, jardinière fleurie.
     La vitre est dans V (objet W_ qui s'éclaire la nuit). rz : 0 = mur de façade (-Y), ±π/2 = murs de côté."""
     x, y, z = centre; ca, sa = math.cos(rz), math.sin(rz); ox, oy = sa, -ca   # vers l'extérieur
     def pt(u, w, dz): return (x + ca * u + ox * w, y + sa * u + oy * w, z + dz)
     V.boite(pt(0, -.02, 0), (l, .06, h), M("vitre").teintes[0], rz=rz, bev=0)
-    for s in (-1, 1): poutre(P, pt(s * (l / 2 + .07), .02, -h / 2 - .1), pt(s * (l / 2 + .07), .02, h / 2 + .1), l=.14, h=.16)
-    poutre(P, pt(-l / 2 - .2, .03, h / 2 + .12), pt(l / 2 + .2, .03, h / 2 + .12), l=.18, h=.2)   # linteau
+    for s in (-1, 1): poutre(P, pt(s * (l / 2 + .07), .02, -h / 2 - .1), pt(s * (l / 2 + .07), .02, h / 2 + .1), l=.14, h=.16, mat=mat_cadre)
+    poutre(P, pt(-l / 2 - .2, .03, h / 2 + .12), pt(l / 2 + .2, .03, h / 2 + .12), l=.18, h=.2, mat=mat_cadre)   # linteau
     poutre(P, pt(0, .0, -h / 2), pt(0, .0, h / 2), l=.05, h=.06, mat="chene_c", bev=.01)          # croisillons
     poutre(P, pt(-l / 2, .0, 0), pt(l / 2, .0, 0), l=.05, h=.06, mat="chene_c", bev=.01)
     P.boite(pt(0, .1, -h / 2 - .1), (l + .4, .3, .12), M(appui).couleur(P.R), rz=rz, bev=.04)   # appui
@@ -491,11 +491,21 @@ class ToitTourne:
     porte dans le pignon). forme(x, y) répond dans le repère de la maison (pignons, rives, cheminées)."""
     def __init__(s, toit): s.t = toit; s.ep, s.zf, s.zb = toit.ep, toit.zf, toit.zb
     def forme(s, x, y): return s.t.forme(y, -x)
-    def construire(s, P, **k):
+    def construire(s, P, vieilli=0.0, pas_rang=.34, **k):
+        """vieilli : le chaume grisaille et brunit vers le bas, chaque rang d'une nuance un peu différente."""
         T = Piece("tmp_toit", P.R.randrange(1 << 30)); s.t.construire(T, **k)
+        if vieilli:
+            import random as _r
+            gris, brun = (.42, .36, .26), (.36, .24, .13)
+            for v in T.bm.verts:
+                t = max(0.0, min(1.0, (s.zf - v.co.z) / (s.zf - s.zb)))
+                Rr = _r.Random(int((v.co.z + 10) / pas_rang)); u = Rr.uniform(-.12, .12)
+                c = v[T.col]; f = max(0.0, min(.8, vieilli * t * t + u * vieilli))
+                cible = melange(gris, brun, Rr.random())
+                v[T.col] = (*melange(tuple(c[:3]), cible, f), 1)
         P.ajouter(T, Matrix.Rotation(math.pi / 2, 4, "Z")); T.bm.free(); return s
 
-def planches_verticales(P, a, b, z0, haut, trous=(), larg=.3, ep=.1, saillie=.05, mat="chene", sabliere=True):
+def planches_verticales(P, a, b, z0, haut, trous=(), larg=.3, ep=.1, saillie=.05, mat="chene", sabliere=True, clair=0.0):
     """Mur ou pignon de planches verticales jointives sur la face extérieure de a vers b (la face regarde à droite de
     a→b), du bas z0 jusqu'à haut(x, y) (le haut de chaque planche suit exactement la pente : ni jour ni pointe).
     trous : [(u0, u1, z0, z1)] le long du mur (porte, fenêtre) : les planches s'arrêtent au bord, coupées à la largeur."""
@@ -514,6 +524,7 @@ def planches_verticales(P, a, b, z0, haut, trous=(), larg=.3, ep=.1, saillie=.05
                 nm.append((m0, m1, hz1, zb))
             morceaux = nm
         c = M(mat).couleur(P.R, .16); off = saillie + (.018 if i % 2 else 0)
+        if P.R.random() < clair: c = melange(c, M("chene_c").teintes[0], .55)   # quelques planches plus claires (remplacées plus tard)
         for (q0, q1, za, zb) in morceaux:
             if q1 - q0 < .04: continue
             uc = (q0 + q1) / 2; p = a + t * uc + n * off
@@ -573,8 +584,10 @@ def rives_croisees(P, toit, y, sens, x_bord, depasse=1.05, ech=1.0):
         yy = y + sens * (.1 + .13 * k)
         A = Vector((s * x_bord, yy, toit.forme(s * x_bord, y)[0] + .04)); C = Vector((0, yy, zc + .16))
         d = (C - A).normalized(); E = C + d * depasse
-        poutre(P, A - d * .1, E, l=.12, h=.3, mat="bois_s")
-        for f in (.18, .5, .82): P.boite(tuple(A + (C - A) * f + Vector((0, sens * .07, .0))), (.07, .03, .07), M("chene_c").couleur(P.R), bev=0)   # chevilles
+        poutre(P, A - d * .1, E, l=.15, h=.3, mat="chene_c")                       # bois clair, chanfreiné (dessous moins lourd)
+        for j, f in enumerate((.12, .3, .48, .66, .84)):                           # bandes peintes rouge et ocre, posées sur la face
+            off = Vector((0, sens * .083, 0)); c = M("fleur").teintes[0] if j % 2 == 0 else M("fleur").teintes[1]
+            poutre(P, A + (C - A) * f + off, A + (C - A) * (f + .07) + off, l=.016, h=.2, c=c, bev=0)
         tete_dragon(P, E - d * .05, rz=0 if s < 0 else math.pi, ech=ech)
         # sous le débord du pignon : une volige de planches (pas de dessous de chaume en plein jour)
         A2 = Vector((s * (x_bord - .12), y - sens * .17, toit.forme(s * x_bord / .97, y)[0] - toit.ep - .03)); C2 = Vector((0, y - sens * .17, toit.forme(0, y)[0] - toit.ep - .03))
@@ -631,3 +644,21 @@ def poteau(P, x, y, z0, z1, cote=.3, mat="chene", de=True):
     """Poteau de bois sur un dé de pierre (il ne touche pas le sol : il ne pourrit pas)."""
     if de: P.boite((x, y, z0 + .12), (cote + .16, cote + .16, .24), M("moellon").couleur(P.R, .05), bev=.04, jit=.006)
     poutre(P, (x, y, z0 + (.24 if de else 0)), (x, y, z1), l=cote, h=cote, mat=mat)
+
+def fumee(P, x, y, z, n=5, vent=(.45, .12)):
+    """Filet de fumée stylisé : boules douces qui montent, grossissent et dérivent avec le vent (au-dessus d'un lanterneau)."""
+    for i in range(n):
+        t = i / max(1, n - 1); r = .26 + .3 * t
+        c = melange(M("fumee").teintes[0], M("fumee").teintes[1], t)
+        P.sphere((x + vent[0] * i + .06 * math.sin(i * 2.1), y + vent[1] * i, z + .5 * i + .05 * i * i), r, c, (1, 1, .85), sub=1, jit=.015)
+
+def cailloux(P, x, y, n=4, r=.14):
+    """Petit tas de cailloux posés dans l'herbe."""
+    for i in range(n):
+        P.sphere((x + P.R.uniform(-.3, .3), y + P.R.uniform(-.2, .2), r * .25), r * P.R.uniform(.6, 1.1), M("moellon").couleur(P.R, .1), (1.2, 1, .6), sub=1, jit=.02)
+
+def herbe(P, x, y, n=5):
+    """Touffe d'herbe haute (cônes fins), au pied d'un mur ou d'un toit."""
+    for i in range(n):
+        a = P.R.uniform(0, math.tau); bx, by = x + P.R.uniform(-.15, .15), y + P.R.uniform(-.15, .15)
+        P.cylindre((bx, by, 0), (bx + math.cos(a) * .12, by + math.sin(a) * .12, P.R.uniform(.3, .5)), .05, .005, M("feuillage").couleur(P.R), n=3)

@@ -94,7 +94,20 @@ l'ancien `../maisons.py` (le jeu les lit) : longère (7,4 × 14,6), (0, -7.6, 1.
   toit du lanterneau en V (sens de rotation), têtes trop petites et trop sombres (× 1,5, bois clair), dessous de chaume
   jaune sous le débord des pignons (volige de planches). 25 124 triangles (ancienne : 50 932). Capsule : passe (sol au
   seuil 0,75 m) ; ouverture mesurée 0,86 × 2,06 m (la mesure bute sur l'anneau de la porte, à 1 m ; 1,2 m entre les montants).
-  Rendus : `scratchpad/qc/longere1/`. En attente du tour 1 de contrôle.
+  Rendus : `scratchpad/qc/longere1/`.
+- Longère, tour 1 : posé 8, matières 7, formes 8, style 7, lisibilité 8, passage 8 (sous réserve), coût 9 → À REFAIRE.
+  Pignons presque noirs, mousse en « autocollants », longs côtés vides, entrée trop sombre, sol au seuil 0,75 m,
+  largeur mesurée sur l'anneau, rives lourdes et chevilles isolées.
+  Corrigé : bois_s en brun chaud (3 teintes, 14 % de planches plus claires), porte rouge (matière peint_r) à cadre clair
+  (`porte` et `fenetre` du kit ont un paramètre `mat_cadre`, « chene » par défaut : les autres maisons ne changent pas),
+  lanterne près de la porte, rives en bois clair chanfreiné avec bandes peintes rouge et ocre, chevilles supprimées,
+  mousse supprimée, chaume vieilli (`ToitTourne.construire(vieilli=…)` : chaque rang sa nuance, gris et brun vers le bas),
+  fumée stylisée au lanterneau (kit : `fumee`, matière fumee), sur chaque long côté tas de bois, tonneaux, banc, pots,
+  lanterne sur poteau, cailloux, herbe (kit : `cailloux`, `herbe`) posés juste au-delà de la frange (0,3 à 0,9 m hors de
+  l'emprise : pas de collision dans le jeu pour eux). Palier de pierre au niveau du plancher devant la porte, puis 3 marches
+  de 25 cm : le point « porte » est sur le palier (sol au seuil 1,00 m). Banc de test commun (`apercu.py`) : la largeur de
+  porte est mesurée à 0,6 m et à 1,4 m au-dessus du plancher, on garde la plus grande (une poignée ne la réduit plus).
+  29 300 triangles, capsule passe, porte 1,20 × 2,06 m. Rendus : `scratchpad/qc/longere2/`.
 
 ## Héros (agent séparé, worktree `worktree-agent-adb19e9034e46bb45`, voir `blender/dragonflyer/personnages/PASSATION.md` sur cette branche)
 - Tour 1 : proportions 8, visage 8, cheveux et vêtements 6, articulations 7, animations 5, style 8, coût 6 → À REFAIRE.
