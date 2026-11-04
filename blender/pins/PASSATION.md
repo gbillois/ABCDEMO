@@ -101,3 +101,6 @@ Suggestions non faites : verre un peu nuancé, coins sombres des petits-bois, d�
   faits après le tour 3 (mode économe : pas de 4e tour sur le modèle seul) ; jugement final par l'inspecteur de la forêt dans le jeu.
 - Dans le jeu : couleur d'instance des cailloux assombrie (la lumière du jeu les blanchissait), fougères agrandies (1 à 1,6) car l'herbe
   haute du jeu les cachait. Vue 09 du banc forêt : gros plan au pied d'un pin. Version 2026.11.04-5, cache sw v16.
+- Forêt, tour 3 (avec le sous-bois) : 8 / 8 / 8 / 7 / 8 / 8 / 8 → À REFAIRE de très peu : le raccord au sol reste à 7 (mieux en gros plan,
+  presque pareil à distance de jeu). Demandé : pied du tronc évasé ou racines, ou un disque de terre / d'ombre sombre sous chaque pin ;
+  touffes plus grandes (≈ 2 fois le tronc), plus foncées, au moins une par pin, qui dépassent l'herbe haute.
