@@ -111,3 +111,6 @@ Suggestions non faites : verre un peu nuancé, coins sombres des petits-bois, d�
   se lit comme une plaque plate gris-vert à bords anguleux (vue 05), il ne se fond pas dans l'herbe ; morceaux grisâtres sous la
   fougère en gros plan (09). Même défaut depuis 3 tours → CHANGEMENT D'APPROCHE obligatoire (méthode) : par ex. bord en dégradé vers
   la couleur exacte de l'herbe du jeu (ou texture ronde douce), tapis plus petit (1 à 1,5 m), ou retirer le tapis.
+- Choix du propriétaire après le tour 4 : tapis d'aiguilles RETIRÉ du jeu (et de l'export) ; on garde le pied évasé et les fougères.
+  Le raccord au sol reste noté 7 (accepté). Version 2026.11.04-7, cache sw v18. La fonction `sous_bois.tapis()` reste pour une
+  autre approche plus tard (bord en dégradé vers la couleur de l'herbe, plus petit).
