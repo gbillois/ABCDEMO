@@ -4510,9 +4510,17 @@ function clusterGeo(n = 26, size = 1.1) {
 }
 // la forêt est découpée en cases de 40 m : une case derrière la caméra ou trop loin n'est pas dessinée (ni son ombre)
 const TREE_CELL = 40, TREE_LOIN = LOWQ ? 170 : 270;
-const pineTrunk = new THREE.CylinderGeometry(.12, .42, 10.6, 12); pineTrunk.translate(0, 5.3, 0); instancedParCase(pineTrunk, barkM, pines, null, TREE_CELL, TREE_LOIN);
+// le pin fait par Blender (blender/pins/vegetation/pin.py → assets/pin.glb) : deux variantes, tronc T_pin<v> et feuillage F_pin<v>
+// (couleurs de sommets, sans transparence) ; le feuillage garde le vent du jeu. Sans le fichier : l'ancien pin en cartes d'aiguilles.
+const PIN3D = await chargerModeles("assets/pin.glb");
+if (PIN3D?.T_pin1 && PIN3D.F_pin1) {
+  const mT = matSommets({ side: THREE.FrontSide }), mF = foliage(null, 0); mF.vertexColors = true; mF.side = THREE.DoubleSide; mF.shadowSide = THREE.FrontSide;
+  const coul = (t, c) => c.setRGB(.68 + t.c * .2, .74 + t.c * .18, .7 + t.c * .14); // (un peu plus sombre que le rendu Blender : la lumière du jeu est plus forte ; la forêt du domaine reste profonde)
+  for (const v of [1, 2]) { if (!PIN3D["T_pin" + v]) continue; const liste = pines.filter((_, i) => (v === 2) === (i % 2 === 1 && !!PIN3D.T_pin2));
+    instancedParCase(PIN3D["T_pin" + v], mT, liste, null, TREE_CELL, TREE_LOIN); instancedParCase(PIN3D["F_pin" + v], mF, liste, coul, TREE_CELL, TREE_LOIN); }
+} else { const pineTrunk = new THREE.CylinderGeometry(.12, .42, 10.6, 12); pineTrunk.translate(0, 5.3, 0); instancedParCase(pineTrunk, barkM, pines, null, TREE_CELL, TREE_LOIN); }
 const trunkGeo = new THREE.CylinderGeometry(.18, .36, 4.6, 12); trunkGeo.translate(0, 2.3, 0); instancedParCase(trunkGeo, barkM, leafy, null, TREE_CELL, TREE_LOIN);
-{ const pd = depthOf(needleTex, .5), pg = pineGeo(); for (const im of instancedParCase(pg, pineMat, pines, (t, c) => c.setRGB(.8 + t.c * .3, .85 + t.c * .25, .8 + t.c * .2), TREE_CELL, TREE_LOIN)) im.customDepthMaterial = pd; }
+if (!PIN3D?.T_pin1) { const pd = depthOf(needleTex, .5), pg = pineGeo(); for (const im of instancedParCase(pg, pineMat, pines, (t, c) => c.setRGB(.8 + t.c * .3, .85 + t.c * .25, .8 + t.c * .2), TREE_CELL, TREE_LOIN)) im.customDepthMaterial = pd; }
 { const crowns = []; leafy.forEach(t => { for (let k = 0; k < 9; k++) { const a = k / 9 * 6.28 + rnd(), r = k === 0 ? 0 : 1.1 + rnd() * .9; crowns.push({ x: t.x + Math.cos(a) * r * t.s, z: t.z + Math.sin(a) * r * t.s, y: (4.4 + (k === 0 ? 1.6 : rnd() * 1.6)) * t.s, s: (1.6 + rnd() * .7) * t.s, r: rnd() * 6, c: t.c, k }); } });
   const cg = clusterGeo(), cd = depthOf(leafTex2, .45), cases = new Map(), m = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color();
   for (const t of crowns) { const key = Math.floor(t.x / TREE_CELL) + "," + Math.floor(t.z / TREE_CELL); if (!cases.has(key)) cases.set(key, []); cases.get(key).push(t); }
@@ -10691,7 +10699,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.11.04-1"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.11.04-2"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.

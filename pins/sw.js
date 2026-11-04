@@ -2,7 +2,7 @@
 // Le jeu est gardé sur l'appareil et marche sans réseau (en solo). Il ne change que
 // lorsqu'on appuie sur « Mettre à jour » sur l'écran d'accueil du jeu.
 // Le relais du jeu à plusieurs passe par WebSocket : il n'est jamais intercepté ici.
-const CACHE = "pins-v14";
+const CACHE = "pins-v15";
 const BASE = "https://cdn.jsdelivr.net/npm/three@0.170.0/";
 const FICHIERS = [
   "./", "./manifest.webmanifest", "./icone-192.png", "./icone-512.png", "./apple-touch-icon.png",
@@ -27,7 +27,7 @@ const FICHIERS = [
   BASE + "examples/jsm/math/SimplexNoise.js",
   BASE + "examples/jsm/utils/BufferGeometryUtils.js",
   // les modèles faits par Blender (blender/pins/) et de quoi les lire
-  "./assets/cottage.glb",
+  "./assets/cottage.glb", "./assets/pin.glb",
   BASE + "examples/jsm/loaders/GLTFLoader.js",
   BASE + "examples/jsm/libs/meshopt_decoder.module.js",
 ];

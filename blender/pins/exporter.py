@@ -17,3 +17,15 @@ gt = shutil.which("gltf-transform")
 if gt:
     subprocess.run([gt, "meshopt", brut, os.path.join(dossier, "cottage.glb")], check=True); os.remove(brut)
     print("cottage.glb :", os.path.getsize(os.path.join(dossier, "cottage.glb")) // 1024, "Ko")
+
+# ---------- le pin (deux variantes), blender/pins/vegetation/pin.py → pin.glb
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "vegetation"))
+import pin
+nettoyer_depart(); objs = []
+for v in pin.VARIANTES:
+    T, F = pin.construire(v); objs += [T.objet(), F.objet()]
+cuire_occlusion(objs, distance=1.2)
+brut = os.path.join(dossier, "pin_brut.glb"); exporter(objs, brut)
+if gt:
+    subprocess.run([gt, "meshopt", brut, os.path.join(dossier, "pin.glb")], check=True); os.remove(brut)
+    print("pin.glb :", os.path.getsize(os.path.join(dossier, "pin.glb")) // 1024, "Ko")

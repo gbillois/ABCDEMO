@@ -55,5 +55,12 @@ MATIERES = {
     "feuillage": Matiere("feuillage", ["#3f7f43", "#4a8a45", "#367339"], .08),
     "fleur":     Matiere("fleur",     ["#e8505b", "#f7c548", "#f28cb5", "#ffffff", "#9b7fd4"], .04),
     "terre":     Matiere("terre",     ["#b5562f", "#a94f2c"], .04),                                          # pots en terre cuite
+    # --- ajouts végétation (pin)
+    "aiguilles":   Matiere("aiguilles",   ["#3f6f42", "#46784a", "#3a693f", "#4d7d47"], .06),     # dessus des étages de branches (vert pin)
+    "aiguilles_c": Matiere("aiguilles_c", ["#5f8f4f", "#68975a", "#5a884c"], .05),                # pointes et bords éclairés
+    "aiguilles_d": Matiere("aiguilles_d", ["#3f6544", "#3a5e40", "#456b47"], .04),                # dessous des étages (à l'ombre : vert très sombre, pas olive)
+    "ecorce":      Matiere("ecorce",      ["#8a5434", "#7d4b2f", "#95603b", "#83502f"], .06),     # tronc du pin, brun-roux
+    "ecorce_d":    Matiere("ecorce_d",    ["#5a3622", "#52311f"], .04),                           # bas du tronc, branches à l'ombre
+    "ecorce_p":    Matiere("ecorce_p",    ["#6a3f26", "#633a23"], .04),                           # plaques sombres de l'écorce
 }
 def M(nom): return MATIERES[nom]

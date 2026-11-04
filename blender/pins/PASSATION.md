@@ -72,3 +72,14 @@ Suggestions non faites : verre un peu nuancé, coins sombres des petits-bois, d�
   recontrôlé (arrêt demandé par le propriétaire pour ménager son crédit). Prochaine étape : renvoyer `perso_t3` à l'inspecteur.
 - Fabricants arbres / Aquaparc / mobilier : lancés puis arrêtés par la limite d'usage avant tout résultat (rien de fait).
   Consigne commune prête à reprendre (voir l'historique) ; vues « avant » de l'Aquaparc et de la forêt dans `implantation.js` (PINS_LIEU).
+
+## Pin (`vegetation/pin.py`, mode économe : fait sans fabricant parallèle, 3 tours au plus)
+- Deux variantes (T_pin1/F_pin1, T_pin2/F_pin2) : 618 et 552 triangles (ancien : ≈ 950 en cartes transparentes). `pins/assets/pin.glb` 33 Ko.
+- Tour 1 : posé 8, matières 7, formes 7, style 8, forêt 6, coût 9 → À REFAIRE (sapin de Noël, dessous noir, répétition, écorce).
+- Tour 2 : houppier de pin irrégulier (étages décalés, penchés, largeurs variées, cime arrondie), dessous vert sombre chaud,
+  écorce en plaques, deux variantes → tout à 8+ (coût 9) : PASSE.
+- Dans le jeu (version 2026.11.04-2, cache sw v15) : couleur d'instance un peu assombrie (la lumière du jeu est plus forte
+  que les rendus). Mesure (même vue « forêt ») : 786 → 851 appels de dessin (deux variantes : quatre lots par case au lieu de
+  deux), 1 284 644 → 1 155 266 triangles. Contrôle de l'implantation par un inspecteur : non fait (mode économe) ;
+  captures avant / après : `avant_apres_pin.jpg` (avant la retouche de teinte).
+- Suggestions non faites : 3e variante plus étroite, plaques d'écorce sur le haut du tronc. Le feuillu reste l'ancien.
