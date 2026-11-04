@@ -92,3 +92,12 @@ Suggestions non faites : verre un peu nuancé, coins sombres des petits-bois, d�
   effet de forêt 8, charme 8 : À REFAIRE de très peu (seul le raccord au pied des troncs manque). 809 appels de dessin,
   1 141 424 triangles (avant : 786 et 1 284 644). Prochaine étape possible : touffes de fougères / herbe et cailloux au pied
   des pins (petit modèle Blender instancié), quelques buissons dans les clairières.
+
+## Sous-bois (`vegetation/sous_bois.py`) : fougère et cailloux, au pied des pins et de certains feuillus
+- P_fougere 205 triangles (6 frondes en étoile, nervure et 7 paires de folioles, cœur bas), P_cailloux 180 (trois cailloux à facettes,
+  enfoncés, calotte moussue). `pins/assets/sous_bois.glb` 13 Ko. ≈ 950 fougères et ≈ 300 groupes de cailloux, vus jusqu'à 110 m, sans ombre.
+- Inspecteur du modèle : T1 6/6/4/5/6/10/8 → T2 (changement d'approche : lame en arc) 8/7/5/6/6/10/8 → T3 (étoile, folioles sur nervure)
+  8/7/7/7/6/10/8 : À REFAIRE (cailloux prêts ; fougère : plus claire, folioles plus larges, arc plus haut). Ces trois réglages ont été
+  faits après le tour 3 (mode économe : pas de 4e tour sur le modèle seul) ; jugement final par l'inspecteur de la forêt dans le jeu.
+- Dans le jeu : couleur d'instance des cailloux assombrie (la lumière du jeu les blanchissait), fougères agrandies (1 à 1,6) car l'herbe
+  haute du jeu les cachait. Vue 09 du banc forêt : gros plan au pied d'un pin. Version 2026.11.04-5, cache sw v16.

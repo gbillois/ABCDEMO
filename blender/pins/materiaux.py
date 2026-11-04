@@ -61,6 +61,11 @@ MATIERES = {
     "aiguilles_d": Matiere("aiguilles_d", ["#3f6544", "#3a5e40", "#456b47"], .04),                # dessous des étages (à l'ombre : vert très sombre, pas olive)
     "ecorce":      Matiere("ecorce",      ["#8a5434", "#7d4b2f", "#95603b", "#83502f"], .06),     # tronc du pin, brun-roux
     "ecorce_d":    Matiere("ecorce_d",    ["#5a3622", "#52311f"], .04),                           # bas du tronc, branches à l'ombre
+    "fougere":     Matiere("fougere",     ["#6a9445", "#64903f", "#70994a", "#62893f"], .05),     # fougères du sous-bois (vert tendre)
+    "fougere_c":   Matiere("fougere_c",   ["#8db357", "#95b85c"], .04),                           # pointes des frondes (plus claires : la fougère se détache du sol)
+    "fougere_d":   Matiere("fougere_d",   ["#4f7a3a", "#4a7436"], .04),                           # cœur et tiges des fougères (à l'ombre)
+    "caillou":     Matiere("caillou",     ["#a39a89", "#968d7d", "#aca291", "#8f877a"], .05),     # cailloux du sous-bois
+    "mousse_c":    Matiere("mousse_c",    ["#557f3e", "#4f793b"], .04),                           # mousse sur le dessus des cailloux
     "ecorce_p":    Matiere("ecorce_p",    ["#6a3f26", "#633a23"], .04),                           # plaques sombres de l'écorce
 }
 def M(nom): return MATIERES[nom]

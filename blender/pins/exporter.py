@@ -29,3 +29,12 @@ brut = os.path.join(dossier, "pin_brut.glb"); exporter(objs, brut)
 if gt:
     subprocess.run([gt, "meshopt", brut, os.path.join(dossier, "pin.glb")], check=True); os.remove(brut)
     print("pin.glb :", os.path.getsize(os.path.join(dossier, "pin.glb")) // 1024, "Ko")
+
+# ---------- le sous-bois (fougère, cailloux), blender/pins/vegetation/sous_bois.py → sous_bois.glb
+import sous_bois
+nettoyer_depart(); objs = [sous_bois.fougere().objet(), sous_bois.cailloux().objet()]
+cuire_occlusion(objs, distance=.4)
+brut = os.path.join(dossier, "sous_bois_brut.glb"); exporter(objs, brut)
+if gt:
+    subprocess.run([gt, "meshopt", brut, os.path.join(dossier, "sous_bois.glb")], check=True); os.remove(brut)
+    print("sous_bois.glb :", os.path.getsize(os.path.join(dossier, "sous_bois.glb")) // 1024, "Ko")

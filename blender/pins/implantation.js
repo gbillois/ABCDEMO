@@ -29,7 +29,7 @@ const LIEUX = {
     ["10_dedans_bassin", [-10, 2.4, -20], [6, 1, -40]], ["11_dedans_coupole", [4, 1.7, -14], [0, 22, -40]], ["12_approche", [-30, 12, 45], [0, 6, -29]]],
   foret: [["01_lisiere", [-70, 1.7, 30], [-90, 4, 60]], ["02_sous_bois", [-95, 1.7, 75], [-110, 4, 95]], ["03_plongee", [-60, 30, 40], [-100, 0, 90]],
     ["04_de_haut", [-100, 70, 80], [-100, 0, 79]], ["05_chemin", [-12, 1.7, 30], [-60, 3, 30]], ["06_cottages", [16, 2, 60], [-40, 6, 70]],
-    ["07_lac", [60, 3, -20], [110, 6, -60]], ["08_horizon", [0, 25, 40], [0, 10, -150]], ["09_tronc_pres", null, null], ["10_feuillu_pres", null, null],
+    ["07_lac", [60, 3, -20], [110, 6, -60]], ["08_horizon", [0, 25, 40], [0, 10, -150]], ["09_pied_de_pin", [-183.6, 1.7, 51.5], [-187.6, .3, 47.5]], ["10_feuillu_pres", null, null],
     ["11_plongee_2", [80, 35, 60], [120, 0, 110]], ["12_approche", [30, 12, 45], [-60, 4, 60]]],
 };
 if (process.env.PINS_LIEU) VUES.splice(0, VUES.length, ...LIEUX[process.env.PINS_LIEU].filter(v => v[1]));
