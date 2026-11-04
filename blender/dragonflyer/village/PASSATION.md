@@ -315,3 +315,39 @@ puis capture dans le jeu, puis montrer au propriétaire. Ensuite : une maison à
   Suggestions non faites : rocher vert clair voyant à Stonebrook, rampe de l'ouest un peu plus beige, fleurs le long de la
   bordure, banc de Mistholm dans l'axe d'une porte (hors du couloir de 4,5 m), bout des rues en fondu plus long.
 - Reste : les arbres (agent séparé, tour 6 en fabrication), puis leur intégration au jeu (arbres.glb).
+
+## Intérieurs (agent séparé, worktree ; à fusionner)
+Les deux anciens intérieurs (`../maisons.py` : `interieur`, `meubler_maison`, `meubler_halle`) sont refaits par la méthode,
+une pièce à la fois, dans `interieurs/<nom>.py`, faits seulement du kit et des objets. Contrat du jeu gardé (`creerInterieurs`) :
+objets I_<nom> et IL_<nom> (ce qui brille), propriétés « taille » [l, p, h] et « porte » (0,9 m devant la porte), plus
+« foyer » (position du feu, aujourd'hui écrite en dur dans le jeu) et « obstacles » (rectangles des meubles, à plat :
+x, y, demi-largeur x, demi-largeur y ; le jeu ne bloque pas encore les meubles, `I.bloquer` pourra les lire).
+- Matières (fin de `materiaux.py`) : platre_i, plancher, laine_r/o/b, lin, faience, faience_b, pain, herbe_s, lavande, cire, cuivre, pomme, fenetre_j.
+- Kit (section « ajouts intérieurs » à la fin de `kit.py`, 60 définitions) : boite_douce (arêtes arrondies, faces lisses),
+  boite_effilee (hotte), pile_moellons, mur_interieur (torchis entre poteaux, sablière, plinthe, bas sali, haut enfumé,
+  ouvertures), plafond_solives (planches, solives, poutre maîtresse), porte_interieure, fenetre_interieure (vitre claire
+  dans I_, pas dans IL_ : elle ne brille pas la nuit), feu_de_bois (chenets, bûches, braises et flammes dans V).
+- Objets (`objets/`) : table, banc_interieur, tabouret, lit, coffre, tapis, etagere (vaisselier), vaisselle (assiettes,
+  bols, cruche, pots, pain, pommes), chandelle, herbes (bouquets pendus), panier_buches, cheminee_interieure ; réutilisés :
+  tonnelet, caisse, seau, balai, pot_fleurs, sacs_grain.sac.
+- Banc de test (`apercu.py`, fin) : `apercu_interieur` (12 caméras fixes dans la pièce, lumière du feu + jour par les
+  fenêtres + ambiance douce, vue 11 en coupe orthographique sans plafond, vue 12 feu seul), `carte_acces` (capsule 0,35 m
+  × 1,7 m sur grille de 25 cm, reste à 0,45 m des murs comme `garderDansPiece`, capsule large de 0,9 m pour les passages,
+  cibles à moins de 1 m, carte_acces.png), `controle_poses` (flotte, s'enfonce, dans le mur, meubles qui se traversent :
+  boîtes puis vrai contact des triangles), occlusion cuite courte (0,8 m : dans une pièce fermée, tout serait à l'ombre).
+  Grille de l'inspecteur : `.claude/skills/modele-3d/inspecteur_interieur.md`.
+- Maison (`interieurs/maison.py`, 7 × 6 × 3 m) : cheminée au fond au milieu (le foyer du jeu), coin du lit au fond à
+  gauche (lit, coffre), coin cuisine au fond à droite (bûches, vaisselier, tonnelet), table et deux bancs à droite, tapis
+  et tabouret devant le feu, herbes sous la poutre maîtresse, près de la porte caisse, sac, seau, balai, banc et pommes,
+  deux fenêtres (façade à gauche avec un pot de fleurs, mur droit).
+  Tour 1 à inspecter : `qc/interieur_maison1/` (scratchpad de la session). Accès PASSE, posé PASSE. Triangles : voir
+  controle.txt (ancien : 6 972 + 60). Allègements faits avant : poteaux sans chanfrein, contrecœur sans chanfrein,
+  bouts de bûches retirés du feu, moins de vaisselle, plancher en planches de 40 cm, tonnelet à 8 côtés.
+- Ensuite : la halle (`interieurs/halle.py`, 9 × 13 × 4,2 m : piliers, foyer rond central, longues tables et bancs,
+  trône, boucliers ; objets à faire : foyer_rond, trone ; à réutiliser : bouclier, tonneau, table, banc_interieur).
+- Intégration (après PASSE, par la session principale) : `../maisons.py` remplace `interieur("maison", …)` par
+  `interieurs/maison.py:construire()` (joindre C à P), et `creerInterieurs` lit `k.foyer` si présent.
+  Tour 1 : posé 9, accès 9, matières 7, vie 7, échelle 8, coupe 7, coût 8 → À REFAIRE. Tour 2 (`qc/interieur_maison2/`) : bottes d'herbes
+  liées, cheminée en pierre chaude à joints sombres, plancher à joints décalés et enduit moucheté, portemanteau, étagère
+  murale, ustensiles, paillasson, chemin de table, linge sur le coffre, dessus de hotte non noirci, caméras 02/03 reculées.
+  Accès et posé PASSENT ; 11 204 triangles (à alléger si l'inspecteur le demande).
