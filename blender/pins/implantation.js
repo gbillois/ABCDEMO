@@ -21,6 +21,18 @@ const VUES = [
   ["11_rangee", [8, 2.2, 29], [-40, 3, 40]],
   ["12_approche", [10, 9, 8], [-16, 2, 40]],
 ];
+// autres jeux de 12 vues : PINS_LIEU=aquaparc ou PINS_LIEU=foret (même règle : toujours les mêmes vues)
+const LIEUX = {
+  aquaparc: [["01_entree_face", [0, 1.7, 22], [0, 4, 0]], ["02_entree_pres", [4, 1.7, 13], [0, 2.5, 5]], ["03_trois_quarts", [38, 4, 10], [0, 8, -29]],
+    ["04_cote_lac", [52, 6, -40], [0, 8, -29]], ["05_dos", [0, 5, -78], [0, 8, -29]], ["06_dessus", [0, 95, -28], [0, 0, -29]],
+    ["07_plongee", [45, 40, 30], [0, 6, -29]], ["08_plongee_dos", [-50, 38, -70], [0, 6, -29]], ["09_socle_pres", [-28, 1.6, -5], [-24, 1.5, -5]],
+    ["10_dedans_bassin", [-10, 2.4, -20], [6, 1, -40]], ["11_dedans_coupole", [4, 1.7, -14], [0, 22, -40]], ["12_approche", [-30, 12, 45], [0, 6, -29]]],
+  foret: [["01_lisiere", [-70, 1.7, 30], [-90, 4, 60]], ["02_sous_bois", [-95, 1.7, 75], [-110, 4, 95]], ["03_plongee", [-60, 30, 40], [-100, 0, 90]],
+    ["04_de_haut", [-100, 70, 80], [-100, 0, 79]], ["05_chemin", [-12, 1.7, 30], [-60, 3, 30]], ["06_cottages", [16, 2, 60], [-40, 6, 70]],
+    ["07_lac", [60, 3, -20], [110, 6, -60]], ["08_horizon", [0, 25, 40], [0, 10, -150]], ["09_tronc_pres", null, null], ["10_feuillu_pres", null, null],
+    ["11_plongee_2", [80, 35, 60], [120, 0, 110]], ["12_approche", [30, 12, 45], [-60, 4, 60]]],
+};
+if (process.env.PINS_LIEU) VUES.splice(0, VUES.length, ...LIEUX[process.env.PINS_LIEU].filter(v => v[1]));
 if (process.env.PINS_VUES) VUES.splice(0, VUES.length, ...JSON.parse(process.env.PINS_VUES)); // vues sur mesure (pour chercher un défaut)
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });

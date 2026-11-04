@@ -1695,17 +1695,24 @@ function numTex(num, sub) {
 // le cottage fait par Blender (blender/pins/batiments/cottage.py → assets/cottage.glb) : C_rdc (murs du rez-de-chaussée,
 // qui s'effacent quand on entre), C_etage, C_toit (origine au haut des murs), C_terrasse, W_rdc / W_etage (vitres).
 // Sans le fichier (page ouverte sans serveur), le jeu garde l'ancien cottage dessiné en code.
-const COT3D = await (async () => { try {
-  const r = await fetch("assets/cottage.glb"); if (!r.ok) return null;
+// un fichier de modèles fait par Blender (pins/assets/*.glb) → { nom: géométrie en mètres, repère du jeu } ; extras dans geo.userData.extras.
+// La compression (meshopt) range les sommets entre -1 et 1 et met l'échelle dans le nœud : on remet tout en mètres.
+// Sans le fichier (page ouverte sans serveur, ou fichier absent), renvoie null : le jeu garde alors l'ancien modèle dessiné en code.
+async function chargerModeles(fichier) { try {
+  const r = await fetch(fichier); if (!r.ok) return null;
   const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder); const gltf = await loader.parseAsync(await r.arrayBuffer(), "");
-  gltf.scene.updateMatrixWorld(true); const out = {}; let hautEtage = 6.45;
-  gltf.scene.traverse(o => { if (!o.isMesh) return; // la compression range les sommets entre -1 et 1 et met l'échelle dans le nœud : on remet tout en mètres
-    const g = o.geometry.clone(), P = g.attributes.position, v = new THREE.Vector3(), t = new Float32Array(P.count * 3), m = o.matrixWorld;
-    if (o.name === "C_rdc" && o.userData.haut_etage) hautEtage = o.userData.haut_etage; // (la compression déplace l'origine des nœuds : la hauteur vient des « extras »)
-    for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i).applyMatrix4(m); t.set([v.x, v.y, v.z], i * 3); }
-    g.setAttribute("position", new THREE.BufferAttribute(t, 3)); g.deleteAttribute("normal"); g.computeVertexNormals(); g.computeBoundingSphere(); g.userData.partage = true; out[o.name] = g; });
-  if (out.C_toit) out.C_toit.translate(0, -hautEtage, 0); // le toit : origine au haut des murs (le jeu le pose sur l'étage ou sur le rez-de-chaussée)
-  return out.C_rdc && out.C_toit ? out : null; } catch (e) { console.warn("cottage.glb", e); return null; } })();
+  gltf.scene.updateMatrixWorld(true); const out = {};
+  gltf.scene.traverse(o => { if (!o.isMesh) return;
+    const g = o.geometry.clone(), P = g.attributes.position, v = new THREE.Vector3(), t = new Float32Array(P.count * 3);
+    for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i).applyMatrix4(o.matrixWorld); t.set([v.x, v.y, v.z], i * 3); }
+    g.setAttribute("position", new THREE.BufferAttribute(t, 3)); g.deleteAttribute("normal"); g.computeVertexNormals(); g.computeBoundingSphere(); g.computeBoundingBox();
+    g.userData.partage = true; g.userData.extras = { ...(o.userData || {}) }; out[o.name] = g; });
+  return out; } catch (e) { console.warn(fichier, e); return null; } }
+// une matière à couleurs de sommets (les deux faces : jamais de jour à travers une pièce fine)
+const matSommets = (o = {}) => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .86, side: THREE.DoubleSide, shadowSide: THREE.FrontSide, ...o });
+const COT3D = await (async () => { const out = await chargerModeles("assets/cottage.glb"); if (!out?.C_rdc || !out.C_toit) return null;
+  out.C_toit.translate(0, -(out.C_rdc.userData.extras.haut_etage || 6.45), 0); // le toit : origine au haut des murs (le jeu le pose sur l'étage ou sur le rez-de-chaussée)
+  return out; })();
 // certains cottages n'ont qu'un rez-de-chaussée (le tien garde son étage)
 const SINGLE = new Set([1, 3, 5, 7, 8, 10, 12]);
 let PART_MAT = null;
@@ -5628,7 +5635,7 @@ const ENFANT = {
   oeuf: [.125, -.008, .15, .195, .165, .152, .17], yJ: .07, tx: .16, tz: .08,
   crane: [0, .165, -.012, .150, .155, .156],
   cou: [0, -.17, -.030, 0, .02, -.034, .062, .060], kCou: .028,
-  oeil: [.054, .118, .03], sourcil: .162, nez: [0, .078], bouche: [.036, .0115], rose: [.084, .082, .022],
+  oeil: [.054, .118, .034], sourcil: .162, nez: [0, .078], bouche: [.036, .0115], rose: [.084, .082, .022],
   oreille: [.11, -.012, .034, .022, .012], haut: .32, bas: -.04, front: .245,
 };
 // Adultes : tête plus petite par rapport au corps, visage un peu plus long ; la grand-mère : visage rond et doux
@@ -5636,14 +5643,14 @@ const FEMME = {
   oeuf: [.12, -.014, .13, .17, .15, .138, .15], yJ: .065, tx: .15, tz: .08,
   crane: [0, .150, -.018, .122, .140, .138],
   cou: [0, -.17, -.036, 0, -.012, -.044, .052, .050], kCou: .032,
-  oeil: [.046, .112, .026], sourcil: .148, nez: [0, .074], bouche: [.03, .0115], rose: [.072, .074, .019],
+  oeil: [.046, .112, .031], sourcil: .148, nez: [0, .074], bouche: [.03, .0115], rose: [.072, .074, .019],
   oreille: [.1, -.018, .031, .019, .011], haut: .29, bas: -.03, front: .222,
 };
 const HOMME = {
   oeuf: [.11, -.016, .134, .175, .145, .142, .155], yJ: .055, tx: .1, tz: .06,
   crane: [0, .145, -.020, .127, .140, .142],
   cou: [0, -.17, -.036, 0, .01, -.038, .058, .056], kCou: .032,
-  oeil: [.048, .108, .027], sourcil: .144, nez: [0, .07], bouche: [.027, .0125], rose: [.075, .07, .019],
+  oeil: [.048, .108, .031], sourcil: .144, nez: [0, .07], bouche: [.027, .0125], rose: [.075, .07, .019],
   oreille: [.098, -.02, .033, .02, .012], haut: .285, bas: -.035, front: .212,
 };
 const PT = { garcon: ENFANT, fille: ENFANT, femme: FEMME, homme: HOMME };
@@ -7015,7 +7022,7 @@ function donnees(type) {
     d.qB0[k] = base(E.clone().sub(S).normalize()); d.f0[k] = W.clone().sub(E).normalize();
     const F = M.clone().sub(W).normalize(), Y = F.clone().negate(), X = new THREE.Vector3(k ? -1 : 1, 0, 0); X.addScaledVector(Y, -X.dot(Y)).normalize();
     d.qM0[k] = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, Y, new THREE.Vector3().crossVectors(X, Y))).invert();
-    if (k) { const lp = J("orteils" + c).z - A.z; d.balle = new THREE.Vector3(0, -A.y, lp); d.talon = new THREE.Vector3(0, -A.y, -.3 * lp); }
+    if (k) { const lp = J("orteils" + c).z - A.z; d.balle = new THREE.Vector3(0, -A.y + J("orteils" + c).y, lp); /* le talon se lève : le pied tourne autour de l'articulation des orteils, les orteils restent à plat et fixes */ d.talon = new THREE.Vector3(0, -A.y, -.3 * lp); }
   });
   DT.set(type, d); return d;
 }
@@ -7087,12 +7094,21 @@ const qPied = (q, tangage, lacet, roulis = 0) => q.setFromEuler(_e.set(tangage, 
 // ---- cadence naturelle : longueur du pas d'après la vitesse réduite (nombre de Froude), pour toutes les tailles
 // pas ≈ 1,3 · L · (v / √(gL))^0,6 (L = hauteur des hanches, m) ; un cycle = deux pas
 function cadence(v, L) { v = Math.max(.05, v); const pas = L * 1.3 * Math.pow(v / Math.sqrt(G * L), .6); return PI * Math.min(5.4, v / pas); }
+// cadence et part d'appui réelles : si la jambe ne peut pas couvrir tout le chemin que le corps fait pendant l'appui, le pied
+// reste moins longtemps au sol (vraie course, temps en l'air), puis, au-delà, les pas s'accélèrent : le pied posé ne glisse jamais
+function allure(v, s) {
+  const Lw = D.hipH * s, vh = v / Math.sqrt(G * Lw), kr = lisse(.5, .8, vh), ks = lisse(1.7, 3.1, vh);
+  let beta = mix(.61, .37, kr) - .11 * ks, om = cadence(v, Lw); const Lcap = (D.L1 + D.L2) * mix(1.3, 1.15, kr), Ln = (v / s) * beta * TAU / om;
+  if (Ln > Lcap) { beta = Math.max(.22, beta * Lcap / Ln); om = Math.max(om, (v / s) * beta * TAU / Lcap); }
+  ALLURE[0] = om; ALLURE[1] = beta; return ALLURE;
+}
+const ALLURE = [0, 0];
 const vitesseDe = (om, L) => Math.pow(1.3 * (om / PI) * Math.pow(L, .7) * Math.pow(G, -.3), 2.5);
 
 // ---- marche, course, sprint (φ = phase : 0 = le talon droit touche le sol)
 function marche(A, ph, v, s, hor, porter) {
   const r = A.r, en = D.enfant ? 1 : 0, Lw = D.hipH * s, vh = v / Math.sqrt(G * Lw), kr = lisse(.5, .8, vh), ks = lisse(1.7, 3.1, vh);
-  const om = cadence(v, Lw), beta = mix(.61, .37, kr) - .11 * ks, Lmax = D.L1 + D.L2, ent = 1 + .35 * en * (1 - ks);  // ent : les enfants rebondissent plus
+  const [om, beta] = allure(v, s), Lmax = D.L1 + D.L2, ent = 1 + .35 * en * (1 - ks);  // ent : les enfants rebondissent plus
   const Ls = Math.min((v / s) * beta * TAU / om, Lmax * mix(1.3, 1.15, kr));   // course du pied posé (unités du modèle), bornée par la jambe
   const pm = PI * beta, cM = Math.cos(ph - pm), c2 = Math.cos(2 * (ph - pm));
   // bassin : balancement vers le pied d'appui, rotation avec la jambe qui avance, la hanche libre descend
@@ -7100,8 +7116,8 @@ function marche(A, ph, v, s, hor, porter) {
   const tangB = mix(.03, .1, kr) + .04 * ks + mix(.012, .02, kr) * c2;
   RAC.set(-mix(.026, .01, kr) * ent * cM, 0, 0); rotYXZ(BASSIN, tangB, lacetB, roulisB); fk(CORPS); fk(BASSIN);
   // les pieds
-  const hs = mix(-.27, -.06, kr) + .2 * ks, to = mix(1.0, 1.05, kr), ho = mix(.55, .42, kr), zc = -.02 - Ls * mix(.09, .16, kr);
-  const H = mix(.17, .34, kr) + .26 * ks + .03 * en, gam = mix(.3, .36, kr), mt = -Ls * (1 - beta) / beta * mix(.7, .4, kr);
+  const hs = mix(-.27, -.06, kr) + .09 * ks, /* (en courant vite : pied posé presque à plat, pas sur la pointe : rien ne frotte au contact) */ to = mix(1.0, 1.05, kr), ho = mix(.55, .42, kr), zc = -.02 - Ls * mix(.09, .16, kr);
+  const H = mix(.17, .34, kr) + .26 * ks + .03 * en, gam = mix(.3, .36, kr), mt = -Ls * (1 - beta) / beta * mix(.7, .4, kr), mt1 = -Ls * (1 - beta) / beta;   // mt1 : le pied arrive au sol à la vitesse du sol (aucun patinage au contact)
   for (let k = 0; k < 2; k++) {
     const sx = k ? 1 : -1, p = fract(ph / TAU + k * .5), lac = sx * (mix(.09 - .02 * en, .03, kr) + .04 * (r[2 + k] - .5));
     let Fz, tg, lev = 0, orteil = 0;
@@ -7110,15 +7126,15 @@ function marche(A, ph, v, s, hor, porter) {
       if (hs > 0 && u < .2) tg = hs * (1 - lisse(0, .25, u));
       orteil = tg > 0 ? -tg : 0; }
     else { const u = (p - beta) / (1 - beta), u2 = u * u, u3 = u2 * u; APP[k] = false; CH[k] = 0; FIN[k] = 0;
-      Fz = (2 * u3 - 3 * u2 + 1) * (zc - Ls / 2) + (u3 - 2 * u2 + u) * mt + (-2 * u3 + 3 * u2) * (zc + Ls / 2) + (u3 - u2) * mt;
+      Fz = (2 * u3 - 3 * u2 + 1) * (zc - Ls / 2) + (u3 - 2 * u2 + u) * mt + (-2 * u3 + 3 * u2) * (zc + Ls / 2) + (u3 - u2) * mt1;
       tg = u < .45 ? mix(to, -.05, lisse(0, .45, u)) : mix(-.05, hs, lisse(.5, 1, u));
-      lev = H * (u < gam ? lisse(0, gam, u) : 1 - lisse(gam, 1, u)); orteil = -to * (1 - lisse(0, .3, u)) + (hs < 0 ? -.12 * lisse(.6, 1, u) : 0); }
+      lev = H * (u < gam ? lisse(0, gam, u) : 1 - mix(lisse(gam, 1, u), Math.pow((u - gam) / (1 - gam), 2), kr)); /* (en courant, le pied descend franchement jusqu'au contact au lieu de raser le sol en avançant) */ orteil = -to * (1 - lisse(0, .3, u)) + (hs < 0 ? -.12 * lisse(.6, 1, u) : 0); }
     cT.set(sx * (D.hipX + mix(.012, -.03, kr)), D.ay, Fz); piedRoule(cT, tg, lac, CIB[k]); CIB[k].y += lev; VOL[k] = p < beta ? 0 : (p - beta) / (1 - beta);
     qPied(QPI[k], tg, lac); ORT[k] = orteil;
     POLE[k].set(sx * .1 + Math.sin(lac) * .5, .15, 1);
   }
   // hauteur du bassin : la courbe voulue, mais jamais plus haut que ce que les jambes d'appui permettent
-  let dy = mix(-.012 + .02 * ent * c2, -D.hipH * .025 - .03 * ks - .045 * ent * c2, kr);
+  let dy = mix(-.012 + .03 * ent * c2, -D.hipH * .025 - .03 * ks - .045 * ent * c2, kr);
   // (mise en charge : le genou plie un peu après l'attaque ; en courant, la jambe se tend à la poussée ; la jambe qui va
   // se poser fait descendre le bassin à temps, sans saut au contact)
   for (let k = 0; k < 2; k++) { const at = APP[k] ? 1 : lisse(.75, 1, VOL[k]); if (at <= 0) continue;
@@ -7127,7 +7143,7 @@ function marche(A, ph, v, s, hor, porter) {
     if (q > 0) dy = Math.min(dy, mix(dy, CIB[k].y + Math.sqrt(q) - h.y, at)); }
   RAC.y = dy; fkTronc();
   // buste : penché en avant quand on court, contre-rotation des épaules, épaules à peu près de niveau
-  const pen = mix(.04, .17, kr) + .14 * ks, cl1 = -lacetB * (1 + mix(.45, .8, kr)), lat = .022 * en * cM;
+  const pen = mix(.04, .2, kr) + .16 * ks, cl1 = -lacetB * (1 + mix(.45, .8, kr)), lat = .022 * en * cM;
   const sou = Math.sin(hor * TAU / (en ? 2.4 : 3.4) + r[0] * 6) * .008;
   rotYXZ(COLONNE, (pen - tangB) * .45 - .012 * c2 * kr, cl1 * .45, -roulisB * .55 + lat);
   rotYXZ(POITRINE, (pen - tangB) * .55 - sou, cl1 * .55, -roulisB * .35);
@@ -7139,8 +7155,8 @@ function marche(A, ph, v, s, hor, porter) {
     if (VOL[k] > 0) { fk(CUISSE[k]); const h = WP[CUISSE[k]], R = Lmax * (.984 - mix(.06, .1, kr) * Math.pow(bosse(VOL[k]), 2)); cT.subVectors(CIB[k], h); const l = cT.length(); if (l > R) CIB[k].copy(h).addScaledVector(cT, R / l); }
     cU.copy(POLE[k]).normalize(); jambe(k, CIB[k].x, CIB[k].y, CIB[k].z, QPI[k], cU); rot(ORTEILS[k], ORT[k], 0, 0); }
   // bras : balancement opposé aux jambes, retard du coude ; mains souples en marchant, poings légers en courant
-  const Aa = (mix(.1 + .12 * Math.min(v, 2.2), .5, kr) + .25 * ks) * (1 + .18 * en) * (.9 + .2 * r[4]), off = mix(.02, -.03, kr) - .08 * ks, lag = mix(.3, .14, kr);
-  const eb = mix(.2, 1.22, kr) + .15 * ks, ea = mix(.35, .3, kr), ab = mix(.08, .13, kr) + .03 * en + .03 * (r[5] - .5), ir = mix(.08, .32, kr);
+  const Aa = (mix(.16 + .13 * Math.min(v, 2.2), .5, kr) + .25 * ks) * (1 + .18 * en) * (.9 + .2 * r[4]), off = mix(.02, -.03, kr) - .08 * ks, lag = mix(.3, .14, kr);
+  const eb = mix(.22, 1.22, kr) + .15 * ks, ea = mix(.55, .3, kr), ab = mix(.08, .13, kr) + .03 * en + .03 * (r[5] - .5), ir = mix(.08, .32, kr);
   for (let k = 0; k < 2; k++) {
     const sg = k ? 1 : -1, fw = sg * Math.cos(ph - lag), fe = sg * Math.cos(ph - lag - .45);
     rotP(CLAV[k], k, 0, -mix(.035, .08, kr) * fw, mix(0, .04, kr) + sou * .6);
@@ -7250,7 +7266,7 @@ function crawl(A, t) {
   rot(CORPS, 0, roul * .55, 0); rot(BASSIN, -.04, -roul * .15, 0); rot(COLONNE, 0, roul * .2, 0); rot(POITRINE, -.05, roul * .25, 0);
   for (let k = 0; k < 2; k++) {
     const u = fract(uR + k * .5); let th, ec, ab;
-    if (u < .6) { const v = u / .6, e = v * v * (3 - 2 * v) * .7 + v * .3; th = -2.95 + 3.3 * e; ec = -(.3 + 1.1 * bosse(v)); ab = .15 - .2 * bosse(v); }
+    if (u < .6) { const v = u / .6, e = v * v * (3 - 2 * v) * .7 + v * .3; th = -2.95 + 3.3 * e; ec = -(.3 + 1.1 * bosse(v)); ab = .2 - .08 * bosse(v); } /* (le bras qui tire sous l'eau reste un peu écarté du buste) */
     else { const v = (u - .6) / .4, e = v * v * (3 - 2 * v); th = .35 + (3.33 - .35) * e; ec = -(.3 + 1.45 * bosse(v)); ab = .15 + .5 * bosse(v); }
     rotP(BRAS[k], k, th, -.25 * bosse((u - .6) / .4), ab); rot(AVB[k], ec, 0, 0);
     rotP(MAIN[k], k, .1, 0, -.1); rotP(DOIGTS[k], k, 0, 0, -.15); rotP(CLAV[k], k, 0, u > .6 ? -.08 : .04, .06 * bosse((u - .6) / .4));
@@ -7479,7 +7495,7 @@ function animPerson(g, mode, t = 0, v) {
     if (dt > 0 && dtg > 0 && dtg < 3) A.om += (dtg / dt - A.om) * Math.min(1, dt * 4);
     const vd = v !== undefined && v >= 0, vv = vd ? v : A.om > .6 ? vitesseDe(A.om, Lw) : D.enfant ? 1.2 : 1.35;
     A.vs = snap || A.vs < .05 && A.mode0 !== "walk" ? vv : A.vs + cl(vv - A.vs, -dt * 12, dt * 10);
-    if (!vd) A.ph = t; else if (dtg > 0 && dtg < 3) A.ph += dt * cadence(A.vs, Lw); else if (dtg !== 0) A.ph = t;
+    if (!vd) A.ph = t; else if (dtg > 0 && dtg < 3) A.ph += dt * allure(A.vs, s)[0]; else if (dtg !== 0) A.ph = t;
   } else { A.vs *= Math.max(0, 1 - dt * 4); A.tg = t; }
   // la pose cible
   for (let i = 0; i < NB; i++) LQ[i].identity(); RAC.set(0, 0, 0); TANG = 0;
@@ -10638,7 +10654,7 @@ function loop() {
   voituresTick(dt); trier(dt); suivreFeux(dt); majInterieurs(); if (!paused) majObjectif(dt); if (dejaVu && !ULTRA) adapterResolution(); // (Ultra : netteté fixe)
   suivreVitres(); gel(); if (COMPO) COMPO.render(); else renderer.render(scene, camera); dejaVu = true; majPerf();
 }
-window.__pins = { teleporter, pointsTP, get wearing() { return wearing; }, ouvrirCrea, GT_CABS, BOUM, WAVES, tpOuvert, get net() { return net; }, get arc() { return arc; }, openBook, lvTourner, toast, MANOR, get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; }, get pitch() { return pitch; }, get camDedans() { return camDedans; } };
+window.__pins = { person, THREE, teleporter, pointsTP, get wearing() { return wearing; }, ouvrirCrea, GT_CABS, BOUM, WAVES, tpOuvert, get net() { return net; }, get arc() { return arc; }, openBook, lvTourner, toast, MANOR, get riding() { return riding; }, bowlTick, BOWL, golf3Start, CAMMUR, GOLF, CINE, FETE, renderer, scene, animPerson, openArcade, walkers, HALLO, G3, RACKS, ACRO_P, get acroZip() { return acroZip; }, get state() { return state; }, get harnessOn() { return harnessOn; }, wear: id => wear(id), get veh() { return veh; }, get riv() { return riv; }, RIVER_LEN, vehicles, animals, cat, RDOCK, SURF, floorY, resolve, camera, npcs, swimmer, setOutfit, get player() { return player; }, pedalo, cottages, DOCK_END, MOOR, LAKE, doAct: a => doAct(a), get act1() { return act1; }, get act2() { return act2; }, set yaw(v) { yaw = v; }, get yaw() { return yaw; }, set pitch(v) { pitch = v; }, get pitch() { return pitch; }, get camDedans() { return camDedans; } };
 // les « shaders » (programmes de couleurs) se compilent en parallèle pendant le chargement, au lieu de bloquer les premières images
 // (jusqu'à 6 s sur iPad) : la barre continue d'avancer doucement et les messages changent, pour qu'on voie que ça avance
 calquesAO(); // (après les regroupements d'objets du chargement : les groupes faits à la fin comptent aussi)
@@ -10675,7 +10691,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.11.03-2"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.11.04-1"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.

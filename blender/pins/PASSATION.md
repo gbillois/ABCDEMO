@@ -56,3 +56,19 @@ Fichier tenu à jour à chaque étape, pour qu'une nouvelle session reprenne ici
 2. Mobilier du domaine (`objets/`) : banc, lampadaire, poubelle, panneau, table de pique-nique.
 3. Les pins eux-mêmes (le décor le plus répété) : pin fait par script, imposteur lointain, planche « forêt ».
 Suggestions non faites : verre un peu nuancé, coins sombres des petits-bois, détail de vie sur la terrasse, buissons plus clairs.
+
+## Personnages : passe sur les animations (banc `personnages/banc.js`, dans le vrai jeu)
+- Banc : planches A (repos, 12 vues dont un portrait par personnage), B (postures du jeu), C (un cycle par allure, côté et face,
+  disques sous les pieds posés), `controle.txt` (triangles, foulée, cadence, glissement de chaque appui, enfoncement). 60 images/s.
+  `node blender/pins/personnages/banc.js <dossier>` (PINS_CDN = dossier de three@0.170.0 ; PINS_C=1 : animations seules).
+- Avant : glissement max 6 / 7 / 23 / 33 cm (promenade adulte / enfant / marche du joueur 4,2 m/s / course 7,5 m/s).
+- Corrigé dans `pins/index.html` : `allure()` (au-delà de la longueur de jambe, le pied reste moins longtemps au sol puis la cadence
+  monte, au lieu de traîner), pied qui arrive au sol à la vitesse du sol (`mt1`), pivot du pied qui se lève à l'articulation des
+  orteils (`d.balle`), pied posé presque à plat et descente franche en courant, bras plus amples et coude plus souple à la marche,
+  rebond du bassin, buste un peu plus penché en courant, bras de nage écarté du buste, yeux +13 à 19 %.
+- Après (tour 3) : 2,6 / 2,2 / 2,1 / 1,9 cm, tous OK (cible 3 cm), enfoncement ≤ 1,1 cm. Triangles 6 422 à 8 088 par personnage.
+- Inspecteur (grille `inspecteur-personnage.md`) : tour 1 → 7/6/7/6/6/7/? ; tour 2 → proportions 7, visage 8, vêtements 8,
+  postures 7, animations 7, style 7, coût 8 (À REFAIRE : course à 3,2 cm). Le tour 3 (course corrigée) n'a PAS encore été
+  recontrôlé (arrêt demandé par le propriétaire pour ménager son crédit). Prochaine étape : renvoyer `perso_t3` à l'inspecteur.
+- Fabricants arbres / Aquaparc / mobilier : lancés puis arrêtés par la limite d'usage avant tout résultat (rien de fait).
+  Consigne commune prête à reprendre (voir l'historique) ; vues « avant » de l'Aquaparc et de la forêt dans `implantation.js` (PINS_LIEU).
