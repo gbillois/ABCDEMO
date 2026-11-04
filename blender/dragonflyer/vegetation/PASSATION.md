@@ -169,3 +169,6 @@ Commandes (Blender : `/opt/blender-dl/blender-4.2.3-linux-x64/blender`) :
 - Les réserves mineures du tour 6 ; un 2e sapin et un feuillu ovale (facultatif).
 - Voir les arbres sur iPad (le compteur caché du jeu) : les feuillus paraissent un peu plus clairs et plus jaunes que
   dans les aperçus de Blender (pas d'avecBoule, translucidité du jeu) ; à juger par le propriétaire.
+- Vue de dessus des imposteurs (version 2026.11.03-9, cache v14) : 4e plan horizontal (cime vue d'en haut, 4e case de l'atlas,
+  à la hauteur moyenne du feuillage) qui prend le relais quand le regard plonge (pente 0,5 à 0,7), les plans verticaux
+  s'effaçant ; imposteur à 8 triangles ; étalonnage sur trois vues dont une plongeante. Vérifié : Mistholm 08 (couvert de cimes).

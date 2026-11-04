@@ -1522,11 +1522,15 @@ async function chargerArbresKit() {
       m.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
         { float dA = distance((modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz, cameraPosition);
           if (dA < ${(rayonPres - 6).toFixed(1)} || dA > ${(Q.dist + 200).toFixed(1)}) transformed = vec3(0.0); }`);
-        // normales vers le haut des deux côtés (pas de face sombre) ; seul le plan qui fait face au regard (ramené à l'horizontale) se montre
+        // normales vers le haut des deux côtés (pas de face sombre). Plans verticaux : seul celui qui fait face au regard (ramené à
+        // l'horizontale) se montre, tant que le regard ne plonge pas ; quand il plonge (pente 0,5 à 0,7), le 4e plan, horizontal
+        // (la cime vue de dessus), prend le relais : vue d'en haut, la forêt reste un couvert de cimes.
         sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", THREE.ShaderChunk.normal_fragment_begin.replace("normal *= faceDirection;", ""))
           .replace("#include <map_fragment>", `#include <map_fragment>
-            { vec3 fw = normalize(cross(dFdx(vFogW), dFdy(vFogW))); vec3 vu = cameraPosition - vFogW; vu.y = 0.0;
-              diffuseColor.a *= smoothstep(0.8, 0.9, abs(dot(fw, normalize(vu + vec3(1e-4, 0.0, 0.0))))); }`); };
+            { vec3 fw = normalize(cross(dFdx(vFogW), dFdy(vFogW))); vec3 vu = cameraPosition - vFogW;
+              float plonge = smoothstep(0.5, 0.7, abs(vu.y) / max(length(vu), 1e-3));
+              if (abs(fw.y) > 0.5) diffuseColor.a *= plonge;
+              else { vu.y = 0.0; diffuseColor.a *= smoothstep(0.8, 0.9, abs(dot(fw, normalize(vu + vec3(1e-4, 0.0, 0.0))))) * (1.0 - plonge); } }`); };
       avecVent(m, .006); return m;
     };
     const pres = [geo("T_pin_0"), geo("T_feuillu_0")];
@@ -5504,7 +5508,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
 })();
 </script>
 <script>
-window.DRAGONFLYER_VERSION = "2026.11.03-8"; // à changer à chaque modification du jeu
+window.DRAGONFLYER_VERSION = "2026.11.03-9"; // à changer à chaque modification du jeu
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
