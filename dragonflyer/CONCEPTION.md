@@ -182,6 +182,16 @@ eau). L'inspecteur (grille : `.claude/skills/modele-3d/inspecteur_implantation.m
 l'organisation, le sol et les chemins, le dénivelé (terrasses, murets, talus), les abords (barrières, jardins, herbes,
 accessoires) et le charme ; même barre de 8, même règle des 3 tours.
 
+**Vues aériennes : même méthode, vu du dragon.** `blender/dragonflyer/village/vues_aeriennes.js` prend, pour chaque
+village, 12 vues fixes dans le vrai jeu, le dragon en vol à l'endroit de la caméra (arrivées depuis 4 côtés, plongée,
+très haut, rase-mottes, verticale, forêt, rivage, soir, horizon) et un rapport (appels de dessin, triangles).
+Inspecteur : `.claude/skills/modele-3d/inspecteur_aerien.md` (lisibilité d'en haut, sol, végétation, détails
+lointains, lumière, composition, coût). À refaire après tout changement des arbres, du terrain ou des villages.
+
+**Intérieurs : même méthode.** Objets du kit un par un, puis `blender/dragonflyer/village/interieurs/<nom>.py`,
+12 caméras fixes dans la pièce (porte, 4 coins, hauteur d'enfant, gros plans, charpente, coupe de dessus, soir) et
+carte d'accès de la capsule du joueur. Inspecteur : `.claude/skills/modele-3d/inspecteur_interieur.md`.
+
 **Leçons déjà apprises** (à ajouter à la grille quand une nouvelle erreur passe) :
 - Une simplification automatique casse les feuilles et les branches : simplifier seulement ce qui le supporte, et
   comparer avant/après sur un rendu de près.
