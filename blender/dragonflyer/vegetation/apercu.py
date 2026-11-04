@@ -84,7 +84,13 @@ def imposteur(ob, nom, dossier, mats, haut_px=1024):
         a = k * math.pi / 3; cam.location = (60 * math.sin(a), -60 * math.cos(a), z0 + haut / 2); cam.rotation_euler = (math.pi / 2, 0, a)
         f = os.path.join(dossier, f"_vue_{k}.png"); sc.render.filepath = f; bpy.ops.render.render(write_still=True)
         im = bpy.data.images.load(f); vues.append(np.array(im.pixels[:], np.float32).reshape(ry, rx, 4)); bpy.data.images.remove(im); os.remove(f)
-    atlas = elargir(np.concatenate(vues, 1)); img = bpy.data.images.new(f"loin_{nom}", rx * 3, ry, alpha=True)
+    # 4e vue : la cime vue de dessus (carré de ry × ry, côté = largeur de l'arbre) pour le plan horizontal
+    sc.render.resolution_x = sc.render.resolution_y = ry; cam.data.ortho_scale = 2 * demi
+    cam.location = (0, 0, z1 + 50); cam.rotation_euler = (0, 0, 0)
+    f = os.path.join(dossier, "_vue_dessus.png"); sc.render.filepath = f; bpy.ops.render.render(write_still=True)
+    im = bpy.data.images.load(f); vues.append(np.array(im.pixels[:], np.float32).reshape(ry, ry, 4)); bpy.data.images.remove(im); os.remove(f)
+    W = rx * 3 + ry
+    atlas = elargir(np.concatenate(vues, 1)); img = bpy.data.images.new(f"loin_{nom}", W, ry, alpha=True)
     img.pixels.foreach_set(atlas.ravel()); img.filepath_raw = chemin; img.file_format = "PNG"; img.save(); bpy.data.images.remove(img)
     for o in caches: o.hide_render = False
     for i, mm in enumerate(vrais): ob.data.materials[i] = mm
@@ -97,7 +103,13 @@ def imposteur(ob, nom, dossier, mats, haut_px=1024):
         vs = [bm.verts.new((-larg / 2 * c, -larg / 2 * s_, z0)), bm.verts.new((larg / 2 * c, larg / 2 * s_, z0)),
               bm.verts.new((larg / 2 * c, larg / 2 * s_, z0 + haut)), bm.verts.new((-larg / 2 * c, -larg / 2 * s_, z0 + haut))]
         f = bm.faces.new(vs)
-        for l, (u, v) in zip(f.loops, ((0, 0), (1, 0), (1, 1), (0, 1))): l[uv].uv = ((u + k) / 3, v)
+        for l, (u, v) in zip(f.loops, ((0, 0), (1, 0), (1, 1), (0, 1))): l[uv].uv = ((u + k) * rx / W, v)
+    # 4e plan, horizontal, à la hauteur moyenne du feuillage : la cime vue d'en haut (prend le relais quand le regard plonge)
+    zf = [ob.data.vertices[i].co.z for p_ in ob.data.polygons if p_.material_index == 1 for i in p_.vertices]
+    zh = sum(zf) / max(1, len(zf))
+    vs = [bm.verts.new((-demi, -demi, zh)), bm.verts.new((demi, -demi, zh)), bm.verts.new((demi, demi, zh)), bm.verts.new((-demi, demi, zh))]
+    f = bm.faces.new(vs)
+    for l, (u, v) in zip(f.loops, ((0, 0), (1, 0), (1, 1), (0, 1))): l[uv].uv = ((3 * rx + u * ry) / W, v)
     bm.to_mesh(me); bm.free()
     me.normals_split_custom_set_from_vertices([(0, 0, 1)] * len(me.vertices))
     at = me.attributes.new("Nf", "FLOAT_VECTOR", "POINT"); at.data.foreach_set("vector", [0, 0, 1] * len(me.vertices))
@@ -126,9 +138,21 @@ def materiau_imposteur(chemin, nom):
     ti = N.new("ShaderNodeTexImage"); ti.image = bpy.data.images.load(chemin, check_existing=True); ti.image.alpha_mode = "STRAIGHT"
     oi = N.new("ShaderNodeObjectInfo"); mx = N.new("ShaderNodeMix"); mx.data_type = "RGBA"; mx.blend_type = "MULTIPLY"; mx.inputs["Factor"].default_value = 1
     L.new(ti.outputs["Color"], mx.inputs[6]); L.new(oi.outputs["Color"], mx.inputs[7])
-    # seul le plan qui fait à peu près face au regard se montre (des trois, le meilleur est toujours au-dessus de 0,87, le suivant en dessous sauf pile entre les deux) :
-    # pas d'image écrasée de biais ni d'arête au milieu de l'arbre ; même règle à mettre dans le jeu
-    al = tranche(nt, ti.outputs["Alpha"], bas=.8, haut=.9, horizontal=True)
+    # plans verticaux : seul celui qui fait à peu près face au regard se montre (des trois, le meilleur est toujours au-dessus
+    # de 0,87, le suivant en dessous sauf pile entre les deux), tant que le regard ne plonge pas ; quand il plonge (pente du
+    # regard de 0,5 à 0,7), le plan horizontal (cime vue de dessus) prend le relais. Même règle dans le jeu.
+    av = tranche(nt, ti.outputs["Alpha"], bas=.8, haut=.9, horizontal=True)
+    g = N.new("ShaderNodeNewGeometry")
+    def comp_z(sock):
+        sp = N.new("ShaderNodeSeparateXYZ"); L.new(sock, sp.inputs[0]); ab = N.new("ShaderNodeMath"); ab.operation = "ABSOLUTE"; L.new(sp.outputs[2], ab.inputs[0]); return ab.outputs[0]
+    pente = N.new("ShaderNodeMapRange"); pente.inputs["From Min"].default_value = .5; pente.inputs["From Max"].default_value = .7; pente.interpolation_type = "SMOOTHSTEP"
+    L.new(comp_z(g.outputs["Incoming"]), pente.inputs["Value"]); haut = pente.outputs["Result"]
+    hz = N.new("ShaderNodeMath"); hz.operation = "GREATER_THAN"; hz.inputs[1].default_value = .5; L.new(comp_z(g.outputs["True Normal"]), hz.inputs[0])
+    inv = N.new("ShaderNodeMath"); inv.operation = "SUBTRACT"; inv.inputs[0].default_value = 1; L.new(haut, inv.inputs[1])
+    a_v = N.new("ShaderNodeMath"); a_v.operation = "MULTIPLY"; L.new(av, a_v.inputs[0]); L.new(inv.outputs[0], a_v.inputs[1])
+    a_h = N.new("ShaderNodeMath"); a_h.operation = "MULTIPLY"; L.new(ti.outputs["Alpha"], a_h.inputs[0]); L.new(haut, a_h.inputs[1])
+    mxa = N.new("ShaderNodeMix"); mxa.data_type = "FLOAT"; L.new(hz.outputs[0], mxa.inputs["Factor"]); L.new(a_v.outputs[0], mxa.inputs[2]); L.new(a_h.outputs[0], mxa.inputs[3])
+    al = mxa.outputs[0]
     L.new(detourage(nt, al, eclairage_jeu(nt, mx.outputs[2], normale_choisie(nt))), N["Material Output"].inputs["Surface"])
     return m
 
@@ -145,7 +169,8 @@ def calibrer(ob, imp, chemin, dossier, tours=2):
     sc.render.resolution_x, sc.render.resolution_y = 240, 240; sc.render.film_transparent = True; sc.cycles.samples = 16
     imp.location = (0, 0, 0); H = ob.dimensions.z; autres = [o for o in sc.objects if o.type == "MESH" and o not in (ob, imp)]
     for o in autres: o.hide_render = True
-    vues = [(Vector((0, -H * 2.6, 1.6)), Vector((0, 0, H * .47))), (Vector((H * 1.6, -H * 1.6, H * 1.6)), Vector((0, 0, H * .42)))]
+    vues = [(Vector((0, -H * 2.6, 1.6)), Vector((0, 0, H * .47))), (Vector((H * 1.6, -H * 1.6, H * 1.6)), Vector((0, 0, H * .42))),
+            (Vector((H * .6, -H * .6, H * 3.2)), Vector((0, 0, H * .4)))]   # la 3e plonge : le plan horizontal compte aussi
     def mesurer():
         res = []
         for qui in (ob, imp):
