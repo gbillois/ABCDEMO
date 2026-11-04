@@ -498,7 +498,8 @@ def meubler_halle(P, V, l, p, h):
         P.cylindre((x, p / 2 - .15, 1.9), (x, p / 2 - .25, 1.9), .45, .45, R.choice([ROUGE, BLEU, OCRE]), n=14); P.sphere((x, p / 2 - .27, 1.9), .1, FER, sub=1)
     P.boite((0, p / 2 - .5, 1.0), (2.4, .7, 2.0), BOIS_F)   # trône du chef
     for y in (-p / 4, p / 4): V.sphere((0, y, h - .5), .15, lin("#ffcf6a"), sub=1)
-interieur("maison", 7.0, 6.0, 3.0, meubler_maison)
+interieur("maison", 7.0, 6.0, 3.0, meubler_maison)   # l'ancienne pièce (gardée pour le même tirage au sort), remplacée plus bas par la nouvelle
+for _o in [o for o in bpy.data.objects if o.name in ("I_maison", "IL_maison")]: bpy.data.objects.remove(_o)
 interieur("halle", 9.0, 13.0, 4.2, meubler_halle)
 
 # ------------------------------------------------------------------ occlusion cuite dans les couleurs (Cycles)
@@ -530,6 +531,14 @@ nl = ml.node_tree; ca2 = nl.nodes.new("ShaderNodeVertexColor"); ca2.layer_name =
 for ob in [o for o in scene.objects if o.type == "MESH"]:
     ob.data.materials.append(ml if ob.name.startswith(("W_", "IL_")) else mv)
 
+# l'intérieur de la maison refait par la méthode : village/interieurs/maison.glb (fait et cuit par interieurs/maison.py,
+# occlusion courte de pièce fermée ; « taille », « porte », « foyer », « obstacles »)
+_av = set(bpy.data.objects)
+bpy.ops.import_scene.gltf(filepath=os.path.join(os.path.dirname(os.path.abspath(__file__)), "village", "interieurs", "maison.glb"))
+for ob in [o for o in bpy.data.objects if o not in _av and o.type == "MESH"]:
+    ca_ = ob.data.color_attributes; ca_[0].name = "Col"
+    while len(ca_) > 1: ca_.remove(ca_[1])
+    ca_.active_color = ca_["Col"]; ob.data.materials.clear(); ob.data.materials.append(ml if ob.name.startswith("IL_") else mv)
 for o in scene.objects: o.select_set(o.type == "MESH")
 bpy.ops.export_scene.gltf(filepath=os.path.join(OUT, "village.glb"), export_format="GLB", use_selection=True, export_extras=True,
                           export_yup=True, export_apply=True, export_animations=False)
