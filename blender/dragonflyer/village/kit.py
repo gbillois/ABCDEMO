@@ -1266,9 +1266,17 @@ def mur_interieur(P, a, b, z0, z1, ouvertures=(), pas_poteau=1.6, ep=.22, mat="p
         for (q0, q1, za, zb) in morceaux:
             if q1 - q0 < .02 or zb - za < .02: continue
             p = a + t * ((q0 + q1) / 2) - n * (ep / 2)
-            for v in P.boite((p.x, p.y, (za + zb) / 2), (q1 - q0, ep, zb - za), c, rz=rz, bev=0):
-                if v.co.z < z0 + .05: v[P.col] = (*(x * .84 for x in c), 1)          # bas sali
-                elif v.co.z > z1 - .3: v[P.col] = (*(x * .93 for x in c), 1)        # haut enfumé
+            n0 = len(P.bm.verts); vs = P.boite((p.x, p.y, (za + zb) / 2), (q1 - q0, ep, zb - za), c, rz=rz, bev=0)
+            aire = (q1 - q0) * (zb - za)
+            if aire > .6:                            # face vers la pièce découpée en 2 × 2 ou 3 × 3 pour moucheter l'enduit
+                fs = {f for v in vs for f in v.link_faces}; cb = sum((v.co for v in vs), Vector()) / len(vs)
+                av = max(fs, key=lambda f: (f.calc_center_median() - cb).dot(n))
+                r_ = bmesh.ops.subdivide_edges(P.bm, edges=list(av.edges), cuts=2 if aire > 2.0 else 1, use_grid_fill=True)
+                vs = _neufs(P, n0)
+            for v in vs:
+                h_ = v.co.z - z0; f = (.84 + .16 * min(1, h_ / 1.1)) * (.93 if v.co.z > z1 - .3 else 1)   # bas sali, haut enfumé
+                g = .95 + .09 * random.Random(int(v.co.x * 37 + v.co.y * 53 + v.co.z * 71)).random()      # mouchetage (stable)
+                v[P.col] = (*(x * f * g for x in c), 1)
     for u in us:                                     # poteaux (dépassent de 3 cm)
         p = a + t * min(max(u, lp / 2), L - lp / 2) - n * (lp / 2 - .03)
         poutre(P, (p.x, p.y, z0), (p.x, p.y, z1 - .2), l=lp, h=lp, mat="chene", bev=0)
@@ -1352,3 +1360,18 @@ def feu_de_bois(V, P, x, y, z=0.0, l=.7, rz=0.0, chenets=True):
         if i % 2 == 0: G.cylindre((u, 0, .24), (u, 0, .24 + ph * .6), .05, .005, M("flamme").teintes[0], n=5)
     Mx = Matrix.Translation((x, y, z)) @ Matrix.Rotation(rz, 4, "Z")
     P.ajouter(H, Mx); V.ajouter(G, Mx); H.bm.free(); G.bm.free()
+
+def plancher_joints(P, x0, x1, y0, y1, z, larg=.5, ep=.08, mat="plancher"):
+    """Plancher d'intérieur : planches selon Y en deux longueurs, joints de bout décalés d'une planche à l'autre ; chaque
+    sommet du dessus tire sa nuance (veinage en longues traînées), un bout de planche sur trois plus sombre (nœud, tache),
+    bords plus clairs là où l'on marche (usure). Dessus à z."""
+    n = max(1, round((x1 - x0) / larg)); w = (x1 - x0) / n; R = P.R
+    for i in range(n):
+        x = x0 + (i + .5) * w; yj = y0 + (y1 - y0) * R.uniform(.3, .7)
+        for (ya, yb) in ((y0, yj), (yj, y1)):
+            c = M(mat).couleur(R, .12)
+            for v in P.boite((x, (ya + yb) / 2, z - ep / 2), (w - .015, yb - ya - .012, ep), c, bev=0):
+                if v.co.z > z - .01:
+                    f = R.uniform(.88, 1.1)
+                    if R.random() < .33: f *= .82
+                    v[P.col] = (*(min(1, k * f) for k in c), 1)

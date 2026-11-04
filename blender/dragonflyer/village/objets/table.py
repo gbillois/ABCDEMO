@@ -6,7 +6,7 @@ from kit import Piece, poutre, planche
 
 def construire(graine=61, L=1.7, p=.8, h=.78):
     P = Piece("P_table", graine); n = 3; w = p / n
-    for i in range(n): planche(P, (P.R.uniform(-.01, .01), -p / 2 + (i + .5) * w, h - .03), (L, w - .012, .06), mat="chene_c")   # plateau
+    for i in range(n): planche(P, (P.R.uniform(-.01, .01), -p / 2 + (i + .5) * w, h - .03), (L, w - .012, .06), mat="bois_frotte")   # plateau (frotté, plus clair que le plancher)
     ex, ey = L / 2 - .14, p / 2 - .1
     for s in (-1, 1):
         poutre(P, (-ex, s * ey, h - .12), (ex, s * ey, h - .12), l=.05, h=.11, bev=0)          # ceinture

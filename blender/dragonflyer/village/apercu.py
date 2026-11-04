@@ -362,8 +362,8 @@ def cameras_interieur(taille, porte, foyer, coins):
     """Les 12 caméras des intérieurs, toujours les mêmes (porte vers -Y, foyer, deux coins les plus meublés)."""
     l, p, h = taille; px, py = porte[0], -p / 2; fx, fy, fz = foyer; V_ = Vector
     return [("01_porte_homme", V_((px + .05, py + .35, 1.6)), V_((px, p / 2, 1.15)), 16),
-            ("02_coin_avant_gauche", V_((-l / 2 + .35, -p / 2 + .35, 1.75)), V_((0, 0, .8)), 16),
-            ("03_coin_avant_droit", V_((l / 2 - .35, -p / 2 + .35, 1.75)), V_((0, 0, .8)), 16),
+            ("02_coin_avant_gauche", V_((-l / 2 + .65, -p / 2 + .65, 1.75)), V_((0, 0, .8)), 16),
+            ("03_coin_avant_droit", V_((l / 2 - .65, -p / 2 + .65, 1.75)), V_((0, 0, .8)), 16),
             ("04_coin_fond_droit", V_((l / 2 - .35, p / 2 - .35, 1.75)), V_((0, 0, .8)), 16),
             ("05_coin_fond_gauche", V_((-l / 2 + .35, p / 2 - .35, 1.75)), V_((0, 0, .8)), 16),
             ("06_enfant_foyer", V_((fx + .6, fy - 2.6, 1.0)), V_((fx, fy, fz + .25)), 20),
@@ -406,7 +406,11 @@ def apercu_interieur(P, V, C, nom, taille, porte, foyer, coins, poses, cibles, f
     w = bpy.data.worlds.new("Dedans"); scene.world = w; w.use_nodes = True
     w.node_tree.nodes["Background"].inputs[0].default_value = (.5, .45, .4, 1); w.node_tree.nodes["Background"].inputs[1].default_value = .05
     w.light_settings.distance = .8                             # occlusion courte : dans une pièce fermée, tout est « à l'ombre » à 10 m
+    hauts = [v.index for v in obI.data.vertices if v.co.z >= taille[2] - .01 and abs(v.co.x) < taille[0] / 2 - .3 and abs(v.co.y) < taille[1] / 2 - .3]
+    c0 = np.zeros(len(obI.data.vertices) * 4, np.float32); obI.data.color_attributes["Col"].data.foreach_get("color", c0)
     cuire_occlusion([obI, obC], sol_z=-50)
+    c1 = np.zeros_like(c0); obI.data.color_attributes["Col"].data.foreach_get("color", c1); c0 = c0.reshape(-1, 4); c1 = c1.reshape(-1, 4)
+    c1[hauts] = c0[hauts] * .8; obI.data.color_attributes["Col"].data.foreach_set("color", c1.ravel())   # dessus collés au plafond (hotte) : pas noirs dans la vue en coupe
     materiaux_rendu([obI, obC]); materiau_lueur([obL])
     cam = bpy.data.objects.new("Cam", bpy.data.cameras.new("Cam")); scene.collection.objects.link(cam); scene.camera = cam; cam.data.clip_start = .05
     scene.cycles.samples = 32; scene.cycles.use_denoising = True; scene.render.resolution_x, scene.render.resolution_y = 720, 480

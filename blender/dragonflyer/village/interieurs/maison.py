@@ -11,9 +11,10 @@ _ici = os.path.dirname(os.path.abspath(__file__)); sys.path[:0] = [os.path.join(
 import math
 from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
-from kit import Piece, plancher, mur_interieur, plafond_solives, porte_interieure, fenetre_interieure, nb_sommets, _neufs
+from kit import Piece, plancher_joints, boite_douce, mur_interieur, plafond_solives, porte_interieure, fenetre_interieure, nb_sommets, _neufs
 import cheminee_interieure, lit, coffre, table, banc_interieur, tabouret, etagere, panier_buches, tonnelet, tapis, herbes
-import vaisselle, chandelle, caisse, sacs_grain, seau, balai, pot_fleurs
+import vaisselle, chandelle, caisse, sacs_grain, seau, balai, pot_fleurs, patere, etagere_murale, ustensiles
+from materiaux import M
 
 TAILLE = (7.0, 6.0, 3.0)
 X, Y, H = TAILLE[0] / 2, TAILLE[1] / 2, TAILLE[2]
@@ -36,7 +37,7 @@ def construire(graine=101):
         bvh = BVHTree.FromPolygons([v.co.copy() for v in vs], [[idx[v] for v in f.verts] for f in fs])
         poses.append(dict(nom=nom, min=mn, max=mx, appui=appui, bvh=bvh, **k))
     # --- la pièce : plancher, quatre murs, porte, fenêtres ; plafond à part (retiré pour la vue en coupe)
-    plancher(P, -X, X, -Y, Y, 0, larg=.4, mat="plancher")
+    plancher_joints(P, -X, X, -Y, Y, 0, larg=.5)
     ouv_f = lambda u, z: (u - L_FEN / 2 - .03, u + L_FEN / 2 + .03, z - H_FEN / 2 - .05, z + H_FEN / 2 + .05)
     mur_interieur(P, (-X, -Y), (X, -Y), 0, H, [(X - .68, X + .68, 0, 2.22), ouv_f(X - 2.2, 1.25)], coins=(True, False))   # mur de la porte
     mur_interieur(P, (X, -Y), (X, Y), 0, H, [ouv_f(Y - .6, 1.25)], coins=(True, False))                                  # mur droit
@@ -57,12 +58,14 @@ def construire(graine=101):
     # --- le coin du lit (gauche, au fond) : lit, coffre au pied, herbes qui sèchent sous la poutre
     pose("lit", lit.construire(), Mx(-X + .58, Y - 1.03))
     pose("coffre", coffre.construire(), Mx(-X + .58, Y - 2.34))
+    pose("linge plié (coffre)", _piece(lambda Q: boite_douce(Q, (0, 0, .03), (.42, .3, .06), M("lin").couleur(Q.R), arrondi=.025, seg=1)), Mx(-X + .58, Y - 2.34, .54), appui="sur", sur="coffre", obstacle=False)
     pose("herbes (gauche)", herbes.construire(), Mx(-1.65, 0, Z_POUTRE), appui="plafond", z_haut=Z_POUTRE, obstacle=False)
     # --- le coin du repas : table, deux bancs, couvert, chandelle ; herbes au-dessus
     tx, ty = TABLE
     pose("table", table.construire(), Mx(tx, ty))
     pose("banc avant", banc_interieur.construire(), Mx(tx, ty - .65))
     pose("banc arrière", banc_interieur.construire(graine=64), Mx(tx, ty + .65))
+    pose("chemin de table", _piece(lambda Q: Q.boite((0, 0, .002), (1.45, .3, .004), M("lin").couleur(Q.R), bev=0)), Mx(tx, ty, table.DESSUS), appui="sur", sur="table", obstacle=False)
     pose("couvert", vaisselle.construire("table"), Mx(tx, ty, table.DESSUS), appui="sur", sur="table", obstacle=False)
     pose("chandelle (table)", chandelle.construire(V, (tx - .12, ty - .05, table.DESSUS)), Mx(tx - .12, ty - .05, table.DESSUS), appui="sur", sur="table", obstacle=False)
     pose("herbes (table)", herbes.construire(graine=78, L=.8, n=3, ail=False), Mx(tx + .2, 0, Z_POUTRE), appui="plafond", z_haut=Z_POUTRE, obstacle=False)
@@ -78,6 +81,11 @@ def construire(graine=101):
     pose("banc (mur)", banc_interieur.construire(graine=66, L=1.3), Mx(2.4, -Y + .18))
     pose("pommes (banc)", _piece(lambda Q: vaisselle.pommes(Q, (0, 0, 0))), Mx(2.0, -Y + .18, .46), appui="sur", sur="banc (mur)", obstacle=False)
     pose("pot de fleurs (fenêtre)", pot_fleurs.construire(r=.11), Mx(-2.2, -Y - .02, appuis[0]), appui="mur", obstacle=False, encastre=True)
+    # --- aux murs : portemanteau (mur gauche), étagère et ustensiles (mur droit) ; paillasson devant la porte
+    pose("portemanteau", patere.construire(), Mx(-X, -1.1, 0, math.pi / 2), appui="mur", obstacle=False)
+    pose("étagère murale", etagere_murale.construire(), Mx(X, .5, 0, -math.pi / 2), appui="mur", obstacle=False)
+    pose("ustensiles", ustensiles.construire(), Mx(X, 1.75, 0, -math.pi / 2), appui="mur", obstacle=False)
+    pose("paillasson", _piece(lambda Q: Q.boite((0, 0, .012), (1.0, .6, .024), M("jute").couleur(Q.R), bev=.01)), Mx(0, -Y + .55), obstacle=False)
     return P, V, C, poses
 
 def _piece(f):

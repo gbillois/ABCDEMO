@@ -92,10 +92,13 @@ MATIERES.update({
     "faience":   Matiere("faience",   ["#e6dcc4", "#dcd0b4"], .03),                                               # assiettes, bols émaillés crème
     "faience_b": Matiere("faience_b", ["#5a82a8", "#4f78a0"], .03),                                               # bord peint bleu des assiettes, cruches
     "pain":      Matiere("pain",      ["#c8873e", "#bc7c38", "#d09448"], .05),                                    # pain, miches
-    "herbe_s":   Matiere("herbe_s",   ["#8a8a4a", "#7e7e44", "#9a8a52", "#6e7a40"], .07),                         # bouquets d'herbes séchées (vert passé, jamais vif)
+    "herbe_s":   Matiere("herbe_s",   ["#8a9a6a", "#7e7e44", "#a89050", "#909a5c"], .07),                         # bouquets d'herbes séchées : sauge, olive, ocre sec (jamais vif)
     "lavande":   Matiere("lavande",   ["#8e72a8", "#8468a0"], .05),
     "cire":      Matiere("cire",      ["#f0e2b8", "#ead8a8"], .02),                                               # chandelles
     "cuivre":    Matiere("cuivre",    ["#b06a3a", "#a46236"], .04),                                               # chaudron, casserole
     "pomme":     Matiere("pomme",     ["#c03a2a", "#b8442e", "#c8a03a"], .05),
-    "fenetre_j": Matiere("fenetre_j", ["#b8cede", "#a8c2d6"], .02),                                               # un peu de jour vu par la fenêtre (dans IL_)
+    "fenetre_j": Matiere("fenetre_j", ["#b8cede", "#a8c2d6"], .02),                                               # un peu de jour vu par la fenêtre (vitre, dans I_)
+    "pierre_f":  Matiere("pierre_f",  ["#8a7a68", "#7e705f", "#948470", "#806e5c", "#8c7c66"], .07),             # pierre de la cheminée : gris-beige chaud, plus sombre que l'enduit
+    "joint":     Matiere("joint",     ["#4e4238", "#56483c"], .03),                                               # joints sombres entre les pierres
+    "bois_frotte": Matiere("bois_frotte", ["#c69c6c", "#bf9464", "#cca474"], .05),                                # dessus de table et assises frottés, plus clairs que le plancher
 })

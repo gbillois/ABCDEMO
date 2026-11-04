@@ -347,3 +347,7 @@ x, y, demi-largeur x, demi-largeur y ; le jeu ne bloque pas encore les meubles, 
   trône, boucliers ; objets à faire : foyer_rond, trone ; à réutiliser : bouclier, tonneau, table, banc_interieur).
 - Intégration (après PASSE, par la session principale) : `../maisons.py` remplace `interieur("maison", …)` par
   `interieurs/maison.py:construire()` (joindre C à P), et `creerInterieurs` lit `k.foyer` si présent.
+  Tour 1 : posé 9, accès 9, matières 7, vie 7, échelle 8, coupe 7, coût 8 → À REFAIRE. Tour 2 (`qc/interieur_maison2/`) : bottes d'herbes
+  liées, cheminée en pierre chaude à joints sombres, plancher à joints décalés et enduit moucheté, portemanteau, étagère
+  murale, ustensiles, paillasson, chemin de table, linge sur le coffre, dessus de hotte non noirci, caméras 02/03 reculées.
+  Accès et posé PASSENT ; 11 204 triangles (à alléger si l'inspecteur le demande).

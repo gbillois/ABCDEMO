@@ -6,7 +6,7 @@ from kit import Piece, poutre, planche
 
 def construire(graine=63, L=1.5, h=.46, l=.3):
     P = Piece("P_banc_interieur", graine)
-    planche(P, (0, 0, h - .03), (L, l, .06), mat="chene_c")                                     # assise
+    planche(P, (0, 0, h - .03), (L, l, .06), mat="bois_frotte")                                   # assise
     for s in (-1, 1):
         x = s * (L / 2 - .2)
         for t in (-1, 1): poutre(P, (x, t * .14, 0), (x, t * .06, h - .06), l=.07, h=.07, bev=0)   # tréteau en A
