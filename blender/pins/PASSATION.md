@@ -87,3 +87,8 @@ Suggestions non faites : verre un peu nuancé, coins sombres des petits-bois, d�
   organisation 7, sol 7, accord 8, effet de forêt 7, charme 8 → À REFAIRE de justesse ; « l'après est nettement meilleur que l'avant ».
   À faire au tour 2 : plus de variation d'échelle (±20 %) et d'inclinaison des pins, casser les alignements à l'horizon (vues 03, 07,
   08, 11) ; lisières plus irrégulières et clairières plus franches (03, 04) ; raccord au pied des troncs (touffes, fougères, cailloux).
+- Forêt, tour 2 (version 2026.11.04-3) : carte de densité (bosquets, clairières, lisières irrégulières), tailles 0,72 à 1,48,
+  pins penchés jusqu'à ±4° (tirage à part `mulberry(7349)`, toujours le même) → posé 8, accès 8, organisation 8, sol 7, accord 8,
+  effet de forêt 8, charme 8 : À REFAIRE de très peu (seul le raccord au pied des troncs manque). 809 appels de dessin,
+  1 141 424 triangles (avant : 786 et 1 284 644). Prochaine étape possible : touffes de fougères / herbe et cailloux au pied
+  des pins (petit modèle Blender instancié), quelques buissons dans les clairières.
