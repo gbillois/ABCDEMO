@@ -369,3 +369,7 @@ x, y, demi-largeur x, demi-largeur y ; le jeu ne bloque pas encore les meubles, 
   touche le plafond ; 0 pixel noir dans la zone. Paillasson tressé 0,7 × 0,45 m sombre, planches de 30 cm à joints
   décalés et dessus fendu en 3 bandes (veinage) + nœuds, enduit moucheté plus fin, faces cachées retirées
   (`retirer_faces_cachees`), caméras 02/03 recadrées. 11 821 triangles, accès et posé PASSENT.
+- Tour 3 : posé 9, accès 9, matières et lumière 8, vie 8, échelle 8, coupe 8, coût 8 (11 821 triangles) → PASSE.
+  Le noir de la vue 11 venait du banc (lampe d'ambiance sous le dessus de la hotte, ombre cuite contre le plafond).
+  Suggestions non faites : mouchetage de l'enduit un peu plus visible (8 %), lumière de fenêtre au sol.
+  Reste : intégration au jeu (lire « foyer » et « obstacles » dans creerInterieurs, la vitre dans IL_), puis la halle.
