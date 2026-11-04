@@ -1780,7 +1780,8 @@ async function chargerKit() {
     const porte = B(u.porte, null), pied = B(u.pied, null), axe = B(u.axe, null);
     const pivot = axe ? new THREE.Vector3(axe[0], axe[2], -axe[1]) : null;
     KIT[o.name] = { geo: aplatir(o, pivot), pos: pivot || new THREE.Vector3(), pied: pied && { hx: pied[0] / 2, hz: pied[1] / 2 },
-      porte: porte && new THREE.Vector3(porte[0], porte[2], -porte[1]), interieur: u.interieur || "", taille: B(u.taille, null) };
+      porte: porte && new THREE.Vector3(porte[0], porte[2], -porte[1]), interieur: u.interieur || "", taille: B(u.taille, null),
+      foyer: Array.isArray(u.foyer) ? new THREE.Vector3(u.foyer[0], u.foyer[2], -u.foyer[1]) : null, obstacles: B(u.obstacles, null) };
   });
 }
 // Les quatre villages : nom, maisons, accessoires
@@ -2366,7 +2367,11 @@ function creerInterieurs() {
     const kl = KIT["IL_" + nom]; if (kl) g.add(new THREE.Mesh(kl.geo, MAT_LUEUR));
     g.visible = false; scene.add(g);
     const [l, p, h] = k.taille || [7, 6, 3];
-    INTERIEURS[nom] = { g, l, p, h, porte: k.porte, foyer: nom === "maison" ? new THREE.Vector3(0, .6, -(p / 2 - .7)) : new THREE.Vector3(0, .6, 0) };
+    const obs = []; const ob = k.obstacles || []; for (let i = 0; i + 3 < ob.length; i += 4) obs.push({ x: ob[i], z: -ob[i + 1], hx: ob[i + 2], hz: ob[i + 3] });   // meubles (repère Blender → jeu)
+    INTERIEURS[nom] = { g, l, p, h, porte: k.porte, foyer: k.foyer || (nom === "maison" ? new THREE.Vector3(0, .6, -(p / 2 - .7)) : new THREE.Vector3(0, .6, 0)),
+      bloquer: obs.length ? (q, marge) => { const o = g.position;   // on ne traverse plus les meubles : sortir du rectangle par le côté le plus proche
+        for (const r of obs) { const dx = q.x - (o.x + r.x), dz = q.z - (o.z + r.z), px = r.hx + marge * .7 - Math.abs(dx), pz = r.hz + marge * .7 - Math.abs(dz);
+          if (px > 0 && pz > 0) { if (px < pz) q.x += Math.sign(dx || 1) * px; else q.z += Math.sign(dz || 1) * pz; } } } : null };
   }
 }
 function fonduNoir(puis) {
@@ -5508,7 +5513,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
 })();
 </script>
 <script>
-window.DRAGONFLYER_VERSION = "2026.11.04-1"; // à changer à chaque modification du jeu
+window.DRAGONFLYER_VERSION = "2026.11.04-2"; // à changer à chaque modification du jeu
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
