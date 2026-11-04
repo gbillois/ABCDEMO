@@ -363,3 +363,9 @@ x, y, demi-largeur x, demi-largeur y ; le jeu ne bloque pas encore les meubles, 
   Facultatif : faces cachées à supprimer (dos des meubles, dessus des poutres), lumière de fenêtre au sol.
 - Pas encore dans le jeu. La halle n'est pas commencée. Le bogue « on ressort au premier pas » du jeu est corrigé
   (sortie seulement en marchant vers la porte).
+  Tour 2 : posé 9, accès 9, matières 7, vie 8, échelle 8, coupe 7, coût 8 → À REFAIRE de peu. Tour 3 (`qc/interieur_maison3/`) :
+  rectangle noir de la vue 11 : vraie cause = le dessus de la hotte est plus haut que la lampe d'ambiance du rendu (et
+  noirci par l'occlusion contre le plafond) ; lampe au-dessus des murs pour la coupe, couleur d'origine rendue à ce qui
+  touche le plafond ; 0 pixel noir dans la zone. Paillasson tressé 0,7 × 0,45 m sombre, planches de 30 cm à joints
+  décalés et dessus fendu en 3 bandes (veinage) + nœuds, enduit moucheté plus fin, faces cachées retirées
+  (`retirer_faces_cachees`), caméras 02/03 recadrées. 11 821 triangles, accès et posé PASSENT.

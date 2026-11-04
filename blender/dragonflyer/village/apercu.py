@@ -362,8 +362,8 @@ def cameras_interieur(taille, porte, foyer, coins):
     """Les 12 caméras des intérieurs, toujours les mêmes (porte vers -Y, foyer, deux coins les plus meublés)."""
     l, p, h = taille; px, py = porte[0], -p / 2; fx, fy, fz = foyer; V_ = Vector
     return [("01_porte_homme", V_((px + .05, py + .35, 1.6)), V_((px, p / 2, 1.15)), 16),
-            ("02_coin_avant_gauche", V_((-l / 2 + .65, -p / 2 + .65, 1.75)), V_((0, 0, .8)), 16),
-            ("03_coin_avant_droit", V_((l / 2 - .65, -p / 2 + .65, 1.75)), V_((0, 0, .8)), 16),
+            ("02_coin_avant_gauche", V_((-l / 2 + .9, -p / 2 + .9, 1.8)), V_((.3, .6, 1.05)), 20),
+            ("03_coin_avant_droit", V_((l / 2 - .9, -p / 2 + .9, 1.8)), V_((-.3, .6, 1.05)), 20),
             ("04_coin_fond_droit", V_((l / 2 - .35, p / 2 - .35, 1.75)), V_((0, 0, .8)), 16),
             ("05_coin_fond_gauche", V_((-l / 2 + .35, p / 2 - .35, 1.75)), V_((0, 0, .8)), 16),
             ("06_enfant_foyer", V_((fx + .6, fy - 2.6, 1.0)), V_((fx, fy, fz + .25)), 20),
@@ -374,7 +374,7 @@ def cameras_interieur(taille, porte, foyer, coins):
             ("11_dessus_coupe", None, None, 0),
             ("12_soir_feu_seul", V_((l / 2 - .6, -p / 2 + .7, 1.5)), V_((fx, fy, fz + .3)), 17)]
 
-def lumieres_interieur(taille, foyer, fenetres, soir=False):
+def lumieres_interieur(taille, foyer, fenetres, soir=False, coupe=False):
     """Lumière des rendus d'intérieur : le feu (lumière orangée au foyer), un peu de jour par chaque fenêtre et une
     douce lumière d'ambiance (comme la lumière d'ambiance du jeu) ; le soir, le feu seul."""
     for o in [o for o in bpy.context.scene.objects if o.type == "LIGHT"]: bpy.data.objects.remove(o)
@@ -386,7 +386,7 @@ def lumieres_interieur(taille, foyer, fenetres, soir=False):
         return o
     lum("Feu", "POINT", (foyer[0], foyer[1] - .9, foyer[2] + .45), 380 if soir else 150, (1, .55, .22), shadow_soft_size=.35)   # devant le feu (pas dans les braises : les pierres et le chaudron brûleraient)
     if soir: return
-    a = lum("Ambiance", "AREA", (0, 0, h - .1), 260, (1, .9, .78), shape="RECTANGLE", size=l * .8, size_y=p * .8)
+    a = lum("Ambiance", "AREA", (0, 0, h + (1.0 if coupe else -.1)), 260, (1, .9, .78), shape="RECTANGLE", size=l * .8, size_y=p * .8)   # en coupe, au-dessus des murs : sinon le dessus de la hotte (plus haut que la lampe) reste noir
     for (c, n, wl, wh) in fenetres:
         o = lum("Jour", "AREA", Vector(c) + Vector(n) * .06, 110, (.82, .9, 1), shape="RECTANGLE", size=wl, size_y=wh)
         o.rotation_euler = Vector(n).to_track_quat("-Z", "Y").to_euler()
@@ -406,18 +406,18 @@ def apercu_interieur(P, V, C, nom, taille, porte, foyer, coins, poses, cibles, f
     w = bpy.data.worlds.new("Dedans"); scene.world = w; w.use_nodes = True
     w.node_tree.nodes["Background"].inputs[0].default_value = (.5, .45, .4, 1); w.node_tree.nodes["Background"].inputs[1].default_value = .05
     w.light_settings.distance = .8                             # occlusion courte : dans une pièce fermée, tout est « à l'ombre » à 10 m
-    hauts = [v.index for v in obI.data.vertices if v.co.z >= taille[2] - .01 and abs(v.co.x) < taille[0] / 2 - .3 and abs(v.co.y) < taille[1] / 2 - .3]
+    hauts = [v.index for v in obI.data.vertices if v.co.z >= taille[2] - .01]   # tout ce qui touche le plafond (dessus de la hotte, sablières) : l'occlusion cuite le noircit
     c0 = np.zeros(len(obI.data.vertices) * 4, np.float32); obI.data.color_attributes["Col"].data.foreach_get("color", c0)
     cuire_occlusion([obI, obC], sol_z=-50)
     c1 = np.zeros_like(c0); obI.data.color_attributes["Col"].data.foreach_get("color", c1); c0 = c0.reshape(-1, 4); c1 = c1.reshape(-1, 4)
-    c1[hauts] = c0[hauts] * .8; obI.data.color_attributes["Col"].data.foreach_set("color", c1.ravel())   # dessus collés au plafond (hotte) : pas noirs dans la vue en coupe
+    c1[hauts] = c0[hauts] * .85; obI.data.color_attributes["Col"].data.foreach_set("color", c1.ravel())   # dessus collés au plafond (hotte) : pas noirs dans la vue en coupe
     materiaux_rendu([obI, obC]); materiau_lueur([obL])
     cam = bpy.data.objects.new("Cam", bpy.data.cameras.new("Cam")); scene.collection.objects.link(cam); scene.camera = cam; cam.data.clip_start = .05
     scene.cycles.samples = 32; scene.cycles.use_denoising = True; scene.render.resolution_x, scene.render.resolution_y = 720, 480
     scene.view_settings.view_transform = "Standard"           # comme le jeu (sRGB) : AgX délave les flammes et les couleurs franches
     fichiers = []
     for (n, pos, cible, lens) in cameras_interieur(taille, porte, foyer, coins):
-        lumieres_interieur(taille, foyer, fenetres, soir=n.startswith("12"))
+        lumieres_interieur(taille, foyer, fenetres, soir=n.startswith("12"), coupe=n.startswith("11"))
         obC.hide_render = n.startswith("11")
         if pos is None:                                        # vue de dessus en coupe (plan de la pièce)
             cam.data.type = "ORTHO"; cam.data.ortho_scale = max(taille[0] + .6, (taille[1] + .6) * 1.5); cam.location = (0, 0, taille[2] + 8); cam.rotation_euler = (0, 0, 0)
