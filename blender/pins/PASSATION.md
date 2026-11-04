@@ -107,3 +107,7 @@ Suggestions non faites : verre un peu nuancé, coins sombres des petits-bois, d�
 - Forêt, tour 4 (version 2026.11.04-6, cache sw v17) : pied des pins évasé (pin.py), tapis d'aiguilles P_tapis sous chaque pin
   (sous_bois.py : disque irrégulier brun doré, bord vert-brun ; polygonOffset pour que les allées passent devant), au moins une
   fougère par pin, plus grande et plus foncée. Vue forêt : 856 appels de dessin, 1 186 149 triangles.
+- Forêt, tour 4 : 8 / 8 / 8 / 7 / 8 / 8 / 8 → À REFAIRE de très peu. Le raccord au sol reste à 7 pour le 4e tour : le tapis d'aiguilles
+  se lit comme une plaque plate gris-vert à bords anguleux (vue 05), il ne se fond pas dans l'herbe ; morceaux grisâtres sous la
+  fougère en gros plan (09). Même défaut depuis 3 tours → CHANGEMENT D'APPROCHE obligatoire (méthode) : par ex. bord en dégradé vers
+  la couleur exacte de l'herbe du jeu (ou texture ronde douce), tapis plus petit (1 à 1,5 m), ou retirer le tapis.
