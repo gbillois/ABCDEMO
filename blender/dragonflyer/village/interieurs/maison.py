@@ -11,10 +11,10 @@ _ici = os.path.dirname(os.path.abspath(__file__)); sys.path[:0] = [os.path.join(
 import math
 from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
-from kit import Piece, plancher_joints, boite_douce, mur_interieur, plafond_solives, porte_interieure, fenetre_interieure, nb_sommets, _neufs
+from kit import Piece, plancher_joints, retirer_faces_cachees, boite_douce, mur_interieur, plafond_solives, porte_interieure, fenetre_interieure, nb_sommets, _neufs
 import cheminee_interieure, lit, coffre, table, banc_interieur, tabouret, etagere, panier_buches, tonnelet, tapis, herbes
 import vaisselle, chandelle, caisse, sacs_grain, seau, balai, pot_fleurs, patere, etagere_murale, ustensiles
-from materiaux import M
+from materiaux import M, melange
 
 TAILLE = (7.0, 6.0, 3.0)
 X, Y, H = TAILLE[0] / 2, TAILLE[1] / 2, TAILLE[2]
@@ -37,7 +37,7 @@ def construire(graine=101):
         bvh = BVHTree.FromPolygons([v.co.copy() for v in vs], [[idx[v] for v in f.verts] for f in fs])
         poses.append(dict(nom=nom, min=mn, max=mx, appui=appui, bvh=bvh, **k))
     # --- la pièce : plancher, quatre murs, porte, fenêtres ; plafond à part (retiré pour la vue en coupe)
-    plancher_joints(P, -X, X, -Y, Y, 0, larg=.5)
+    plancher_joints(P, -X, X, -Y, Y, 0, larg=.3)
     ouv_f = lambda u, z: (u - L_FEN / 2 - .03, u + L_FEN / 2 + .03, z - H_FEN / 2 - .05, z + H_FEN / 2 + .05)
     mur_interieur(P, (-X, -Y), (X, -Y), 0, H, [(X - .68, X + .68, 0, 2.22), ouv_f(X - 2.2, 1.25)], coins=(True, False))   # mur de la porte
     mur_interieur(P, (X, -Y), (X, Y), 0, H, [ouv_f(Y - .6, 1.25)], coins=(True, False))                                  # mur droit
@@ -85,8 +85,17 @@ def construire(graine=101):
     pose("portemanteau", patere.construire(), Mx(-X, -1.1, 0, math.pi / 2), appui="mur", obstacle=False)
     pose("étagère murale", etagere_murale.construire(), Mx(X, .5, 0, -math.pi / 2), appui="mur", obstacle=False)
     pose("ustensiles", ustensiles.construire(), Mx(X, 1.75, 0, -math.pi / 2), appui="mur", obstacle=False)
-    pose("paillasson", _piece(lambda Q: Q.boite((0, 0, .012), (1.0, .6, .024), M("jute").couleur(Q.R), bev=.01)), Mx(0, -Y + .55), obstacle=False)
+    pose("paillasson", _piece(paillasson), Mx(0, -Y + .62), obstacle=False)
+    retirer_faces_cachees(P, X, Y); retirer_faces_cachees(C, X, Y, H)
     return P, V, C, poses
+
+def paillasson(Q, L=.7, l=.45):
+    """Paillasson de paille tressée : bord sombre, bandes ocre et paille foncée (couleurs seulement), 2 cm."""
+    bord = melange(M("chene_c").teintes[0], M("paille").teintes[0], .3)
+    Q.boite((0, 0, .008), (L, l, .016), tuple(k * .62 for k in bord), bev=0)
+    for k in range(5):
+        c = melange(M("paille").teintes[0], M("chene_c").teintes[0], .55 if k % 2 else .25)
+        Q.boite((0, -l / 2 + .06 + (k + .5) * (l - .12) / 5, .019), (L - .1, (l - .12) / 5 - .006, .006), tuple(x * .78 for x in c), bev=0)
 
 def _piece(f):
     Q = Piece("tmp", 7); f(Q); return Q

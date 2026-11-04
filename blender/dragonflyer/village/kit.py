@@ -1271,11 +1271,11 @@ def mur_interieur(P, a, b, z0, z1, ouvertures=(), pas_poteau=1.6, ep=.22, mat="p
             if aire > .6:                            # face vers la pièce découpée en 2 × 2 ou 3 × 3 pour moucheter l'enduit
                 fs = {f for v in vs for f in v.link_faces}; cb = sum((v.co for v in vs), Vector()) / len(vs)
                 av = max(fs, key=lambda f: (f.calc_center_median() - cb).dot(n))
-                r_ = bmesh.ops.subdivide_edges(P.bm, edges=list(av.edges), cuts=2 if aire > 2.0 else 1, use_grid_fill=True)
+                r_ = bmesh.ops.subdivide_edges(P.bm, edges=list(av.edges), cuts=3 if aire > 2.0 else 2, use_grid_fill=True)
                 vs = _neufs(P, n0)
             for v in vs:
-                h_ = v.co.z - z0; f = (.84 + .16 * min(1, h_ / 1.1)) * (.93 if v.co.z > z1 - .3 else 1)   # bas sali, haut enfumé
-                g = .95 + .09 * random.Random(int(v.co.x * 37 + v.co.y * 53 + v.co.z * 71)).random()      # mouchetage (stable)
+                h_ = v.co.z - z0; f = (.78 + .22 * min(1, h_ / 1.2)) * (.93 if v.co.z > z1 - .3 else 1)   # bas sali, haut enfumé
+                g = .94 + .1 * random.Random(int(v.co.x * 37 + v.co.y * 53 + v.co.z * 71)).random()      # mouchetage (stable)
                 v[P.col] = (*(x * f * g for x in c), 1)
     for u in us:                                     # poteaux (dépassent de 3 cm)
         p = a + t * min(max(u, lp / 2), L - lp / 2) - n * (lp / 2 - .03)
@@ -1361,17 +1361,39 @@ def feu_de_bois(V, P, x, y, z=0.0, l=.7, rz=0.0, chenets=True):
     Mx = Matrix.Translation((x, y, z)) @ Matrix.Rotation(rz, 4, "Z")
     P.ajouter(H, Mx); V.ajouter(G, Mx); H.bm.free(); G.bm.free()
 
-def plancher_joints(P, x0, x1, y0, y1, z, larg=.5, ep=.08, mat="plancher"):
-    """Plancher d'intérieur : planches selon Y en deux longueurs, joints de bout décalés d'une planche à l'autre ; chaque
-    sommet du dessus tire sa nuance (veinage en longues traînées), un bout de planche sur trois plus sombre (nœud, tache),
-    bords plus clairs là où l'on marche (usure). Dessus à z."""
-    n = max(1, round((x1 - x0) / larg)); w = (x1 - x0) / n; R = P.R
+def plancher_joints(P, x0, x1, y0, y1, z, larg=.3, ep=.08, mat="plancher", noeuds=8):
+    """Plancher d'intérieur : planches selon Y en deux ou trois longueurs, joints de bout décalés d'une planche à l'autre.
+    Le dessus de chaque planche est fendu en trois bandes dans sa longueur (veinage : chaque sommet tire sa nuance), un
+    bout sur trois plus sombre ; quelques nœuds (petits disques sombres). Le dessous, posé sur rien, est retiré. Dessus à z."""
+    n = max(1, round((x1 - x0) / larg)); w = (x1 - x0) / n; R = P.R; L = y1 - y0
     for i in range(n):
-        x = x0 + (i + .5) * w; yj = y0 + (y1 - y0) * R.uniform(.3, .7)
-        for (ya, yb) in ((y0, yj), (yj, y1)):
-            c = M(mat).couleur(R, .12)
-            for v in P.boite((x, (ya + yb) / 2, z - ep / 2), (w - .015, yb - ya - .012, ep), c, bev=0):
+        x = x0 + (i + .5) * w
+        js = [y0 + L * R.uniform(.25, .45), y0 + L * R.uniform(.6, .8)] if i % 2 else [y0 + L * R.uniform(.4, .65)]
+        bornes = [y0] + js + [y1]
+        for (ya, yb) in zip(bornes, bornes[1:]):
+            c = M(mat).couleur(R, .12); n0 = len(P.bm.verts)
+            vs = P.boite((x, (ya + yb) / 2, z - ep / 2), (w - .012, yb - ya - .01, ep), c, bev=0)
+            fs = {f for v in vs for f in v.link_faces}
+            haut = max(fs, key=lambda f: f.calc_center_median().z); bas = min(fs, key=lambda f: f.calc_center_median().z)
+            bmesh.ops.delete(P.bm, geom=[bas], context="FACES_ONLY")
+            longs = [e for e in haut.edges if abs(e.verts[0].co.y - e.verts[1].co.y) > w]
+            bmesh.ops.subdivide_edges(P.bm, edges=longs, cuts=2)
+            fonce = .84 if R.random() < .33 else 1.0
+            for v in _neufs(P, n0):
                 if v.co.z > z - .01:
-                    f = R.uniform(.88, 1.1)
-                    if R.random() < .33: f *= .82
+                    f = R.uniform(.86, 1.08) * fonce * (1 + .06 * math.sin(v.co.y * 3.1 + i))
                     v[P.col] = (*(min(1, k * f) for k in c), 1)
+    for k in range(noeuds):
+        cx, cy = x0 + (R.randrange(n) + .5) * w + R.uniform(-.05, .05), R.uniform(y0 + .3, y1 - .3)
+        P.cylindre((cx, cy, z - .002), (cx, cy, z + .003), .03, .024, M(mat).sombre, n=5)
+
+def retirer_faces_cachees(P, X, Y, H=None):
+    """Retire les faces que personne ne voit dans une pièce fermée : dessous posés au sol, dos des murs (hors de la
+    pièce, tournés vers le dehors), dessus du plafond. À faire une fois la pièce finie (les rapports gardent les poses)."""
+    P.bm.normal_update(); morte = []
+    for f in P.bm.faces:
+        c = f.calc_center_median(); nr = f.normal
+        if nr.z < -.9 and c.z < .03: morte.append(f)
+        elif (abs(c.x) > X + .03 and nr.x * c.x > .9 * abs(c.x)) or (abs(c.y) > Y + .03 and nr.y * c.y > .9 * abs(c.y)): morte.append(f)
+        elif H is not None and nr.z > .9 and c.z > H + .04: morte.append(f)
+    bmesh.ops.delete(P.bm, geom=morte, context="FACES_ONLY"); return len(morte)
