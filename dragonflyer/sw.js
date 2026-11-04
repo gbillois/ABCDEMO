@@ -1,7 +1,7 @@
 // Service worker de DragonFlyer.
 // Le jeu est gardé sur l'appareil et marche sans réseau. Il ne change que lorsqu'on appuie
 // sur « Update » (écran titre ou réglages).
-const CACHE = "dragonflyer-v14";
+const CACHE = "dragonflyer-v15";
 const BASE = "https://cdn.jsdelivr.net/npm/three@0.170.0/";
 const FICHIERS = [
   "./", "./manifest.webmanifest", "./icone-192.png", "./icone-512.png", "./apple-touch-icon.png", "./blason.webp",
