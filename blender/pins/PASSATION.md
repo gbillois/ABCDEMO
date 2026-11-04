@@ -83,3 +83,7 @@ Suggestions non faites : verre un peu nuancé, coins sombres des petits-bois, d�
   deux), 1 284 644 → 1 155 266 triangles. Contrôle de l'implantation par un inspecteur : non fait (mode économe) ;
   captures avant / après : `avant_apres_pin.jpg` (avant la retouche de teinte).
 - Suggestions non faites : 3e variante plus étroite, plaques d'écorce sur le haut du tronc. Le feuillu reste l'ancien.
+- Forêt dans le jeu, inspecteur d'implantation (tour 1, vues PINS_LIEU=foret après la retouche de teinte) : posé 8, accès 8,
+  organisation 7, sol 7, accord 8, effet de forêt 7, charme 8 → À REFAIRE de justesse ; « l'après est nettement meilleur que l'avant ».
+  À faire au tour 2 : plus de variation d'échelle (±20 %) et d'inclinaison des pins, casser les alignements à l'horizon (vues 03, 07,
+  08, 11) ; lisières plus irrégulières et clairières plus franches (03, 04) ; raccord au pied des troncs (touffes, fougères, cailloux).
