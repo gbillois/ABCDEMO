@@ -1192,3 +1192,186 @@ def tuyau_poele(P, x, y, z0, z1, toit=None):
     if toit is not None:
         zr = toit.forme(x, y)[0]; P.cylindre((x, y, zr - .05), (x, y, zr + .12), .18, .12, M("fer").couleur(P.R), n=8)
     P.cylindre((x, y, z1 - .02), (x, y, z1 + .2), .22, .03, M("fer").couleur(P.R), n=8)
+
+# ---- ajouts intérieurs (village/interieurs/*.py et leurs objets)
+# Repère des intérieurs : la pièce est centrée en (0, 0), sol à z = 0 ; la porte est dans le mur -Y (on entre vers +Y).
+def _repere(a, b):
+    a, b = Vector((*a[:2], 0)), Vector((*b[:2], 0)); d = b - a; L = d.length; t = d / L
+    return a, t, Vector((-t.y, t.x, 0)), L, math.atan2(t.y, t.x)
+
+def boite_douce(P, centre, taille, c, rz=0.0, arrondi=.06, seg=2, jit=0.0):
+    """Boîte aux arêtes arrondies et faces lisses (matelas, oreiller, coussin, couverture, miche de pain)."""
+    Mx = Matrix.Translation(Vector(centre)) @ Matrix.Rotation(rz, 4, "Z") @ Matrix.Diagonal((*taille, 1))
+    vs = bmesh.ops.create_cube(P.bm, size=1, matrix=Mx)["verts"]
+    for v in vs: v[P.col] = (*c, 1)
+    if jit:
+        for v in vs: v.co += Vector((P.R.uniform(-jit, jit), P.R.uniform(-jit, jit), P.R.uniform(-jit, jit)))
+    ens = set(vs); edges = list({e for v in vs for e in v.link_edges if e.verts[0] in ens and e.verts[1] in ens})
+    r = bmesh.ops.bevel(P.bm, geom=edges, offset=min(arrondi, min(taille) * .45), segments=seg, affect="EDGES", profile=.5)
+    for v in r["verts"]: v[P.col] = (*c, 1)
+    for f in {f for v in r["verts"] for f in v.link_faces}: f[P.lisse] = 1
+    return r["verts"]
+
+def boite_effilee(P, centre_bas, taille_bas, taille_haut, h, c, rz=0.0, decal=(0.0, 0.0)):
+    """Tronc de pyramide (hotte de cheminée, pied de trône) : base taille_bas (x, y) posée à centre_bas, haut taille_haut
+    à h au-dessus, décalé de decal (le haut d'une hotte recule contre le mur)."""
+    vs = bmesh.ops.create_cube(P.bm, size=1)["verts"]; Mx = Matrix.Translation(Vector(centre_bas)) @ Matrix.Rotation(rz, 4, "Z")
+    for v in vs:
+        haut = v.co.z > 0; tl = taille_haut if haut else taille_bas
+        v.co = Mx @ Vector((v.co.x * tl[0] + (decal[0] if haut else 0), v.co.y * tl[1] + (decal[1] if haut else 0), h if haut else 0))
+        v[P.col] = (*c, 1)
+    return vs
+
+def pile_moellons(P, centre, l, p, z0, z1, rz=0.0, mat="moellon", hauteur=(.26, .34), bev=.04):
+    """Pile de moellons (jambage de cheminée, pied de foyer) : rangs irréguliers de une ou deux pierres, joints décalés."""
+    x, y = centre; ca, sa = math.cos(rz), math.sin(rz); z = z0; k = 0
+    while z < z1 - .05:
+        hz = min(P.R.uniform(*hauteur), z1 - z)
+        if z1 - z - hz < .12: hz = z1 - z
+        cuts = [-l / 2, l / 2] if (k % 2 or l < .5) else [-l / 2, P.R.uniform(-.1, .1) * l, l / 2]
+        for u0, u1 in zip(cuts, cuts[1:]):
+            uc = (u0 + u1) / 2
+            P.boite((x + ca * uc, y + sa * uc, z + hz / 2), (u1 - u0 - .03, p - P.R.uniform(0, .04), hz - .03), M(mat).couleur(P.R, .1),
+                    rz=rz + P.R.uniform(-.02, .02), bev=bev, jit=.008)
+        z += hz; k += 1
+
+def mur_interieur(P, a, b, z0, z1, ouvertures=(), pas_poteau=1.6, ep=.22, mat="platre_i", coins=(True, True), plinthe=True):
+    """Mur intérieur enduit, vu de la pièce (la face regarde à gauche de a→b) : panneaux de torchis entre des poteaux de
+    chêne, sablière haute, plinthe ; le bas des panneaux un peu sali, le haut un peu enfumé (couleurs par sommet).
+    ouvertures : [(u0, u1, oz0, oz1)] le long du mur (porte, fenêtre, âtre) : panneaux coupés au bord, poteaux autour.
+    coins : poteaux d'angle au début et à la fin (un seul des deux murs qui se croisent les porte)."""
+    a, t, n, L, rz = _repere(a, b); R = P.R; lp = .18
+    us = ([0.0] if coins[0] else []) + ([L] if coins[1] else [])
+    for (u0, u1, oz0, oz1) in ouvertures: us += [u0 - lp / 2, u1 + lp / 2]
+    fixes = sorted(us); k = 1
+    while k * pas_poteau < L - .4:
+        u = k * pas_poteau
+        if all(abs(u - f) > .7 for f in fixes): us.append(u)
+        k += 1
+    us = sorted(set(round(u, 3) for u in us))
+    bornes = sorted(set([0.0, L] + us))
+    for u0, u1 in zip(bornes, bornes[1:]):           # panneaux de torchis entre deux poteaux (coupés par les ouvertures)
+        morceaux = [(u0, u1, z0, z1 - .2)]
+        for (o0, o1, oz0, oz1) in ouvertures:
+            nm = []
+            for (q0, q1, za, zb) in morceaux:
+                if q1 <= o0 or q0 >= o1: nm.append((q0, q1, za, zb)); continue
+                if o0 > q0: nm.append((q0, o0, za, zb))
+                if o1 < q1: nm.append((o1, q1, za, zb))
+                m0, m1 = max(q0, o0), min(q1, o1)
+                if oz0 > za + .02: nm.append((m0, m1, za, oz0))
+                if oz1 < zb - .02: nm.append((m0, m1, oz1, zb))
+            morceaux = nm
+        c = M(mat).couleur(R)
+        for (q0, q1, za, zb) in morceaux:
+            if q1 - q0 < .02 or zb - za < .02: continue
+            p = a + t * ((q0 + q1) / 2) - n * (ep / 2)
+            n0 = len(P.bm.verts); vs = P.boite((p.x, p.y, (za + zb) / 2), (q1 - q0, ep, zb - za), c, rz=rz, bev=0)
+            aire = (q1 - q0) * (zb - za)
+            if aire > .6:                            # face vers la pièce découpée en 2 × 2 ou 3 × 3 pour moucheter l'enduit
+                fs = {f for v in vs for f in v.link_faces}; cb = sum((v.co for v in vs), Vector()) / len(vs)
+                av = max(fs, key=lambda f: (f.calc_center_median() - cb).dot(n))
+                r_ = bmesh.ops.subdivide_edges(P.bm, edges=list(av.edges), cuts=2 if aire > 2.0 else 1, use_grid_fill=True)
+                vs = _neufs(P, n0)
+            for v in vs:
+                h_ = v.co.z - z0; f = (.84 + .16 * min(1, h_ / 1.1)) * (.93 if v.co.z > z1 - .3 else 1)   # bas sali, haut enfumé
+                g = .95 + .09 * random.Random(int(v.co.x * 37 + v.co.y * 53 + v.co.z * 71)).random()      # mouchetage (stable)
+                v[P.col] = (*(x * f * g for x in c), 1)
+    for u in us:                                     # poteaux (dépassent de 3 cm)
+        p = a + t * min(max(u, lp / 2), L - lp / 2) - n * (lp / 2 - .03)
+        poutre(P, (p.x, p.y, z0), (p.x, p.y, z1 - .2), l=lp, h=lp, mat="chene", bev=0)
+    p = a + t * (L / 2) - n * (ep / 2 - .05)        # sablière haute
+    poutre(P, (p.x - t.x * L / 2, p.y - t.y * L / 2, z1 - .1), (p.x + t.x * L / 2, p.y + t.y * L / 2, z1 - .1), l=ep + .1, h=.2, mat="chene", bev=.03)
+    if plinthe:
+        bords = sorted(set([0.0, L] + [u for (o0, o1, oz0, oz1) in ouvertures if oz0 < .1 for u in (o0 - lp, o1 + lp)]))
+        for q0, q1 in zip(bords, bords[1:]):
+            if any(o0 - lp - .01 <= (q0 + q1) / 2 <= o1 + lp + .01 for (o0, o1, oz0, oz1) in ouvertures if oz0 < .1): continue
+            p = a + t * ((q0 + q1) / 2) + n * .015
+            P.boite((p.x, p.y, z0 + .06), (q1 - q0, .03, .12), M("chene").sombre, rz=rz, bev=0)
+
+def plafond_solives(P, x0, x1, y0, y1, z, pas=.8, mat="chene", maitresse=True):
+    """Plafond de planches (dessous à z) posé sur des solives selon Y et une poutre maîtresse selon X au milieu.
+    Dessous des solives à z - 0,18 ; dessous de la poutre maîtresse à z - 0,44."""
+    R = P.R; n = max(1, round((y1 - y0) / .45)); w = (y1 - y0) / n
+    for i in range(n):                               # planches (brun chaud : à l'ombre)
+        c = M("chene").couleur(R, .1); P.boite(((x0 + x1) / 2, y0 + (i + .5) * w, z + .03), (x1 - x0, w - .012, .06), c, bev=0)
+    k = max(1, round((x1 - x0) / pas)); s = (x1 - x0) / k
+    for i in range(1, k):
+        x = x0 + i * s; poutre(P, (x, y0, z - .09), (x, y1, z - .09), l=.14, h=.18, mat=mat, bev=0)
+    if maitresse: poutre(P, (x0, 0, z - .31), (x1, 0, z - .31), l=.28, h=.26, mat=mat, bev=.04)
+
+def porte_interieure(P, centre, l=1.15, h=2.05, rz=0.0, ep_mur=.22):
+    """Porte vue de la pièce : vantail de planches au milieu de l'épaisseur du mur, deux traverses et une écharpe en Z,
+    loquet de fer, encadrement de chêne (montants, linteau) qui habille l'embrasure, seuil de planche.
+    Local : face du mur dans le plan y = 0, la pièce vers +Y ; centre = milieu du seuil."""
+    H = Piece("tmp_porte", P.R.randrange(1 << 30)); R = H.R; yv = -ep_mur / 2; nb = 5
+    for i in range(nb):
+        u = -l / 2 + (i + .5) * l / nb
+        H.boite((u, yv, h / 2), (l / nb - .012, .06, h), M("chene_c").couleur(R, .12), bev=0)
+    for zz in (.38, h - .38): planche(H, (0, yv + .05, zz), (l - .1, .16, .04), mat="chene")
+    a_ = Vector((-l / 2 + .12, yv + .05, .45)); b_ = Vector((l / 2 - .12, yv + .05, h - .45))
+    poutre(H, a_, b_, l=.14, h=.04, mat="chene", bev=0)                                     # écharpe
+    H.boite((l * .3, yv + .1, 1.0), (.2, .03, .04), M("fer").couleur(R), bev=0)             # loquet
+    H.sphere((l * .36, yv + .13, 1.0), .035, M("fer").couleur(R), sub=1)
+    for s in (-1, 1): H.boite((s * (l / 2 + .09), -ep_mur / 2 + .02, (h + .14) / 2), (.18, ep_mur + .04, h + .14), M("chene").couleur(R), bev=.025)   # montants
+    H.boite((0, -ep_mur / 2 + .02, h + .14), (l + .5, ep_mur + .04, .2), M("chene").couleur(R), bev=.03)   # linteau
+    H.boite((0, -ep_mur / 2 + .02, .01), (l + .02, ep_mur + .04, .04), M("chene").couleur(R), bev=0)        # seuil
+    P.ajouter(H, Matrix.Translation(Vector(centre)) @ Matrix.Rotation(rz, 4, "Z")); H.bm.free()
+
+def fenetre_interieure(P, centre, rz=0.0, l=.7, h=.75, ep_mur=.22):
+    """Fenêtre vue de la pièce : vitre claire (le jour dehors) près du dehors, cadre et croisillons de chêne, embrasure
+    enduite, linteau, appui de planche qui dépasse de 12 cm dans la pièce (on y pose un pot).
+    Local : face du mur dans le plan y = 0, la pièce vers +Y ; centre = milieu de la vitre. Renvoie le haut de l'appui."""
+    H = Piece("tmp_fen", P.R.randrange(1 << 30)); R = H.R; yv = -ep_mur + .05
+    H.boite((0, yv, 0), (l, .02, h), M("fenetre_j").couleur(R), bev=0)
+    for s in (-1, 1):
+        H.boite((s * (l / 2 - .03), yv + .04, 0), (.07, .07, h), M("chene").couleur(R), bev=0)
+        H.boite((0, yv + .04, s * (h / 2 - .03)), (l, .07, .07), M("chene").couleur(R), bev=0)
+    H.boite((0, yv + .03, 0), (.04, .04, h - .06), M("chene_c").couleur(R), bev=0)
+    H.boite((0, yv + .03, 0), (l - .06, .04, .04), M("chene_c").couleur(R), bev=0)
+    c = M("platre_i").couleur(R); ye = (yv + .02) / 2
+    for s in (-1, 1): H.boite((s * (l / 2 + .03), ye, 0), (.06, -yv - .02, h + .12), tuple(x * 1.04 for x in c), bev=0)   # embrasure
+    H.boite((0, ye, h / 2 + .03), (l + .12, -yv - .02, .06), c, bev=0)
+    poutre(H, (-l / 2 - .22, .0, h / 2 + .15), (l / 2 + .22, .0, h / 2 + .15), l=.12, h=.18, mat="chene", bev=0)   # linteau
+    H.boite((0, (yv + .12) / 2, -h / 2 - .03), (l + .24, .12 - yv, .06), M("chene_c").couleur(R), bev=.015)   # appui
+    P.ajouter(H, Matrix.Translation(Vector(centre)) @ Matrix.Rotation(rz, 4, "Z")); H.bm.free()
+    return centre[2] - h / 2
+
+def feu_de_bois(V, P, x, y, z=0.0, l=.7, rz=0.0, chenets=True):
+    """Feu de bois : deux chenets de fer, trois bûches, lit de braises et flammes douces (braises et flammes dans V :
+    elles brillent). Les bûches suivent x tourné de rz ; z = sol du foyer."""
+    H = Piece("tmp_feu", P.R.randrange(1 << 30)); G = Piece("tmp_feu_v", P.R.randrange(1 << 30)); R = H.R
+    if chenets:
+        for s in (-1, 1):
+            xx = s * l * .32
+            poutre(H, (xx, -.22, .1), (xx, .22, .1), l=.04, h=.04, mat="fer", bev=0)
+            H.cylindre((xx, -.2, 0), (xx, -.2, .22), .025, .025, M("fer").couleur(R), n=5)
+            H.sphere((xx, -.2, .25), .04, M("fer").couleur(R), sub=1)
+            H.cylindre((xx, .2, 0), (xx, .2, .1), .025, .025, M("fer").couleur(R), n=5)
+    for i, (dy, dz, a) in enumerate(((-.08, .19, .08), (.09, .19, -.1), (0, .31, .03))):   # bûches
+        ca, sa = math.cos(a), math.sin(a); L = l * (1.15 - .15 * i)
+        H.cylindre((-ca * L / 2, dy - sa * L / 2, dz), (ca * L / 2, dy + sa * L / 2, dz), .075, .07, M("chene").sombre, n=7)
+    for i in range(7):                               # braises sous les bûches
+        G.sphere((R.uniform(-.25, .25) * l / .7, R.uniform(-.15, .15), .05), R.uniform(.06, .09), M("braise").couleur(R), (1.3, 1, .5), sub=1)
+    for i in range(3): H.sphere((R.uniform(-.25, .25), R.uniform(-.15, .15), .04), .07, M("charbon").couleur(R), (1.2, 1, .5), sub=1)
+    for i in range(5):                               # flammes : cônes doux, jaunes au cœur
+        u = (i - 2) / 2 * l * .28; ph = R.uniform(.32, .52) * (1 - abs(u) / l * .8)
+        G.cylindre((u, R.uniform(-.06, .06), .22), (u + R.uniform(-.04, .04), R.uniform(-.03, .03), .22 + ph), R.uniform(.08, .11), .008, M("flamme").teintes[1], n=6)
+        if i % 2 == 0: G.cylindre((u, 0, .24), (u, 0, .24 + ph * .6), .05, .005, M("flamme").teintes[0], n=5)
+    Mx = Matrix.Translation((x, y, z)) @ Matrix.Rotation(rz, 4, "Z")
+    P.ajouter(H, Mx); V.ajouter(G, Mx); H.bm.free(); G.bm.free()
+
+def plancher_joints(P, x0, x1, y0, y1, z, larg=.5, ep=.08, mat="plancher"):
+    """Plancher d'intérieur : planches selon Y en deux longueurs, joints de bout décalés d'une planche à l'autre ; chaque
+    sommet du dessus tire sa nuance (veinage en longues traînées), un bout de planche sur trois plus sombre (nœud, tache),
+    bords plus clairs là où l'on marche (usure). Dessus à z."""
+    n = max(1, round((x1 - x0) / larg)); w = (x1 - x0) / n; R = P.R
+    for i in range(n):
+        x = x0 + (i + .5) * w; yj = y0 + (y1 - y0) * R.uniform(.3, .7)
+        for (ya, yb) in ((y0, yj), (yj, y1)):
+            c = M(mat).couleur(R, .12)
+            for v in P.boite((x, (ya + yb) / 2, z - ep / 2), (w - .015, yb - ya - .012, ep), c, bev=0):
+                if v.co.z > z - .01:
+                    f = R.uniform(.88, 1.1)
+                    if R.random() < .33: f *= .82
+                    v[P.col] = (*(min(1, k * f) for k in c), 1)

@@ -33,10 +33,11 @@ fs.mkdirSync(OUT, { recursive: true });
       const d = window.__df, v = d.VILLAGES.find(v => v.nom === nom), C = v.place, h = (x, z) => Math.max(0, d.hauteur(x, z)), hc = h(C.x, C.z);
       const nl = Math.hypot(v.mx, v.mz) || 1, mx = v.mx / nl, mz = v.mz / nl;   // vers la mer
       const L = [], degage = (x, y, z, tx, ty, tz) => { for (let k = 1; k < 40; k++) { const t = k / 40, px = x + (tx - x) * t, pz = z + (tz - z) * t; if (h(px, pz) > y + (ty - y) * t - 4) return false; } return true; };
-      const cam = (n, x, z, alt, tx, tz, ty = hc, heure = .42) => {   // si une montagne cache la cible, la caméra tourne autour d'elle jusqu'à la voir
-        let X = x, Z = z; for (let k = 0; k < 16; k++) { const a = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * Math.PI / 8, c = Math.cos(a), s = Math.sin(a);
-          X = tx + (x - tx) * c - (z - tz) * s; Z = tz + (x - tx) * s + (z - tz) * c; if (degage(X, Math.max(h(X, Z) + 15, hc + alt), Z, tx, ty, tz)) break; }
-        L.push([n, [X, Math.max(h(X, Z) + 15, hc + alt), Z], [tx, ty, tz], heure]); };
+      const cam = (n, x, z, alt, tx, tz, ty = hc, heure = .42) => {   // si une montagne cache la cible : monter un peu, puis tourner un peu autour (jamais deux vues au même endroit)
+        for (const f of [1, 1.4, 2]) for (let k = 0; k < 7; k++) { const a = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * Math.PI / 12, c = Math.cos(a), s = Math.sin(a);
+          const X = tx + (x - tx) * c - (z - tz) * s, Z = tz + (x - tx) * s + (z - tz) * c, Y = Math.max(h(X, Z) + 15, hc + alt * f);
+          if (degage(X, Y, Z, tx, ty, tz)) { L.push([n, [X, Y, Z], [tx, ty, tz], heure]); return; } }
+        L.push([n, [x, Math.max(h(x, z) + 15, hc + alt * 2), z], [tx, ty, tz], heure]); };
       // 01 à 04 : arrivée en vol depuis les quatre côtés, 60 m au-dessus de la place, à 130 m
       [["01_arrivee_mer", mx, mz], ["02_arrivee_terre", -mx, -mz], ["03_arrivee_cote_g", -mz, mx], ["04_arrivee_cote_d", mz, -mx]].forEach(([n, ex, ez]) => cam(n, C.x + ex * 130, C.z + ez * 130, 60, C.x, C.z));
       cam("05_oblique_150m", C.x + (mx - mz) * 150, C.z + (mz + mx) * 150, 150, C.x, C.z);                  // en plongée, de haut
