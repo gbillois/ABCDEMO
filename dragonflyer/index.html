@@ -2404,7 +2404,7 @@ function majPortes(dt) {
   else if (dedans) {   // le foyer vacille ; on sort en marchant jusqu'à la porte
     lumiereFeu.intensity = 35 * (.85 + .3 * Math.random());
     const o = dedans.I.g.position, p = dedans.I.porte;
-    if (!fondu && Math.hypot(marche.pos.x - (o.x + p.x), marche.pos.z - (o.z + p.z - .45)) < .55 && Math.cos(marche.yaw) < -.3 && marche.vitesse > .5) sortir();
+    if (!fondu && Math.hypot(marche.pos.x - (o.x + p.x), marche.pos.z - (o.z + p.z + .25)) < .6 && Math.cos(marche.yaw) > .3 && marche.vitesse > .5) sortir();   // en marchant VERS la porte (on entre tourné vers la pièce)
   }
   $("btEntrer").hidden = !TACTILE || !portePres;
   if (!TACTILE && etat.sol === "pied") { $("indice").hidden = !portePres; if (portePres) $("indice").innerHTML = `${ico("maison")} <b>E</b>&nbsp;to go in`; }
@@ -5508,7 +5508,7 @@ window.MANETTE = { menus: ".ecran", A: "Space", B: "KeyF", X: "KeyL", Y: "KeyC",
 })();
 </script>
 <script>
-window.DRAGONFLYER_VERSION = "2026.11.03-9"; // à changer à chaque modification du jeu
+window.DRAGONFLYER_VERSION = "2026.11.04-1"; // à changer à chaque modification du jeu
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.
