@@ -351,3 +351,15 @@ x, y, demi-largeur x, demi-largeur y ; le jeu ne bloque pas encore les meubles, 
   liées, cheminée en pierre chaude à joints sombres, plancher à joints décalés et enduit moucheté, portemanteau, étagère
   murale, ustensiles, paillasson, chemin de table, linge sur le coffre, dessus de hotte non noirci, caméras 02/03 reculées.
   Accès et posé PASSENT ; 11 204 triangles (à alléger si l'inspecteur le demande).
+
+### Intérieur de la maison : notes
+- Tour 1 : posé 9, accès 9, matières et lumière 7, vie 7, échelle 8, coupe 7, coût 8 (8 868 triangles) → À REFAIRE.
+- Tour 2 : posé 9, accès 9, matières et lumière 7, vie 8, échelle 8, coupe 7, coût 8 (11 204 triangles, jugé acceptable
+  pour une pièce fermée seule à l'écran) → À REFAIRE. Faits : herbes, pierre de la cheminée, murs meublés.
+  Reste pour le tour 3 : (1) rectangle noir au-dessus de la hotte en vue 11 (2e fois : au 3e, changer d'approche) ;
+  (2) paillasson trop blanc : paille ou ocre sombre, tissé en bandes, bord foncé, 0,7 × 0,45 m ; (3) planches de 25 à
+  35 cm (aujourd'hui 60 à 100 cm), veinage et nœuds discrets, mouchetage de l'enduit visible (5 %), bas du mur plus
+  sombre ; (4) cadrages 02 (fragment jaune coupé en bas à droite) et 03 (montant coupé au bord gauche).
+  Facultatif : faces cachées à supprimer (dos des meubles, dessus des poutres), lumière de fenêtre au sol.
+- Pas encore dans le jeu. La halle n'est pas commencée. Le bogue « on ressort au premier pas » du jeu est corrigé
+  (sortie seulement en marchant vers la porte).
