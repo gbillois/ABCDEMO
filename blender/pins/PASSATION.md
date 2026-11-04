@@ -104,3 +104,6 @@ Suggestions non faites : verre un peu nuancé, coins sombres des petits-bois, d�
 - Forêt, tour 3 (avec le sous-bois) : 8 / 8 / 8 / 7 / 8 / 8 / 8 → À REFAIRE de très peu : le raccord au sol reste à 7 (mieux en gros plan,
   presque pareil à distance de jeu). Demandé : pied du tronc évasé ou racines, ou un disque de terre / d'ombre sombre sous chaque pin ;
   touffes plus grandes (≈ 2 fois le tronc), plus foncées, au moins une par pin, qui dépassent l'herbe haute.
+- Forêt, tour 4 (version 2026.11.04-6, cache sw v17) : pied des pins évasé (pin.py), tapis d'aiguilles P_tapis sous chaque pin
+  (sous_bois.py : disque irrégulier brun doré, bord vert-brun ; polygonOffset pour que les allées passent devant), au moins une
+  fougère par pin, plus grande et plus foncée. Vue forêt : 856 appels de dessin, 1 186 149 triangles.

@@ -59,13 +59,26 @@ def cailloux(graine=4):
     caillou(P, R, (-.3, .28, -.03), .2, .17, 0)   # un anguleux
     return P
 
+def tapis(graine=6):
+    """Le tapis d'aiguilles sous un pin : un disque plat irrégulier (rayon ≈ 1,7 m) brun doré, au bord dentelé vert-brun qui se fond
+    dans l'herbe, posé à 2 cm au-dessus du sol (il lie le tronc à l'herbe). Origine au centre (le jeu le pose au pied du pin)."""
+    P = Piece("P_tapis", graine); R = P.R; n = 14
+    rin = [1.05 * R.uniform(.85, 1.15) for _ in range(n)]; rout = [1.7 * R.uniform(.8, 1.2) for _ in range(n)]
+    pt = lambda i, r, z=.02: Vector((math.cos(i / n * 2 * math.pi) * r, math.sin(i / n * 2 * math.pi) * r, z))
+    for i in range(n):
+        j = (i + 1) % n
+        P.face([Vector((0, 0, .025)), pt(i, rin[i]), pt(j, rin[j])], M("litiere").couleur(R), Vector((0, 0, 1)))
+        P.face([pt(i, rin[i]), pt(i, rout[i], .015), pt(j, rin[j])], M("litiere_b").couleur(R), Vector((0, 0, 1)))
+        P.face([pt(j, rin[j]), pt(i, rout[i], .015), pt(j, rout[j], .015)], M("litiere_b").couleur(R), Vector((0, 0, 1)))
+    return P
+
 if __name__ == "__main__":
     import bpy
     from apercu import nettoyer_depart, cuire_occlusion, exporter, rapport, materiaux_rendu, decor, rendre, sortie
     dossier = sortie(); nettoyer_depart()
-    oF, oC = fougere().objet(), cailloux().objet()
+    oF, oC = fougere().objet(), cailloux().objet(); oT = tapis().objet()
     cuire_occlusion([oF, oC], distance=.4)
-    exporter([oF, oC], os.path.join(dossier, "sous_bois.glb"))
+    exporter([oF, oC, oT], os.path.join(dossier, "sous_bois.glb"))
     rapport(dossier, [oF, oC], [], budget=250, ancien="aucun (le pied des pins était nu) ; budget par objet")
     materiaux_rendu([oF, oC]); decor(2)
     oF.location.x = -.9; oC.location.x = .9   # (pour les rendus : côte à côte ; dans le GLB, chacun à l'origine)

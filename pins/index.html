@@ -4530,10 +4530,11 @@ const SB3D = await chargerModeles("assets/sous_bois.glb");
 if (SB3D?.P_fougere && SB3D.P_cailloux) {
   const RS = mulberry(911), fo = [], ca = [];
   const autour = (t, liste, r0, r1, s0, s1) => { const a = RS() * 6.28, r = (r0 + RS() * (r1 - r0)) * t.s; liste.push({ x: t.x + Math.cos(a) * r, z: t.z + Math.sin(a) * r, s: s0 + RS() * (s1 - s0), r: RS() * 6.28, c: RS() }); };
-  for (const t of pines) { const n = RS() < .75 ? (RS() < .4 ? 2 : 1) : 0; for (let k = 0; k < n; k++) autour(t, fo, .6, 1.6, 1.0, 1.6); if (RS() < .35) autour(t, ca, .8, 1.8, .9, 1.5); }
+  const ta = []; for (const t of pines) { const n = RS() < .45 ? 2 : 1; for (let k = 0; k < n; k++) autour(t, fo, .55, 1.4, 1.25, 1.8); if (RS() < .35) autour(t, ca, .8, 1.8, .9, 1.5); ta.push({ x: t.x, z: t.z, s: t.s * .85, r: RS() * 6.28, c: RS() }); }
   for (const t of leafy) { if (RS() < .4) autour(t, fo, .9, 1.9, 1.0, 1.5); if (RS() < .15) autour(t, ca, .9, 1.9, .9, 1.4); }
   const mFo = foliage(null, 0); mFo.vertexColors = true; mFo.side = THREE.DoubleSide; const mCa = matSommets({ side: THREE.FrontSide });
-  for (const im of [...instancedParCase(SB3D.P_fougere, mFo, fo, (t, c) => c.setRGB(.82 + t.c * .2, .86 + t.c * .18, .78 + t.c * .16), TREE_CELL, 110), ...instancedParCase(SB3D.P_cailloux, mCa, ca, (t, c) => c.setRGB(.6 + t.c * .12, .6 + t.c * .12, .58 + t.c * .12), TREE_CELL, 110)]) im.castShadow = false;
+  if (SB3D.P_tapis) for (const im of instancedParCase(SB3D.P_tapis, matSommets({ side: THREE.FrontSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }), ta, (t, c) => c.setRGB(.78 + t.c * .14, .78 + t.c * .14, .76 + t.c * .12), TREE_CELL, TREE_LOIN)) im.castShadow = false;   // tapis d'aiguilles sous chaque pin (les allées passent devant)
+  for (const im of [...instancedParCase(SB3D.P_fougere, mFo, fo, (t, c) => c.setRGB(.7 + t.c * .16, .74 + t.c * .16, .66 + t.c * .14), TREE_CELL, 120), ...instancedParCase(SB3D.P_cailloux, mCa, ca, (t, c) => c.setRGB(.6 + t.c * .12, .6 + t.c * .12, .58 + t.c * .12), TREE_CELL, 110)]) im.castShadow = false;
 }
 if (!PIN3D?.T_pin1) { const pineTrunk = new THREE.CylinderGeometry(.12, .42, 10.6, 12); pineTrunk.translate(0, 5.3, 0); instancedParCase(pineTrunk, barkM, pines, null, TREE_CELL, TREE_LOIN); }
 const trunkGeo = new THREE.CylinderGeometry(.18, .36, 4.6, 12); trunkGeo.translate(0, 2.3, 0); instancedParCase(trunkGeo, barkM, leafy, null, TREE_CELL, TREE_LOIN);
@@ -10716,7 +10717,7 @@ loop();
   (async () => { for (let k = 0; k < fin.length; k++) { await morceau(); try { fin[k](); } catch (e) {} } })(); }
 </script>
 <script>
-window.PINS_VERSION = "2026.11.04-5"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
+window.PINS_VERSION = "2026.11.04-6"; // à changer à chaque modification du jeu (affichée dans Réglages → Plus)
 </script>
 <script>
 // Application installable : le jeu est gardé sur l'appareil par sw.js et marche sans réseau.

@@ -33,7 +33,7 @@ if gt:
 # ---------- le sous-bois (fougère, cailloux), blender/pins/vegetation/sous_bois.py → sous_bois.glb
 import sous_bois
 nettoyer_depart(); objs = [sous_bois.fougere().objet(), sous_bois.cailloux().objet()]
-cuire_occlusion(objs, distance=.4)
+cuire_occlusion(objs, distance=.4); objs.append(sous_bois.tapis().objet())   # (le tapis : sans occlusion, il est à plat)
 brut = os.path.join(dossier, "sous_bois_brut.glb"); exporter(objs, brut)
 if gt:
     subprocess.run([gt, "meshopt", brut, os.path.join(dossier, "sous_bois.glb")], check=True); os.remove(brut)

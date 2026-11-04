@@ -24,15 +24,15 @@ class Pin:
 def tronc(P, T):
     """Tronc à 7 pans qui s'affine nettement, anneaux réguliers (pas de torsion), écorce en plaques : chaque pan tire
     une nuance, et une bande sombre sur deux par endroits."""
-    R, n, zs = P.R, 7, [-.3, .6, 2.4, 4.4, 6.4, 8.2, H_TRONC]
+    R, n, zs = P.R, 7, [-.3, .12, .6, 2.4, 4.4, 6.4, 8.2, H_TRONC]   # (anneau à 12 cm : le pied s'évase dans le sol)
     ray = lambda z: .34 * (1 - z / (H_TRONC + .6)) ** 1.15 + .05
     anneaux = []
     for k, z in enumerate(zs):
-        c = P.axe(max(z, 0)); r = ray(max(z, 0)) * (1.18 if z < .7 else 1)
+        c = P.axe(max(z, 0)); r = ray(max(z, 0)) * (1.75 if z < 0 else 1.45 if z < .2 else 1.12 if z < .7 else 1)
         anneaux.append([c + Vector((math.cos(i / n * 2 * math.pi) * r, math.sin(i / n * 2 * math.pi) * r, 0)) for i in range(n)])
     for k in range(len(zs) - 1):
         for i in range(n):
-            mat = "ecorce_d" if k == 0 else ("ecorce_p" if (i + k) % 3 == 0 else "ecorce")
+            mat = "ecorce_d" if k <= 1 else ("ecorce_p" if (i + k) % 3 == 0 else "ecorce")
             a, b = anneaux[k][i], anneaux[k][(i + 1) % n]; c, d = anneaux[k + 1][(i + 1) % n], anneaux[k + 1][i]
             T.face([a, b, c, d], M(mat).couleur(R), (a + b - 2 * P.axe(max(zs[k], 0))).normalized())
     # branches mortes sur le tronc nu (un pin s'élague seul)

@@ -64,6 +64,8 @@ MATIERES = {
     "fougere":     Matiere("fougere",     ["#6a9445", "#64903f", "#70994a", "#62893f"], .05),     # fougères du sous-bois (vert tendre)
     "fougere_c":   Matiere("fougere_c",   ["#8db357", "#95b85c"], .04),                           # pointes des frondes (plus claires : la fougère se détache du sol)
     "fougere_d":   Matiere("fougere_d",   ["#4f7a3a", "#4a7436"], .04),                           # cœur et tiges des fougères (à l'ombre)
+    "litiere":     Matiere("litiere",     ["#6e5d3c", "#665637", "#76643f"], .05),                # tapis d'aiguilles de pin sous les arbres (brun doré)
+    "litiere_b":   Matiere("litiere_b",   ["#56653a", "#5b6a3d"], .04),                           # bord du tapis, qui se fond dans l'herbe
     "caillou":     Matiere("caillou",     ["#a39a89", "#968d7d", "#aca291", "#8f877a"], .05),     # cailloux du sous-bois
     "mousse_c":    Matiere("mousse_c",    ["#557f3e", "#4f793b"], .04),                           # mousse sur le dessus des cailloux
     "ecorce_p":    Matiere("ecorce_p",    ["#6a3f26", "#633a23"], .04),                           # plaques sombres de l'écorce
