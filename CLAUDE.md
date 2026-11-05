@@ -164,7 +164,7 @@ le Domaine des Pins (voir aussi `REGLES-JEUX.md`) :
 Accord du propriétaire (novembre 2026) : le globe vit dans `monde/` (https://gbillois.github.io/ABCDEMO/monde/), en application
 installable comme le Domaine des Pins (`manifest.webmanifest`, `sw.js`, bouton « Mettre à jour » sur l'écran titre et dans les réglages,
 `window.MONDE_VERSION` à changer à chaque modification ; penser à dire d'appuyer sur « Mettre à jour »).
-- Données géographiques du **domaine public** (Natural Earth, relief ETOPO1 de la NOAA) : ce ne sont pas des images téléchargées
+- Données géographiques du **domaine public** (Natural Earth, relief ETOPO 2022 de la NOAA, CC0) : ce ne sont pas des images téléchargées
   mais des mesures (altitudes, contours, noms). Les cartes `monde/donnees/` sont calculées par `outils/monde/fabriquer.py`
   (couleurs des paysages peintes par le script, d'après `zones.py`) ; sources dans `outils/monde/README.md`.
 - Lues depuis le même site, gardées hors ligne par `sw.js` (`FICHIERS`). Pas de réseau à l'exécution, pas de serveur.

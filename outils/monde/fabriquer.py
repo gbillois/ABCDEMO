@@ -2,7 +2,7 @@
 
 Usage : python3 fabriquer.py <dossier Natural Earth> <dossier ETOPO> <dossier de sortie>
   - Natural Earth (naturalearthdata.com, domaine public) : les .zip dézippés (ne_50m_admin_0_countries/...).
-  - ETOPO1 (NOAA, domaine public) : bandes b_<lat>.nc téléchargées par telecharger.sh (pas de 3 minutes d'angle).
+  - ETOPO 2022 (NOAA, CC0) : bandes b_<lat>.nc téléchargées par telecharger.sh (un point toutes les 3 minutes d'angle).
 
 Sorties :
   relief.webp   4096×2048 RGB sans perte : R,G = altitude sur 16 bits (h = valeur × 2 − 11000 m), B = part de lac (0..255)
@@ -66,17 +66,19 @@ def fbm(graine, octaves=((8, 1), (24, .5), (64, .25), (160, .12))):
 
 # ---------- relief (ETOPO1) ----------
 print("relief…")
-bandes = []
-for f in sorted(glob.glob(os.path.join(ETO, "b_*.nc")), key=lambda s: int(s.split("_")[-1][:-3])):
+lignes = {}
+for f in glob.glob(os.path.join(ETO, "b_*.nc")):
     nc = netcdf_file(f, "r", mmap=False)
-    a = nc.variables["altitude"].data.astype(np.float32)
-    bandes.append(a if not bandes else a[1:])
-alt = np.concatenate(bandes, 0)[::-1]  # nord en haut, 3601 × 7201
+    var = "z" if "z" in nc.variables else "altitude"
+    a = nc.variables[var].data.astype(np.float32); la_ = nc.variables["latitude"].data; lo_ = nc.variables["longitude"].data.astype(np.float64)
+    for k, v in enumerate(la_): lignes[round(float(v), 5)] = a[k]
+lats = np.array(sorted(lignes)); alt = np.stack([lignes[v] for v in lats])  # sud → nord
 alt = ndimage.gaussian_filter(alt, .7)
-sh, sw = alt.shape
-yy = (90 - LATg) / 180 * (sh - 1)
-xx = (LONg + 180) / 360 * (sw - 1)
-h = ndimage.map_coordinates(alt, [yy, xx], order=1).astype(np.float32)
+dla, dlo = (lats[-1] - lats[0]) / (len(lats) - 1), (lo_[-1] - lo_[0]) / (len(lo_) - 1)
+yy = (LATg - lats[0]) / dla
+xx = (LONg - lo_[0]) / dlo
+h = ndimage.map_coordinates(alt, [yy, xx], order=1, mode="grid-wrap" if abs(lo_[-1] - lo_[0] + dlo - 360) < 1e-3 else "nearest").astype(np.float32)
+h = np.where((yy < 0) | (yy > len(lats) - 1), ndimage.map_coordinates(alt, [np.clip(yy, 0, len(lats) - 1), xx], order=1, mode="nearest"), h)
 
 # ---------- terres, lacs, banquises de glace ----------
 print("terres…")
@@ -185,6 +187,11 @@ PARENT = {"Mediterranean Sea": 11, "Black Sea": 11, "Caribbean Sea": 11, "Gulf o
 for m in MERS:
     k = PARENT.get(m["rec"]["name"])
     if k is not None: oce[ids_m == m["id"]] = k
+# trous entre les polygones des mers (ex. mer de Crète) : la mer nommée la plus proche
+trou = (ids_m == 0) & ~terre
+if trou.any():
+    _, (iy, ix) = ndimage.distance_transform_edt(ids_m == 0, return_indices=True)
+    ids_m[trou] = ids_m[iy[trou], ix[trou]]
 ids_m[terre] = 0
 codes = np.where(terre, cont, oce).astype(np.uint8)
 Image.fromarray(np.stack([ids_p.astype(np.uint8), ids_m.astype(np.uint8), codes], -1), "RGB").save(os.path.join(OUT, "ids.png"), optimize=True)

@@ -1,7 +1,7 @@
 // Service worker de My World Explorer.
 // Le globe est gardé sur l'appareil et marche sans réseau. Il ne change que
 // lorsqu'on appuie sur « Mettre à jour » (flèche ronde de l'écran titre ou Réglages).
-const CACHE = "monde-v1";
+const CACHE = "monde-v2";
 const BASE = "https://cdn.jsdelivr.net/npm/three@0.170.0/";
 const FICHIERS = [
   "./", "./manifest.webmanifest", "./icone-192.png", "./icone-512.png", "./apple-touch-icon.png",

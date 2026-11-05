@@ -1,7 +1,7 @@
 """Relief fin de l'Europe (1 minute d'angle, ~1,8 km) pour zoomer sur la France et ses voisins.
 
 Usage : python3 europe.py <dossier Natural Earth> <fichier eu.nc> <dossier de sortie>
-  eu.nc : ETOPO1 (NOAA, domaine public), longitudes -12..32, latitudes 35..60, un point par minute
+  eu.nc : ETOPO 2022 (NOAA, CC0), longitudes -12..32, latitudes 35..60, un point par minute
   (voir telecharger.sh). Côtes et lacs : Natural Earth 10m (domaine public).
 Sortie : relief_europe.webp, 2640×1500 RGB sans perte, même codage que relief.webp
   (R,G = altitude 16 bits, h = valeur × 2 − 11000 m ; B = part de lac).
@@ -20,12 +20,13 @@ W, H = 2640, 1500
 S = 3
 
 nc = netcdf_file(NC, "r", mmap=False)
-alt = nc.variables["altitude"].data.astype(np.float32)[::-1]  # nord en haut
-sh, sw = alt.shape
+var = "z" if "z" in nc.variables else "altitude"
+alt = nc.variables[var].data.astype(np.float32)  # sud → nord
+la_, lo_ = nc.variables["latitude"].data, nc.variables["longitude"].data
 lon = LON0 + (np.arange(W) + .5) / W * (LON1 - LON0)
 lat = LAT1 - (np.arange(H) + .5) / H * (LAT1 - LAT0)
 LO, LA = np.meshgrid(lon, lat)
-h = ndimage.map_coordinates(alt, [(LAT1 - LA) / (LAT1 - LAT0) * (sh - 1), (LO - LON0) / (LON1 - LON0) * (sw - 1)], order=1).astype(np.float32)
+h = ndimage.map_coordinates(alt, [(LA - la_[0]) / ((la_[-1] - la_[0]) / (len(la_) - 1)), (LO - lo_[0]) / ((lo_[-1] - lo_[0]) / (len(lo_) - 1))], order=1, mode="nearest").astype(np.float32)
 
 cadre = box(LON0 - 1, LAT0 - 1, LON1 + 1, LAT1 + 1)
 def frac(nom):

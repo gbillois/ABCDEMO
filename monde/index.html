@@ -336,6 +336,7 @@
     <div class="reglage"><span>Image :</span><span id="qualites"></span></div>
     <div class="reglage"><span>Musique douce :</span><span id="musiques"></span></div>
     <div class="version">Version : <b id="versionTxt"></b></div>
+    <div class="version">Relief : NOAA ETOPO 2022 (CC0) · Cartes : Natural Earth (domaine public)</div>
     <div class="rangee"><button class="btn" id="majBtn2"><span data-i="maj"></span>Mettre à jour</button></div>
     <div id="majMsg2"></div>
     <div class="rangee"><button class="btn main" data-ferme>Fermer</button></div>
@@ -638,6 +639,31 @@ float hLod(vec2 uv, float lod) {
   return h;
 }
 `;
+const GLSL_CIEL = /* glsl */`
+uniform vec3 uSun; uniform vec3 uUpC; uniform float uSky, uFogL;
+const vec3 SUN_COL = vec3(1.0, 0.9, 0.76);
+const vec3 SKY_ZEN = vec3(0.06, 0.16, 0.42);
+const vec3 SKY_HOR = vec3(0.5, 0.6, 0.72);
+const vec3 SKY_HALO = vec3(1.0, 0.82, 0.6);
+// le ciel de DragonFlyer, vu depuis l'endroit où est la caméra (uUpC : la verticale sous la caméra)
+vec3 skyCol(vec3 rd) {
+  float y = dot(rd, uUpC);
+  vec3 c = mix(SKY_HOR, SKY_ZEN, pow(clamp(y, 0.0, 1.0), 0.45));
+  float sd = max(dot(rd, uSun), 0.0);
+  c += SKY_HALO * (0.22 * pow(sd, 4.0) + 0.55 * pow(sd, 28.0) + 1.6 * pow(sd, 300.0));
+  c = mix(c, SKY_HOR * 1.08 + SKY_HALO * 0.12 * sd, exp(-max(y, 0.0) * 18.0) * 0.55);
+  return c * mix(0.78, 1.0, smoothstep(-0.3, 0.0, y));
+}
+// brume du lointain (perspective aérienne) : prend la couleur du ciel à l'horizon dans la direction du regard
+vec3 atmo(vec3 col, vec3 wp) {
+  if (uSky <= 0.0) return col;
+  vec3 rd = wp - cameraPosition; float dist = length(rd); rd /= max(dist, 1e-6);
+  float ry = dot(rd, uUpC);
+  float ext = exp(-dist / uFogL);
+  vec3 fc = skyCol(normalize(rd - uUpC * (ry - max(ry, 0.0) * 0.25 - 0.02)));
+  return mix(col, mix(fc, col, ext), uSky);
+}
+`;
 const VERT_GLOBE = /* glsl */`
 uniform sampler2D tH; uniform float uK; uniform vec3 uPC, uPE, uPN; uniform float uPA;
 varying vec3 vDir; varying vec3 vPos;
@@ -662,12 +688,13 @@ void main() {
 }`;
 const FRAG_GLOBE = /* glsl */`
 uniform sampler2D tH; uniform sampler2D tC; uniform sampler2D tI; uniform sampler2D tPal;
-uniform vec2 uTex; uniform vec3 uSun; uniform float uKs, uTime, uDetail, uPol, uClim, uGrid, uGridStep, uNight, uHaze;
+uniform vec2 uTex; uniform float uK, uKs, uTime, uDetail, uPol, uClim, uGrid, uGridStep, uNight, uHaze;
 uniform vec4 uLig; uniform float uLigHL; uniform vec4 uHL;
 uniform vec3 uPC, uPE, uPN; uniform float uPA, uPatchOn;
 varying vec3 vDir; varying vec3 vPos;
 ${GLSL_COMMUN}
 ${GLSL_RELIEF}
+${GLSL_CIEL}
 float trait(float dist, float fw, float wpx) { return 1.0 - smoothstep(wpx * 0.5, wpx * 0.5 + 1.0, dist / max(fw, 1e-6)); }
 void main() {
   vec3 d = normalize(vDir);
@@ -695,47 +722,102 @@ void main() {
   float jour = 1.0;
   if (uNight > 0.5) jour = smoothstep(-0.12, 0.16, dot(d, L));
 
-  // ----- terre
+  // ----- terre (de près : matières façon DragonFlyer — herbe nuancée, roche striée, éboulis, neige, plages)
   vec3 alb = a4.rgb;
-  if (uDetail > 0.01) {
-    vec3 q = d * 2600.0;
-    float g = vnoise(q) * 0.5 + vnoise(q * 2.7) * 0.3 + vnoise(q * 7.3) * 0.2;
-    alb *= 1.0 + (g - 0.5) * 0.32 * uDetail;
-    vec3 gn = vec3(vnoise(q * 1.9 + 3.1), vnoise(q * 1.9 + 7.7), vnoise(q * 1.9 + 11.3)) - 0.5;
-    n = normalize(n + (gn - d * dot(gn, d)) * 0.22 * uDetail);
-  }
+  float fwd = length(fwidth(d));
   float pente = 1.0 - dot(n, d);
   float latA = abs(lat) * 57.2958;
-  float neige = latA < 35.0 ? 5500.0 - latA * 5.0 : max(5325.0 - (latA - 35.0) * 190.0, 900.0);
-  alb = mix(alb, vec3(0.86, 0.89, 0.93), smoothstep(neige - 250.0, neige + 350.0, h) * (1.0 - smoothstep(0.3, 0.6, pente)) * 0.85);
-  alb = mix(alb, vec3(0.30, 0.27, 0.24), smoothstep(0.22, 0.6, pente) * step(30.0, h) * 0.4 * (1.0 - step(0.6, min(alb.r, alb.b))));
-  float dif = max((dot(n, L) + 0.12) / 1.12, 0.0);
-  vec3 amb = vec3(0.40, 0.50, 0.66) * (0.42 + 0.25 * dot(n, d));
-  vec3 terre = alb * (vec3(1.0, 0.95, 0.86) * 1.45 * dif + amb * (0.72 + 0.25 * uDetail));
+  float n1 = 0.5, n2 = 0.5, n3 = 0.5;
+  if (uDetail > 0.01) {
+    n1 = vnoise(d * 700.0);
+    n2 = mix(0.5, vnoise(d * 2600.0 + 3.7), 1.0 - smoothstep(0.25, 0.7, fwd * 2600.0));
+    n3 = mix(0.5, vnoise(d * 9000.0 + 9.1), 1.0 - smoothstep(0.25, 0.7, fwd * 9000.0));
+    vec3 q = d * 2600.0;
+    vec3 gn = vec3(vnoise(q * 1.9 + 3.1), vnoise(q * 1.9 + 7.7), vnoise(q * 1.9 + 11.3)) - 0.5;
+    n = normalize(n + (gn - d * dot(gn, d)) * 0.18 * uDetail * (1.0 - smoothstep(0.3, 0.8, fwd * 5000.0)));
+    pente = 1.0 - dot(n, d);
+    // l'herbe et les forêts : taches plus claires et plus sombres à plusieurs échelles
+    float g = n1 * 0.45 + n2 * 0.35 + n3 * 0.2;
+    vec3 herbe = alb * (0.72 + 0.62 * g);
+    herbe = mix(herbe, herbe * vec3(1.12, 1.0, 0.7), smoothstep(0.62, 0.85, n2) * 0.35);       // prés plus secs, dorés
+    alb = mix(alb, herbe, uDetail);
+    float lum0 = dot(alb, vec3(0.3, 0.55, 0.15));
+    alb = mix(alb, max(mix(vec3(lum0), alb, 1.45), 0.0) * 0.8, uDetail);   // de près : couleurs plus profondes, comme DragonFlyer
+    // roche des pentes, striée et rousse par endroits ; éboulis au pied
+    float strate = smoothstep(0.55, 1.0, sin(h * 0.0045 + n2 * 7.0 + n3 * 2.0)) * 0.22;
+    float fr = smoothstep(0.15, 0.85, n1 * 0.45 + n2 * 0.35 + n3 * 0.2) + strate;
+    vec3 roche = mix(vec3(0.05, 0.045, 0.042), vec3(0.3, 0.27, 0.24), clamp(fr, 0.0, 1.0));
+    roche = mix(roche, roche * vec3(1.15, 1.0, 0.82), smoothstep(0.5, 0.85, n1) * 0.6);
+    float rocW = smoothstep(0.2, 0.42, pente + (n2 - 0.5) * 0.18) * smoothstep(80.0, 600.0, h);
+    rocW = max(rocW, smoothstep(2200.0, 3400.0, h + (n1 - 0.5) * 900.0) * smoothstep(0.08, 0.25, pente));
+    float ebW = smoothstep(0.12, 0.22, pente) * (1.0 - rocW) * smoothstep(0.45, 0.75, n2) * smoothstep(300.0, 1200.0, h);
+    alb = mix(alb, vec3(0.16, 0.15, 0.13) * (0.8 + 0.4 * n3), ebW * uDetail);
+    alb = mix(alb, roche, rocW * uDetail * (1.0 - step(0.6, min(a4.r, a4.b))));
+    // plages de sable le long des côtes (pas dans le grand nord)
+    float sable = smoothstep(45.0, 6.0, h) * (1.0 - smoothstep(0.08, 0.2, pente)) * (1.0 - smoothstep(52.0, 60.0, latA)) * smoothstep(0.35, 0.6, n2 + 0.2);
+    alb = mix(alb, vec3(0.62, 0.55, 0.40), sable * uDetail * (1.0 - smoothstep(0.3, 0.7, a4.a)));
+  } else {
+    alb = mix(alb, vec3(0.30, 0.27, 0.24), smoothstep(0.22, 0.6, pente) * step(30.0, h) * 0.4 * (1.0 - step(0.6, min(alb.r, alb.b))));
+  }
+  float neige = latA < 35.0 ? 5500.0 - latA * 5.0 : max(5325.0 - (latA - 35.0) * 190.0, 1500.0);
+  float neigeW = smoothstep(neige - 250.0, neige + 350.0, h + (n1 - 0.5) * 700.0 + (n3 - 0.5) * 250.0) * (1.0 - smoothstep(0.3, 0.6, pente));
+  alb = mix(alb, vec3(0.84, 0.87, 0.92), neigeW * 0.9);
+  // ombres portées des montagnes (on remonte vers le soleil) et creux plus sombres (occlusion)
+  float ombre = 1.0, ao = 1.0;
+  if (uDetail > 0.02 && h > 0.0) {
+    float sUp = dot(L, d); vec2 t = vec2(dot(L, est), dot(L, nord)); float tl = length(t);
+    if (sUp <= 0.0) ombre = 0.0;
+    else if (tl > 1e-3) {
+      t /= tl; float tanE = sUp / tl, s = 1.6 / dens.y * PI, h0 = h * uK;
+      for (int i = 0; i < 18; i++) {
+        vec2 qq = uv + vec2(t.x * s / (2.0 * PI * cl), -t.y * s / PI);
+        float hs = max(hLod(qq, max(log2(s * dens.y / PI) - 1.5, 0.0)), 0.0) * uK;
+        ombre = min(ombre, clamp(6.0 * (h0 + s * tanE + uK * 20.0 - hs) / s + 0.5, 0.0, 1.0));
+        s *= 1.42;
+        if (ombre <= 0.0 || s > 0.12) break;
+      }
+      ombre = mix(1.0, ombre, uDetail);
+    }
+    float hb = max(hLod(uv, 4.0), 0.0);
+    ao = mix(1.0, clamp(1.0 - (hb - h) / 1600.0, 0.55, 1.12), uDetail);
+    // ombres des nuages qui passent
+    float nc = vnoise(d * 55.0 + vec3(uTime * 0.012, 0.0, uTime * 0.006)) * 0.65 + vnoise(d * 160.0 + vec3(0.0, uTime * 0.02, 0.0)) * 0.35;
+    ombre *= mix(1.0, 0.5, smoothstep(0.58, 0.74, nc) * uSky);
+  }
+  float dif = max((dot(n, L) + 0.12) / 1.12, 0.0) * ombre;
+  vec3 amb = mix(vec3(0.40, 0.50, 0.66), SKY_ZEN * 1.6 + vec3(0.16, 0.15, 0.11), uSky) * (0.42 + 0.25 * dot(n, d)) * ao * ao;
+  vec3 terre = alb * (SUN_COL * mix(1.45, 1.75, uDetail) * dif * ao + amb * (0.72 + 0.1 * uDetail));
+  terre = mix(terre, terre * 1.05 + vec3(0.02, 0.025, 0.03) * neigeW, neigeW * 0.3);
 
-  // ----- eau
+  // ----- eau : couleur selon la profondeur, reflet du ciel, éclats du soleil, écume (comme la mer de DragonFlyer)
   float fh = max(fwidth(h), 0.8);
   float eau = smoothstep(fh, -fh, h);
   float lac = smoothstep(0.3, 0.7, a4.a);
   eau = max(eau, lac);
-  float prof = max(-h, 0.0);
-  vec3 wc = mix(vec3(0.10, 0.52, 0.58), vec3(0.035, 0.25, 0.45), smoothstep(4.0, 160.0, prof));
-  wc = mix(wc, vec3(0.012, 0.09, 0.26), smoothstep(160.0, 3500.0, prof));
-  wc = mix(wc, vec3(0.006, 0.05, 0.17), smoothstep(3500.0, 7000.0, prof));
-  wc = mix(wc, vec3(0.06, 0.30, 0.40), lac);
+  float prof = mix(max(-h, 0.0), 25.0, lac);
+  vec3 body = mix(vec3(0.035, 0.30, 0.31), vec3(0.01, 0.08, 0.17), smoothstep(3.0, 140.0, prof));
+  body = mix(body, vec3(0.006, 0.035, 0.1), smoothstep(140.0, 3200.0, prof));
+  body = mix(body, vec3(0.004, 0.022, 0.06), smoothstep(3200.0, 7000.0, prof));
   float vag = clamp(0.25 + uDetail, 0.0, 1.0);
   vec3 q = d * 1500.0 + vec3(uTime * 0.35, uTime * 0.1, -uTime * 0.25);
   vec3 wn = vec3(vnoise(q), vnoise(q + 17.0), vnoise(q + 31.0)) - 0.5 + (vec3(vnoise(q * 2.9 + 5.0), vnoise(q * 2.9 + 9.0), vnoise(q * 2.9 + 13.0)) - 0.5) * 0.6;
-  vec3 nW = normalize(d + (wn - d * dot(wn, d)) * 0.16 * vag);
-  float fres = pow(1.0 - max(dot(nW, V), 0.0), 5.0);
-  vec3 Hh = normalize(L + V);
-  float sp = max(dot(nW, Hh), 0.0);
-  float spec = pow(sp, 90.0) * 0.9 + pow(sp, 16.0) * 0.14;
-  vec3 mer = wc * (0.30 + 0.85 * max(dot(nW, L), 0.0)) + vec3(0.55, 0.72, 0.92) * fres * 0.5 + vec3(1.0, 0.95, 0.86) * spec * jour;
-  // écume le long des côtes (quand on est près)
-  float ecume = smoothstep(26.0, 2.0, prof) * (1.0 - lac) * smoothstep(0.05, 0.6, uDetail);
-  ecume *= 0.5 + 0.5 * sin(uTime * 1.6 - prof * 0.45 + vnoise(d * 900.0) * 7.0);
-  mer = mix(mer, vec3(0.92, 0.96, 1.0) * (0.5 + 0.6 * dif), ecume * 0.3);
+  float calme = mix(0.55, 1.0, smoothstep(0.0, 30.0, prof));
+  vec3 nW = normalize(d + (wn - d * dot(wn, d)) * 0.16 * vag * calme);
+  float cosv = max(dot(nW, V), 0.0);
+  float fres = 0.02 + 0.98 * pow(1.0 - cosv, 5.0);
+  vec3 R = reflect(-V, nW); R = normalize(R + d * max(0.0, 0.02 - dot(R, d)));
+  vec3 refl = mix(vec3(0.45, 0.62, 0.9) * 0.5, skyCol(R), uSky);
+  float sd = max(dot(R, L), 0.0);
+  float spec = mix(pow(sd, 90.0) * 0.9 + pow(sd, 16.0) * 0.12, min(pow(sd, 900.0) * 60.0 + pow(sd, 120.0) * 2.0 + pow(sd, 16.0) * 0.16, 9.0), uDetail);
+  vec3 mer = body * (0.45 + 0.85 * max(dot(d, L), 0.0)) * (0.6 + 0.4 * ombre);
+  mer += vec3(0.02, 0.09, 0.08) * pow(max(dot(-V, L), 0.0), 3.0) * (1.0 - smoothstep(0.0, 60.0, prof));
+  mer = mix(mer, refl * mix(vec3(1.0), vec3(0.72, 0.85, 1.0), uSky), fres * mix(0.6, 0.8, uSky)) + SUN_COL * spec * jour;
+  // écume : bord de plage et rouleaux qui avancent (de près)
+  float fn = vnoise(d * 6000.0 + uTime * 0.05), fn2 = vnoise(d * 1800.0 - uTime * 0.03);
+  float bord = smoothstep(4.0, 0.0, prof);
+  float bande = smoothstep(0.62, 0.95, sin(prof * 0.32 - uTime * 1.5 + fn2 * 5.0) * 0.5 + 0.5) * smoothstep(30.0, 3.0, prof);
+  float ecume = clamp(bord * smoothstep(0.35, 0.7, fn) + bande * 0.5 * smoothstep(0.4, 0.8, fn), 0.0, 1.0) * (1.0 - lac) * smoothstep(0.05, 0.6, uDetail);
+  mer = mix(mer, vec3(0.8, 0.84, 0.86) * (0.45 + 0.55 * max(dot(d, L), 0.0)), ecume * 0.8);
   // banquise : la carte des couleurs est blanche sur la mer gelée
   float glace = smoothstep(0.35, 0.75, min(a4.r, min(a4.g, a4.b))) * (1.0 - lac);
   vec3 gl = vec3(0.86, 0.91, 0.96) * (1.0 - 0.08 * vnoise(d * 3000.0)) * (0.42 + 0.85 * max(dot(d, L), 0.0)) + vec3(0.6, 0.75, 0.9) * fres * 0.2;
@@ -790,6 +872,7 @@ void main() {
   if (uNight > 0.5) col = mix(vec3(0.004, 0.009, 0.025) + col * 0.05, col, jour);
   float mu = max(dot(d, V), 0.0);
   col = mix(col, vec3(0.42, 0.62, 0.95) * (0.25 + 0.75 * max(dot(d, L), 0.0)), pow(1.0 - mu, 3.0) * 0.6 * uHaze);
+  col = atmo(col, vPos);
   gl_FragColor = vec4(col, 1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -827,12 +910,12 @@ function carreau(N) { // grille (N+3)² : l'anneau extérieur est une « jupe »
 const U = {
   tHE: { value: null }, uEU: { value: new THREE.Vector4((EU.lon0 + 180) / 360, .5 - EU.lat1 / 180, (EU.lon1 + 180) / 360, .5 - EU.lat0 / 180) }, uTexE: { value: new THREE.Vector2(EU.w, EU.h) },
   tH: { value: null }, tC: { value: null }, tI: { value: null }, tPal: { value: null }, uTex: { value: new THREE.Vector2(4096, 2048) },
-  uK: { value: kMetres() }, uKs: { value: kMetres() * 2.2 }, uSun: { value: new THREE.Vector3(0, 0, 1) }, uTime: { value: 0 }, uDetail: { value: 0 },
+  uK: { value: kMetres() }, uSky: { value: 0 }, uUpC: { value: new THREE.Vector3(0, 1, 0) }, uFogL: { value: 1 }, uE: { value: new THREE.Vector3(1, 0, 0) }, uN: { value: new THREE.Vector3(0, 0, 1) }, uKs: { value: kMetres() * 2.2 }, uSun: { value: new THREE.Vector3(0, 0, 1) }, uTime: { value: 0 }, uDetail: { value: 0 },
   uPol: { value: 0 }, uClim: { value: 0 }, uGrid: { value: 0 }, uGridStep: { value: 15 }, uNight: { value: 0 }, uHaze: { value: 1 },
   uLig: { value: new THREE.Vector4() }, uLigHL: { value: 0 }, uHL: { value: new THREE.Vector4() },
   uPC: { value: new THREE.Vector3(0, 0, 1) }, uPE: { value: new THREE.Vector3(1, 0, 0) }, uPN: { value: new THREE.Vector3(0, 1, 0) }, uPA: { value: .1 }, uPatchOn: { value: 0 },
 };
-let globe, patch, nuages, atmos;
+let globe, patch, nuages, atmos, dome, etoiles;
 function creerGlobe() {
   Object.assign(U.tH, { value: texH }); U.tHE.value = texHE; U.tC.value = texC; U.tI.value = texI; U.tPal.value = texPal; U.uTex.value.set(W, H);
   const mat = new THREE.ShaderMaterial({ uniforms: U, vertexShader: VERT_GLOBE, fragmentShader: FRAG_GLOBE });
@@ -861,28 +944,105 @@ function creerGlobe() {
 
   // atmosphère : halo bleu au bord du globe, plus clair du côté du soleil
   const matA = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, side: THREE.BackSide, blending: THREE.AdditiveBlending,
-    uniforms: { uSun: U.uSun },
+    uniforms: { uSun: U.uSun, uSky: U.uSky },
     vertexShader: `varying vec3 vP; void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vP = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
-    fragmentShader: `uniform vec3 uSun; varying vec3 vP;
+    fragmentShader: `uniform vec3 uSun; uniform float uSky; varying vec3 vP;
       void main(){ vec3 r = normalize(vP - cameraPosition); float t = -dot(cameraPosition, r);
         float b = length(cameraPosition + r * max(t, 0.0));
         if (t < 0.0) b = length(cameraPosition);
         float g = smoothstep(1.05, 0.995, b); g *= g;
         float s = 0.3 + 0.9 * max(dot(normalize(vP), uSun), 0.0);
-        gl_FragColor = vec4(vec3(0.32, 0.58, 1.0) * g * s * 0.95, 1.0);
+        gl_FragColor = vec4(vec3(0.32, 0.58, 1.0) * g * s * 0.95 * (1.0 - uSky * 0.85), 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }` });
   atmos = new THREE.Mesh(new THREE.SphereGeometry(1.05, 96, 48), matA); atmos.renderOrder = 4; scene.add(atmos);
 
+  // ciel (dôme qui suit la caméra) : l'espace de loin ; de près, le ciel de DragonFlyer, son soleil et ses nuages
+  const matC = new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, depthTest: false,
+    uniforms: { uSun: U.uSun, uUpC: U.uUpC, uSky: U.uSky, uFogL: U.uFogL, uTime: U.uTime, uE: U.uE, uN: U.uN },
+    vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+    fragmentShader: `uniform float uTime; uniform vec3 uE, uN; varying vec3 vW; ${GLSL_COMMUN} ${GLSL_CIEL}
+      void main(){ vec3 rd = normalize(vW - cameraPosition);
+        vec3 c = skyCol(rd); float y = dot(rd, uUpC);
+        c += SUN_COL * 22.0 * smoothstep(0.99955, 0.99985, dot(rd, uSun));
+        if (y > 0.0) { vec2 p = vec2(dot(rd, uE), dot(rd, uN)) / (y + 0.08);
+          vec3 q = vec3(p * 1.6 + vec2(uTime * 0.004, uTime * 0.002), 0.5);
+          float n = vnoise(q) * 0.55 + vnoise(q * 2.3 + 4.0) * 0.28 + vnoise(q * 5.1 + 9.0) * 0.17;
+          float cl = smoothstep(0.5, 0.78, n) * smoothstep(0.0, 0.07, y) * 0.9;
+          float sd = max(dot(rd, uSun), 0.0);
+          vec3 cc = mix(vec3(0.58, 0.64, 0.74), SUN_COL * 1.15, 0.55 + 0.45 * smoothstep(0.6, 0.9, n)) + SKY_HALO * pow(sd, 10.0) * 0.9;
+          c = mix(c, cc, cl); }
+        gl_FragColor = vec4(mix(vec3(0.0035, 0.007, 0.016), c, uSky), 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }` });
+  dome = new THREE.Mesh(new THREE.SphereGeometry(30, 48, 24), matC); dome.frustumCulled = false; dome.renderOrder = -10; scene.add(dome);
   // étoiles
   const sp = []; const r = new Rnd(5);
   for (let i = 0; i < 2600; i++) { const v = versDir(r.f() * 360 - 180, Math.asin(r.f() * 2 - 1) / D2R).multiplyScalar(40); sp.push(v.x, v.y, v.z); }
   const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.Float32BufferAttribute(sp, 3));
-  const etoiles = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xdfe8ff, size: 1.6, sizeAttenuation: false, transparent: true, opacity: .8, depthWrite: false }));
-  etoiles.renderOrder = -1; scene.add(etoiles);
+  etoiles = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xdfe8ff, size: 1.6, sizeAttenuation: false, transparent: true, opacity: .8, depthWrite: false }));
+  etoiles.renderOrder = -9; scene.add(etoiles);
 }
 class Rnd { constructor(s) { this.s = s >>> 0 || 1; } f() { let t = this.s += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; } }
+
+// ============================================================ nuages en bouffées (comme dans DragonFlyer), visibles quand on vole près du sol
+let bouffees;
+function creerBouffees() {
+  // une bouffée douce dessinée en code (disque flou aux bords irréguliers)
+  const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d");
+  const r0 = new Rnd(3);
+  for (let k = 0; k < 9; k++) { const x = 64 + (r0.f() - .5) * 40, y = 64 + (r0.f() - .5) * 30, r = 26 + r0.f() * 22;
+    const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, "rgba(255,255,255,.55)"); gr.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); }
+  const tex = new THREE.CanvasTexture(c);
+  const rnd = new Rnd(21), P = [], O = [], I = [], v = new THREE.Vector3(), e = new THREE.Vector3(), nn = new THREE.Vector3();
+  let amas = 0;
+  while (amas < 1600) {
+    const lon = rnd.f() * 360 - 180, lat = Math.asin(rnd.f() * 2 - 1) / D2R;
+    const band = .35 + .55 * Math.exp(-((lat / 9) ** 2)) + .5 * Math.exp(-(((Math.abs(lat) - 55) / 12) ** 2)) - .25 * Math.exp(-(((Math.abs(lat) - 24) / 8) ** 2));
+    if (rnd.f() > band) continue;
+    const cl = paysageA(lon, lat); if (cl === 7 && rnd.f() < .85) continue;   // presque pas de nuages sur les déserts
+    amas++;
+    versDir(lon, lat, v); e.set(0, 1, 0).cross(v).normalize(); nn.copy(v).cross(e).normalize();
+    const taille = .0022 + rnd.f() * .0028, base = 1.0105 + rnd.f() * .003, n = 8 + (rnd.f() * 8 | 0);
+    for (let i = 0; i < n; i++) {
+      const u = rnd.f() * 2 - 1, w = rnd.f() * 2 - 1, hv = rnd.f();
+      const ox = u * taille * 1.7, oz = w * taille * 1.25, oy = hv * hv * taille * .8;
+      const s = taille * (.75 + rnd.f() * .6) * (1 - .3 * Math.abs(u));
+      const p = v.clone().multiplyScalar(base + oy + s * .2).addScaledVector(e, ox).addScaledVector(nn, oz);
+      P.push(p.x, p.y, p.z);
+      const o = e.clone().multiplyScalar(ox).addScaledVector(nn, oz).addScaledVector(v, oy * 1.6).normalize(); O.push(o.x, o.y, o.z);
+      I.push(s, Math.min(1, hv * 1.2), rnd.f() * 6.28);
+    }
+  }
+  const geo = new THREE.InstancedBufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute([-1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1, 0], 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 1], 2)); geo.setIndex([0, 1, 2, 0, 2, 3]);
+  geo.setAttribute("iPos", new THREE.InstancedBufferAttribute(new Float32Array(P), 3));
+  geo.setAttribute("iOff", new THREE.InstancedBufferAttribute(new Float32Array(O), 3));
+  geo.setAttribute("iInfo", new THREE.InstancedBufferAttribute(new Float32Array(I), 3));
+  geo.instanceCount = P.length / 3;
+  const mat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false,
+    uniforms: { tNuage: { value: tex }, uSun: U.uSun, uUpC: U.uUpC, uSky: U.uSky, uFogL: U.uFogL, uCible: { value: new THREE.Vector3() } },
+    vertexShader: `attribute vec3 iPos, iOff, iInfo; uniform float uSky; uniform vec3 uCible; varying vec2 vUv; varying float vA, vSh; varying vec3 vW; uniform vec3 uSun;
+      void main() {
+        float dc = length(iPos - cameraPosition), dt = length(iPos - uCible);
+        vA = uSky * smoothstep(0.004, 0.02, dc) * (1.0 - smoothstep(0.22, 0.4, dt));
+        vSh = clamp(0.25 + 0.65 * iInfo.y + 0.3 * dot(iOff, uSun), 0.05, 1.1);
+        float c = cos(iInfo.z), s = sin(iInfo.z); vec2 q = mat2(c, -s, s, c) * position.xy;
+        vec4 mv = viewMatrix * vec4(iPos, 1.0); mv.xy += q * iInfo.x * step(0.002, vA);
+        vUv = uv; vW = iPos; gl_Position = projectionMatrix * mv; }`,
+    fragmentShader: `uniform sampler2D tNuage; varying vec2 vUv; varying float vA, vSh; varying vec3 vW; ${GLSL_CIEL}
+      void main() { float a = texture2D(tNuage, vUv).a * vA; if (a < 0.01) discard;
+        vec3 c = mix(vec3(0.58, 0.64, 0.74), SUN_COL * 1.15, vSh) + SKY_HALO * 0.08;
+        c = atmo(c, vW);
+        gl_FragColor = vec4(c, a * 0.95);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }` });
+  bouffees = new THREE.Mesh(geo, mat); bouffees.frustumCulled = false; bouffees.renderOrder = 5; scene.add(bouffees);
+}
 
 // ============================================================ traits : frontières, fleuves, régions (posés sur le relief)
 const LIGNES3D = {};
@@ -971,7 +1131,10 @@ function creerDeco() {
   for (const k in MOD) {
     const L = lots[k]; if (!L.length) continue;
     const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
-    mat.onBeforeCompile = s => { s.uniforms.uDeco = DECO.u; s.vertexShader = "uniform float uDeco;\n" + s.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\ntransformed *= uDeco;"); };
+    mat.onBeforeCompile = s => { Object.assign(s.uniforms, { uDeco: DECO.u, uSun: U.uSun, uUpC: U.uUpC, uSky: U.uSky, uFogL: U.uFogL });
+      s.vertexShader = "uniform float uDeco;\nvarying vec3 vWd;\n" + s.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\ntransformed *= uDeco;")
+        .replace("#include <project_vertex>", "#include <project_vertex>\nvWd = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).xyz;");
+      s.fragmentShader = "varying vec3 vWd;\n" + GLSL_CIEL + s.fragmentShader.replace("#include <tonemapping_fragment>", "gl_FragColor.rgb = atmo(gl_FragColor.rgb, vWd);\n#include <tonemapping_fragment>"); };
     const im = new THREE.InstancedMesh(MOD[k], mat, L.length); im.frustumCulled = false; im.userData.L = L;
     DECO.mesh.push(im); scene.add(im);
   }
@@ -1082,7 +1245,7 @@ function bases(lon, lat) {
 function placerCamera() {
   const K = kMetres(), d = CAM.d;
   bases(CAM.lon, CAM.lat);
-  const tilt = .78 * sstep(.55, .045, d) ** 1.2;   // on penche la caméra quand on est près du sol
+  const tilt = 1.2 * sstep(.55, .03, d) ** 1.1;   // on penche la caméra quand on est près du sol
   const hT = Math.max(hauteur(CAM.lon, CAM.lat), 0) * K * sstep(.6, .05, d);
   vT.copy(vUp).multiplyScalar(1 + hT);
   camera.position.copy(vT).addScaledVector(vUp, d * Math.cos(tilt)).addScaledVector(vNord, -d * Math.sin(tilt));
@@ -1094,14 +1257,26 @@ function placerCamera() {
   camera.near = Math.max(.0015, d * .07); camera.far = 60; camera.updateProjectionMatrix();
   // soleil : en haut à gauche de la vue (ou le vrai soleil en mode jour/nuit)
   if (CAL.nuit) U.uSun.value.copy(soleilVrai());
-  else { vTmp.set(-.75, .55, .5).applyQuaternion(camera.quaternion); U.uSun.value.copy(vTmp).normalize(); }
+  else {
+    vTmp.set(-.75, .55, .5).applyQuaternion(camera.quaternion).normalize();
+    // de près (en vol) : soleil d'après-midi devant à gauche, assez bas, pour des ombres longues comme dans DragonFlyer
+    const v = sstep(.6, .12, d);
+    if (v > 0) { bases(CAM.lon, CAM.lat); const loc = vEst.clone().multiplyScalar(-.42).addScaledVector(vNord, .8).addScaledVector(vUp, .42).normalize(); vTmp.lerp(loc, v).normalize(); }
+    U.uSun.value.copy(vTmp);
+  }
   soleil.position.copy(U.uSun.value).multiplyScalar(10);
   U.uDetail.value = sstep(.5, .06, d);
+  U.uSky.value = sstep(.42, .1, d);   // de près : ciel bleu, brume du lointain
+  U.uFogL.value = Math.max(d * 13, .06);
+  U.uUpC.value.copy(camera.position).normalize();
+  U.uE.value.set(0, 1, 0).cross(U.uUpC.value).normalize(); if (U.uE.value.lengthSq() < .5) U.uE.value.set(1, 0, 0); U.uN.value.copy(U.uUpC.value).cross(U.uE.value).normalize();
+  if (dome) { dome.position.copy(camera.position); etoiles.position.copy(camera.position); etoiles.material.opacity = .8 * (1 - U.uSky.value); etoiles.visible = U.uSky.value < .98; }
   U.uKs.value = kMetres() * (2.2 - 1.2 * U.uDetail.value); // relief accentué de loin, plus doux de près
   U.uHaze.value = .15 + .85 * sstep(.25, 1.5, d);
   U.uGridStep.value = d > 1.4 ? 30 : d > .6 ? 15 : d > .2 ? 10 : 5;
   DECO.u.value = THREE.MathUtils.clamp(d * .017, .0006, .003) * sstep(1.25, .85, d);
   for (const m of DECO.mesh) m.visible = (CAL.deco || quizPaysage) && DECO.u.value > 0;
+  if (bouffees) { bouffees.visible = CAL.nuages && U.uSky.value > 0; bouffees.material.uniforms.uCible.value.copy(vT); }
   if (nuages) { nuages.material.uniforms.uA.value = sstep(.45, 1.3, d); nuages.visible = CAL.nuages && d > .45; }
   // carreau fin sous la caméra
   if (patch) {
@@ -1600,16 +1775,16 @@ addEventListener("resize", () => {
     progres(.82, "Je plante les arbres…"); await pause();
     for (const p of DATA.pays) { PAYS_ID[p.id] = p; PAYS_A3[p.a3] = p; }
     for (const m of DATA.mers) MER_ID[m.id] = m;
-    creerGlobe(); creerTraits(); creerDeco(); creerAnneau(); creerEtiquettes(); creerCalques(); creerVoyage(); majSon();
+    creerGlobe(); creerTraits(); creerDeco(); creerBouffees(); creerAnneau(); creerEtiquettes(); creerCalques(); creerVoyage(); majSon();
     placerCamera(); appliquerCalques();
     progres(.92, "Encore un instant…"); await pause();
     // tout préparer avant de montrer (pas d'à-coup au premier zoom)
-    const vis = [patch.visible, nuages.visible]; patch.visible = true; nuages.visible = true; for (const m of DECO.mesh) m.visible = true;
+    const vis = [patch.visible, nuages.visible, bouffees.visible]; patch.visible = true; nuages.visible = true; bouffees.visible = true; for (const m of DECO.mesh) m.visible = true;
     for (const l of Object.values(LIGNES3D)) l.visible = true;
     try { await renderer.compileAsync(scene, camera); } catch (e) { renderer.compile(scene, camera); }
     for (const t of [texH, texHE, texC, texI, texPal]) renderer.initTexture(t);
     renderer.render(scene, camera);
-    patch.visible = vis[0]; nuages.visible = vis[1]; appliquerCalques(); placerCamera();
+    patch.visible = vis[0]; nuages.visible = vis[1]; bouffees.visible = vis[2]; appliquerCalques(); placerCamera();
     progres(1); $("chargement").hidden = true; $("titre").hidden = false;
     window.__monde = { CAM, allerA, placerCamera, QUIZ, GEN, THEMES, CAL, appliquerCalques, toucherGlobe, viser, renderer, U, explorer };
     if (PARAMS.has("explorer")) explorer();
@@ -1621,7 +1796,7 @@ addEventListener("resize", () => {
 })();
 </script>
 <script>
-window.MONDE_VERSION = "2026.11.05-2"; // à changer à chaque modification
+window.MONDE_VERSION = "2026.11.06-1"; // à changer à chaque modification
 </script>
 <script>
 // Application installable : gardée sur l'appareil par sw.js (marche sans réseau).
