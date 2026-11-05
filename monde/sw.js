@@ -6,7 +6,7 @@ const BASE = "https://cdn.jsdelivr.net/npm/three@0.170.0/";
 const FICHIERS = [
   "./", "./manifest.webmanifest", "./icone-192.png", "./icone-512.png", "./apple-touch-icon.png",
   // les cartes fabriquées par outils/monde/fabriquer.py
-  "./donnees/relief.webp", "./donnees/couleurs.jpg", "./donnees/ids.png", "./donnees/paysages.png", "./donnees/monde.json",
+  "./donnees/relief.webp", "./donnees/couleurs.jpg", "./donnees/ids.png", "./donnees/paysages.png", "./donnees/monde.json", "./donnees/relief_europe.webp",
   BASE + "build/three.module.js",
   BASE + "examples/jsm/lines/LineSegments2.js",
   BASE + "examples/jsm/lines/LineSegmentsGeometry.js",

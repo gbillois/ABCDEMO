@@ -120,7 +120,7 @@ def continent_partie(rec, p):
     c = p.representative_point(); x, y = c.x, c.y
     k = CONT.get(rec["CONTINENT"], 0)
     a3 = rec["ADM0_A3"]
-    if a3 == "RUS": return 5 if (x < 59 or (x < 66 and y > 66)) and y > 41 else 4
+    if a3 == "RUS": return 4 if x > 60 else 5
     if a3 == "TUR": return 5 if x < 29.5 and y > 40.5 else 4
     if a3 in ("FRA", "NLD", "GBR", "ESP", "PRT", "NOR", "USA", "CHL", "ECU", "AUS", "NZL", "DNK"):
         if x < -30 and y < 13 and y > -60 and x > -95: return 3  # Guyane, Galápagos…
@@ -143,6 +143,14 @@ for i, (sr, rec) in enumerate(zip(pays_r.shapes(), pays_r.records())):
     PAYS.append(dict(id=pid, rec=rec, geom=g))
 ids_p = np.asarray(ids_p).copy()
 cont = np.asarray(cont).copy()
+# la Russie et le Kazakhstan sont coupés par l'Oural (vers 60° E) et le fleuve Oural (vers 51° E) ; Chypre est comptée en Europe (UE)
+for P in PAYS:
+    a3 = P["rec"]["ADM0_A3"]; m = ids_p == P["id"]
+    if a3 == "RUS":
+        oural = np.where(LATg > 52, 59.5 + np.clip((LATg - 66) * .6, 0, 6), 51.5)
+        cont[m] = np.where(LONg[m] < oural[m], 5, 4)
+    if a3 == "KAZ": cont[m] = np.where(LONg[m] < 51.2, 5, 4)
+    if a3 in ("CYP", "CYN"): cont[m] = 5
 ids_p[~terre] = 0
 cont[~terre] = 0
 # terres sans pays (petits îlots) : continent le plus proche
@@ -246,7 +254,7 @@ Image.fromarray(classe[::2, ::2], "L").save(os.path.join(OUT, "paysages.png"), o
 
 # ---------- couleurs ----------
 print("couleurs…")
-PAL = {GLACE: (234, 241, 247), TOUNDRA: (146, 148, 112), TAIGA: (48, 84, 56), FORET: (66, 116, 50), PRAIRIE: (128, 164, 78),
+PAL = {GLACE: (234, 241, 247), TOUNDRA: (146, 148, 112), TAIGA: (48, 84, 56), FORET: (66, 116, 50), PRAIRIE: (116, 158, 72),
        STEPPE: (178, 166, 108), DESERT: (226, 194, 136), SAVANE: (166, 162, 84), JUNGLE: (32, 92, 38), MEDIT: (130, 146, 82),
        MONTAGNE: (120, 108, 90), VILLE: (168, 160, 150), MER: (0, 0, 0), LAC: (60, 110, 140)}
 base = classe.copy(); base[base == MONTAGNE] = 0
@@ -258,9 +266,10 @@ if (classe == MONTAGNE).any():
 col = np.zeros((H, W, 3), np.float32)
 for k, c in PAL.items():
     col[base == k] = c
-n3, n4 = fbm(41, ((48, 1), (128, .6), (300, .35))), fbm(57, ((16, 1), (60, .5)))
+POLE = np.clip((86 - np.abs(LATg)) / 16, 0, 1)  # le bruit s'efface près des pôles (sinon il converge en étoile)
+n3, n4 = fbm(41, ((48, 1), (128, .6), (300, .35))) * POLE, fbm(57, ((16, 1), (60, .5))) * POLE
 # variations dans chaque paysage
-var = {DESERT: ((212, 152, 98), n4), PRAIRIE: ((158, 170, 88), n3), STEPPE: ((160, 150, 96), n3), SAVANE: ((140, 150, 74), n3),
+var = {DESERT: ((212, 152, 98), n4), PRAIRIE: ((138, 166, 80), n3), STEPPE: ((160, 150, 96), n3), SAVANE: ((140, 150, 74), n3),
        FORET: ((88, 128, 56), n3), JUNGLE: ((44, 108, 46), n3), TAIGA: ((40, 72, 54), n3), TOUNDRA: ((122, 128, 100), n3), MEDIT: ((152, 150, 96), n3)}
 for k, (c2, n) in var.items():
     m = base == k
@@ -274,7 +283,7 @@ col[m] = col[m] + np.clip((dd[m] - 150) / 400, 0, 1)[:, None] * np.array([14, 12
 lis = np.stack([ndimage.gaussian_filter(col[..., c] * terre, 2.4) for c in range(3)], -1)
 poids = ndimage.gaussian_filter(terre.astype(np.float32), 2.4)[..., None]
 col = np.where(terre[..., None], lis / np.maximum(poids, 1e-3), 0)
-col *= (1 + fbm(61, ((200, 1), (500, .6))) * .035)[..., None]  # grain fin
+col *= (1 + fbm(61, ((200, 1), (500, .6))) * POLE * .035)[..., None]  # grain fin
 # altitude : vert → brun → roche → neige
 hh = np.where(terre, hc, 0)
 t1 = np.clip((hh - 1200) / 1600, 0, 1)[..., None] * (~glace)[..., None]
@@ -290,15 +299,33 @@ col[m] = np.array(PAL[GLACE], np.float32) * (1 + n3[m, None] * .025) - np.array(
 fv = (fville * terre * (~glace))[..., None]
 col = col * (1 - fv * .45) + np.array([150, 140, 128], np.float32) * fv * .45
 col = np.where(terre[..., None], col, 0)
-nb = fbm(77, ((20, 1), (70, .5), (200, .3)))
+def bruit3d(graine, freqs):  # somme de vagues dans l'espace : même finesse partout, même aux pôles
+    r = np.random.default_rng(graine); X = np.cos(LATg * np.pi / 180) * np.sin(LONg * np.pi / 180); Y = np.sin(LATg * np.pi / 180); Z = np.cos(LATg * np.pi / 180) * np.cos(LONg * np.pi / 180)
+    out = np.zeros_like(X)
+    for f, amp, n in freqs:
+        for _ in range(n):
+            k = r.normal(size=3); k = k / np.linalg.norm(k) * f * (0.7 + 0.6 * r.random())
+            out += amp * np.sin(X * k[0] + Y * k[1] + Z * k[2] + r.random() * 6.283)
+    return out / np.sqrt(sum(amp * amp * n / 2 for f, amp, n in freqs))
+nb = bruit3d(77, ((9, 1, 8), (25, .5, 10), (70, .25, 12)))
 dterre = ndimage.distance_transform_edt(~terre) * (40000 / W)
-ban = ((LATg > 79.5 + nb * 1.6) | ((LATg > 72.5 + nb) & (LONg > -125) & (LONg < -70))
-       | ((LATg > 75.5 + nb) & (LONg > -80) & (LONg < -55)) | ((LATg > 66 + nb) & (LONg > -35) & (LONg < -8) & (dterre < 220 + nb * 60))
-       | (LATg < -67.2 + nb * 1.3) | ((LATg < -64 + nb) & (LONg > -62) & (LONg < -18)) | ((LATg < -73 + nb) & (LONg > 160)) | ((LATg < -73 + nb) & (LONg < -150)))
+# limite de la banquise selon la longitude (transitions douces, pas de bords droits)
+NORD = [(-180, 74), (-160, 75), (-140, 74), (-125, 72.5), (-100, 71), (-80, 72), (-70, 75), (-60, 76), (-45, 80), (-35, 72), (-20, 72),
+        (-10, 77), (0, 80), (15, 80.5), (30, 79.5), (45, 79), (60, 78), (80, 76.5), (100, 76), (120, 75), (140, 75), (160, 73), (180, 74)]
+SUD = [(-180, -73), (-150, -72), (-120, -70), (-90, -69), (-70, -66), (-55, -63.5), (-35, -63), (-15, -65), (0, -67), (40, -66.5),
+       (80, -65.5), (120, -65.5), (150, -66.5), (165, -71), (180, -73)]
+ln = np.interp(LONg, *zip(*NORD)); ls_ = np.interp(LONg, *zip(*SUD))
+pres_cote = np.clip(1 - dterre / 400, 0, 1)  # près des côtes arctiques, la glace descend un peu plus bas
+ban = (LATg > ln + nb * 2.2 - pres_cote * 1.5) | (LATg < ls_ + nb * 1.6)
 banq = ndimage.gaussian_filter(ban.astype(np.float32), 1.5)
-grain = np.clip(.9 + fbm(91, ((60, 1), (160, .5))) * .05, 0, 1)
+grain = np.clip(.92 + bruit3d(91, ((60, 1, 8), (160, .5, 8))) * .04, 0, 1)
 mer = ~terre
 col[mer] = (np.array([240, 245, 250], np.float32) * (banq[mer] * grain[mer])[:, None])
+# près des côtes (sans banquise), la mer prend la couleur de la terre la plus proche : un relief plus fin peut y poser
+# un bout de côte sans qu'il paraisse noir
+dist_t, (iy, ix) = ndimage.distance_transform_edt(~terre, return_indices=True)
+bord = mer & (banq < .05) & (dist_t < 8)
+col[bord] = col[iy[bord], ix[bord]]
 classe_b = classe.copy(); classe_b[mer & (banq > .5)] = BANQUISE
 Image.fromarray(classe_b[::2, ::2], "L").save(os.path.join(OUT, "paysages.png"), optimize=True)
 Image.fromarray(np.clip(col, 0, 255).astype(np.uint8), "RGB").save(os.path.join(OUT, "couleurs.jpg"), quality=88, subsampling=0)
