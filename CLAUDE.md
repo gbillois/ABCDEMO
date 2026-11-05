@@ -7,6 +7,7 @@ Structure :
 - `jeux/<nom>.html` — un fichier par jeu.
 - `pins/` — Le Domaine des Pins, en application installable (voir plus bas).
 - `dragonflyer/` — DragonFlyer, en application installable (voir plus bas).
+- `monde/` — My World Explorer, le globe terrestre, en application installable (voir plus bas) ; ses cartes sont faites par `outils/monde/`.
 - `blender/pins/` — scripts Blender qui fabriquent les modèles du Domaine des Pins (`pins/assets/*.glb`) ; méthode : `blender/pins/METHODE.md`.
 - `blender/dragonflyer/` — scripts (Blender, numpy) qui fabriquent le dragon, le héros et le relief de DragonFlyer,
   embarqués en base64 dans `dragonflyer/index.html`, et le kit de village (`dragonflyer/assets/village.glb`) (voir le README du dossier).
@@ -157,6 +158,17 @@ le Domaine des Pins (voir aussi `REGLES-JEUX.md`) :
   (`{ jeu: "dragonflyer", version: 1, parties: [{ id, nom, maj, donnees }] }`) et transfert chiffré
   (`/transfert/<6 chiffres>`, ECDH P-256, HKDF salé par le code, AES-GCM, 10 minutes).
 - Tests : `node --test serveur/dragonflyer-relais/tests/relais.test.mjs`.
+
+## Exception : My World Explorer (globe terrestre en PWA)
+
+Accord du propriétaire (novembre 2026) : le globe vit dans `monde/` (https://gbillois.github.io/ABCDEMO/monde/), en application
+installable comme le Domaine des Pins (`manifest.webmanifest`, `sw.js`, bouton « Mettre à jour » sur l'écran titre et dans les réglages,
+`window.MONDE_VERSION` à changer à chaque modification ; penser à dire d'appuyer sur « Mettre à jour »).
+- Données géographiques du **domaine public** (Natural Earth, relief ETOPO1 de la NOAA) : ce ne sont pas des images téléchargées
+  mais des mesures (altitudes, contours, noms). Les cartes `monde/donnees/` sont calculées par `outils/monde/fabriquer.py`
+  (couleurs des paysages peintes par le script, d'après `zones.py`) ; sources dans `outils/monde/README.md`.
+- Lues depuis le même site, gardées hors ligne par `sw.js` (`FICHIERS`). Pas de réseau à l'exécution, pas de serveur.
+- Textes en français, programme de géographie du CM1/CM2 (continents, océans, repères, pays, France).
 
 ## Exception : sons enregistrés du Domaine des Pins
 

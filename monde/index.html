@@ -1,0 +1,1607 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="My World">
+<meta name="theme-color" content="#16301f">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icone-192.png">
+<title>My World Explorer</title>
+<script>
+// Pas de zoom de la page (le globe a son propre zoom) : on bloque le pincement de Safari et le double-tap.
+(() => {
+  const non = e => e.preventDefault(), opt = { passive: false };
+  for (const t of ["gesturestart", "gesturechange", "gestureend"]) document.addEventListener(t, non, opt);
+  document.addEventListener("dblclick", non, opt);
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@600;700&family=Nunito:wght@600;700;800;900&display=swap">
+<style>
+  /* Interface « nature » : panneaux de mousse et de bois, liserés dorés, galets ronds pour les boutons. */
+  :root {
+    --moss: rgba(20, 42, 28, .84);
+    --moss-solid: #17301f;
+    --moss-2: rgba(36, 66, 42, .9);
+    --bark: #5a3d22;
+    --edge: #d9b45a;
+    --edge-soft: rgba(217, 180, 90, .45);
+    --ink: #f5eddb;
+    --muted: #c5d1b6;
+    --gold: #f2cf6b;
+    --leaf: #8fc463;
+    --sea: #7fd0e6;
+    --sand: #e9c98a;
+    --ok: #8fd36a;
+    --ko: #f08a6a;
+    --shadow: rgba(3, 10, 6, .55);
+    --title: "Cinzel Decorative", "Cinzel", Georgia, serif;
+    --label: "Cinzel", Georgia, serif;
+    --body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --st: env(safe-area-inset-top, 0px); --sb: env(safe-area-inset-bottom, 0px);
+    --sl: env(safe-area-inset-left, 0px); --sr: env(safe-area-inset-right, 0px);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; overflow: hidden; background: #050b14; color: var(--ink); font-family: var(--body);
+    touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+  canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; outline: none; cursor: grab; }
+  canvas#c.drag { cursor: grabbing; }
+  button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; }
+  button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+  svg.i { width: 1.25em; height: 1.25em; display: block; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* Panneaux organiques : mousse, nervures de feuille, bord doré */
+  .leafy { background:
+      radial-gradient(120% 90% at 0% 0%, rgba(143,196,99,.16), transparent 55%),
+      radial-gradient(90% 80% at 100% 100%, rgba(217,180,90,.12), transparent 60%),
+      var(--moss);
+    border: 2px solid var(--edge); box-shadow: 0 10px 34px var(--shadow), inset 0 0 0 1px rgba(242,207,107,.16), inset 0 2px 0 rgba(255,255,255,.06);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+  .pebble { width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; padding: 0; font-size: 22px;
+    color: var(--ink); background: radial-gradient(circle at 35% 30%, #3d6a45, #1b3624 70%); border: 2px solid var(--edge);
+    box-shadow: 0 4px 12px var(--shadow), inset 0 2px 0 rgba(255,255,255,.12); }
+  .pebble:active { transform: scale(.94); }
+  .pebble.on { background: radial-gradient(circle at 35% 30%, #f6dc8c, #b98a2e 75%); color: #241806; }
+
+  /* Haut de l'écran */
+  #hud { position: fixed; left: 0; right: 0; top: 0; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none;
+    padding: calc(var(--st) + 12px) max(12px, var(--sr)) 0 max(12px, var(--sl)); z-index: 5; }
+  #hud .grp { display: flex; gap: 10px; pointer-events: auto; }
+  #lieu { pointer-events: none; padding: 8px 16px; border-radius: 999px; font-weight: 800; font-size: 15px; color: var(--muted); align-self: center; margin: 0 8px;
+    max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #lieu b { color: var(--gold); font-family: var(--label); }
+
+  /* Barre des calques (à droite) */
+  #calques { position: fixed; z-index: 6; top: calc(var(--st) + 74px); right: max(12px, var(--sr)); bottom: calc(var(--sb) + 86px);
+    width: 290px; border-radius: 26px 26px 26px 60px; display: flex; flex-direction: column; overflow: hidden;
+    transition: transform .35s cubic-bezier(.2,.8,.2,1), opacity .25s; }
+  #calques.ferme { transform: translateX(calc(100% + 30px)); opacity: 0; pointer-events: none; }
+  #calques header { display: flex; align-items: center; gap: 10px; padding: 14px 14px 8px 18px; }
+  #calques h2 { margin: 0; flex: 1; font-family: var(--label); font-size: 19px; color: var(--gold); letter-spacing: .04em; }
+  #calques .x { width: 38px; height: 38px; font-size: 16px; }
+  #calques .defile { overflow-y: auto; padding: 0 12px 18px 14px; flex: 1; touch-action: pan-y; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+  .groupe { margin-top: 10px; }
+  .groupe h3 { margin: 0 0 6px 4px; font-family: var(--label); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--leaf); display: flex; align-items: center; gap: 8px; }
+  .groupe h3::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--edge-soft), transparent); }
+  .bascule { width: 100%; display: flex; align-items: center; gap: 10px; padding: 7px 10px 7px 7px; margin: 3px 0; border-radius: 999px; cursor: pointer; text-align: left;
+    background: rgba(0,0,0,.18); border: 1px solid rgba(217,180,90,.22); font-weight: 800; font-size: 15px; color: var(--muted); transition: background .15s, color .15s; }
+  .bascule .ic { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.06); border: 1.5px solid rgba(217,180,90,.35); color: var(--muted); }
+  .bascule .ic svg { width: 20px; height: 20px; }
+  .bascule .t { flex: 1; }
+  .bascule .pastille { width: 34px; height: 20px; border-radius: 999px; background: rgba(255,255,255,.12); position: relative; flex: none; transition: background .2s; }
+  .bascule .pastille::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #cfd8c4; transition: transform .2s; }
+  .bascule.on { background: linear-gradient(90deg, rgba(143,196,99,.22), rgba(0,0,0,.1)); color: var(--ink); border-color: var(--edge-soft); }
+  .bascule.on .ic { background: radial-gradient(circle at 35% 30%, #f6dc8c, #b98a2e 75%); color: #2a1c07; border-color: #f6dc8c; }
+  .bascule.on .pastille { background: var(--leaf); }
+  .bascule.on .pastille::after { transform: translateX(14px); background: #fff; }
+  .curseur { display: flex; align-items: center; gap: 10px; padding: 6px 8px 6px 7px; margin: 3px 0; border-radius: 22px; background: rgba(0,0,0,.18); border: 1px solid rgba(217,180,90,.22); font-weight: 800; font-size: 15px; }
+  .curseur .ic { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid rgba(217,180,90,.35); }
+  .curseur input { flex: 1; min-width: 0; accent-color: var(--gold); touch-action: pan-x; }
+  .legende { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; padding: 8px 6px 2px; font-size: 13px; font-weight: 700; color: var(--muted); }
+  .legende span { display: flex; align-items: center; gap: 6px; }
+  .legende i { width: 14px; height: 14px; border-radius: 4px 9px; flex: none; border: 1px solid rgba(255,255,255,.25); }
+
+  /* Bas de l'écran */
+  #bas { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; justify-content: center; align-items: flex-end; gap: 10px; pointer-events: none;
+    padding: 0 max(12px, var(--sr)) calc(var(--sb) + 14px) max(12px, var(--sl)); }
+  #bas > * { pointer-events: auto; }
+  .gros { display: flex; align-items: center; gap: 10px; padding: 10px 20px 10px 12px; border-radius: 999px; cursor: pointer; font-family: var(--label); font-weight: 700; font-size: 17px; color: var(--ink); }
+  .gros .ic { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, #f6dc8c, #b98a2e 75%); color: #2a1c07; }
+  .gros:active { transform: scale(.97); }
+  #zoom { position: fixed; z-index: 5; left: max(12px, var(--sl)); bottom: calc(var(--sb) + 14px); display: flex; flex-direction: column; gap: 8px; }
+  #zoom .pebble { width: 46px; height: 46px; }
+
+  /* Menu Voyager */
+  #voyage { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: calc(var(--sb) + 80px); width: min(560px, calc(100% - 24px)); border-radius: 28px; padding: 14px; }
+  #voyage .places { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+  .place { padding: 10px 8px; border-radius: 18px 18px 18px 6px; background: rgba(0,0,0,.22); border: 1px solid var(--edge-soft); cursor: pointer; font-weight: 800; font-size: 15px; color: var(--ink); }
+  .place:active { background: rgba(217,180,90,.25); }
+  .place.speciale { background: linear-gradient(135deg, rgba(143,196,99,.35), rgba(0,0,0,.2)); }
+
+  /* Fiche d'un lieu */
+  #fiche { position: fixed; z-index: 6; left: max(12px, var(--sl)); top: calc(var(--st) + 74px); width: min(330px, calc(100% - 24px)); border-radius: 26px 26px 26px 8px; padding: 14px 16px 14px; }
+  #fiche h3 { margin: 0 34px 6px 0; font-family: var(--label); color: var(--gold); font-size: 21px; line-height: 1.15; text-wrap: balance; }
+  #fiche .x { position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; font-size: 14px; }
+  #fiche ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; font-size: 15px; }
+  #fiche li { display: flex; gap: 8px; align-items: flex-start; line-height: 1.3; }
+  #fiche li svg { width: 18px; height: 18px; margin-top: 1px; color: var(--leaf); }
+  #fiche li b { color: var(--ink); }
+  #fiche li span { color: var(--muted); }
+  #fiche .desc { margin-top: 8px; font-size: 14px; color: var(--muted); line-height: 1.4; font-style: italic; }
+
+  /* Étiquettes sur le globe */
+  #etiquettes { position: fixed; inset: 0; pointer-events: none; z-index: 2; overflow: hidden; }
+  .et { position: absolute; left: 0; top: 0; white-space: nowrap; will-change: transform; font-weight: 800; color: #fff; display: none;
+    text-shadow: 0 1px 2px rgba(0,0,0,.9), 0 0 6px rgba(0,0,0,.65); }
+  .et.cont { font-family: var(--label); font-size: 22px; letter-spacing: .18em; text-transform: uppercase; color: #fff7dc; }
+  .et.oce { font-family: var(--label); font-style: italic; font-size: 17px; letter-spacing: .12em; color: #bfeaff; }
+  .et.mer { font-style: italic; font-size: 13px; color: #a8dcf0; font-weight: 700; }
+  .et.pays { font-size: 14px; color: #fff; text-transform: uppercase; letter-spacing: .05em; }
+  .et.pays.grand { font-size: 16px; }
+  .et.cap, .et.ville { font-size: 13px; color: #fff2cf; }
+  .et.cap::before, .et.ville::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; background: #fff; border: 2px solid #b4322b; vertical-align: 0; }
+  .et.ville::before { width: 5px; height: 5px; border: 1.5px solid #333; background: #fff; }
+  .et.fleuve { font-style: italic; font-size: 13px; color: #9fe3ff; font-weight: 700; }
+  .et.mont { font-size: 13px; color: #ffe1b3; font-family: var(--label); font-weight: 700; }
+  .et.mont::before { content: "▲ "; font-size: 10px; color: #d7a368; }
+  .et.des { font-size: 13px; color: #ffd98c; font-family: var(--label); font-weight: 700; letter-spacing: .06em; }
+  .et.ligne { font-size: 12px; font-weight: 900; letter-spacing: .05em; }
+  .et.region { font-size: 13px; color: #e3f5c8; font-family: var(--label); font-weight: 700; }
+  .et.drom { font-size: 13px; color: #fff; background: rgba(32,70,44,.85); border: 1.5px solid var(--edge); padding: 2px 8px; border-radius: 999px; text-shadow: none; }
+
+  /* Écrans */
+  .ecran { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: radial-gradient(ellipse at center, rgba(5,12,8,.15), rgba(5,12,8,.6));
+    padding: calc(var(--st) + 16px) max(16px, var(--sr)) calc(var(--sb) + 16px) max(16px, var(--sl)); }
+  .carte { width: min(560px, 100%); max-height: 100%; overflow: auto; border-radius: 34px 34px 34px 80px; padding: 26px 26px 24px; display: grid; gap: 14px; touch-action: pan-y; }
+  h1 { margin: 0; text-align: center; font-family: var(--title); font-size: clamp(32px, 8vw, 54px); line-height: 1.05; color: var(--gold);
+    text-shadow: 0 3px 0 #6b4a1c, 0 10px 26px rgba(0,0,0,.6); text-wrap: balance; }
+  h2.t { margin: 0; text-align: center; font-family: var(--label); font-size: 25px; color: var(--gold); }
+  .sous { margin: -6px 0 0; text-align: center; font-family: var(--label); color: var(--leaf); font-size: 16px; letter-spacing: .06em; }
+  .carte p { margin: 0; font-size: 17px; line-height: 1.5; text-align: center; }
+  .rangee { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+  .btn { font-family: var(--label); font-weight: 700; font-size: 16px; padding: 12px 20px; cursor: pointer; border-radius: 999px; background: rgba(0,0,0,.2); color: var(--ink); border: 2px solid var(--edge); display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+  .btn.main { background: linear-gradient(#e9c870, #b98a2e); color: #1d1405; border-color: #f6dc8c; font-size: 20px; padding: 14px 30px; box-shadow: 0 5px 0 #6b4a1c, 0 10px 24px rgba(0,0,0,.4); }
+  .btn.vert { background: linear-gradient(#8fc463, #4d8a36); color: #10230c; border-color: #c7eba5; font-size: 20px; padding: 14px 30px; box-shadow: 0 5px 0 #2c5420, 0 10px 24px rgba(0,0,0,.4); }
+  .btn:active { transform: translateY(2px); }
+  .medaillons { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .medaillons .pebble { width: 54px; height: 54px; }
+  .medaillons .pebble.neuf { box-shadow: 0 0 0 4px rgba(143,196,99,.8), 0 4px 12px var(--shadow); }
+  #majMsg, #majMsg2 { text-align: center; color: var(--leaf); font-weight: 800; min-height: 1.3em; font-size: 15px; }
+  .version { text-align: center; color: var(--muted); font-size: 13px; }
+  #emblem { width: 120px; height: 120px; margin: 0 auto -6px; display: block; filter: drop-shadow(0 8px 18px rgba(0,0,0,.5)); }
+  .aide { list-style: none; margin: 0; padding: 12px 14px; display: grid; gap: 8px; font-size: 15px; background: rgba(0,0,0,.2); border-radius: 18px; }
+  .aide li { display: flex; gap: 10px; align-items: center; }
+  .aide li svg { width: 22px; height: 22px; color: var(--gold); }
+  #chargement { z-index: 30; background: radial-gradient(ellipse at center, #10261a, #050b0a); }
+  #barre { height: 12px; border-radius: 999px; background: rgba(255,255,255,.1); overflow: hidden; border: 1px solid var(--edge-soft); }
+  #barre i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--leaf), var(--gold)); transition: width .25s; }
+  #chTxt { text-align: center; color: var(--muted); }
+  .themes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .theme { display: grid; gap: 4px; justify-items: center; text-align: center; padding: 14px 8px 12px; border-radius: 24px 24px 24px 8px; cursor: pointer;
+    background: rgba(0,0,0,.22); border: 2px solid var(--edge-soft); font-weight: 800; font-size: 15px; color: var(--ink); }
+  .theme .ic { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, #f6dc8c, #b98a2e 75%); color: #2a1c07; }
+  .theme .ic svg { width: 26px; height: 26px; }
+  .theme small { color: var(--gold); font-weight: 800; font-size: 13px; }
+  .theme:active { transform: scale(.97); }
+  .reglage { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: center; font-weight: 800; }
+  .choixq { padding: 9px 14px; border-radius: 999px; border: 1.5px solid var(--edge-soft); background: rgba(0,0,0,.2); cursor: pointer; font-weight: 800; color: var(--muted); }
+  .choixq.on { background: var(--gold); color: #241806; border-color: #f6dc8c; }
+
+  /* Quiz */
+  #quiz { position: fixed; z-index: 8; left: 50%; transform: translateX(-50%); top: calc(var(--st) + 12px); width: min(620px, calc(100% - 140px)); border-radius: 26px 26px 26px 10px; padding: 12px 18px 14px; text-align: center; }
+  #qHaut { display: flex; justify-content: space-between; align-items: center; font-weight: 800; color: var(--muted); font-size: 14px; gap: 10px; }
+  #qPoints { display: flex; gap: 5px; }
+  #qPoints i { width: 11px; height: 11px; border-radius: 50%; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.3); }
+  #qPoints i.ok { background: var(--ok); } #qPoints i.ko { background: var(--ko); } #qPoints i.ici { background: var(--gold); }
+  #qTexte { font-family: var(--label); font-weight: 700; font-size: clamp(19px, 4.6vw, 25px); margin-top: 6px; line-height: 1.2; text-wrap: balance; }
+  #qAide { color: var(--leaf); font-weight: 800; font-size: 15px; margin-top: 4px; }
+  #qChoix { position: fixed; z-index: 8; left: 50%; transform: translateX(-50%); bottom: calc(var(--sb) + 16px); width: min(620px, calc(100% - 24px)); display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .rep { padding: 14px 12px; border-radius: 22px 22px 22px 8px; font-weight: 900; font-size: 18px; cursor: pointer; color: var(--ink); }
+  .rep.bon { background: linear-gradient(#8fd36a, #4d8a36); color: #0d220a; border-color: #d4f5b8; }
+  .rep.faux { background: linear-gradient(#f3a183, #b9533a); color: #2b0d05; }
+  #qRetour { position: fixed; z-index: 9; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 14px 24px; border-radius: 999px; font-family: var(--label); font-weight: 700; font-size: 22px; pointer-events: none; text-align: center; max-width: calc(100% - 32px); }
+  #qRetour.ok { color: var(--ok); } #qRetour.ko { color: #ffc3ad; }
+  #qSuite { position: fixed; z-index: 9; left: 50%; transform: translateX(-50%); bottom: calc(var(--sb) + 18px); }
+  #qQuitter { position: fixed; z-index: 9; right: max(12px, var(--sr)); top: calc(var(--st) + 12px); }
+  .etoiles { display: flex; justify-content: center; gap: 6px; }
+  .etoiles svg { width: 48px; height: 48px; }
+  #perf { position: fixed; z-index: 30; left: 8px; top: calc(var(--st) + 70px); font: 12px/1.3 ui-monospace, monospace; background: rgba(0,0,0,.6); padding: 6px 8px; border-radius: 8px; pointer-events: none; white-space: pre; }
+  #toast { position: fixed; z-index: 25; left: 50%; transform: translateX(-50%); top: calc(var(--st) + 74px); padding: 10px 18px; border-radius: 999px; font-weight: 800; pointer-events: none; max-width: calc(100% - 32px); text-align: center; }
+
+  @media (max-width: 700px) {
+    #calques { top: auto; bottom: 0; left: 0; right: 0; width: auto; height: min(62vh, 520px); border-radius: 30px 30px 0 0; padding-bottom: var(--sb); }
+    #calques.ferme { transform: translateY(105%); }
+    #lieu { display: none; }
+    #quiz { width: calc(100% - 24px); top: calc(var(--st) + 70px); }
+    #fiche { top: auto; bottom: calc(var(--sb) + 80px); }
+    .gros { font-size: 15px; padding: 8px 16px 8px 10px; }
+  }
+  @media (max-height: 520px) { #calques { top: calc(var(--st) + 12px); bottom: 12px; } .carte { padding: 16px 20px; gap: 10px; } #emblem { width: 70px; height: 70px; } }
+  html.app a.site { display: none !important; }
+</style>
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="c" tabindex="0" aria-label="Globe terrestre en 3D"></canvas>
+<div id="etiquettes"></div>
+
+<div id="hud" hidden>
+  <div class="grp">
+    <button id="bAccueil" class="pebble" aria-label="Menu" data-i="maison"></button>
+    <div id="lieu" class="leafy"></div>
+  </div>
+  <div class="grp">
+    <button id="bSon" class="pebble" aria-label="Couper le son" data-i="son"></button>
+    <button id="bCalques" class="pebble on" aria-label="Ce que montre le globe" data-i="calques"></button>
+  </div>
+</div>
+
+<aside id="calques" class="leafy">
+  <header><span data-i="feuille" style="color:var(--leaf)"></span><h2>Mon globe</h2><button class="pebble x" id="fermeCalques" aria-label="Fermer" data-i="croix"></button></header>
+  <div class="defile" id="listeCalques"></div>
+</aside>
+
+<div id="zoom" hidden>
+  <button class="pebble" id="zPlus" aria-label="Zoomer" data-i="plus"></button>
+  <button class="pebble" id="zMoins" aria-label="Dézoomer" data-i="moins"></button>
+  <button class="pebble" id="zNord" aria-label="Remettre le nord en haut et tout le globe" data-i="boussole"></button>
+</div>
+
+<div id="bas" hidden>
+  <button class="gros leafy" id="bVoyage"><span class="ic" data-i="avion"></span>Voyager</button>
+  <button class="gros leafy" id="bQuiz"><span class="ic" data-i="quiz"></span>Quiz</button>
+</div>
+
+<div id="voyage" class="leafy" hidden>
+  <div class="places" id="places"></div>
+</div>
+
+<div id="fiche" class="leafy" hidden>
+  <button class="pebble x" id="fermeFiche" aria-label="Fermer" data-i="croix"></button>
+  <h3 id="fTitre"></h3>
+  <ul id="fListe"></ul>
+  <div class="desc" id="fDesc"></div>
+</div>
+
+<div id="toast" class="leafy" hidden></div>
+
+<!-- Quiz -->
+<div id="quiz" class="leafy" hidden>
+  <div id="qHaut"><span id="qTheme"></span><span id="qPoints"></span><span id="qScore"></span></div>
+  <div id="qTexte"></div>
+  <div id="qAide"></div>
+</div>
+<div id="qChoix" hidden></div>
+<div id="qRetour" class="leafy" hidden></div>
+<button id="qSuite" class="btn main" hidden>Question suivante</button>
+<button id="qQuitter" class="pebble" aria-label="Quitter le quiz" data-i="croix" hidden></button>
+
+<div id="chargement" class="ecran">
+  <div class="carte leafy" style="width:min(380px,100%)">
+    <h1>My World Explorer</h1>
+    <div id="barre"><i></i></div>
+    <div id="chTxt">Je prépare le globe…</div>
+  </div>
+</div>
+
+<div id="titre" class="ecran" hidden>
+  <div class="carte leafy">
+    <svg id="emblem" viewBox="0 0 120 120" aria-hidden="true"></svg>
+    <h1>My World Explorer</h1>
+    <p class="sous">Le globe de Théo</p>
+    <p>Fais tourner la Terre, zoome jusqu'aux pays, découvre les océans, les montagnes et les déserts… puis teste-toi avec le quiz !</p>
+    <div class="rangee"><button id="tExplorer" class="btn main"><span data-i="boussole"></span>Explorer</button><button id="tQuiz" class="btn vert"><span data-i="quiz"></span>Quiz</button></div>
+    <div class="medaillons">
+      <button id="tAide" class="pebble" aria-label="Comment jouer" data-i="aide"></button>
+      <button id="tReglages" class="pebble" aria-label="Réglages" data-i="engrenage"></button>
+      <button id="tMaj" class="pebble" aria-label="Mettre à jour" data-i="maj" hidden></button>
+      <a class="pebble site" href="../index.html" aria-label="Les jeux de Théo" data-i="maison"></a>
+    </div>
+    <div id="majMsg"></div>
+  </div>
+</div>
+
+<div id="aideV" class="ecran" hidden>
+  <div class="carte leafy">
+    <h2 class="t">Comment ça marche ?</h2>
+    <ul class="aide">
+      <li><span data-i="main"></span><span><b>Glisse</b> le doigt (ou la souris) pour faire tourner la Terre.</span></li>
+      <li><span data-i="plus"></span><span><b>Pince</b> avec deux doigts (ou la molette) pour zoomer jusqu'aux pays.</span></li>
+      <li><span data-i="info"></span><span><b>Touche</b> un endroit : le globe te dit ce que c'est.</span></li>
+      <li><span data-i="calques"></span><span>La <b>feuille</b> en haut à droite montre ou cache les noms, les lignes, les fleuves…</span></li>
+      <li><span data-i="avion"></span><span><b>Voyager</b> t'emmène directement en France, en Europe ou sur un continent.</span></li>
+      <li><span data-i="quiz"></span><span>Le <b>Quiz</b> te pose 10 questions : choisis la bonne réponse ou touche le bon endroit.</span></li>
+    </ul>
+    <div class="rangee"><button class="btn main" data-ferme>J'ai compris</button></div>
+  </div>
+</div>
+
+<div id="reglagesV" class="ecran" hidden>
+  <div class="carte leafy">
+    <h2 class="t">Réglages</h2>
+    <div class="reglage"><span>Image :</span><span id="qualites"></span></div>
+    <div class="reglage"><span>Musique douce :</span><span id="musiques"></span></div>
+    <div class="version">Version : <b id="versionTxt"></b></div>
+    <div class="rangee"><button class="btn" id="majBtn2"><span data-i="maj"></span>Mettre à jour</button></div>
+    <div id="majMsg2"></div>
+    <div class="rangee"><button class="btn main" data-ferme>Fermer</button></div>
+  </div>
+</div>
+
+<div id="themesV" class="ecran" hidden>
+  <div class="carte leafy" style="width:min(640px,100%)">
+    <h2 class="t">Quel quiz ?</h2>
+    <div class="themes" id="themes"></div>
+    <div class="rangee"><button class="btn" data-ferme>Retour</button></div>
+  </div>
+</div>
+
+<div id="finV" class="ecran" hidden>
+  <div class="carte leafy">
+    <h2 class="t" id="finTitre">Bravo !</h2>
+    <div class="etoiles" id="finEtoiles"></div>
+    <p id="finTxt"></p>
+    <div class="rangee"><button class="btn main" id="finRejouer"><span data-i="maj"></span>Rejouer</button><button class="btn" id="finThemes">Autre quiz</button><button class="btn" id="finExplorer">Explorer</button></div>
+  </div>
+</div>
+<div id="perf" hidden></div>
+<script type="module">
+import * as THREE from "three";
+import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
+import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
+import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+
+// ============================================================ icônes dessinées (traits SVG)
+const ICONES = {
+  maison: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
+  son: '<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/>',
+  sonoff: '<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l5 6M22 9l-5 6"/>',
+  calques: '<path d="M12 3c5 2 8 6 8 11-4 4-9 6-14 4C4 13 6 7 12 3z"/><path d="M12 3c-1 6-1 11 1 17"/><path d="M12.4 9l3.6-1.6M12.3 13l4.6-2M12.6 17l3.4-1.4M12.3 11l-3.4-1.8M12.5 15l-3.7-1.6"/>',
+  feuille: '<path d="M5 19C5 10 10 5 20 4c0 10-5 15-14 15z"/><path d="M5 19c4-5 7-8 11-11"/>',
+  croix: '<path d="M6 6l12 12M18 6L6 18"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  moins: '<path d="M5 12h14"/>',
+  boussole: '<circle cx="12" cy="12" r="9"/><path d="M12 5l3 7-3 7-3-7z"/><path d="M12 5l3 7H9z" fill="currentColor"/>',
+  avion: '<path d="M3 11l18-7-6 17-3-7z"/><path d="M12 14l9-10"/>',
+  quiz: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.6 2.6 0 1 1 3.4 2.5c-.6.3-.9.8-.9 1.5v.6"/><circle cx="12" cy="17" r=".6" fill="currentColor"/>',
+  aide: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.6 2.6 0 1 1 3.4 2.5c-.6.3-.9.8-.9 1.5v.6"/><circle cx="12" cy="17" r=".6" fill="currentColor"/>',
+  engrenage: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/><circle cx="12" cy="12" r="6.5"/>',
+  maj: '<path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/>',
+  main: '<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11"/><path d="M11 10.5V4a1.5 1.5 0 0 1 3 0v7"/><path d="M14 10.5V5.5a1.5 1.5 0 0 1 3 0V13c0 4-2 7-6 7-3 0-4-1.5-6-4l-1.6-2.6a1.4 1.4 0 0 1 2.3-1.6L8 13"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.5" r=".7" fill="currentColor"/>',
+  continent: '<circle cx="12" cy="12" r="9"/><path d="M7 6c2 1 2 3 4 3s2 3 0 4-1 4-3 4M14 4c0 2 2 3 4 3M16 13c1 1 3 1 4 0M14 17c1 0 2 1 2 3"/>',
+  ocean: '<path d="M2 9c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0"/><path d="M2 14c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0"/><path d="M2 19c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0"/>',
+  mer: '<path d="M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M6 10a6 6 0 0 1 12 0"/>',
+  pays: '<path d="M5 21V4"/><path d="M5 4h12l-2 4 2 4H5"/>',
+  palette: '<path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 1.5-2s0-2.5 1.5-2.5H18a3 3 0 0 0 3-3C21 7 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.3"/><circle cx="10" cy="7" r="1.3"/><circle cx="15" cy="7.5" r="1.3"/>',
+  capitale: '<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',
+  ville: '<path d="M3 21h18"/><path d="M5 21V10h5v11M10 21V5h6v16M16 21v-8h4v8"/><path d="M12 8h2M12 11h2M12 14h2M7 13h1M7 16h1"/>',
+  equateur: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18" stroke-width="2.6"/>',
+  tropiques: '<circle cx="12" cy="12" r="9"/><path d="M4 8.5h16M4 15.5h16" stroke-dasharray="2.5 2"/>',
+  polaires: '<circle cx="12" cy="12" r="9"/><path d="M6.5 5.2h11M6.5 18.8h11" stroke-dasharray="2.5 2"/>',
+  greenwich: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18" stroke-width="2.4"/>',
+  grille: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M4.5 7.5h15M4.5 16.5h15M12 3v18"/><path d="M12 3c-4 3-4 15 0 18M12 3c4 3 4 15 0 18"/>',
+  fleuve: '<path d="M6 3c4 3-3 6 1 9s-3 6 2 9"/><path d="M13 3c4 3-3 6 1 9s-3 6 2 9"/>',
+  montagne: '<path d="M2 20l7-12 4 6 3-4 6 10z"/><path d="M7.3 11l1.7 1.5 1.6-1.4"/>',
+  desert: '<circle cx="17" cy="7" r="3"/><path d="M2 19c3-4 6-5 10-3s7 2 10-1"/><path d="M2 21h20"/>',
+  arbre: '<path d="M12 3l6 9h-3l4 6H5l4-6H6z"/><path d="M12 18v3"/>',
+  climat: '<path d="M10 4a2 2 0 0 1 4 0v10a4 4 0 1 1-4 0z"/><path d="M12 9v7"/>',
+  nuage: '<path d="M7 18a4 4 0 0 1-.5-8 5.5 5.5 0 0 1 10.6 1.5A3.3 3.3 0 0 1 17 18z"/>',
+  nuit: '<path d="M14 3a8 8 0 1 0 7 11A7 7 0 0 1 14 3z"/>',
+  france: '<path d="M10 3l4 2 4 1-1 4 2 3-3 4-1 4-5-1-5-1 1-4-2-3 1-4 3-1z"/>',
+  relief: '<path d="M2 20l6-10 4 5 3-3 7 8z"/><path d="M17 3v6M14.5 5.5L17 3l2.5 2.5"/>',
+  region: '<path d="M4 6l6-2 5 2 5-1v13l-5 1-5-2-6 2z"/><path d="M10 4v14M15 6v13" stroke-dasharray="2 2"/>',
+  etoile: '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z"/>',
+  hemi: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M5.6 6.6h12.8M4 9.5h16" stroke-width="1"/>',
+  terre: '<circle cx="12" cy="12" r="9"/><path d="M12 3c-4 3-4 15 0 18M12 3c4 3 4 15 0 18M3 12h18"/>',
+  regle: '<path d="M4 17L17 4l3 3L7 20z"/><path d="M8 13l2 2M11 10l2 2M14 7l2 2"/>',
+  pin: '<path d="M12 21s-6-6.5-6-11a6 6 0 0 1 12 0c0 4.5-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>',
+};
+const ic = (k, cls = "i") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONES[k] || ""}</svg>`;
+for (const el of document.querySelectorAll("[data-i]")) el.insertAdjacentHTML("afterbegin", ic(el.dataset.i));
+document.getElementById("emblem").innerHTML = `<defs><radialGradient id="eg" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#7fd0e6"/><stop offset=".55" stop-color="#2a78a8"/><stop offset="1" stop-color="#0d2f4f"/></radialGradient>
+  <linearGradient id="ef" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a8d672"/><stop offset="1" stop-color="#3d7a2f"/></linearGradient></defs>
+  <path d="M60 8c-6 10-26 12-30 30M60 8c6 10 26 12 30 30" fill="none" stroke="#d9b45a" stroke-width="3"/>
+  <circle cx="60" cy="64" r="44" fill="url(#eg)" stroke="#d9b45a" stroke-width="4"/>
+  <path d="M38 40c8-4 16 2 14 9s4 9 10 8 8 7 3 12-12 2-14 10-8 10-12 4 2-12-4-16-8-12 3-27zM72 34c6-2 14 2 16 8s-6 6-10 4-10-8-6-12zM78 70c6-3 12 0 11 6s-8 10-12 6 1-12 1-12z" fill="url(#ef)" stroke="#2d5a22" stroke-width="1.5"/>
+  <path d="M18 60h84" stroke="#f08a6a" stroke-width="2" stroke-dasharray="3 3" opacity=".9"/>
+  <ellipse cx="46" cy="44" rx="14" ry="7" fill="#fff" opacity=".18" transform="rotate(-25 46 44)"/>
+  <path d="M14 96c10-10 22-8 30-2-10 6-22 8-30 2zM106 96c-10-10-22-8-30-2 10 6 22 8 30 2z" fill="url(#ef)" stroke="#2d5a22" stroke-width="1.5"/>`;
+
+// ============================================================ réglages de l'appareil
+const $ = id => document.getElementById(id);
+const LS = { lire(k, d) { try { const v = localStorage.getItem("monde:" + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+             ecrire(k, v) { try { localStorage.setItem("monde:" + k, JSON.stringify(v)); } catch (e) {} } };
+const petitEcran = Math.min(screen.width, screen.height) < 600;
+const REG = Object.assign({ qualite: petitEcran ? "normale" : "belle", musique: true, son: true }, LS.lire("reglages", {}));
+const QUALITES = { belle: { dpr: 2, face: 176, patch: 160, tex: 1 }, normale: { dpr: 1.5, face: 128, patch: 128, tex: 1 }, rapide: { dpr: 1, face: 96, patch: 96, tex: 2 } };
+const Q = QUALITES[new URLSearchParams(location.search).get("qualite") || REG.qualite] || QUALITES.normale;
+const CAL_DEF = { cont: 1, oce: 1, mers: 0, pays: 1, polit: 0, cap: 0, villes: 0, equ: 1, trop: 0, pol: 0, gre: 0, grille: 0,
+  fleuves: 0, monts: 0, deserts: 0, deco: 1, clim: 0, nuages: 1, nuit: 0, france: 0, relief: 1 };
+const CAL = Object.assign({}, CAL_DEF, LS.lire("calques", {}));
+const sauverCal = () => LS.ecrire("calques", CAL);
+const sauverReg = () => LS.ecrire("reglages", REG);
+const PARAMS = new URLSearchParams(location.search);
+
+// ============================================================ noms et listes (programme du CM1/CM2)
+const NOMS_CONT = { 1: "Afrique", 2: "Amérique du Nord", 3: "Amérique du Sud", 4: "Asie", 5: "Europe", 6: "Océanie", 7: "Antarctique" };
+const NOMS_OCE = { 10: "océan Arctique", 11: "océan Atlantique", 12: "océan Pacifique", 13: "océan Indien", 14: "océan Austral" };
+const ETIQ_CONT = [[1, 20, 6], [2, -100, 48], [3, -60, -14], [4, 92, 46], [5, 18, 53], [6, 134, -24], [7, 30, -80]];
+const ETIQ_OCE = [[12, -150, 12], [12, -128, -32], [12, 165, 25], [11, -40, 30], [11, -18, -22], [13, 78, -18], [10, -10, 84], [10, 150, 82], [14, 40, -60], [14, -110, -64]];
+const LIGNES = [
+  { k: "equ", n: "Équateur", lat: 0, col: "#ff6b57" }, { k: "trop", n: "Tropique du Cancer", lat: 23.44, col: "#ffb347" },
+  { k: "trop", n: "Tropique du Capricorne", lat: -23.44, col: "#ffb347" }, { k: "pol", n: "Cercle polaire arctique", lat: 66.56, col: "#8fd3ff" },
+  { k: "pol", n: "Cercle polaire antarctique", lat: -66.56, col: "#8fd3ff" }, { k: "gre", n: "Méridien de Greenwich", lon: 0, col: "#ffe08a" }];
+const PAYSAGES = { 0: ["la mer", "ocean"], 1: ["un glacier (inlandsis)", "montagne", "Une immense couche de glace très épaisse, posée sur la terre. Il fait très froid toute l'année."],
+  2: ["la toundra", "arbre", "Il fait trop froid pour les arbres : de la mousse, de petites plantes, et le sol gelé en profondeur."],
+  3: ["la taïga", "arbre", "Une immense forêt de sapins et d'épicéas, où l'hiver est long et très froid."],
+  4: ["une forêt tempérée", "arbre", "Des chênes, des hêtres… des saisons bien marquées, ni trop chaud ni trop froid."],
+  5: ["des prairies et des champs", "arbre", "Des plaines d'herbe, de blé et de maïs. Beaucoup de gens y cultivent la terre."],
+  6: ["la steppe", "desert", "De l'herbe sèche à perte de vue, presque sans arbres. Il pleut peu."],
+  7: ["un désert", "desert", "Il ne pleut presque jamais : du sable, des cailloux, très peu de plantes."],
+  8: ["la savane", "arbre", "De hautes herbes et quelques arbres. Il fait chaud ; il y a une saison des pluies et une saison sèche."],
+  9: ["une forêt tropicale", "arbre", "Une forêt très dense, chaude et humide toute l'année : on l'appelle aussi la jungle."],
+  10: ["un paysage méditerranéen", "arbre", "Des étés chauds et secs : oliviers, vignes, pins et garrigue."],
+  11: ["la haute montagne", "montagne", "Des sommets très hauts, de la roche et de la neige."],
+  12: ["une grande ville", "ville", "Des millions d'habitants, des immeubles, des routes et des usines."],
+  13: ["la banquise", "polaires", "De l'eau de mer gelée qui flotte, autour des pôles."],
+  14: ["un lac", "ocean", "De l'eau douce entourée de terre."] };
+const COULEURS_LEGENDE = [[9, "#2a6a2e"], [4, "#4e8a3a"], [3, "#2f5838"], [5, "#8db15c"], [8, "#b0aa5a"], [6, "#bcae74"], [7, "#e2c48a"], [10, "#93a05c"], [2, "#8f9172"], [11, "#8a7a64"], [1, "#eef3f8"], [13, "#dfe9f2"]];
+const NOMS_COURTS = { CHN: "Chine", COD: "R. D. du Congo", COG: "Congo", CAF: "Centrafrique", USA: "États-Unis", GBR: "Royaume-Uni", PRK: "Corée du Nord", KOR: "Corée du Sud", RUS: "Russie", BIH: "Bosnie", DOM: "Rép. dominicaine", CZE: "Tchéquie" };
+const CAPITALES_FIX = { ZAF: ["Pretoria", 28.19, -25.75], BOL: ["Sucre", -65.26, -19.04], NLD: ["Amsterdam", 4.9, 52.37] };
+const UE = "FRA DEU ITA ESP PRT BEL NLD LUX IRL DNK SWE FIN AUT POL CZE SVK HUN SVN HRV ROU BGR GRC CYP MLT EST LVA LTU".split(" ");
+const EUROPE = UE.concat("GBR CHE NOR ISL UKR".split(" "));
+const MONDE = "USA CAN MEX BRA ARG CHL PER COL CHN IND JPN RUS AUS EGY ZAF MAR DZA NGA KEN TUR SAU IDN NZL MDG ETH COD IRN PAK THA VNM MNG KAZ VEN CUB GRL".split(" ");
+const FLEUVES_MONDE = ["Nil", "Amazone", "Mississippi", "Yangzi Jiang", "Gange", "Danube", "Volga", "Congo", "Mékong", "Niger", "Rhin", "Saint-Laurent", "Indus", "Zambèze", "Paraná", "Ob", "Léna", "Murray"];
+const FLEUVES_FR = ["Seine", "Loire", "Garonne", "Rhône", "Rhin", "Dordogne", "Meuse", "Moselle"];
+const MONTAGNES = [{ n: "Himalaya", l: [84, 28.8], d: .35, c: 4 }, { n: "cordillère des Andes", l: [-70, -18], d: .7, c: 3 }, { n: "montagnes Rocheuses", l: [-112, 44], d: .6, c: 2 },
+  { n: "Alpes", l: [9.5, 46.3], d: .16, c: 5 }, { n: "Oural", l: [59.5, 58], d: .4, c: 5 }, { n: "Atlas", l: [-4.5, 32], d: .3, c: 1 }, { n: "Pyrénées", l: [.6, 42.7], d: .12, c: 5 }, { n: "Caucase", l: [44, 42.8], d: .22, c: 4 }];
+const DESERTS = [{ n: "Sahara", l: [10, 23], d: .75, c: 1 }, { n: "désert de Gobi", l: [104, 43.2], d: .35, c: 4 }, { n: "désert du Kalahari", l: [22, -23], d: .35, c: 1 },
+  { n: "désert d'Atacama", l: [-69.6, -23.5], d: .25, c: 3 }, { n: "désert d'Arabie", l: [47, 21.5], d: .4, c: 4 }, { n: "désert australien", l: [128, -25], d: .45, c: 6 }];
+const MASSIFS_FR = [{ n: "Alpes", l: [6.6, 45.2] }, { n: "Pyrénées", l: [.4, 42.75] }, { n: "Massif central", l: [2.9, 45.3] }, { n: "Jura", l: [6.1, 46.65] }, { n: "Vosges", l: [7.05, 48.1] }];
+const DROM = [{ n: "Guadeloupe", l: [-61.55, 16.2], c: 2, o: 11 }, { n: "Martinique", l: [-61.0, 14.65], c: 2, o: 11 }, { n: "Guyane", l: [-53.1, 4.0], c: 3, o: 11 },
+  { n: "La Réunion", l: [55.53, -21.12], c: 1, o: 13 }, { n: "Mayotte", l: [45.15, -12.82], c: 1, o: 13 }];
+const VILLES_FR = ["Paris", "Lyon", "Marseille", "Toulouse", "Bordeaux", "Lille", "Nantes", "Strasbourg", "Montpellier", "Rennes"];
+const LIEUX_PAYSAGES = [{ k: 7, l: [8, 24], d: .3 }, { k: 9, l: [-63, -4], d: .25 }, { k: 3, l: [100, 61], d: .3 }, { k: 13, l: [-30, 84], d: .5 }, { k: 1, l: [-41, 74], d: .35 },
+  { k: 11, l: [86.9, 28.2], d: .12 }, { k: 8, l: [35, -3], d: .25 }, { k: 12, l: [139.7, 35.7], d: .08 }, { k: 2, l: [-100, 66], d: .3 }, { k: 6, l: [68, 49], d: .3 },
+  { k: 5, l: [-97, 41], d: .25 }, { k: 4, l: [-82, 40], d: .25 }, { k: 10, l: [15, 38], d: .2 }];
+const VOYAGES = [{ n: "Le monde", l: [10, 20], d: 3.2, sp: 1 }, { n: "L'Europe", l: [12, 50], d: .7, sp: 1 }, { n: "La France", l: [2.4, 46.6], d: .2, sp: 1, fr: 1 },
+  { n: "Afrique", l: [20, 2], d: 1.5 }, { n: "Amérique du Nord", l: [-98, 45], d: 1.5 }, { n: "Amérique du Sud", l: [-60, -18], d: 1.4 }, { n: "Asie", l: [92, 40], d: 1.7 },
+  { n: "Océanie", l: [140, -24], d: 1.2 }, { n: "Antarctique", l: [20, -80], d: 1.4 }, { n: "Pôle Nord", l: [0, 84], d: 1.3 }, { n: "Les Alpes", l: [8.5, 45.6], d: .07 },
+  { n: "L'Himalaya", l: [86.5, 28.6], d: .1 }, { n: "Le Sahara", l: [8, 24], d: .45 }, { n: "L'Amazonie", l: [-62, -4], d: .45 }];
+
+// ============================================================ moteur 3D
+const canvas = $("c");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, Q.dpr));
+renderer.setSize(innerWidth, innerHeight, false);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x03070f);
+const camera = new THREE.PerspectiveCamera(36, innerWidth / innerHeight, .002, 80);
+scene.add(camera);
+const soleil = new THREE.DirectionalLight(0xfff3e0, 2.4); scene.add(soleil, soleil.target);
+const ciel = new THREE.HemisphereLight(0xbcd7ff, 0x3a3020, .9); scene.add(ciel);
+
+const RT = 6371000;
+let EXAG = 15 * CAL.relief;      // le relief est exagéré (sinon l'Everest ne se verrait pas)
+const kMetres = () => EXAG / RT;  // unités du monde par mètre (rayon de la Terre = 1)
+const D2R = Math.PI / 180;
+const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); }; // comme smoothstep en GLSL
+const versDir = (lon, lat, v = new THREE.Vector3()) => { const a = lon * D2R, b = lat * D2R; return v.set(Math.cos(b) * Math.sin(a), Math.sin(b), Math.cos(b) * Math.cos(a)); };
+const versLonLat = v => { const r = v.length(); return [Math.atan2(v.x, v.z) / D2R, Math.asin(THREE.MathUtils.clamp(v.y / r, -1, 1)) / D2R]; };
+
+// ============================================================ chargement des cartes
+let W = 4096, H = 2048;
+let HAUT, IDS, PAYS_CL, DATA;         // tableaux du processeur : altitude (m), identifiants, paysages
+let PW = 2048, PH = 1024;
+const barre = $("barre").firstElementChild, chTxt = $("chTxt");
+function progres(f, t) { barre.style.width = Math.round(f * 100) + "%"; if (t) chTxt.textContent = t; }
+async function image(url) {
+  const r = await fetch(url); if (!r.ok) throw new Error(url);
+  const b = await r.blob();
+  try { return await createImageBitmap(b, { premultiplyAlpha: "none", colorSpaceConversion: "none" }); }
+  catch (e) { return await createImageBitmap(b); }
+}
+function pixels(img, w, h) {
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  const g = c.getContext("2d", { willReadFrequently: true }); g.imageSmoothingEnabled = w !== img.width; g.imageSmoothingQuality = "high";
+  g.drawImage(img, 0, 0, w, h); return g.getImageData(0, 0, w, h).data;
+}
+function pixelsExacts(img, w, h) { // sans lissage (identifiants)
+  const c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
+  const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, img.width, img.height).data;
+  if (w === img.width) return d;
+  const o = new Uint8ClampedArray(w * h * 4), s = img.width / w;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = ((y * s | 0) * img.width + (x * s | 0)) * 4, j = (y * w + x) * 4; o[j] = d[i]; o[j + 1] = d[i + 1]; o[j + 2] = d[i + 2]; o[j + 3] = 255; }
+  return o;
+}
+let texH, texC, texI, texPal;
+async function charger() {
+  progres(.05, "Je prépare le globe…");
+  const [jRel, jCol, jIds, jPay, jData] = await Promise.all([image("donnees/relief.webp"), image("donnees/couleurs.jpg"), image("donnees/ids.png"), image("donnees/paysages.png"),
+    fetch("donnees/monde.json").then(r => r.json())]).then(v => { progres(.45, "Je pose les montagnes…"); return v; });
+  DATA = jData;
+  W = 4096 / Q.tex; H = 2048 / Q.tex;
+  // altitude sur 16 bits → mètres (CPU) et demi-flottants (GPU, lissés avec leurs mipmaps)
+  const rel = pixelsExacts(jRel, 4096, 2048);
+  const n = W * H; HAUT = new Int16Array(n);
+  const half = new Uint16Array(n), lac = new Uint8Array(n);
+  const s = Q.tex;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    let hsum = 0, lsum = 0;
+    for (let dy = 0; dy < s; dy++) for (let dx = 0; dx < s; dx++) { const i = ((y * s + dy) * 4096 + x * s + dx) * 4; hsum += (rel[i] * 256 + rel[i + 1]) * 2 - 11000; lsum += rel[i + 2]; }
+    const k = y * W + x, hm = hsum / (s * s);
+    HAUT[k] = hm; half[k] = THREE.DataUtils.toHalfFloat(hm); lac[k] = lsum / (s * s);
+  }
+  await pause(); progres(.6, "Je peins les paysages…");
+  texH = new THREE.DataTexture(half, W, H, THREE.RedFormat, THREE.HalfFloatType);
+  texH.minFilter = THREE.LinearMipmapLinearFilter; texH.magFilter = THREE.LinearFilter; texH.generateMipmaps = true;
+  texH.wrapS = THREE.RepeatWrapping; texH.wrapT = THREE.ClampToEdgeWrapping; texH.needsUpdate = true;
+  const col = pixels(jCol, W, H);
+  const rgba = new Uint8Array(n * 4);
+  for (let k = 0; k < n; k++) { rgba[k * 4] = col[k * 4]; rgba[k * 4 + 1] = col[k * 4 + 1]; rgba[k * 4 + 2] = col[k * 4 + 2]; rgba[k * 4 + 3] = lac[k]; }
+  texC = new THREE.DataTexture(rgba, W, H, THREE.RGBAFormat, THREE.UnsignedByteType);
+  texC.colorSpace = THREE.SRGBColorSpace; texC.minFilter = THREE.LinearMipmapLinearFilter; texC.magFilter = THREE.LinearFilter; texC.generateMipmaps = true;
+  texC.wrapS = THREE.RepeatWrapping; texC.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); texC.needsUpdate = true;
+  await pause(); progres(.72, "Je trace les pays…");
+  IDS = new Uint8Array(pixelsExacts(jIds, W, H).buffer.slice(0));
+  texI = new THREE.DataTexture(IDS, W, H, THREE.RGBAFormat, THREE.UnsignedByteType);
+  texI.minFilter = texI.magFilter = THREE.NearestFilter; texI.generateMipmaps = false; texI.needsUpdate = true;
+  const pp = pixelsExacts(jPay, jPay.width, jPay.height); PW = jPay.width; PH = jPay.height;
+  PAYS_CL = new Uint8Array(PW * PH); for (let k = 0; k < PW * PH; k++) PAYS_CL[k] = pp[k * 4];
+  // couleurs « carte politique » : 7 couleurs douces, comme sur une carte d'école
+  const PAL7 = [[0, 0, 0], [238, 180, 120], [170, 205, 120], [236, 214, 120], [150, 190, 220], [214, 150, 170], [190, 170, 220], [240, 150, 110]];
+  const pal = new Uint8Array(256 * 4);
+  for (const p of DATA.pays) { const c = PAL7[p.col] || PAL7[1]; pal.set([c[0], c[1], c[2], 255], p.id * 4); }
+  texPal = new THREE.DataTexture(pal, 256, 1, THREE.RGBAFormat); texPal.colorSpace = THREE.SRGBColorSpace; texPal.needsUpdate = true;
+  for (const p of DATA.pays) { if (NOMS_COURTS[p.a3]) p.n = NOMS_COURTS[p.a3]; if (CAPITALES_FIX[p.a3]) p.cap = CAPITALES_FIX[p.a3]; }
+}
+const pause = () => new Promise(r => setTimeout(r, 0));
+
+// lecture des cartes depuis le processeur
+function hauteur(lon, lat) {
+  let x = (lon + 180) / 360 * W - .5, y = (90 - lat) / 180 * H - .5;
+  y = Math.max(0, Math.min(H - 1.001, y));
+  const x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0;
+  const X0 = ((x0 % W) + W) % W, X1 = (X0 + 1) % W, Y1 = Math.min(H - 1, y0 + 1);
+  const a = HAUT[y0 * W + X0], b = HAUT[y0 * W + X1], c = HAUT[Y1 * W + X0], d = HAUT[Y1 * W + X1];
+  return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy;
+}
+function idsA(lon, lat) {
+  const x = ((Math.floor((lon + 180) / 360 * W) % W) + W) % W, y = Math.max(0, Math.min(H - 1, Math.floor((90 - lat) / 180 * H)));
+  const i = (y * W + x) * 4; return [IDS[i], IDS[i + 1], IDS[i + 2]];
+}
+function paysageA(lon, lat) {
+  const x = ((Math.floor((lon + 180) / 360 * PW) % PW) + PW) % PW, y = Math.max(0, Math.min(PH - 1, Math.floor((90 - lat) / 180 * PH)));
+  return PAYS_CL[y * PW + x];
+}
+
+// ============================================================ shaders du globe
+const GLSL_COMMUN = /* glsl */`
+#define PI 3.14159265359
+vec2 dirUv(vec3 d) { return vec2(atan(d.x, d.z) / (2.0 * PI) + 0.5, 0.5 - asin(clamp(d.y, -1.0, 1.0)) / PI); }
+float hash3(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float vnoise(vec3 x) { vec3 i = floor(x); vec3 f = fract(x); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(hash3(i), hash3(i + vec3(1,0,0)), f.x), mix(hash3(i + vec3(0,1,0)), hash3(i + vec3(1,1,0)), f.x), f.y),
+             mix(mix(hash3(i + vec3(0,0,1)), hash3(i + vec3(1,0,1)), f.x), mix(hash3(i + vec3(0,1,1)), hash3(i + vec3(1,1,1)), f.x), f.y), f.z); }
+`;
+const VERT_GLOBE = /* glsl */`
+uniform sampler2D tH; uniform float uK; uniform vec3 uPC, uPE, uPN; uniform float uPA;
+varying vec3 vDir; varying vec3 vPos;
+${GLSL_COMMUN}
+void main() {
+#ifdef PATCH
+  vec3 dd = normalize(uPC + (position.x * uPA) * uPE + (position.y * uPA) * uPN);
+  float lod = 0.0;
+#else
+  vec3 dd = normalize(position);
+  float lod = 1.5;
+#endif
+  float h = textureLod(tH, dirUv(dd), lod).r;
+  float r = 1.0 + max(h, 0.0) * uK;
+#ifdef PATCH
+  r -= position.z * 0.006;
+#endif
+  vDir = dd;
+  vec4 wp = modelMatrix * vec4(dd * r, 1.0); vPos = wp.xyz;
+  gl_Position = projectionMatrix * viewMatrix * wp;
+}`;
+const FRAG_GLOBE = /* glsl */`
+uniform sampler2D tH; uniform sampler2D tC; uniform sampler2D tI; uniform sampler2D tPal;
+uniform vec2 uTex; uniform vec3 uSun; uniform float uKs, uTime, uDetail, uPol, uClim, uGrid, uGridStep, uNight, uHaze;
+uniform vec4 uLig; uniform float uLigHL; uniform vec4 uHL;
+uniform vec3 uPC, uPE, uPN; uniform float uPA, uPatchOn;
+varying vec3 vDir; varying vec3 vPos;
+${GLSL_COMMUN}
+float trait(float dist, float fw, float wpx) { return 1.0 - smoothstep(wpx * 0.5, wpx * 0.5 + 1.0, dist / max(fw, 1e-6)); }
+void main() {
+  vec3 d = normalize(vDir);
+#ifndef PATCH
+  if (uPatchOn > 0.5) { float c = dot(d, uPC); if (c > 0.5) { vec3 p = d / c; if (max(abs(dot(p, uPE)), abs(dot(p, uPN))) < uPA * 0.985) discard; } }
+#endif
+  vec2 uv = dirUv(d);
+  vec2 gx = dFdx(uv), gy = dFdy(uv);
+  gx.x -= floor(gx.x + 0.5); gy.x -= floor(gy.x + 0.5);   // raccord à 180°
+  float h = textureGrad(tH, uv, gx, gy).r;
+  vec4 a4 = textureGrad(tC, uv, gx, gy);
+  float lat = (0.5 - uv.y) * PI, lon = (uv.x - 0.5) * 2.0 * PI;
+  vec3 est = vec3(cos(lon), 0.0, -sin(lon)), nord = vec3(-sin(lat) * sin(lon), cos(lat), -sin(lat) * cos(lon));
+  // normale du relief (pente mesurée à l'échelle de ce qu'on voit)
+  float fp = max(length(gx * uTex), length(gy * uTex));
+  vec2 e = max(1.0, fp) / uTex;
+  float hE = max(textureGrad(tH, uv + vec2(e.x, 0.0), gx, gy).r, 0.0), hW = max(textureGrad(tH, uv - vec2(e.x, 0.0), gx, gy).r, 0.0);
+  float hN = max(textureGrad(tH, uv - vec2(0.0, e.y), gx, gy).r, 0.0), hS = max(textureGrad(tH, uv + vec2(0.0, e.y), gx, gy).r, 0.0);
+  float cl = max(cos(lat), 0.03);
+  float sE = (hE - hW) * uKs / (4.0 * PI * e.x * cl), sN = (hN - hS) * uKs / (2.0 * PI * e.y);
+  vec3 n = normalize(d - sE * est - sN * nord);
+  vec3 V = normalize(cameraPosition - vPos);
+  vec3 L = uSun;
+  float jour = 1.0;
+  if (uNight > 0.5) jour = smoothstep(-0.12, 0.16, dot(d, L));
+
+  // ----- terre
+  vec3 alb = a4.rgb;
+  if (uDetail > 0.01) {
+    vec3 q = d * 2600.0;
+    float g = vnoise(q) * 0.5 + vnoise(q * 2.7) * 0.3 + vnoise(q * 7.3) * 0.2;
+    alb *= 1.0 + (g - 0.5) * 0.32 * uDetail;
+    vec3 gn = vec3(vnoise(q * 1.9 + 3.1), vnoise(q * 1.9 + 7.7), vnoise(q * 1.9 + 11.3)) - 0.5;
+    n = normalize(n + (gn - d * dot(gn, d)) * 0.22 * uDetail);
+  }
+  float pente = 1.0 - dot(n, d);
+  alb = mix(alb, vec3(0.20, 0.17, 0.14), smoothstep(0.18, 0.55, pente) * step(30.0, h) * 0.55 * (1.0 - step(0.6, min(alb.r, alb.b))));
+  float dif = max((dot(n, L) + 0.12) / 1.12, 0.0);
+  vec3 amb = vec3(0.40, 0.50, 0.66) * (0.42 + 0.25 * dot(n, d));
+  vec3 terre = alb * (vec3(1.0, 0.95, 0.86) * 1.55 * dif + amb * 0.62);
+
+  // ----- eau
+  float fh = max(fwidth(h), 0.8);
+  float eau = smoothstep(fh, -fh, h);
+  float lac = smoothstep(0.3, 0.7, a4.a);
+  eau = max(eau, lac);
+  float prof = max(-h, 0.0);
+  vec3 wc = mix(vec3(0.10, 0.52, 0.58), vec3(0.035, 0.25, 0.45), smoothstep(4.0, 160.0, prof));
+  wc = mix(wc, vec3(0.012, 0.09, 0.26), smoothstep(160.0, 3500.0, prof));
+  wc = mix(wc, vec3(0.006, 0.05, 0.17), smoothstep(3500.0, 7000.0, prof));
+  wc = mix(wc, vec3(0.06, 0.30, 0.40), lac);
+  float vag = clamp(0.25 + uDetail, 0.0, 1.0);
+  vec3 q = d * 1500.0 + vec3(uTime * 0.35, uTime * 0.1, -uTime * 0.25);
+  vec3 wn = vec3(vnoise(q), vnoise(q + 17.0), vnoise(q + 31.0)) - 0.5 + (vec3(vnoise(q * 2.9 + 5.0), vnoise(q * 2.9 + 9.0), vnoise(q * 2.9 + 13.0)) - 0.5) * 0.6;
+  vec3 nW = normalize(d + (wn - d * dot(wn, d)) * 0.28 * vag);
+  float fres = pow(1.0 - max(dot(nW, V), 0.0), 5.0);
+  vec3 Hh = normalize(L + V);
+  float sp = max(dot(nW, Hh), 0.0);
+  float spec = pow(sp, 160.0) * 2.2 + pow(sp, 24.0) * 0.16;
+  vec3 mer = wc * (0.30 + 0.85 * max(dot(nW, L), 0.0)) + vec3(0.55, 0.72, 0.92) * fres * 0.5 + vec3(1.0, 0.95, 0.86) * spec * jour;
+  // écume le long des côtes (quand on est près)
+  float ecume = smoothstep(26.0, 2.0, prof) * (1.0 - lac) * smoothstep(0.05, 0.6, uDetail);
+  ecume *= 0.5 + 0.5 * sin(uTime * 1.6 - prof * 0.45 + vnoise(d * 900.0) * 7.0);
+  mer = mix(mer, vec3(0.92, 0.96, 1.0) * (0.5 + 0.6 * dif), ecume * 0.5);
+  // banquise : la carte des couleurs est blanche sur la mer gelée
+  float glace = smoothstep(0.35, 0.75, min(a4.r, min(a4.g, a4.b))) * (1.0 - lac);
+  vec3 gl = vec3(0.86, 0.91, 0.96) * (1.0 - 0.08 * vnoise(d * 3000.0)) * (0.42 + 0.85 * max(dot(d, L), 0.0)) + vec3(0.6, 0.75, 0.9) * fres * 0.2;
+  mer = mix(mer, gl, glace);
+  vec3 col = mix(terre, mer, eau);
+
+  // ----- calques dans l'image
+  ivec2 ip = ivec2(int(mod(floor(uv.x * uTex.x), uTex.x)), int(clamp(floor(uv.y * uTex.y), 0.0, uTex.y - 1.0)));
+  vec3 ids = floor(texelFetch(tI, ip, 0).rgb * 255.0 + 0.5);
+  float lum = 0.35 + 0.85 * dif;
+  if (uPol > 0.0 && ids.r > 0.0) {
+    vec3 pc = texelFetch(tPal, ivec2(int(ids.r), 0), 0).rgb;
+    col = mix(col, pc * lum * 1.1, 0.55 * uPol * (1.0 - eau));
+  }
+  float latD = lat / PI * 180.0, lonD = lon / PI * 180.0;
+  if (uClim > 0.0) {
+    float z = abs(latD);
+    vec3 cz = z < 23.44 ? vec3(1.0, 0.42, 0.18) : (z < 66.56 ? vec3(0.42, 0.85, 0.3) : vec3(0.35, 0.65, 1.0));
+    col = mix(col, cz * (0.3 + 0.7 * lum), 0.4 * uClim);
+  }
+  float hl = 0.0;
+  if (uHL.x > 0.0 && abs(ids.r - uHL.x) < 0.5) hl = 1.0;
+  if (uHL.y > 0.0 && abs(ids.b - uHL.y) < 0.5) hl = 1.0;
+  if (uHL.z > 0.0 && abs(ids.g - uHL.z) < 0.5 && eau > 0.5) hl = 1.0;
+  col = mix(col, col * 0.5 + vec3(1.0, 0.78, 0.25) * (0.45 + 0.25 * lum), hl * (0.5 + 0.18 * sin(uTime * 4.0)));
+  // ----- lignes (équateur, tropiques, cercles polaires, Greenwich, grille) : nettes à tous les zooms
+  float fwl = fwidth(latD), fwo = fwidth(lonD);
+  if (fwo > 20.0) fwo = fwl / cl;
+  if (uGrid > 0.0) {
+    float s = uGridStep;
+    float gla = abs(fract(latD / s + 0.5) - 0.5) * s, glo = abs(fract(lonD / s + 0.5) - 0.5) * s;
+    float a = max(trait(gla, fwl, 1.1), trait(glo, fwo, 1.1) * step(abs(latD), 89.0));
+    col = mix(col, vec3(0.95, 0.97, 1.0), a * 0.38 * uGrid);
+  }
+  float tiret = step(0.42, fract(lonD / max(fwo * 16.0, 1e-5)));
+  float tiretT = step(0.42, fract(lonD / max(fwo * 16.0, 1e-5) + 0.5));
+  float a;
+  a = trait(abs(latD), fwl, uLigHL == 1.0 ? 6.0 : 2.6) * max(uLig.x, step(0.5, uLigHL) * step(uLigHL, 1.5));
+  col = mix(col, vec3(1.0, 0.33, 0.24), a);
+  a = trait(abs(latD - 23.44), fwl, uLigHL == 2.0 ? 6.0 : 2.2) * max(uLig.y * tiret, float(uLigHL == 2.0));
+  col = mix(col, vec3(1.0, 0.68, 0.22), a);
+  a = trait(abs(latD + 23.44), fwl, uLigHL == 3.0 ? 6.0 : 2.2) * max(uLig.y * tiret, float(uLigHL == 3.0));
+  col = mix(col, vec3(1.0, 0.68, 0.22), a);
+  a = trait(abs(latD - 66.56), fwl, uLigHL == 4.0 ? 6.0 : 2.2) * max(uLig.z * tiretT, float(uLigHL == 4.0));
+  col = mix(col, vec3(0.55, 0.85, 1.0), a);
+  a = trait(abs(latD + 66.56), fwl, uLigHL == 5.0 ? 6.0 : 2.2) * max(uLig.z * tiretT, float(uLigHL == 5.0));
+  col = mix(col, vec3(0.55, 0.85, 1.0), a);
+  a = trait(abs(lonD), fwo, uLigHL == 6.0 ? 6.0 : 2.4) * max(uLig.w, float(uLigHL == 6.0)) * step(abs(latD), 88.0);
+  col = mix(col, vec3(1.0, 0.88, 0.45), a);
+  // ----- nuit et brume du bord
+  if (uNight > 0.5) col = mix(vec3(0.004, 0.009, 0.025) + col * 0.05, col, jour);
+  float mu = max(dot(d, V), 0.0);
+  col = mix(col, vec3(0.42, 0.62, 0.95) * (0.25 + 0.75 * max(dot(d, L), 0.0)), pow(1.0 - mu, 3.0) * 0.6 * uHaze);
+  gl_FragColor = vec4(col, 1.0);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
+
+// géométries : un cube « gonflé » en sphère (sommets bien répartis) et un carreau fin qui suit la caméra
+function cubeSphere(N) {
+  const pos = [], idx = []; const faces = [[0, 1, 2, 1], [0, 1, 2, -1], [1, 2, 0, 1], [1, 2, 0, -1], [2, 0, 1, 1], [2, 0, 1, -1]];
+  for (const [a, b, c, s] of faces) {
+    const base = pos.length / 3;
+    for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) {
+      const u = Math.tan((i / N * 2 - 1) * Math.PI / 4), v = Math.tan((j / N * 2 - 1) * Math.PI / 4);
+      const p = [0, 0, 0]; p[a] = u * s; p[b] = v; p[c] = s;
+      const l = Math.hypot(p[0], p[1], p[2]); pos.push(p[0] / l, p[1] / l, p[2] / l);
+    }
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const k = base + j * (N + 1) + i;
+      if (s > 0) idx.push(k, k + 1, k + N + 1, k + 1, k + N + 2, k + N + 1); else idx.push(k, k + N + 1, k + 1, k + 1, k + N + 1, k + N + 2);
+    }
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+  g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1.1); return g;
+}
+function carreau(N) { // grille (N+3)² : l'anneau extérieur est une « jupe » qui descend sous le relief (pas de fente au bord)
+  const M = N + 3, pos = [], idx = [];
+  for (let j = 0; j < M; j++) for (let i = 0; i < M; i++) {
+    const x = Math.min(Math.max(i - 1, 0), N) / N * 2 - 1, y = Math.min(Math.max(j - 1, 0), N) / N * 2 - 1;
+    pos.push(x, y, (i === 0 || j === 0 || i === M - 1 || j === M - 1) ? 1 : 0);
+  }
+  for (let j = 0; j < M - 1; j++) for (let i = 0; i < M - 1; i++) { const k = j * M + i; idx.push(k, k + 1, k + M, k + 1, k + M + 1, k + M); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+  g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 2); return g;
+}
+
+const U = {
+  tH: { value: null }, tC: { value: null }, tI: { value: null }, tPal: { value: null }, uTex: { value: new THREE.Vector2(4096, 2048) },
+  uK: { value: kMetres() }, uKs: { value: kMetres() * 2.2 }, uSun: { value: new THREE.Vector3(0, 0, 1) }, uTime: { value: 0 }, uDetail: { value: 0 },
+  uPol: { value: 0 }, uClim: { value: 0 }, uGrid: { value: 0 }, uGridStep: { value: 15 }, uNight: { value: 0 }, uHaze: { value: 1 },
+  uLig: { value: new THREE.Vector4() }, uLigHL: { value: 0 }, uHL: { value: new THREE.Vector4() },
+  uPC: { value: new THREE.Vector3(0, 0, 1) }, uPE: { value: new THREE.Vector3(1, 0, 0) }, uPN: { value: new THREE.Vector3(0, 1, 0) }, uPA: { value: .1 }, uPatchOn: { value: 0 },
+};
+let globe, patch, nuages, atmos;
+function creerGlobe() {
+  Object.assign(U.tH, { value: texH }); U.tC.value = texC; U.tI.value = texI; U.tPal.value = texPal; U.uTex.value.set(W, H);
+  const mat = new THREE.ShaderMaterial({ uniforms: U, vertexShader: VERT_GLOBE, fragmentShader: FRAG_GLOBE });
+  globe = new THREE.Mesh(cubeSphere(Q.face), mat); globe.frustumCulled = false; scene.add(globe);
+  const matP = new THREE.ShaderMaterial({ uniforms: U, vertexShader: VERT_GLOBE, fragmentShader: FRAG_GLOBE, defines: { PATCH: 1 } });
+  patch = new THREE.Mesh(carreau(Q.patch), matP); patch.frustumCulled = false; patch.visible = false; patch.renderOrder = 1; scene.add(patch);
+
+  // nuages : bruit qui dérive lentement, plus nombreux à l'équateur et vers 55°
+  const matN = new THREE.ShaderMaterial({ transparent: true, depthWrite: false,
+    uniforms: { uSun: U.uSun, uTime: U.uTime, uA: { value: 1 } },
+    vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `uniform vec3 uSun; uniform float uTime, uA; varying vec3 vDir; ${GLSL_COMMUN}
+      void main(){ vec3 d = normalize(vDir); float lat = asin(d.y) * 57.2958;
+        float band = 0.45 + 0.35 * exp(-pow(lat / 9.0, 2.0)) + 0.35 * exp(-pow((abs(lat) - 57.0) / 12.0, 2.0)) - 0.25 * exp(-pow((abs(lat) - 24.0) / 9.0, 2.0));
+        vec3 p = d * 2.6 + vec3(uTime * 0.004, 0.0, uTime * 0.002);
+        vec3 w = vec3(vnoise(p * 1.7), vnoise(p * 1.7 + 4.0), vnoise(p * 1.7 + 8.0));
+        p += (w - 0.5) * 1.2;
+        float n = vnoise(p) * 0.5 + vnoise(p * 2.1) * 0.25 + vnoise(p * 4.3) * 0.14 + vnoise(p * 9.1) * 0.07 + vnoise(p * 19.0) * 0.04;
+        float c = smoothstep(0.62 - band * 0.16, 0.8 - band * 0.12, n);
+        float l = 0.35 + 0.8 * max(dot(d, uSun), 0.0);
+        gl_FragColor = vec4(vec3(l), c * 0.85 * uA);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }` });
+  nuages = new THREE.Mesh(new THREE.SphereGeometry(1.024, 160, 80), matN); nuages.renderOrder = 3; scene.add(nuages);
+
+  // atmosphère : halo bleu au bord du globe, plus clair du côté du soleil
+  const matA = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, side: THREE.BackSide, blending: THREE.AdditiveBlending,
+    uniforms: { uSun: U.uSun },
+    vertexShader: `varying vec3 vP; void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vP = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+    fragmentShader: `uniform vec3 uSun; varying vec3 vP;
+      void main(){ vec3 r = normalize(vP - cameraPosition); float t = -dot(cameraPosition, r);
+        float b = length(cameraPosition + r * max(t, 0.0));
+        if (t < 0.0) b = length(cameraPosition);
+        float g = smoothstep(1.05, 0.995, b); g *= g;
+        float s = 0.3 + 0.9 * max(dot(normalize(vP), uSun), 0.0);
+        gl_FragColor = vec4(vec3(0.32, 0.58, 1.0) * g * s * 0.95, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }` });
+  atmos = new THREE.Mesh(new THREE.SphereGeometry(1.05, 96, 48), matA); atmos.renderOrder = 4; scene.add(atmos);
+
+  // étoiles
+  const sp = []; const r = new Rnd(5);
+  for (let i = 0; i < 2600; i++) { const v = versDir(r.f() * 360 - 180, Math.asin(r.f() * 2 - 1) / D2R).multiplyScalar(40); sp.push(v.x, v.y, v.z); }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.Float32BufferAttribute(sp, 3));
+  const etoiles = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xdfe8ff, size: 1.6, sizeAttenuation: false, transparent: true, opacity: .8, depthWrite: false }));
+  etoiles.renderOrder = -1; scene.add(etoiles);
+}
+class Rnd { constructor(s) { this.s = s >>> 0 || 1; } f() { let t = this.s += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; } }
+
+// ============================================================ traits : frontières, fleuves, régions (posés sur le relief)
+const LIGNES3D = {};
+let resol = new THREE.Vector2(innerWidth, innerHeight);
+function segments(traces, haut = .0011, pas = .25) {
+  const out = [], v = new THREE.Vector3(), K = kMetres();
+  for (const t of traces) {
+    let prec = null;
+    for (let i = 0; i < t.length; i++) {
+      const [lo, la] = t[i];
+      if (prec) {
+        let dlo = lo - prec[0]; if (dlo > 180) dlo -= 360; if (dlo < -180) dlo += 360;
+        const n = Math.max(1, Math.ceil(Math.max(Math.abs(dlo), Math.abs(la - prec[1])) / pas));
+        for (let k = 0; k < n; k++) {
+          const a = [prec[0] + dlo * k / n, prec[1] + (la - prec[1]) * k / n], b = [prec[0] + dlo * (k + 1) / n, prec[1] + (la - prec[1]) * (k + 1) / n];
+          for (const p of [a, b]) { versDir(p[0], p[1], v).multiplyScalar(1 + Math.max(hauteur(p[0], p[1]), 0) * K + haut); out.push(v.x, v.y, v.z); }
+        }
+      }
+      prec = t[i];
+    }
+  }
+  return new Float32Array(out);
+}
+function trait(nom, traces, couleur, larg, opac = 1, haut) {
+  const g = new LineSegmentsGeometry(); g.setPositions(segments(traces, haut));
+  const m = new LineMaterial({ color: couleur, linewidth: larg, transparent: true, opacity: opac, depthWrite: false, worldUnits: false });
+  m.resolution.copy(resol);
+  const l = new LineSegments2(g, m); l.frustumCulled = false; l.renderOrder = 2; l.userData = { traces, haut }; scene.add(l);
+  if (LIGNES3D[nom]) { scene.remove(LIGNES3D[nom]); LIGNES3D[nom].geometry.dispose(); }
+  LIGNES3D[nom] = l; return l;
+}
+function refaireTraits() { for (const l of Object.values(LIGNES3D)) { const g = new LineSegmentsGeometry(); g.setPositions(segments(l.userData.traces, l.userData.haut)); l.geometry.dispose(); l.geometry = g; } }
+function creerTraits() {
+  trait("pays", DATA.pays.flatMap(p => p.tr), 0xfff4d6, 1.15, .75);
+  trait("fleuves", DATA.fleuves.filter(f => !f.fr || FLEUVES_FR.includes(f.n)).flatMap(f => f.tr), 0x5fc8ff, 1.7, .95);
+  trait("regions", DATA.regions.flatMap(r => r.tr), 0xd8f0b0, 1.1, .8);
+  trait("surligne", [], 0xffd34d, 4, 1, .0016);
+}
+
+// ============================================================ paysages en 3D (symboles comme sur un globe d'école)
+const DECO = { u: { value: 0 }, mesh: [] };
+function geo(parts) { // parts : [géométrie, couleur]
+  const gs = parts.map(([g, c]) => { const n = g.attributes.position.count, col = new Float32Array(n * 3), cc = new THREE.Color(c);
+    for (let i = 0; i < n; i++) col.set([cc.r, cc.g, cc.b], i * 3); g.setAttribute("color", new THREE.BufferAttribute(col, 3)); return g.index ? g.toNonIndexed() : g; });
+  for (const g of gs) for (const k of Object.keys(g.attributes)) if (!["position", "normal", "color"].includes(k)) g.deleteAttribute(k);
+  const m = mergeGeometries(gs); m.computeVertexNormals(); return m;
+}
+const tr = (g, x, y, z, sx = 1, sy = 1, sz = 1) => g.scale(sx, sy, sz).translate(x, y, z);
+function creerDeco() {
+  const K = kMetres();
+  const MOD = {
+    sapin: geo([[tr(new THREE.CylinderGeometry(.06, .08, .3, 5), 0, .15, 0), 0x5a3d22], [tr(new THREE.ConeGeometry(.36, .62, 7), 0, .55, 0), 0x2e5b37], [tr(new THREE.ConeGeometry(.26, .5, 7), 0, .86, 0), 0x3a6d40]]),
+    feuillu: geo([[tr(new THREE.CylinderGeometry(.06, .09, .4, 5), 0, .2, 0), 0x6a4a2a], [tr(new THREE.IcosahedronGeometry(.36, 1), 0, .62, 0, 1, .9, 1), 0x4f8a36], [tr(new THREE.IcosahedronGeometry(.24, 1), .18, .78, .05), 0x5f9a40]]),
+    jungle: geo([[tr(new THREE.CylinderGeometry(.05, .08, .55, 5), 0, .27, 0), 0x5a3d22], [tr(new THREE.IcosahedronGeometry(.34, 1), 0, .7, 0, 1.2, .7, 1.2), 0x1f6a2c], [tr(new THREE.IcosahedronGeometry(.26, 1), -.2, .6, .1, 1.1, .7, 1.1), 0x2a7d34]]),
+    acacia: geo([[tr(new THREE.CylinderGeometry(.04, .07, .55, 5), 0, .27, 0), 0x6a4a2a], [tr(new THREE.CylinderGeometry(.48, .3, .14, 9), 0, .6, 0), 0x7a8f3a]]),
+    dune: geo([[tr(new THREE.SphereGeometry(.5, 10, 5, 0, Math.PI * 2, 0, Math.PI / 2), 0, 0, 0, 1.8, .45, .9), 0xe8c88c]]),
+    cactus: geo([[tr(new THREE.CylinderGeometry(.09, .1, .8, 7), 0, .4, 0), 0x5d8a3c], [tr(new THREE.CylinderGeometry(.06, .06, .3, 6), .17, .45, 0), 0x5d8a3c]]),
+    iceberg: geo([[tr(new THREE.IcosahedronGeometry(.5, 0), 0, .08, 0, 1.3, .55, 1), 0xeaf6ff]]),
+    immeuble: geo([[tr(new THREE.BoxGeometry(.3, 1, .3), 0, .5, 0), 0xe9e2d4], [tr(new THREE.BoxGeometry(.32, .06, .32), 0, 1.0, 0), 0x9a8f80]]),
+    maison: geo([[tr(new THREE.BoxGeometry(.34, .3, .34), 0, .15, 0), 0xf0e6d0], [tr(new THREE.ConeGeometry(.3, .22, 4), 0, .41, 0).rotateY(Math.PI / 4), 0xb8553a]]),
+  };
+  const rnd = new Rnd(42), q = new THREE.Quaternion(), qy = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), p = new THREE.Vector3(), d = new THREE.Vector3(), sc = new THREE.Vector3(), m4 = new THREE.Matrix4();
+  const lots = {}; for (const k in MOD) lots[k] = [];
+  const poser = (k, lon, lat, s, haut = 0) => { lots[k].push([lon, lat, s, rnd.f() * Math.PI * 2, haut]); };
+  const VOULU = { 3: ["sapin", 4200], 4: ["feuillu", 3000], 9: ["jungle", 3600], 8: ["acacia", 1500], 7: ["dune", 1400], 10: ["feuillu", 500] };
+  const compte = {}; let essais = 0;
+  while (essais++ < 400000) {
+    const lon = rnd.f() * 360 - 180, lat = Math.asin(rnd.f() * 2 - 1) / D2R;
+    const c = paysageA(lon, lat), v = VOULU[c];
+    if (v) { if ((compte[c] = (compte[c] || 0) + 1) <= v[1]) poser(v[0], lon, lat, .7 + rnd.f() * .6); }
+    else if (c === 0 && Math.abs(lat) > 52) { // icebergs près des glaces
+      if ((compte.ib = (compte.ib || 0)) > 900) continue;
+      let pres = false; for (let k = 0; k < 6 && !pres; k++) { const c2 = paysageA(lon + (rnd.f() - .5) * 6 / Math.cos(lat * D2R), lat + (rnd.f() - .5) * 4); pres = c2 === 13 || c2 === 1; }
+      if (pres && paysageA(lon, lat) === 0) { compte.ib++; poser("iceberg", lon, lat, .6 + rnd.f() * .8, 1); }
+    }
+  }
+  // quelques cactus dans les déserts d'Amérique
+  for (let i = 0; i < 4000 && lots.cactus.length < 160; i++) { const lon = -120 + rnd.f() * 55, lat = 18 + rnd.f() * 18; if (paysageA(lon, lat) === 7 || paysageA(lon, lat) === 6) poser("cactus", lon, lat, .7 + rnd.f() * .5); }
+  // les grandes villes : quelques immeubles et maisons
+  for (const v of DATA.villes) {
+    if (v.pop < 1000000 && !(v.a3 === "FRA" && v.pop > 200000)) continue;
+    const n = Math.min(16, 3 + Math.round(Math.sqrt(v.pop / 1e6) * 3)), r = .25 + Math.sqrt(v.pop / 1e6) * .12;
+    for (let i = 0; i < n; i++) { const a = rnd.f() * Math.PI * 2, rr = Math.sqrt(rnd.f()) * r, lon = v.l[0] + Math.cos(a) * rr / Math.cos(v.l[1] * D2R), lat = v.l[1] + Math.sin(a) * rr;
+      if (rr < r * .55) poser("immeuble", lon, lat, .55 + rnd.f() * (v.pop > 5e6 ? 1.3 : .7)); else poser("maison", lon, lat, .8 + rnd.f() * .4); }
+  }
+  for (const k in MOD) {
+    const L = lots[k]; if (!L.length) continue;
+    const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+    mat.onBeforeCompile = s => { s.uniforms.uDeco = DECO.u; s.vertexShader = "uniform float uDeco;\n" + s.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\ntransformed *= uDeco;"); };
+    const im = new THREE.InstancedMesh(MOD[k], mat, L.length); im.frustumCulled = false; im.userData.L = L;
+    DECO.mesh.push(im); scene.add(im);
+  }
+  placerDeco();
+}
+function placerDeco() {
+  const K = kMetres(), q = new THREE.Quaternion(), qy = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), d = new THREE.Vector3(), sc = new THREE.Vector3(), m4 = new THREE.Matrix4();
+  for (const im of DECO.mesh) {
+    im.userData.L.forEach(([lon, lat, s, rot, mer], i) => {
+      versDir(lon, lat, d); q.setFromUnitVectors(up, d); qy.setFromAxisAngle(up, rot); q.multiply(qy);
+      const h = mer ? 0 : Math.max(hauteur(lon, lat), 0);
+      m4.compose(d.clone().multiplyScalar(1 + h * K), q, sc.set(s, s, s)); im.setMatrixAt(i, m4);
+    });
+    im.instanceMatrix.needsUpdate = true;
+  }
+}
+
+// ============================================================ étiquettes (noms posés sur le globe)
+const ETIQ = [];
+const coucheEt = $("etiquettes");
+function etiq(texte, cls, lon, lat, calque, min, max, prio, extra = {}) {
+  const el = document.createElement("div"); el.className = "et " + cls; el.textContent = texte; coucheEt.append(el);
+  const e = Object.assign({ el, lon, lat, dir: versDir(lon, lat), calque, min, max, prio, vis: false, w: 0, h: 0, alt: 0 }, extra);
+  ETIQ.push(e); return e;
+}
+function creerEtiquettes() {
+  for (const [c, lo, la] of ETIQ_CONT) etiq(NOMS_CONT[c], "cont", lo, la, "cont", .85, 99, 0);
+  for (const [c, lo, la] of ETIQ_OCE) etiq(NOMS_OCE[c], "oce", lo, la, "oce", .5, 99, 1);
+  for (const m of DATA.mers) { if (m.k === "ocean" || m.r > 4) continue; etiq(m.n, "mer", m.l[0], m.l[1], "mers", .03, m.r <= 1 ? 1.6 : m.r <= 2 ? 1 : m.r <= 3 ? .55 : .3, 20 + m.r); }
+  for (const p of DATA.pays) {
+    if (p.aire < .05 && !EUROPE.includes(p.a3)) continue;
+    const s = Math.sqrt(p.aire), max = .2 + s * .07;
+    etiq(p.n, "pays" + (s > 20 ? " grand" : ""), p.l[0], p.l[1], "pays", .02, max, 30 - Math.min(s, 25) * .6 + p.r);
+    if (p.cap) etiq(p.cap[0], "cap", p.cap[1], p.cap[2], "cap", .02, p.pop > 8e7 ? 1.2 : p.pop > 2e7 ? .7 : p.pop > 4e6 ? .45 : .28, 40 - Math.log10(p.pop + 10));
+  }
+  for (const v of DATA.villes) {
+    if (v.cap) continue;
+    if (v.a3 === "FRA") { if (VILLES_FR.includes(v.n)) etiq(v.n, "ville", v.l[0], v.l[1], "france", .02, .3, 45 - Math.log10(v.pop)); continue; }
+    if (v.pop < 3e6) continue; etiq(v.n, "ville", v.l[0], v.l[1], "villes", .02, v.pop > 1e7 ? .8 : .4, 50 - Math.log10(v.pop));
+  }
+  for (const f of DATA.fleuves) {
+    const fr = FLEUVES_FR.includes(f.n); if (f.fr && !fr) continue;
+    etiq(f.n, "fleuve", f.l[0], f.l[1], fr ? "fleuvesFr" : "fleuves", .02, fr ? .35 : f.lg > 40 ? 1.1 : f.lg > 15 ? .6 : .32, 35 - Math.min(f.lg, 60) * .2);
+  }
+  const vus = new Set();
+  for (const l of DATA.lieux) {
+    if (l.t !== "m" && l.t !== "d") continue; if (vus.has(l.n)) continue; vus.add(l.n);
+    if (l.n === "Pyrénées") continue;
+    etiq(l.n, l.t === "m" ? "mont" : "des", l.l[0], l.l[1], l.t === "m" ? "monts" : "deserts", .02, l.r <= 1 ? 1.5 : l.r <= 2 ? .7 : .35, 25 + l.r * 3);
+  }
+  for (const m of MASSIFS_FR) etiq(m.n, "mont", m.l[0], m.l[1], "massifsFr", .02, .32, 26);
+  for (const d of DESERTS) if (!vus.has(d.n)) etiq(d.n, "des", d.l[0], d.l[1], "deserts", .02, 1.2, 26);
+  for (const r of DATA.regions) etiq(r.n, "region", r.l[0], r.l[1], "france", .02, .3, 28);
+  for (const d of DROM) etiq(d.n, "drom", d.l[0], d.l[1], "france", .02, 9, 5);
+  for (const L of LIGNES) { const e = etiq(L.n, "ligne", 0, L.lat ?? 0, L.k, .02, 99, 2, { ligne: L }); e.el.style.color = L.col; }
+}
+const vCam = new THREE.Vector3(), vTmp = new THREE.Vector3(), vProj = new THREE.Vector3();
+let calqueQuiz = null; // pendant une question, seules ces étiquettes restent
+function majEtiquettes() {
+  const w = innerWidth, h = innerHeight, d = CAM.d, K = kMetres(), occ = [];
+  const cand = [];
+  for (const e of ETIQ) {
+    let ok = calqueQuiz ? calqueQuiz(e) : etiqActive(e);
+    if (ok && (d < e.min || d > e.max)) ok = false;
+    if (ok && e.ligne) { // les noms des lignes suivent le centre de la vue
+      if (e.ligne.lon === 0) { e.lat = THREE.MathUtils.clamp(CAM.lat + 6 * Math.min(d, 1.5) + 2, -70, 70); e.lon = 0; }
+      else { e.lat = e.ligne.lat; e.lon = CAM.lon + 12 * Math.min(d, 1.4) + 1; }
+      versDir(e.lon, e.lat, e.dir); e.alt = 0;
+    }
+    if (ok) {
+      if (!e.altOk) { e.alt = Math.max(hauteur(e.lon, e.lat), 0); e.altOk = true; }
+      vTmp.copy(e.dir).multiplyScalar(1 + e.alt * K + .004);
+      vCam.copy(camera.position).sub(vTmp);
+      if (vCam.dot(e.dir) < vCam.length() * .08) ok = false;
+      else { vProj.copy(vTmp).project(camera); if (vProj.z > 1 || Math.abs(vProj.x) > 1.1 || Math.abs(vProj.y) > 1.1) ok = false; else { e.x = (vProj.x * .5 + .5) * w; e.y = (-vProj.y * .5 + .5) * h; cand.push(e); } }
+    }
+    if (!ok && e.vis) { e.el.style.display = "none"; e.vis = false; }
+  }
+  cand.sort((a, b) => a.prio - b.prio);
+  for (const e of cand) {
+    if (!e.w) { e.el.style.display = "block"; e.w = e.el.offsetWidth; e.h = e.el.offsetHeight; if (!e.vis) e.el.style.display = "none"; }
+    const point = /cap|ville/.test(e.el.className);
+    const x0 = point ? e.x - 6 : e.x - e.w / 2, y0 = e.y - e.h / 2, r = [x0 - 3, y0 - 2, x0 + e.w + 3, y0 + e.h + 2];
+    let libre = true; for (const o of occ) if (r[0] < o[2] && r[2] > o[0] && r[1] < o[3] && r[3] > o[1]) { libre = false; break; }
+    if (!libre) { if (e.vis) { e.el.style.display = "none"; e.vis = false; } continue; }
+    occ.push(r);
+    if (!e.vis) { e.el.style.display = "block"; e.vis = true; }
+    e.el.style.transform = `translate(${x0.toFixed(1)}px,${y0.toFixed(1)}px)`;
+  }
+}
+function etiqActive(e) {
+  switch (e.calque) {
+    case "fleuvesFr": return CAL.fleuves || CAL.france;
+    case "massifsFr": return CAL.monts || CAL.france;
+    default: return !!CAL[e.calque];
+  }
+}
+
+// ============================================================ caméra : tourner, zoomer, s'incliner près du sol
+const DMIN = .03, DMAX = 4.2;
+const CAM = { lon: 8, lat: 28, d: 3.2, vlon: 0, vlat: 0, vol: null, bouge: true };
+const vT = new THREE.Vector3(), vUp = new THREE.Vector3(), vNord = new THREE.Vector3(), vEst = new THREE.Vector3();
+function bases(lon, lat) {
+  versDir(lon, lat, vUp); const a = lon * D2R, b = lat * D2R;
+  vEst.set(Math.cos(a), 0, -Math.sin(a)); vNord.set(-Math.sin(b) * Math.sin(a), Math.cos(b), -Math.sin(b) * Math.cos(a));
+}
+function placerCamera() {
+  const K = kMetres(), d = CAM.d;
+  bases(CAM.lon, CAM.lat);
+  const tilt = .78 * sstep(.55, .045, d) ** 1.2;   // on penche la caméra quand on est près du sol
+  const hT = Math.max(hauteur(CAM.lon, CAM.lat), 0) * K * sstep(.6, .05, d);
+  vT.copy(vUp).multiplyScalar(1 + hT);
+  camera.position.copy(vT).addScaledVector(vUp, d * Math.cos(tilt)).addScaledVector(vNord, -d * Math.sin(tilt));
+  // jamais sous une montagne
+  const [clo, cla] = versLonLat(camera.position);
+  const plancher = 1 + Math.max(hauteur(clo, cla), 0) * K + .012;
+  if (camera.position.length() < plancher) camera.position.setLength(plancher);
+  camera.up.copy(vNord); camera.lookAt(vT);
+  camera.near = Math.max(.0015, d * .07); camera.far = 60; camera.updateProjectionMatrix();
+  // soleil : en haut à gauche de la vue (ou le vrai soleil en mode jour/nuit)
+  if (CAL.nuit) U.uSun.value.copy(soleilVrai());
+  else { vTmp.set(-.75, .55, .5).applyQuaternion(camera.quaternion); U.uSun.value.copy(vTmp).normalize(); }
+  soleil.position.copy(U.uSun.value).multiplyScalar(10);
+  U.uDetail.value = sstep(.5, .06, d);
+  U.uHaze.value = .45 + .55 * sstep(.2, 1.5, d);
+  U.uGridStep.value = d > 1.4 ? 30 : d > .6 ? 15 : d > .2 ? 10 : 5;
+  DECO.u.value = THREE.MathUtils.clamp(d * .024, .0007, .004) * sstep(1.25, .85, d);
+  for (const m of DECO.mesh) m.visible = (CAL.deco || quizPaysage) && DECO.u.value > 0;
+  if (nuages) { nuages.material.uniforms.uA.value = sstep(.45, 1.3, d); nuages.visible = CAL.nuages && d > .45; }
+  // carreau fin sous la caméra
+  if (patch) {
+    const on = d < .75; patch.visible = on; U.uPatchOn.value = on ? 1 : 0;
+    if (on) {
+      let A = THREE.MathUtils.clamp(d * 1.9, .025, .75); A = .025 * Math.pow(1.25, Math.round(Math.log(A / .025) / Math.log(1.25)));
+      const pas = 2 * A / Q.patch / D2R, plat = Math.round(CAM.lat / pas) * pas, plon = Math.round(CAM.lon / (pas / Math.max(Math.cos(plat * D2R), .1))) * (pas / Math.max(Math.cos(plat * D2R), .1));
+      bases(plon, plat + (d < .3 ? Math.min(A / D2R * .55, 8) : 0)); U.uPC.value.copy(vUp); U.uPE.value.copy(vEst); U.uPN.value.copy(vNord); U.uPA.value = A;
+    }
+  }
+  CAM.bouge = true;
+}
+function soleilVrai() { // point sous le soleil, d'après la date et l'heure de l'appareil
+  const now = new Date(), j = (Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - Date.UTC(now.getUTCFullYear(), 0, 0)) / 864e5;
+  const decl = -23.44 * Math.cos(2 * Math.PI / 365 * (j + 10));
+  const lon = -((now.getUTCHours() + now.getUTCMinutes() / 60) - 12) * 15;
+  return versDir(lon, decl, new THREE.Vector3());
+}
+function allerA(lon, lat, d, duree) {
+  const a = versDir(CAM.lon, CAM.lat), b = versDir(lon, lat), ang = a.angleTo(b);
+  const dm = Math.max(CAM.d, d, Math.min(ang * 1.25, 3));
+  CAM.vol = { a, b, d0: CAM.d, d1: d, dm, t: 0, T: duree ?? Math.min(3.2, 1.1 + ang * .6 + Math.abs(Math.log(d / CAM.d)) * .15) };
+  CAM.vlon = CAM.vlat = 0; son.vol();
+}
+function majVol(dt) {
+  const v = CAM.vol; if (!v) return;
+  v.t = Math.min(1, v.t + dt / v.T); const t = v.t * v.t * (3 - 2 * v.t);
+  const p = v.a.clone().lerp(v.b, 0); // slerp
+  const ang = v.a.angleTo(v.b);
+  if (ang > 1e-5) { const s = Math.sin(ang); p.copy(v.a).multiplyScalar(Math.sin((1 - t) * ang) / s).addScaledVector(v.b, Math.sin(t * ang) / s); } else p.copy(v.b);
+  [CAM.lon, CAM.lat] = versLonLat(p);
+  const l0 = Math.log(v.d0), l1 = Math.log(v.d1), lm = Math.log(v.dm);
+  CAM.d = Math.exp((1 - t) * (1 - t) * l0 + 2 * t * (1 - t) * lm + t * t * l1);
+  if (v.t >= 1) CAM.vol = null;
+  placerCamera();
+}
+
+// ============================================================ toucher, souris, clavier
+const ptrs = new Map(); let glisse = null, pince = null, derniereAction = performance.now();
+canvas.addEventListener("pointerdown", e => {
+  canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  derniereAction = performance.now(); CAM.vol = null; demarrerAudio();
+  if (ptrs.size === 1) glisse = { x0: e.clientX, y0: e.clientY, t0: performance.now(), x: e.clientX, y: e.clientY, mv: 0 };
+  else { glisse && (glisse.mv = 99); const [a, b] = [...ptrs.values()]; pince = { d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 }; }
+  canvas.classList.add("drag");
+});
+function tourner(dx, dy) {
+  const k = CAM.d * 2 * Math.tan(camera.fov * D2R / 2) / innerHeight / D2R * (CAM.d > 1.2 ? .8 : 1);
+  CAM.lon -= dx * k / Math.max(Math.cos(CAM.lat * D2R), .25); CAM.lat = THREE.MathUtils.clamp(CAM.lat + dy * k, -86, 86);
+  CAM.lon = ((CAM.lon + 540) % 360) - 180;
+  return k;
+}
+canvas.addEventListener("pointermove", e => {
+  const p = ptrs.get(e.pointerId); if (!p) return;
+  const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+  derniereAction = performance.now();
+  if (ptrs.size === 1 && glisse) {
+    glisse.mv += Math.abs(dx) + Math.abs(dy);
+    const k = tourner(dx, dy); CAM.vlon = -dx * k / Math.max(Math.cos(CAM.lat * D2R), .25) * 60; CAM.vlat = dy * k * 60; placerCamera();
+  } else if (ptrs.size >= 2 && pince) {
+    const [a, b] = [...ptrs.values()]; const dd = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    if (dd > 10 && pince.d > 10) CAM.d = THREE.MathUtils.clamp(CAM.d * pince.d / dd, DMIN, DMAX);
+    tourner(mx - pince.mx, my - pince.my);
+    pince = { d: dd, mx, my }; CAM.vlon = CAM.vlat = 0; placerCamera();
+  }
+});
+const fin = e => {
+  if (!ptrs.has(e.pointerId)) return; ptrs.delete(e.pointerId);
+  if (glisse && ptrs.size === 0) {
+    if (glisse.mv < 10 && performance.now() - glisse.t0 < 450) { CAM.vlon = CAM.vlat = 0; toucherGlobe(e.clientX, e.clientY); }
+    glisse = null;
+  }
+  if (ptrs.size < 2) pince = null;
+  if (ptrs.size === 1) { const [p] = [...ptrs.values()]; glisse = { x0: p.x, y0: p.y, t0: 0, x: p.x, y: p.y, mv: 99 }; }
+  if (!ptrs.size) canvas.classList.remove("drag");
+};
+canvas.addEventListener("pointerup", fin); canvas.addEventListener("pointercancel", fin);
+canvas.addEventListener("wheel", e => { e.preventDefault(); CAM.vol = null; derniereAction = performance.now();
+  CAM.d = THREE.MathUtils.clamp(CAM.d * Math.exp(e.deltaY * (e.ctrlKey ? .01 : .0015)), DMIN, DMAX); placerCamera(); }, { passive: false });
+const touches = new Set();
+addEventListener("keydown", e => { if (e.target.closest && e.target.closest("input")) return; touches.add(e.key); if (e.key === "Escape") toutFermer(); });
+addEventListener("keyup", e => touches.delete(e.key));
+function clavier(dt) {
+  let dx = 0, dy = 0, z = 0;
+  if (touches.has("ArrowLeft") || touches.has("q") || touches.has("a")) dx -= 1; if (touches.has("ArrowRight") || touches.has("d")) dx += 1;
+  if (touches.has("ArrowUp") || touches.has("z") || touches.has("w")) dy -= 1; if (touches.has("ArrowDown") || touches.has("s")) dy += 1;
+  if (touches.has("+") || touches.has("=") || touches.has("PageUp")) z -= 1; if (touches.has("-") || touches.has("PageDown")) z += 1;
+  // manette : stick gauche pour tourner, gâchettes pour zoomer
+  const g = [...(navigator.getGamepads ? navigator.getGamepads() : [])].find(p => p && p.connected);
+  if (g) { const ax = i => Math.abs(g.axes[i] || 0) > .2 ? g.axes[i] : 0; dx += ax(0); dy += ax(1); z += (g.buttons[6]?.value || 0) - (g.buttons[7]?.value || 0) + ax(3);
+    if (g.buttons[0]?.pressed && !clavier.a) toucherGlobe(innerWidth / 2, innerHeight / 2); clavier.a = g.buttons[0]?.pressed; }
+  if (dx || dy || z) { CAM.vol = null; tourner(-dx * dt * 500, -dy * dt * 500); CAM.d = THREE.MathUtils.clamp(CAM.d * Math.exp(z * dt * 1.4), DMIN, DMAX); placerCamera(); derniereAction = performance.now(); }
+}
+$("zPlus").onclick = () => { son.clic(); allerA(CAM.lon, CAM.lat, Math.max(DMIN, CAM.d * .5), .6); };
+$("zMoins").onclick = () => { son.clic(); allerA(CAM.lon, CAM.lat, Math.min(DMAX, CAM.d * 2), .6); };
+$("zNord").onclick = () => { son.clic(); allerA(CAM.lon, CAM.lat > 60 || CAM.lat < -60 ? 20 : CAM.lat, 3.2); };
+
+// le point du globe sous le doigt
+const ray = new THREE.Raycaster();
+function viser(x, y) {
+  ray.setFromCamera(new THREE.Vector2(x / innerWidth * 2 - 1, -(y / innerHeight) * 2 + 1), camera);
+  const o = ray.ray.origin, dir = ray.ray.direction, K = kMetres();
+  let r = 1, res = null;
+  for (let it = 0; it < 4; it++) {
+    const b = o.dot(dir), c = o.lengthSq() - r * r, disc = b * b - c; if (disc < 0) return res;
+    const t = -b - Math.sqrt(disc); if (t < 0) return res;
+    const p = o.clone().addScaledVector(dir, t); const [lon, lat] = versLonLat(p);
+    res = { lon, lat }; r = 1 + Math.max(hauteur(lon, lat), 0) * K;
+  }
+  return res;
+}
+
+// ============================================================ fiche d'un lieu touché
+const PAYS_ID = {}, PAYS_A3 = {}, MER_ID = {};
+const fmtPop = p => p >= 1e9 ? (p / 1e9).toFixed(1).replace(".", ",") + " milliard" + (p >= 2e9 ? "s" : "") : p >= 1e6 ? Math.round(p / 1e6) + " millions" : p >= 1e3 ? Math.round(p / 1e3) + " mille" : String(p);
+const fmtM = m => Math.round(m).toLocaleString("fr-FR") + " m";
+function zoneClim(lat) { const z = Math.abs(lat); return z < 23.44 ? "zone chaude" : z < 66.56 ? "zone tempérée" : "zone froide"; }
+function hemis(lon, lat) { return `hémisphère ${lat >= 0 ? "Nord" : "Sud"}, ${lon >= 0 ? "à l'est" : "à l'ouest"} de Greenwich`; }
+function nomOceanOuMer(code, sid) { const m = MER_ID[sid]; return m && m.k !== "ocean" ? m.n : (NOMS_OCE[code] || "la mer"); }
+function toucherGlobe(x, y) {
+  if (QUIZ.actif) { QUIZ.toucher(x, y); return; }
+  const p = viser(x, y);
+  if (!p) { fermerFiche(); return; }
+  son.clic();
+  const [pid, sid, code] = idsA(p.lon, p.lat), h = hauteur(p.lon, p.lat), cl = paysageA(p.lon, p.lat);
+  const L = []; let titre, desc = "";
+  const pays = PAYS_ID[pid];
+  if (code >= 10 || (!pays && h < 0)) {
+    const m = MER_ID[sid];
+    titre = m && m.k !== "ocean" ? m.n : NOMS_OCE[code] || "L'océan";
+    titre = titre[0].toUpperCase() + titre.slice(1);
+    if (m && m.k !== "ocean" && NOMS_OCE[code]) L.push(["ocean", "Dans l'", NOMS_OCE[code].replace(/^océan /, "océan ")]);
+    else L.push(["ocean", "C'est un ", "océan"]);
+    if (h < 0) L.push(["regle", "Profondeur : ", "environ " + fmtM(-h)]);
+    if (cl === 13) { L.push(["polaires", "Ici : ", "la banquise"]); desc = PAYSAGES[13][2]; }
+    U.uHL.value.set(0, 0, sid || 0, 0); if (!sid || (m && m.k === "ocean")) U.uHL.value.set(0, code, 0, 0);
+  } else if (pays) {
+    titre = pays.n; const cont = idsA(p.lon, p.lat)[2];
+    L.push(["continent", "Continent : ", NOMS_CONT[cont] || NOMS_CONT[pays.c] || "—"]);
+    if (pays.cap) L.push(["capitale", "Capitale : ", pays.cap[0]]);
+    if (pays.pop) L.push(["ville", "Habitants : ", "environ " + fmtPop(pays.pop)]);
+    if (UE.includes(pays.a3)) L.push(["etoile", "", "Membre de l'Union européenne"]);
+    U.uHL.value.set(pid, 0, 0, 0);
+  } else { titre = NOMS_CONT[code] || "Une île"; U.uHL.value.set(0, 0, 0, 0); }
+  if (cl > 0 && cl !== 13 && PAYSAGES[cl] && h >= 0) { L.push([PAYSAGES[cl][1], "Paysage : ", PAYSAGES[cl][0]]); desc = PAYSAGES[cl][2] || ""; }
+  if (h >= 0 && cl !== 14) L.push(["montagne", "Altitude : ", fmtM(h)]);
+  // France : la région
+  if (pays && pays.a3 === "FRA") { const r = regionA(p.lon, p.lat); if (r) L.splice(1, 0, ["region", "Région : ", r.n]); const dr = DROM.find(d => Math.hypot(d.l[0] - p.lon, d.l[1] - p.lat) < 3); if (dr) titre = dr.n + " (France)"; }
+  L.push(["climat", "Climat : ", zoneClim(p.lat)]);
+  L.push(["hemi", "", hemis(p.lon, p.lat)]);
+  $("fTitre").textContent = titre;
+  $("fListe").innerHTML = L.map(([i, a, b]) => `<li>${ic(i)}<span>${a}<b>${b}</b></span></li>`).join("");
+  $("fDesc").textContent = desc; $("fiche").hidden = false;
+  marqueur(p.lon, p.lat);
+}
+function fermerFiche() { $("fiche").hidden = true; U.uHL.value.set(0, 0, 0, 0); marqueur(null); }
+$("fermeFiche").onclick = () => { son.clic(); fermerFiche(); };
+// petit anneau doré qui marque un endroit
+let anneau;
+function creerAnneau() {
+  anneau = new THREE.Mesh(new THREE.RingGeometry(.8, 1, 48), new THREE.MeshBasicMaterial({ color: 0xffd34d, transparent: true, opacity: .95, depthTest: false, side: THREE.DoubleSide }));
+  anneau.renderOrder = 6; anneau.visible = false; scene.add(anneau);
+}
+function marqueur(lon, lat, taille) {
+  if (lon == null) { anneau.visible = false; return; }
+  const d = versDir(lon, lat); anneau.position.copy(d).multiplyScalar(1 + Math.max(hauteur(lon, lat), 0) * kMetres() + .003);
+  anneau.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), d); anneau.userData.t = taille || 0; anneau.visible = true;
+}
+function regionA(lon, lat) {
+  for (const r of DATA.regions) { let dans = false; for (const t of r.tr) { for (let i = 0, j = t.length - 1; i < t.length; j = i++) { const [xi, yi] = t[i], [xj, yj] = t[j]; if ((yi > lat) !== (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) dans = !dans; } } if (dans) return r; }
+  return null;
+}
+
+// ============================================================ barre des calques
+const GROUPES = [
+  ["Le monde", [["cont", "Continents", "continent"], ["oce", "Océans", "ocean"], ["mers", "Mers", "mer"], ["pays", "Pays et frontières", "pays"], ["polit", "Pays en couleurs", "palette"], ["cap", "Capitales", "capitale"], ["villes", "Grandes villes", "ville"]]],
+  ["Les repères", [["equ", "Équateur", "equateur"], ["trop", "Tropiques", "tropiques"], ["pol", "Cercles polaires", "polaires"], ["gre", "Méridien de Greenwich", "greenwich"], ["grille", "Latitudes et longitudes", "grille"]]],
+  ["La nature", [["fleuves", "Fleuves", "fleuve"], ["monts", "Montagnes", "montagne"], ["deserts", "Déserts", "desert"], ["deco", "Paysages en 3D", "arbre"], ["clim", "Zones climatiques", "climat"], ["nuages", "Nuages", "nuage"], ["nuit", "Jour et nuit", "nuit"]]],
+  ["La France", [["france", "Régions, villes, outre-mer", "france"]]],
+];
+function creerCalques() {
+  const box = $("listeCalques"); let html = "";
+  for (const [titre, items] of GROUPES) {
+    html += `<div class="groupe"><h3>${titre}</h3>`;
+    for (const [k, n, i] of items) html += `<button class="bascule" data-k="${k}"><span class="ic">${ic(i)}</span><span class="t">${n}</span><span class="pastille"></span></button>`;
+    if (titre === "La nature") html += `<label class="curseur"><span class="ic">${ic("relief")}</span><span>Relief</span><input type="range" id="relief" min="0.3" max="2.5" step="0.1" value="${CAL.relief}"></label>`;
+    html += `</div>`;
+  }
+  html += `<div class="groupe"><h3>Les paysages</h3><div class="legende">${COULEURS_LEGENDE.map(([k, c]) => `<span><i style="background:${c}"></i>${PAYSAGES[k][0].replace(/^(un |une |la |des |le )/, "")}</span>`).join("")}</div></div>`;
+  box.innerHTML = html;
+  for (const b of box.querySelectorAll(".bascule")) b.onclick = () => { const k = b.dataset.k; CAL[k] = CAL[k] ? 0 : 1; son.clic(); sauverCal(); appliquerCalques();
+    if (k === "france" && CAL.france && CAM.d > .5) allerA(2.4, 46.6, .2); };
+  const rel = $("relief");
+  rel.oninput = () => { CAL.relief = +rel.value; EXAG = 15 * CAL.relief; U.uK.value = kMetres(); U.uKs.value = kMetres() * 2.2; placerCamera(); };
+  rel.onchange = () => { sauverCal(); refaireTraits(); placerDeco(); for (const e of ETIQ) e.altOk = false; };
+}
+function appliquerCalques() {
+  for (const b of document.querySelectorAll(".bascule")) b.classList.toggle("on", !!CAL[b.dataset.k]);
+  const lq = QUIZ.actif;
+  U.uLig.value.set(lq ? 0 : CAL.equ, lq ? 0 : CAL.trop, lq ? 0 : CAL.pol, lq ? 0 : CAL.gre);
+  U.uGrid.value = lq ? 0 : CAL.grille; U.uPol.value = lq ? 0 : CAL.polit; U.uClim.value = lq ? 0 : CAL.clim; U.uNight.value = CAL.nuit;
+  LIGNES3D.pays.visible = !!CAL.pays && !lq || !!QUIZ.frontieres;
+  LIGNES3D.fleuves.visible = !lq && !!(CAL.fleuves || CAL.france);
+  LIGNES3D.regions.visible = (!lq && !!CAL.france) || !!QUIZ.regions;
+  placerCamera();
+}
+$("bCalques").onclick = () => { son.clic(); const f = $("calques").classList.toggle("ferme"); $("bCalques").classList.toggle("on", !f); if (!f) { $("voyage").hidden = true; } };
+$("fermeCalques").onclick = () => { son.clic(); $("calques").classList.add("ferme"); $("bCalques").classList.remove("on"); };
+
+// ============================================================ voyager
+function creerVoyage() {
+  $("places").innerHTML = VOYAGES.map((v, i) => `<button class="place${v.sp ? " speciale" : ""}" data-i="${i}">${v.n}</button>`).join("");
+  for (const b of $("places").children) b.onclick = () => { const v = VOYAGES[+b.dataset.i]; son.clic(); $("voyage").hidden = true; fermerFiche();
+    if (v.fr && !CAL.france) { CAL.france = 1; sauverCal(); appliquerCalques(); }
+    allerA(v.l[0], v.l[1], v.d); };
+}
+$("bVoyage").onclick = () => { son.clic(); $("voyage").hidden = !$("voyage").hidden; if (!$("voyage").hidden && innerWidth < 700) { $("calques").classList.add("ferme"); $("bCalques").classList.remove("on"); } };
+function toast(t, ms = 2500) { const el = $("toast"); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, ms); }
+function lieuCourant() {
+  if (!IDS) return;
+  const [pid, sid, code] = idsA(CAM.lon, CAM.lat), p = PAYS_ID[pid];
+  const t = p ? p.n : code >= 10 ? nomOceanOuMer(code, sid) : NOMS_CONT[code] || "";
+  $("lieu").innerHTML = t ? `Au-dessus : <b></b>` : ""; if (t) $("lieu").querySelector("b").textContent = t;
+  $("lieu").hidden = !t || QUIZ.actif;
+}
+
+// ============================================================ quiz
+const ART_CONT = { 1: "l'Afrique", 2: "l'Amérique du Nord", 3: "l'Amérique du Sud", 4: "l'Asie", 5: "l'Europe", 6: "l'Océanie", 7: "l'Antarctique" };
+const alea = a => a[Math.floor(Math.random() * a.length)];
+const melange = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const choixDe = (bonne, autres, n = 4) => melange([bonne, ...melange(autres.filter(x => x !== bonne)).slice(0, n - 1)]);
+let quizPaysage = false;
+const vueMonde = () => [THREE.MathUtils.clamp(CAM.lon, -180, 180), 18, 3.3];
+const etiqNom = n => e => e.el.textContent === n;
+function surligner(traces) { LIGNES3D.surligne.userData.traces = traces; refaireUn(LIGNES3D.surligne); LIGNES3D.surligne.visible = traces.length > 0; }
+function refaireUn(l) { const g = new LineSegmentsGeometry(); g.setPositions(segments(l.userData.traces, l.userData.haut)); l.geometry.dispose(); l.geometry = g; }
+const pays = a3 => PAYS_A3[a3];
+const vuePays = p => { const bb = p.bb, s = Math.max(bb[2] - bb[0], bb[3] - bb[1]); return [p.l[0], p.l[1], THREE.MathUtils.clamp(s * D2R * 2.4, .1, 2.6)]; };
+function pres(lon, lat, pid, rayon = 2) { // tolérance de quelques pixels autour du doigt (petits pays)
+  for (let dy = -rayon; dy <= rayon; dy++) for (let dx = -rayon; dx <= rayon; dx++) if (idsA(lon + dx * 360 / W, lat + dy * 180 / H)[0] === pid) return true;
+  return false;
+}
+const GEN = {
+  contTouche() { const c = alea([1, 2, 3, 4, 5, 6, 1, 3, 4, 5]); return { texte: `Touche ${ART_CONT[c]}`, type: "touche", vue: vueMonde(),
+    verif: p => idsA(p.lon, p.lat)[2] === c, rep: NOMS_CONT[c], reveler: () => { U.uHL.value.set(0, c, 0, 0); const e = ETIQ_CONT.find(x => x[0] === c); allerA(e[1], e[2], 2.8); } }; },
+  contChoix() { const c = alea([1, 2, 3, 4, 5, 6, 7]); const e = ETIQ_CONT.find(x => x[0] === c);
+    return { texte: "Quel est ce continent ?", type: "choix", vue: [e[1], e[2] * .7, c === 7 ? 2.6 : 3], montrer: () => U.uHL.value.set(0, c, 0, 0), bonne: NOMS_CONT[c], choix: choixDe(NOMS_CONT[c], Object.values(NOMS_CONT)) }; },
+  oceTouche() { const o = alea([10, 11, 12, 13, 14, 11, 12, 13]); return { texte: `Touche l'${NOMS_OCE[o]}`, type: "touche", vue: vueMonde(),
+    verif: p => idsA(p.lon, p.lat)[2] === o, rep: NOMS_OCE[o], reveler: () => { U.uHL.value.set(0, o, 0, 0); const e = ETIQ_OCE.find(x => x[0] === o); allerA(e[1], e[2], 3); } }; },
+  oceChoix() { const o = alea([10, 11, 12, 13, 14]); const e = ETIQ_OCE.find(x => x[0] === o);
+    return { texte: "Quel est cet océan ?", type: "choix", vue: [e[1], e[2] * .8, 3], montrer: () => U.uHL.value.set(0, o, 0, 0), bonne: NOMS_OCE[o], choix: choixDe(NOMS_OCE[o], Object.values(NOMS_OCE)) }; },
+  ligneChoix() { const i = Math.floor(Math.random() * LIGNES.length), L = LIGNES[i];
+    return { texte: "Comment s'appelle cette ligne qui brille ?", type: "choix", vue: [L.lon === 0 ? 0 : CAM.lon, L.lat != null ? L.lat * .8 : 20, 3], montrer: () => { U.uLigHL.value = i + 1; }, bonne: L.n, choix: choixDe(L.n, LIGNES.map(l => l.n)) }; },
+  ligneTouche() { const L = alea([LIGNES[0], LIGNES[0], LIGNES[1], LIGNES[2], LIGNES[5]]), i = LIGNES.indexOf(L);
+    return { texte: `Touche ${L.n === "Équateur" ? "l'équateur" : "le " + L.n[0].toLowerCase() + L.n.slice(1)}`, type: "touche", vue: [CAM.lon + 30, 20, 3.1],
+      verif: p => L.lon === 0 ? Math.abs(p.lon) < 2.5 + CAM.d * 1.6 && Math.abs(p.lat) < 80 : Math.abs(p.lat - L.lat) < 2.5 + CAM.d * 1.6, rep: L.n, reveler: () => { U.uLigHL.value = i + 1; } }; },
+  hemis() { const p = pays(alea(MONDE.concat(["FRA", "ESP", "AUS", "NZL", "ZAF", "ARG", "CHL"]).filter(a => Math.abs(pays(a)?.l[1] ?? 0) > 9))); if (!p) return null;
+    const b = p.l[1] >= 0 ? "hémisphère Nord" : "hémisphère Sud";
+    return { texte: `${p.n} : dans quel hémisphère ?`, type: "choix", vue: [p.l[0], p.l[1] * .5, 2.8], montrer: () => { U.uHL.value.set(p.id, 0, 0, 0); U.uLigHL.value = 1; }, bonne: b, choix: ["hémisphère Nord", "hémisphère Sud"] }; },
+  climat() { const p = pays(alea(["BRA", "COD", "IDN", "IND", "NGA", "FRA", "DEU", "CHN", "USA", "ARG", "GRL", "ISL", "EGY", "COL", "KEN", "JPN", "MEX", "AUS", "NZL"])); if (!p) return null;
+    const lat = p.a3 === "GRL" ? 74 : p.a3 === "ISL" ? 65 : p.l[1];
+    const b = zoneClim(lat); return { texte: `${p.n} : dans quelle zone climatique ?`, type: "choix", vue: [p.l[0], p.l[1] * .6, 2.7],
+      montrer: () => { U.uHL.value.set(p.id, 0, 0, 0); U.uClim.value = .55; }, bonne: b, choix: ["zone chaude", "zone tempérée", "zone froide"] }; },
+  paysTouche(liste, vue) { const a = alea(liste.filter(a => pays(a) && pays(a).aire > 1.5)), p = pays(a); if (!p) return null;
+    return { texte: `Touche ce pays : ${p.n}`, type: "touche", vue: vue || [THREE.MathUtils.clamp(p.l[0] + (Math.random() - .5) * 60, -170, 170), 20, 3.1], frontieres: 1,
+      verif: q => pres(q.lon, q.lat, p.id, 3), rep: p.n, reveler: () => { U.uHL.value.set(p.id, 0, 0, 0); allerA(...vuePays(p)); } }; },
+  paysChoix(liste) { const a = alea(liste.filter(pays)), p = pays(a);
+    const proches = liste.filter(b => pays(b) && pays(b).c === p.c).map(b => pays(b).n);
+    return { texte: "Quel est ce pays ?", type: "choix", vue: vuePays(p), frontieres: 1, montrer: () => U.uHL.value.set(p.id, 0, 0, 0), bonne: p.n,
+      choix: choixDe(p.n, proches.length >= 4 ? proches : liste.filter(pays).map(b => pays(b).n)) }; },
+  capitale(liste) { const p = pays(alea(liste.filter(a => pays(a)?.cap))); if (!p) return null;
+    return { texte: `Quelle est la capitale de ce pays : ${p.n} ?`, type: "choix", vue: vuePays(p), frontieres: 1, montrer: () => { U.uHL.value.set(p.id, 0, 0, 0); marqueur(p.cap[1], p.cap[2]); },
+      bonne: p.cap[0], choix: choixDe(p.cap[0], liste.filter(a => pays(a)?.cap).map(a => pays(a).cap[0])), etiq: e => e.el.textContent === p.cap[0] };
+  },
+  fleuve(liste) { const noms = liste.filter(n => DATA.fleuves.some(f => f.n === n)), n = alea(noms), f = DATA.fleuves.find(x => x.n === n);
+    return { texte: "Quel est ce fleuve qui brille ?", type: "choix", vue: [f.l[0], f.l[1], THREE.MathUtils.clamp(f.lg * .06, .15, 1.6)], montrer: () => surligner(f.tr), bonne: n, choix: choixDe(n, noms) }; },
+  montagne() { const m = alea(MONTAGNES); return { texte: "Comment s'appellent ces montagnes ?", type: "choix", vue: [m.l[0], m.l[1] - m.d * 8, m.d], montrer: () => marqueur(m.l[0], m.l[1]), bonne: m.n, choix: choixDe(m.n, MONTAGNES.map(x => x.n)) }; },
+  desert() { const m = alea(DESERTS); return { texte: "Comment s'appelle ce désert ?", type: "choix", vue: [m.l[0], m.l[1] - m.d * 6, m.d], montrer: () => marqueur(m.l[0], m.l[1]), bonne: m.n, choix: choixDe(m.n, DESERTS.map(x => x.n)) }; },
+  paysage() { const L = alea(LIEUX_PAYSAGES), nom = k => PAYSAGES[k][0];
+    return { texte: "Quel paysage vois-tu ici ?", type: "choix", vue: [L.l[0], L.l[1] - L.d * 5, L.d], montrer: () => { quizPaysage = true; marqueur(L.l[0], L.l[1]); }, bonne: nom(L.k), choix: choixDe(nom(L.k), LIEUX_PAYSAGES.map(x => nom(x.k))) }; },
+  mer(liste) { const n = alea(liste), m = DATA.mers.find(x => x.n === n); if (!m) return null; const ids = DATA.mers.filter(x => x.n === n || (n === "mer Méditerranée" && /Adriatique|Tyrrhénienne|Ionienne|Égée|Baléares|Golfe du Lion/i.test(x.n))).map(x => x.id);
+    return { texte: `Touche la ${n.replace(/^la /, "")}`.replace("la Manche", "la Manche"), type: "touche", vue: [m.l[0] + 8, m.l[1] + 4, .75],
+      verif: p => ids.includes(idsA(p.lon, p.lat)[1]), rep: n, reveler: () => { U.uHL.value.set(0, 0, m.id, 0); allerA(m.l[0], m.l[1], .6); } }; },
+  regionTouche() { const r = alea(DATA.regions); return { texte: `Touche la région : ${r.n}`, type: "touche", vue: [2.4, 46.4, .2], regions: 1,
+    verif: p => regionA(p.lon, p.lat) === r, rep: r.n, reveler: () => surligner(r.tr) }; },
+  regionChoix() { const r = alea(DATA.regions); return { texte: "Quelle est cette région ?", type: "choix", vue: [2.4, 46.4, .2], regions: 1, montrer: () => surligner(r.tr), bonne: r.n, choix: choixDe(r.n, DATA.regions.map(x => x.n)) }; },
+  massifFr() { const m = alea(MASSIFS_FR); return { texte: "Quel est ce massif de montagnes ?", type: "choix", vue: [m.l[0], m.l[1] - .8, .07], frontieres: 1, montrer: () => marqueur(m.l[0], m.l[1]), bonne: m.n, choix: choixDe(m.n, MASSIFS_FR.map(x => x.n)) }; },
+  villeFr() { const n = alea(VILLES_FR), v = DATA.villes.find(x => x.n === n && x.a3 === "FRA"); if (!v) return null;
+    return { texte: "Quelle est cette grande ville ?", type: "choix", vue: [2.4, 46.4, .2], frontieres: 1, regions: 1, montrer: () => marqueur(v.l[0], v.l[1]), bonne: n, choix: choixDe(n, VILLES_FR) }; },
+  drom() { const d = alea(DROM); return Math.random() < .5
+    ? { texte: "Comment s'appelle ce territoire français ?", type: "choix", vue: [d.l[0], d.l[1], .2], frontieres: 1, montrer: () => marqueur(d.l[0], d.l[1]), bonne: d.n, choix: choixDe(d.n, DROM.map(x => x.n)) }
+    : { texte: `${d.n} est dans quel océan ?`, type: "choix", vue: [d.l[0], d.l[1], 1.2], montrer: () => marqueur(d.l[0], d.l[1]), bonne: NOMS_OCE[d.o], choix: [NOMS_OCE[11], NOMS_OCE[12], NOMS_OCE[13]] }; },
+};
+const THEMES = [
+  { id: "continents", n: "Continents et océans", i: "continent", g: [GEN.contTouche, GEN.contChoix, GEN.oceTouche, GEN.oceChoix] },
+  { id: "reperes", n: "Les grands repères", i: "equateur", g: [GEN.ligneChoix, GEN.ligneTouche, GEN.hemis, GEN.climat] },
+  { id: "france", n: "La France", i: "france", g: [GEN.regionTouche, GEN.regionChoix, () => GEN.fleuve(FLEUVES_FR.slice(0, 5)), GEN.massifFr, GEN.villeFr, GEN.drom, () => GEN.mer(["mer Méditerranée", "Manche", "mer du Nord"])] },
+  { id: "europe", n: "Les pays d'Europe", i: "etoile", g: [() => GEN.paysTouche(EUROPE, [12, 50, .75]), () => GEN.paysChoix(EUROPE), () => GEN.capitale(EUROPE), () => GEN.mer(["mer Méditerranée", "mer Baltique", "mer du Nord", "mer Noire"])] },
+  { id: "monde", n: "Les pays du monde", i: "pays", g: [() => GEN.paysTouche(MONDE), () => GEN.paysChoix(MONDE), () => GEN.capitale(MONDE)] },
+  { id: "nature", n: "Fleuves, montagnes, déserts", i: "montagne", g: [() => GEN.fleuve(FLEUVES_MONDE), GEN.montagne, GEN.desert] },
+  { id: "paysages", n: "Les paysages", i: "arbre", g: [GEN.paysage] },
+  { id: "tout", n: "Tout mélangé", i: "terre", g: null },
+];
+const QUIZ = { actif: false, scores: LS.lire("scores", {}),
+  demarrer(th) {
+    this.th = th; this.i = 0; this.score = 0; this.res = []; this.actif = true; this.vus = new Set();
+    for (const id of ["themesV", "titre", "finV"]) $(id).hidden = true;
+    $("bas").hidden = true; $("calques").classList.add("ferme"); $("bCalques").classList.remove("on"); $("voyage").hidden = true; fermerFiche();
+    $("quiz").hidden = false; $("qQuitter").hidden = false; $("hud").hidden = true; $("zoom").hidden = false; $("qTheme").textContent = th.n;
+    appliquerCalques(); this.suivante();
+  },
+  nouvelle() {
+    const gens = this.th.g || THEMES.filter(t => t.g).flatMap(t => t.g);
+    for (let k = 0; k < 30; k++) { const q = alea(gens)(); if (q && !this.vus.has(q.texte + (q.bonne || q.rep))) { this.vus.add(q.texte + (q.bonne || q.rep)); return q; } }
+    return alea(gens)() || GEN.contChoix();
+  },
+  nettoyer() { U.uHL.value.set(0, 0, 0, 0); U.uLigHL.value = 0; U.uClim.value = 0; surligner([]); marqueur(null); quizPaysage = false; this.frontieres = 0; this.regions = 0; },
+  suivante() {
+    this.nettoyer(); $("qSuite").hidden = true; $("qRetour").hidden = true;
+    if (this.i >= 10) return this.terminer();
+    const q = this.q = this.nouvelle(); this.essais = 0; this.etat = "question";
+    this.frontieres = q.frontieres || 0; this.regions = q.regions || 0; appliquerCalques();
+    if (q.type === "choix") U.uClim.value = 0;
+    calqueQuiz = e => (q.etiq && q.etiq(e)) || false;
+    $("qTexte").textContent = q.texte; $("qAide").textContent = q.type === "touche" ? "Tourne le globe, puis touche le bon endroit." : "";
+    $("qPoints").innerHTML = Array.from({ length: 10 }, (_, k) => `<i class="${k < this.res.length ? (this.res[k] ? "ok" : "ko") : k === this.i ? "ici" : ""}"></i>`).join("");
+    $("qScore").textContent = `${this.score} ★`;
+    q.montrer && q.montrer(); appliquerCalques();
+    allerA(...q.vue);
+    const box = $("qChoix"); box.innerHTML = "";
+    if (q.type === "choix") {
+      box.hidden = false;
+      for (const c of q.choix) { const b = document.createElement("button"); b.className = "rep leafy"; b.textContent = c[0].toUpperCase() + c.slice(1); b.onclick = () => this.repondre(c, b); box.append(b); }
+    } else box.hidden = true;
+  },
+  repondre(c, b) {
+    if (this.etat !== "question") return; this.etat = "reponse";
+    const ok = c === this.q.bonne;
+    for (const x of $("qChoix").children) { if (x.textContent.toLowerCase() === this.q.bonne.toLowerCase()) x.classList.add("bon"); }
+    if (!ok) b.classList.add("faux");
+    this.resultat(ok, this.q.bonne);
+  },
+  toucher(x, y) {
+    if (this.etat !== "question" || this.q.type !== "touche") return;
+    const p = viser(x, y); if (!p) return;
+    marqueur(p.lon, p.lat);
+    if (this.q.verif(p)) { this.etat = "reponse"; this.resultat(true, this.q.rep); }
+    else if (++this.essais < 2) { son.faux(); retour("Pas tout à fait… essaie encore !", false, 1600); }
+    else { this.etat = "reponse"; this.resultat(false, this.q.rep); }
+  },
+  resultat(ok, rep) {
+    this.res.push(ok); if (ok) this.score++; this.i++;
+    ok ? son.bon() : son.faux();
+    retour(ok ? alea(["Bravo !", "Super !", "Exact !", "Génial !", "Bien joué !"]) : `C'était : ${rep}`, ok, 2200);
+    calqueQuiz = e => e.el.textContent.toLowerCase() === String(rep).toLowerCase() || (this.q.etiq && this.q.etiq(e));
+    if (this.q.reveler) this.q.reveler();
+    $("qScore").textContent = `${this.score} ★`;
+    setTimeout(() => { if (this.actif) { $("qSuite").hidden = false; $("qSuite").textContent = this.i >= 10 ? "Voir mon score" : "Question suivante"; } }, 700);
+  },
+  terminer() {
+    this.nettoyer(); this.quitter(true);
+    const s = this.score, et = s >= 9 ? 3 : s >= 7 ? 2 : s >= 4 ? 1 : 0, best = this.scores[this.th.id] || 0;
+    if (s > best) { this.scores[this.th.id] = s; LS.ecrire("scores", this.scores); }
+    $("finTitre").textContent = et === 3 ? "Champion du monde !" : et === 2 ? "Très bien !" : et === 1 ? "Bien joué !" : "Continue d'explorer !";
+    $("finEtoiles").innerHTML = [0, 1, 2].map(k => `<svg viewBox="0 0 24 24"><path d="${ICONES.etoile.match(/d="([^"]+)"/)[1]}" fill="${k < et ? "#f2cf6b" : "rgba(255,255,255,.15)"}" stroke="#d9b45a" stroke-width="1.2"/></svg>`).join("");
+    $("finTxt").textContent = `${s} bonne${s > 1 ? "s" : ""} réponse${s > 1 ? "s" : ""} sur 10.` + (s > best && best > 0 ? " Nouveau record !" : best ? ` Ton record : ${Math.max(best, s)}/10.` : "");
+    $("finV").hidden = false; son.fin(et);
+  },
+  quitter(fin) {
+    this.actif = false; this.nettoyer(); calqueQuiz = null;
+    for (const id of ["quiz", "qChoix", "qRetour", "qSuite", "qQuitter"]) $(id).hidden = true;
+    if (!fin) { $("hud").hidden = false; $("bas").hidden = false; }
+    appliquerCalques();
+  },
+};
+function retour(t, ok, ms) { const el = $("qRetour"); el.textContent = t; el.className = "leafy " + (ok ? "ok" : "ko"); el.hidden = false; clearTimeout(retour.t); retour.t = setTimeout(() => el.hidden = true, ms); }
+$("qSuite").onclick = () => { son.clic(); QUIZ.suivante(); };
+$("qQuitter").onclick = () => { son.clic(); QUIZ.quitter(); };
+function ouvrirThemes() {
+  $("themes").innerHTML = THEMES.map((t, k) => `<button class="theme" data-k="${k}"><span class="ic">${ic(t.i)}</span>${t.n}<small>${QUIZ.scores[t.id] ? "Record : " + QUIZ.scores[t.id] + "/10" : "&nbsp;"}</small></button>`).join("");
+  for (const b of $("themes").children) b.onclick = () => { son.clic(); QUIZ.demarrer(THEMES[+b.dataset.k]); };
+  $("themesV").hidden = false;
+}
+
+// ============================================================ sons (Web Audio, faits maison)
+let AC = null, maitre = null, musiqueGain = null, bruitBuf = null;
+function demarrerAudio() {
+  if (AC) { if (AC.state === "suspended") AC.resume(); return; }
+  try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+  maitre = AC.createGain(); maitre.gain.value = REG.son ? .8 : 0; maitre.connect(AC.destination);
+  musiqueGain = AC.createGain(); musiqueGain.gain.value = REG.musique ? .22 : 0; musiqueGain.connect(maitre);
+  bruitBuf = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate); const d = bruitBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  musique();
+}
+function note(f, t0, dur, vol = .2, type = "sine", dest = maitre) {
+  if (!AC) return; const o = AC.createOscillator(), g = AC.createGain(); o.type = type; o.frequency.value = f;
+  g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + .02); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+  o.connect(g); g.connect(dest); o.start(t0); o.stop(t0 + dur + .05);
+}
+const son = {
+  clic() { if (!AC) return; const t = AC.currentTime; note(660, t, .09, .08, "triangle"); note(990, t + .03, .08, .05, "sine"); },
+  bon() { if (!AC) return; const t = AC.currentTime; [523, 659, 784, 1047].forEach((f, i) => note(f, t + i * .09, .4, .14, "triangle")); },
+  faux() { if (!AC) return; const t = AC.currentTime; note(330, t, .25, .12, "triangle"); note(247, t + .14, .4, .12, "triangle"); },
+  fin(n) { if (!AC) return; const t = AC.currentTime; [392, 523, 659, 784, 1047, 1319].slice(0, 3 + n).forEach((f, i) => note(f, t + i * .13, .6, .13, "triangle")); },
+  vol() { if (!AC || !bruitBuf) return; const t = AC.currentTime, s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+    s.buffer = bruitBuf; f.type = "bandpass"; f.Q.value = 1.2; f.frequency.setValueAtTime(300, t); f.frequency.exponentialRampToValueAtTime(1400, t + .5); f.frequency.exponentialRampToValueAtTime(250, t + 1.2);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.07, t + .35); g.gain.linearRampToValueAtTime(0, t + 1.3); s.connect(f); f.connect(g); g.connect(maitre); s.start(t); s.stop(t + 1.4); },
+};
+function musique() { // petite musique calme : notes d'une gamme pentatonique, longues et douces, avec un écho
+  const echo = AC.createDelay(1.2); echo.delayTime.value = .55; const fb = AC.createGain(); fb.gain.value = .35; const lp = AC.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1800;
+  echo.connect(fb); fb.connect(echo); echo.connect(lp); lp.connect(musiqueGain);
+  const G = [261.6, 293.7, 329.6, 392, 440, 523.3, 587.3, 659.3];
+  let t = AC.currentTime + .5;
+  const planifier = () => {
+    while (t < AC.currentTime + 4) {
+      const f = G[Math.floor(Math.random() * G.length)];
+      note(f, t, 2.6, .07, "sine", lp); note(f, t, 2.6, .05, "sine", echo);
+      if (Math.random() < .3) note(f / 2, t, 4, .05, "triangle", lp);
+      t += [.9, 1.2, 1.8, 2.4][Math.floor(Math.random() * 4)];
+    }
+  };
+  planifier(); setInterval(planifier, 1500);
+}
+function majSon() { $("bSon").innerHTML = ic(REG.son ? "son" : "sonoff"); $("bSon").setAttribute("aria-label", REG.son ? "Couper le son" : "Remettre le son");
+  if (maitre) maitre.gain.value = REG.son ? .8 : 0; if (musiqueGain) musiqueGain.gain.value = REG.musique ? .22 : 0; }
+$("bSon").onclick = () => { demarrerAudio(); REG.son = !REG.son; sauverReg(); majSon(); son.clic(); };
+
+// ============================================================ écrans
+function toutFermer() {
+  for (const id of ["aideV", "reglagesV", "themesV"]) if (!$(id).hidden) { $(id).hidden = true; return; }
+  if (!$("voyage").hidden) { $("voyage").hidden = true; return; }
+  if (!$("fiche").hidden) { fermerFiche(); return; }
+}
+for (const b of document.querySelectorAll("[data-ferme]")) b.onclick = () => { son.clic(); b.closest(".ecran").hidden = true; };
+function explorer() { demarrerAudio(); son.clic(); for (const id of ["titre", "finV", "themesV"]) $(id).hidden = true; $("hud").hidden = false; $("bas").hidden = false; $("zoom").hidden = false;
+  if (innerWidth >= 700 && !CAL._ferme) { $("calques").classList.remove("ferme"); $("bCalques").classList.add("on"); } else { $("calques").classList.add("ferme"); $("bCalques").classList.remove("on"); }
+  if (CAM.d > 3) allerA(2.4, 40, 2.4); }
+$("tExplorer").onclick = explorer;
+$("tQuiz").onclick = () => { demarrerAudio(); son.clic(); ouvrirThemes(); };
+$("bQuiz").onclick = () => { son.clic(); ouvrirThemes(); };
+$("finRejouer").onclick = () => { son.clic(); QUIZ.demarrer(QUIZ.th); };
+$("finThemes").onclick = () => { son.clic(); $("finV").hidden = true; ouvrirThemes(); };
+$("finExplorer").onclick = () => explorer();
+$("tAide").onclick = () => { son.clic(); $("aideV").hidden = false; };
+$("bAccueil").onclick = () => { son.clic(); fermerFiche(); $("voyage").hidden = true; $("hud").hidden = true; $("bas").hidden = true; $("calques").classList.add("ferme"); $("titre").hidden = false; };
+$("tReglages").onclick = () => {
+  son.clic();
+  $("qualites").innerHTML = [["belle", "Très belle"], ["normale", "Normale"], ["rapide", "Rapide"]].map(([k, n]) => `<button class="choixq${REG.qualite === k ? " on" : ""}" data-q="${k}">${n}</button>`).join(" ");
+  for (const b of $("qualites").children) b.onclick = () => { if (REG.qualite === b.dataset.q) return; REG.qualite = b.dataset.q; sauverReg(); location.reload(); };
+  $("musiques").innerHTML = [[true, "Oui"], [false, "Non"]].map(([v, n]) => `<button class="choixq${REG.musique === v ? " on" : ""}" data-v="${v}">${n}</button>`).join(" ");
+  for (const b of $("musiques").children) b.onclick = () => { REG.musique = b.dataset.v === "true"; sauverReg(); majSon(); $("tReglages").onclick(); };
+  $("versionTxt").textContent = window.MONDE_VERSION || ""; $("reglagesV").hidden = false;
+};
+
+// ============================================================ boucle
+const horloge = new THREE.Clock(); let images = 0, tPerf = 0, tLieu = 0, figee = 0;
+const perfOn = PARAMS.has("fps");
+function boucle() {
+  requestAnimationFrame(boucle);
+  if (document.hidden) return;
+  const dt = Math.min(horloge.getDelta(), .1); const t = horloge.elapsedTime;
+  // au repos sur l'écran titre : la Terre tourne doucement
+  if (!$("titre").hidden && !CAM.vol && !ptrs.size) { CAM.lon = ((CAM.lon + dt * 4 + 540) % 360) - 180; placerCamera(); }
+  clavier(dt);
+  if (!ptrs.size && !CAM.vol && (Math.abs(CAM.vlon) + Math.abs(CAM.vlat)) > .01) { // élan après un glissé
+    CAM.lon += CAM.vlon * dt; CAM.lat = THREE.MathUtils.clamp(CAM.lat + CAM.vlat * dt, -86, 86); CAM.lon = ((CAM.lon + 540) % 360) - 180;
+    const f = Math.exp(-dt * 4); CAM.vlon *= f; CAM.vlat *= f; placerCamera();
+  }
+  majVol(dt);
+  U.uTime.value = t;
+  if (anneau && anneau.visible) { const s = Math.max(CAM.d, .03) * .028 * (1 + .12 * Math.sin(t * 5)); anneau.scale.setScalar(s); }
+  if (CAM.bouge) { majEtiquettes(); CAM.bouge = false; }
+  if (t - tLieu > .4) { tLieu = t; lieuCourant(); }
+  // économie d'énergie : sans rien toucher depuis 20 s, une image sur deux
+  const repos = performance.now() - derniereAction > 20000 && !CAM.vol;
+  if (repos && (figee++ & 1)) return;
+  renderer.render(scene, camera);
+  if (perfOn) { images++; if (t - tPerf > 1) { const i = renderer.info; $("perf").textContent = `${images} img/s\nappels ${i.render.calls}\ntriangles ${(i.render.triangles / 1000).toFixed(0)} k\nprogrammes ${i.programs.length}\nd ${CAM.d.toFixed(3)}`; images = 0; tPerf = t; } }
+}
+addEventListener("resize", () => {
+  renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  resol.set(innerWidth, innerHeight); for (const l of Object.values(LIGNES3D)) l.material.resolution.copy(resol);
+  for (const e of ETIQ) e.w = 0; placerCamera();
+});
+
+// ============================================================ démarrage
+(async () => {
+  try {
+    await charger();
+    progres(.82, "Je plante les arbres…"); await pause();
+    for (const p of DATA.pays) { PAYS_ID[p.id] = p; PAYS_A3[p.a3] = p; }
+    for (const m of DATA.mers) MER_ID[m.id] = m;
+    creerGlobe(); creerTraits(); creerDeco(); creerAnneau(); creerEtiquettes(); creerCalques(); creerVoyage(); majSon();
+    placerCamera(); appliquerCalques();
+    progres(.92, "Encore un instant…"); await pause();
+    // tout préparer avant de montrer (pas d'à-coup au premier zoom)
+    const vis = [patch.visible, nuages.visible]; patch.visible = true; nuages.visible = true; for (const m of DECO.mesh) m.visible = true;
+    for (const l of Object.values(LIGNES3D)) l.visible = true;
+    try { await renderer.compileAsync(scene, camera); } catch (e) { renderer.compile(scene, camera); }
+    for (const t of [texH, texC, texI, texPal]) renderer.initTexture(t);
+    renderer.render(scene, camera);
+    patch.visible = vis[0]; nuages.visible = vis[1]; appliquerCalques(); placerCamera();
+    progres(1); $("chargement").hidden = true; $("titre").hidden = false;
+    window.__monde = { CAM, allerA, placerCamera, QUIZ, GEN, THEMES, CAL, appliquerCalques, toucherGlobe, viser, renderer, U, explorer };
+    if (PARAMS.has("explorer")) explorer();
+    if (perfOn) $("perf").hidden = false;
+    boucle();
+  } catch (e) {
+    console.error(e); chTxt.textContent = "Oups, le globe n'a pas pu se charger. Vérifie la connexion puis recharge la page.";
+  }
+})();
+</script>
+<script>
+window.MONDE_VERSION = "2026.11.05-1"; // à changer à chaque modification
+</script>
+<script>
+// Application installable : gardée sur l'appareil par sw.js (marche sans réseau).
+// « Mettre à jour » compare la page gardée avec celle du site et installe la nouvelle version.
+(() => {
+  if (navigator.standalone || matchMedia("(display-mode: standalone), (display-mode: fullscreen)").matches) document.documentElement.classList.add("app");
+  const btn = document.getElementById("tMaj"), m1 = document.getElementById("majMsg");
+  const info = t => { m1.textContent = t; const m = document.getElementById("majMsg2"); if (m) m.textContent = t; };
+  if (!("serviceWorker" in navigator) || !("caches" in window)) return;
+  navigator.serviceWorker.register("sw.js").then(() => { btn.hidden = false; verifier(false); }).catch(() => {});
+  async function verifier(installer) {
+    try {
+      await navigator.serviceWorker.ready;
+      const nom = (await caches.keys()).find(k => k.startsWith("monde-")); if (!nom) return;
+      const c = await caches.open(nom), ici = new URL("./", location.href).href;
+      const garde = await c.match(ici); if (!garde) return;
+      const frais = f => fetch(new URL(f, ici).href + "?maj=" + Date.now(), { cache: "no-store" });
+      const neuf = await frais("./"); if (!neuf.ok) throw new Error();
+      const [a, b] = await Promise.all([neuf.clone().text(), garde.text()]);
+      if (a === b) { btn.classList.remove("neuf"); if (installer) info("✓ Le globe est déjà à jour."); return; }
+      if (!installer) { btn.classList.add("neuf"); info("Une nouvelle version est prête : appuie sur la flèche ronde !"); return; }
+      info("Installation de la nouvelle version…");
+      await c.put(ici, neuf);
+      for (const f of ["manifest.webmanifest", "icone-192.png", "icone-512.png", "apple-touch-icon.png", "donnees/relief.webp", "donnees/couleurs.jpg", "donnees/ids.png", "donnees/paysages.png", "donnees/monde.json"]) {
+        try { const r = await frais(f); if (r.ok) await c.put(new URL(f, ici).href, r); } catch (e) {}
+      }
+      const reg = await navigator.serviceWorker.getRegistration(); if (reg) await reg.update().catch(() => {});
+      location.reload();
+    } catch (e) { if (installer) info("Pas de connexion : réessaie quand l'appareil est sur internet."); }
+  }
+  btn.onclick = () => { info("Recherche d'une mise à jour…"); verifier(true); };
+  document.getElementById("majBtn2").onclick = () => { info("Recherche d'une mise à jour…"); verifier(true); };
+})();
+</script>
+</body>
+</html>

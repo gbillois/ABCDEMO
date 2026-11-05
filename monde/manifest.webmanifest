@@ -1,0 +1,18 @@
+{
+  "name": "My World Explorer",
+  "short_name": "My World",
+  "description": "Le globe terrestre de Théo : continents, océans, pays, montagnes, paysages… et un quiz de géographie.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#10261a",
+  "theme_color": "#16301f",
+  "icons": [
+    { "src": "icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
