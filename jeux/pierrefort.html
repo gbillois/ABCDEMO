@@ -56,6 +56,7 @@ h1{font-family:Cinzel,serif;font-weight:700;font-size:clamp(34px,9vw,68px);margi
   <button id="go">Jouer</button>
   <div id="barBox"><div id="bar"></div></div>
   <div id="load">Je prépare les outils du bâtisseur…</div>
+  <div id="ver" style="margin-top:8px;font-size:12px;opacity:.6">Version 3</div>
   <div class="ctr" id="ctrl"></div>
 </div>
 <div id="win" class="ov" style="display:none">
@@ -709,7 +710,7 @@ GAME.fail=function(msg){GAME.failed=true;document.getElementById('barBox').style
  document.getElementById('load').innerHTML=msg+'<br>Ouvre-le dans <b>Safari</b> ou <b>Chrome</b>, connecté à internet :<br><b>gbillois.github.io/ABCDEMO</b>';};
 document.getElementById('go').onclick=function(){
  if(GAME.ready&&GAME.start){GAME.start();return;}
- GAME.want=true;if(!GAME.failed)setProgress(null,'Encore un instant, on pose les dernières pierres…');
+ GAME.want=true;if(!GAME.failed){setProgress(null,'Encore un instant, on pose les dernières pierres…');clearTimeout(GAME.wd);GAME.wd=setTimeout(function(){if(!GAME.ready&&!GAME.failed)GAME.fail('Le château met trop longtemps à se construire sur cet appareil.');},45000);}
  var l=document.getElementById('load');l.style.transform='scale(1.08)';setTimeout(function(){l.style.transform='';},200);};
 (function(){var urls=['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js','https://unpkg.com/three@0.128.0/build/three.min.js'],i=0;
  setProgress(2,'Je prépare les outils du bâtisseur…');
