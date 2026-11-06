@@ -204,8 +204,8 @@ Demande du propriétaire (novembre 2026) : se promener à pied, en 2,5D, dans un
   (`outils/balade/cuisson/`, Playwright) à partir d'une sauvegarde (`outils/balade/ville-theo.json`, sans le profil scolaire de l'enfant) :
   le sol en morceaux, les bâtiments, arbres, drapeaux, bateaux, animaux et habitants en planches, la carte. Ce sont des fichiers servis par le site.
 - `balade/jeu/` : le jeu **compilé** (Vite) — ne pas le modifier à la main : `bash outils/balade/fabriquer.sh`. Le moteur est celui des Trois Lueurs
-  (même commit, même français) plus `outils/balade/moteur/` (`Balade.js` : la ville posée en panneaux debout, sans flou ni éclairage étrange,
-  caméra fixe vers le nord ; `balade.patch` ; `tactile.js`).
+  (même commit, même français) plus `outils/balade/moteur/` (`Balade.js` : la ville posée en panneaux debout, les bâtiments en volume — leur silhouette étirée vers l'arrière —,
+  Millie pour héroïne, sans flou ni éclairage étrange, caméra fixe vers le nord ; `balade.patch` ; `tactile.js`).
 - Le jeu lit `balade/ville/` depuis le même site : il marche sur GitHub Pages, pas dans l'artefact. Pas d'autre réseau. Musique du moteur (synthétisée).
 
 ## Exception : sons enregistrés du Domaine des Pins

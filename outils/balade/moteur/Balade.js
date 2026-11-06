@@ -70,6 +70,50 @@ void main() {
 }
 `;
 
+/**
+ * Le volume des bâtiments : la silhouette du dessin étirée vers l'arrière. Chaque côté prend la couleur du
+ * dessin juste à l'intérieur du contour, un peu plus sombre selon le côté (le toit en pleine lumière).
+ * position = (x monde, dy en cases sous l'ancre — négatif vers le haut —, z monde).
+ */
+const VERTEX_VOLUME = /* glsl */ `
+attribute float aOmbre;
+uniform float uHaut;
+varying vec2 vUv;
+varying float vOmbre;
+void main() {
+  vUv = uv; vOmbre = aOmbre;
+  gl_Position = projectionMatrix * viewMatrix * vec4(position.x, -position.y * uHaut, position.z, 1.0);
+}
+`;
+const FRAGMENT_VOLUME = /* glsl */ `
+uniform sampler2D uPlanche;
+varying vec2 vUv;
+varying float vOmbre;
+void main() {
+  vec4 c = texture2D(uPlanche, vUv);
+  vec3 rgb = c.a > 0.02 ? c.rgb / c.a : vec3(0.23, 0.14, 0.06);
+  gl_FragColor = vec4(rgb * vOmbre, 1.0);
+  #include <colorspace_fragment>
+}
+`;
+
+/** Coupe un polygone entre deux verticales x = a et x = b (Sutherland-Hodgman). */
+function couper(poly, a, b) {
+  const bord = (P, dedans, inter) => {
+    const out = [];
+    for (let i = 0; i < P.length; i++) {
+      const p = P[i], q = P[(i + 1) % P.length], ip = dedans(p), iq = dedans(q);
+      if (ip) out.push(p);
+      if (ip !== iq) out.push(inter(p, q));
+    }
+    return out;
+  };
+  const x = (p, q, X) => [X, p[1] + ((q[1] - p[1]) * (X - p[0])) / (q[0] - p[0])];
+  let P = bord(poly, (p) => p[0] >= a, (p, q) => x(p, q, a));
+  P = bord(P, (p) => p[0] <= b, (p, q) => x(p, q, b));
+  return P;
+}
+
 /** Une série de panneaux tirés d'une même planche (un seul appel de dessin). */
 class Panneaux {
   constructor(planche, capacite, uniforms, ordre, silhouette = false) {
@@ -194,6 +238,64 @@ class Balade {
       return p;
     });
 
+    // ---- le volume des bâtiments ----
+    const volumes = planches.map(() => ({ pos: [], uv: [], ombre: [] }));
+    const PROF = this.reglage.profondeur ?? 0.6; // profondeur du volume (cases), au plus celle du bâtiment
+    for (const o of objets) {
+      const im = V.images[o.i];
+      if (o.k !== 'batiment' || !im?.vol || !o.bh) continue;
+      const n = im.r[0], P = V.planches[n], [, px, py] = im.r, v = volumes[n];
+      const D = Math.min(o.bh, PROF), z0 = o.y - 0.004, z1 = z0 - D;
+      const demi = (o.bw / 2) * 40 - 3; // (les mâts et les objets posés à côté restent plats)
+      // un point du dessin (pixels de Millepoques depuis l'ancre) -> coordonnées dans la planche
+      const uvDe = (x, y) => [(px + (x - im.ox) * 2) / P.w, 1 - (py + (y - im.oy) * 2) / P.h];
+      for (const brut of im.vol) {
+        const poly = couper(brut, -demi, demi);
+        if (poly.length < 3) continue;
+        let aire = 0;
+        for (let i = 0; i < poly.length; i++) { const p = poly[i], q = poly[(i + 1) % poly.length]; aire += p[0] * q[1] - q[0] * p[1]; }
+        const sens = aire > 0 ? 1 : -1;
+        // le point de couleur de chaque sommet : 3,5 pixels vers l'intérieur (pas le trait du contour)
+        const dedans = poly.map((p, i) => {
+          const a2 = poly[(i - 1 + poly.length) % poly.length], b2 = poly[(i + 1) % poly.length];
+          const n1 = [(p[1] - a2[1]), -(p[0] - a2[0])], n2 = [(b2[1] - p[1]), -(b2[0] - p[0])];
+          const l1 = Math.hypot(...n1) || 1, l2 = Math.hypot(...n2) || 1;
+          let nx = n1[0] / l1 + n2[0] / l2, ny = n1[1] / l1 + n2[1] / l2;
+          const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l;
+          return uvDe(p[0] - nx * 3.5 * sens, p[1] - ny * 3.5 * sens);
+        });
+        for (let i = 0; i < poly.length; i++) {
+          const j = (i + 1) % poly.length, p = poly[i], q = poly[j];
+          const ex = q[0] - p[0], ey = q[1] - p[1], el = Math.hypot(ex, ey);
+          if (el < 0.01) continue;
+          // normale vers l'extérieur (repère de l'image : y vers le bas)
+          const nx = (ey / el) * sens, ny = (-ex / el) * sens;
+          const ombre = ny < -0.45 ? 1.0 : ny > 0.45 ? 0.62 : nx > 0 ? 0.8 : 0.9;
+          const X = (t) => o.ax + t[0] / 40, Y = (t) => t[1] / 40;
+          const A = [X(p), Y(p), z0], B = [X(q), Y(q), z0], C = [X(q), Y(q), z1], Dd = [X(p), Y(p), z1];
+          v.pos.push(...A, ...B, ...C, ...A, ...C, ...Dd);
+          v.uv.push(...dedans[i], ...dedans[j], ...dedans[j], ...dedans[i], ...dedans[j], ...dedans[i]);
+          for (let k = 0; k < 6; k++) v.ombre.push(ombre);
+        }
+      }
+    }
+    volumes.forEach((v, n) => {
+      if (!v.pos.length) return;
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(v.pos, 3));
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(v.uv, 2));
+      g.setAttribute('aOmbre', new THREE.Float32BufferAttribute(v.ombre, 1));
+      const m = new THREE.ShaderMaterial({
+        uniforms: { uHaut: this.uniforms.uHaut, uPlanche: { value: planches[n] } },
+        vertexShader: VERTEX_VOLUME, fragmentShader: FRAGMENT_VOLUME,
+        side: THREE.DoubleSide, toneMapped: false, fog: false,
+      });
+      const mesh = new THREE.Mesh(g, m);
+      mesh.frustumCulled = false;
+      mesh.name = 'Balade.volumes';
+      this.groupe.add(mesh);
+    });
+
     // ---- les personnages : le joueur et les passants ----
     const H = V.habitants;
     this.looks = H.map((h) => h.vues);
@@ -210,7 +312,7 @@ class Balade {
       this.silhouettes.set(n, sil);
       this.groupe.add(sil.mesh);
     });
-    // le joueur : un habitant de Millepoques (le premier de la liste)
+    // le joueur : Millie, la guide de Millepoques (la première de la liste)
     this.joueur = { look: this.looks[this.reglage.joueur ?? 0] ?? this.looks[0], dist: 0, vue: 'face', bouge: false };
     // les passants : chacun sur une route, d'un bout à l'autre, puis sur une route voisine
     this.routes = routes.map((pts) => pts.map(([x, y]) => [x + 0.5, y + 0.5]));
@@ -229,7 +331,7 @@ class Balade {
       const r = Math.floor(this.hasard() * this.routes.length);
       const pts = this.routes[r];
       this.passants.push({
-        look: this.looks[(i + 1) % this.looks.length], route: pts, sens: this.hasard() < 0.5 ? 1 : -1,
+        look: this.looks[1 + (i % Math.max(1, this.looks.length - 1))] ?? this.looks[0], route: pts, sens: this.hasard() < 0.5 ? 1 : -1,
         s: this.hasard() * (pts.length - 1), cote: (this.hasard() - 0.5) * 0.22, dist: this.hasard() * 10,
         vue: 'face', pause: 0,
       });
