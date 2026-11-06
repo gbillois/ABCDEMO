@@ -9,6 +9,7 @@ Structure :
 - `dragonflyer/` — DragonFlyer, en application installable (voir plus bas).
 - `lueurs/` — Les Trois Lueurs, démo faite avec le moteur Luminati (voir plus bas) ; fabriquée par `outils/lumina/`.
 - `balade/` — La Balade de Millépoques, une ville de Millépoques en 2,5D avec le moteur Luminati (voir plus bas) ; fabriquée par `outils/balade/`.
+- `village/` — Le Village de Millépoques, un village de Millépoques en vraie 3D (three.js) ; ses images sont cuites par `outils/village/`.
 - `monde/` — My World Explorer, le globe terrestre, en application installable (voir plus bas) ; ses cartes sont faites par `outils/monde/`.
 - `blender/pins/` — scripts Blender qui fabriquent les modèles du Domaine des Pins (`pins/assets/*.glb`) ; méthode : `blender/pins/METHODE.md`.
 - `blender/dragonflyer/` — scripts (Blender, numpy) qui fabriquent le dragon, le héros et le relief de DragonFlyer,
@@ -207,6 +208,22 @@ Demande du propriétaire (novembre 2026) : se promener à pied, en 2,5D, dans un
   (même commit, même français) plus `outils/balade/moteur/` (`Balade.js` : la ville posée en panneaux debout, les bâtiments en volume — leur silhouette étirée vers l'arrière —,
   Millie pour héroïne, sans flou ni éclairage étrange, caméra fixe vers le nord ; `balade.patch` ; `tactile.js`).
 - Le jeu lit `balade/ville/` depuis le même site : il marche sur GitHub Pages, pas dans l'artefact. Pas d'autre réseau. Musique du moteur (synthétisée).
+
+## Exception : Le Village de Millépoques (dessins de Millépoques, vraie 3D)
+
+Demande du propriétaire (novembre 2026) : se promener en vraie 3D dans un village de **Millépoques** (dépôt privé
+`gbillois/Millepoques`, lu seulement avec son accord, jamais modifié), le plus près possible de son style : marcher entre les
+maisons, croiser les habitants, entrer dans les bâtiments pour voir comment on y travaille.
+- Comme pour la Balade, rien n'est redessiné : les images de `village/donnees/` sont « cuites » par le code de rendu de Millépoques
+  (`outils/village/cuisson/`, Playwright) à partir d'une sauvegarde sans le profil de l'enfant (`outils/village/ville.json`, partie
+  Renaissance du 24 octobre 2026). Le serveur de cuisson espionne en mémoire les fonctions de toits de Millépoques (bas des toits =
+  hauteur des murs), sans toucher au dépôt.
+- `village/index.html` + `village/jeu.js` : le jeu (three.js 0.170 du CDN). Les bâtiments sont des volumes taillés dans la
+  silhouette de leur dessin, la façade de Millépoques projetée dessus ; arbres, animaux, drapeaux et habitants sont des images
+  debout ; dedans, les murs sont dessinés par les fonctions de Millépoques et les ouvriers font leurs gestes du jeu (images de
+  `donnees/travail/`), avec le nom, l'explication (`info`) et la recette du bâtiment tirés des données de Millépoques.
+- Le jeu lit `donnees/` depuis le même site : il marche sur GitHub Pages, pas dans l'artefact. Pas d'autre réseau. Sons synthétisés.
+- Refaire : `node outils/village/cuisson/cuire.mjs <dépôt Millepoques> outils/village/ville.json village/donnees` (voir `outils/village/README.md`).
 
 ## Exception : sons enregistrés du Domaine des Pins
 
