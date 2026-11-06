@@ -120,6 +120,7 @@
 
   /* Menu Voyager */
   #voyage { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: calc(var(--sb) + 80px); width: min(560px, calc(100% - 24px)); border-radius: 28px; padding: 14px; }
+  #paysV .places { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
   #voyage .places { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
   .place { padding: 10px 8px; border-radius: 18px 18px 18px 6px; background: rgba(0,0,0,.22); border: 1px solid var(--edge-soft); cursor: pointer; font-weight: 800; font-size: 15px; color: var(--ink); }
   .place:active { background: rgba(217,180,90,.25); }
@@ -335,6 +336,8 @@
     <h2 class="t">Réglages</h2>
     <div class="reglage"><span>Image :</span><span id="qualites"></span></div>
     <div class="reglage"><span>Musique douce :</span><span id="musiques"></span></div>
+    <div class="reglage"><span>La Terre :</span><span id="vues"></span></div>
+    <div class="reglage"><span>Mon pays : <b id="paysTxt"></b></span><button class="choixq" id="changerPays">Changer</button></div>
     <div class="version">Version : <b id="versionTxt"></b></div>
     <div class="version">Relief : NOAA ETOPO 2022 (CC0) · Cartes : Natural Earth (domaine public)</div>
     <div class="rangee"><button class="btn" id="majBtn2"><span data-i="maj"></span>Mettre à jour</button></div>
@@ -348,6 +351,14 @@
     <h2 class="t">Quel quiz ?</h2>
     <div class="themes" id="themes"></div>
     <div class="rangee"><button class="btn" data-ferme>Retour</button></div>
+  </div>
+</div>
+
+<div id="paysV" class="ecran" hidden>
+  <div class="carte leafy" style="width:min(640px,100%)">
+    <h2 class="t">Où habites-tu ?</h2>
+    <p>Selon les pays, certaines frontières ne sont pas dessinées pareil. Choisis ton pays : le globe te montrera la carte comme à ton école.</p>
+    <div class="places" id="listePays"></div>
   </div>
 </div>
 
@@ -537,13 +548,15 @@ function pixelsExacts(img, w, h) { // sans lissage (identifiants)
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = ((y * s | 0) * img.width + (x * s | 0)) * 4, j = (y * w + x) * 4; o[j] = d[i]; o[j + 1] = d[i + 1]; o[j + 2] = d[i + 2]; o[j + 3] = 255; }
   return o;
 }
-let texH, texHE, texC, texI, texPal, HAUT_EU;
+let texH, texHE, texC, texI, texPal, texS, HAUT_EU, FRONT, BASE_R;
 const EU = { lon0: -12, lon1: 32, lat0: 35, lat1: 60, w: 2640, h: 1500 }; // relief fin de l'Europe (1 minute d'angle)
 async function charger() {
   progres(.05, "Je prépare le globe…");
-  const [jRel, jCol, jIds, jPay, jData, jEu] = await Promise.all([image("donnees/relief.webp"), image("donnees/couleurs.jpg"), image("donnees/ids.png"), image("donnees/paysages.png"),
-    fetch("donnees/monde.json").then(r => r.json()), image("donnees/relief_europe.webp")]).then(v => { progres(.45, "Je pose les montagnes…"); return v; });
-  DATA = jData;
+  const [jRel, jCol, jIds, jPay, jData, jEu, jSol, jFr] = await Promise.all([image("donnees/relief.webp"), image("donnees/couleurs.jpg"), image("donnees/ids.png"), image("donnees/paysages.png"),
+    fetch("donnees/monde.json").then(r => r.json()), image("donnees/relief_europe.webp"), image("donnees/sols.png"), fetch("donnees/frontieres.json").then(r => r.json()).catch(() => null)]).then(v => { progres(.45, "Je pose les montagnes…"); return v; });
+  DATA = jData; FRONT = jFr;
+  { const sp = pixels(jSol, jSol.width, jSol.height); texS = new THREE.DataTexture(new Uint8Array(sp.buffer, sp.byteOffset, sp.length), jSol.width, jSol.height, THREE.RGBAFormat);
+    texS.minFilter = THREE.LinearMipmapLinearFilter; texS.magFilter = THREE.LinearFilter; texS.generateMipmaps = true; texS.wrapS = THREE.RepeatWrapping; texS.needsUpdate = true; }
   W = 4096 / Q.tex; H = 2048 / Q.tex;
   // altitude sur 16 bits → mètres (CPU) et demi-flottants (GPU, lissés avec leurs mipmaps)
   const rel = pixelsExacts(jRel, 4096, 2048);
@@ -574,6 +587,7 @@ async function charger() {
   await pause(); progres(.72, "Je trace les pays…");
   { const d = pixelsExacts(jIds, W, H); IDS = new Uint8Array(d.buffer, d.byteOffset, d.length); }
   texI = new THREE.DataTexture(IDS, W, H, THREE.RGBAFormat, THREE.UnsignedByteType);
+  BASE_R = new Uint8Array(W * H); for (let k = 0; k < W * H; k++) BASE_R[k] = IDS[k * 4];
   texI.minFilter = texI.magFilter = THREE.NearestFilter; texI.generateMipmaps = false; texI.needsUpdate = true;
   const pp = pixelsExacts(jPay, jPay.width, jPay.height); PW = jPay.width; PH = jPay.height;
   PAYS_CL = new Uint8Array(PW * PH); for (let k = 0; k < PW * PH; k++) PAYS_CL[k] = pp[k * 4];
@@ -686,8 +700,11 @@ void main() {
   vec4 wp = modelMatrix * vec4(dd * r, 1.0); vPos = wp.xyz;
   gl_Position = projectionMatrix * viewMatrix * wp;
 }`;
+const VERT_PLAN = /* glsl */`
+varying vec3 vDir; varying vec3 vPos; varying vec2 vLL;
+void main() { vLL = position.xy; vDir = vec3(0.0, 0.0, 1.0); vec4 wp = modelMatrix * vec4(position, 1.0); vPos = wp.xyz; gl_Position = projectionMatrix * viewMatrix * wp; }`;
 const FRAG_GLOBE = /* glsl */`
-uniform sampler2D tH; uniform sampler2D tC; uniform sampler2D tI; uniform sampler2D tPal;
+uniform sampler2D tH; uniform sampler2D tC; uniform sampler2D tI; uniform sampler2D tPal; uniform sampler2D tS;
 uniform vec2 uTex; uniform float uK, uKs, uTime, uDetail, uPol, uClim, uGrid, uGridStep, uNight, uHaze;
 uniform vec4 uLig; uniform float uLigHL; uniform vec4 uHL;
 uniform vec3 uPC, uPE, uPN; uniform float uPA, uPatchOn;
@@ -696,8 +713,16 @@ ${GLSL_COMMUN}
 ${GLSL_RELIEF}
 ${GLSL_CIEL}
 float trait(float dist, float fw, float wpx) { return 1.0 - smoothstep(wpx * 0.5, wpx * 0.5 + 1.0, dist / max(fw, 1e-6)); }
+#ifdef PLAN
+varying vec2 vLL;
+#endif
 void main() {
+#ifdef PLAN
+  float lonP = mod(vLL.x + PI, 2.0 * PI) - PI, latP = clamp(vLL.y, -1.5706, 1.5706);
+  vec3 d = vec3(cos(latP) * sin(lonP), sin(latP), cos(latP) * cos(lonP));
+#else
   vec3 d = normalize(vDir);
+#endif
 #ifndef PATCH
   if (uPatchOn > 0.5) { float c = dot(d, uPC); if (c > 0.5) { vec3 p = d / c; if (max(abs(dot(p, uPE)), abs(dot(p, uPN))) < uPA * 0.985) discard; } }
 #endif
@@ -719,6 +744,10 @@ void main() {
   vec3 n = normalize(d - sE * est - sN * nord);
   vec3 V = normalize(cameraPosition - vPos);
   vec3 L = uSun;
+#ifdef PLAN
+  // planisphère : la carte est à plat (x = est, y = nord, z = vers le haut) ; on repasse dans le repère du globe
+  V = normalize(est * V.x + nord * V.y + d * V.z); L = normalize(est * L.x + nord * L.y + d * L.z);
+#endif
   float jour = 1.0;
   if (uNight > 0.5) jour = smoothstep(-0.12, 0.16, dot(d, L));
 
@@ -745,6 +774,62 @@ void main() {
     alb = mix(alb, herbe, uDetail);
     float lum0 = dot(alb, vec3(0.3, 0.55, 0.15));
     alb = mix(alb, max(mix(vec3(lum0), alb, 1.45), 0.0) * 0.8, uDetail);   // de près : couleurs plus profondes, comme DragonFlyer
+    // ---- motifs fins selon la famille de sol (champs, forêts, sable), visibles de près, effacés quand ils deviendraient du bruit
+    vec3 sol = texture(tS, uv).rgb;
+    vec2 P = vec2(lon * cl, lat) * 6371.0;            // km, plan local
+    float fwP = max(max(length(dFdx(P)), length(dFdy(P))), 1e-4);   // km par pixel
+    if (sol.g > 0.03) {   // champs en parcelles, orientés par région, séparés par des haies
+      vec2 reg = floor(P / 45.0 + vec2(vnoise(vec3(P * 0.05, 8.0)), vnoise(vec3(P * 0.05, 9.0))) * 0.6);   // régions agricoles de ~45 km
+      float ang = hash3(vec3(reg, 1.7)) * 3.1416;
+      vec2 Q = mat2(cos(ang), -sin(ang), sin(ang), cos(ang)) * (P - reg * 45.0);
+      float taille = mix(2.8, 6.5, vnoise(vec3(P * 0.006, 4.2)));
+      vec2 c = Q / vec2(taille, taille * mix(0.45, 0.9, hash3(vec3(reg, 2.3))));
+      vec2 cid = floor(c), f = fract(c);
+      float r = hash3(vec3(cid, 3.1));
+      float lb = dot(alb, vec3(0.3, 0.55, 0.15)) * 2.6;   // la luminosité du lieu (plus sombre au nord, plus clair au sud)
+      vec3 coul = r < 0.28 ? alb * vec3(0.8, 1.08, 0.7) : r < 0.46 ? vec3(0.42, 0.34, 0.13) * lb : r < 0.6 ? vec3(0.3, 0.22, 0.12) * lb : r < 0.68 ? vec3(0.5, 0.46, 0.06) * lb : r < 0.84 ? alb * vec3(1.1, 1.12, 0.8) : vec3(0.3, 0.33, 0.12) * lb;
+      vec3 teinte = coul / max(alb, vec3(0.005));
+      float haie = 1.0 - smoothstep(0.0, 0.08, min(min(f.x, 1.0 - f.x), min(f.y, 1.0 - f.y)));
+      float vis = 1.0 - smoothstep(0.12, 0.45, fwP / (taille * 0.5));
+      vec3 champ = mix(alb, coul, 0.65) * (0.9 + 0.2 * hash3(vec3(cid, 7.0))) * (0.94 + 0.12 * f.x);
+      champ = mix(champ, alb * vec3(0.5, 0.72, 0.45), haie * 0.65);
+      // villages : petits points clairs
+      champ = mix(champ, vec3(0.5, 0.46, 0.42), step(0.993, hash3(vec3(cid, 11.0))) * 0.6);
+      alb = mix(alb, champ, clamp(sol.g * 1.3, 0.0, 1.0) * vis * uDetail);
+      alb = mix(alb, mix(alb, coul, 0.35), clamp(sol.g * 1.3, 0.0, 1.0) * (1.0 - vis) * uDetail);   // de plus loin : mosaïque adoucie
+    }
+    if (sol.r > 0.03) {   // forêts : canopée en touffes, clairières
+      float k1 = vnoise(d * 9000.0), k2 = vnoise(d * 3000.0 + 2.0), k3 = vnoise(d * 900.0 + 5.0);
+      float v1 = 1.0 - smoothstep(0.3, 0.8, fwd * 9000.0), v2 = 1.0 - smoothstep(0.3, 0.8, fwd * 3000.0);
+      float can = mix(1.0, 0.62 + 0.75 * k1, v1) * mix(1.0, 0.72 + 0.56 * k2, v2) * (0.85 + 0.3 * k3);
+      vec3 foret = alb * can * vec3(0.88, 1.0, 0.86);
+      float clair = smoothstep(0.72, 0.8, vnoise(d * 1800.0 + 9.0)) * v2;
+      foret = mix(foret, alb * vec3(1.15, 1.12, 0.9), clair * 0.4);
+      alb = mix(alb, foret, clamp(sol.r * 1.2, 0.0, 1.0) * uDetail);
+      vec3 cg = vec3(vnoise(d * 9000.0 + 3.1), vnoise(d * 9000.0 + 7.7), vnoise(d * 9000.0 + 13.3)) - 0.5;
+      n = normalize(n + (cg - d * dot(cg, d)) * 0.25 * v1 * sol.r * uDetail);
+    }
+    if (sol.b > 0.03) {   // sable : dunes en relief (crêtes poussées par le vent) ou plateaux de cailloux
+      vec2 rg = floor(P / 80.0 + vec2(vnoise(vec3(P * 0.03, 7.0)), vnoise(vec3(P * 0.03, 8.0))) * 0.5);   // champs de dunes de ~80 km
+      vec2 Pd = (P - rg * 80.0) + vec2(vnoise(vec3(P * 0.02, 1.0)), vnoise(vec3(P * 0.02, 2.0))) * 9.0;
+      float vent = hash3(vec3(rg, 9.0)) * 0.9 + 0.35;   // direction du vent, propre à chaque champ de dunes
+      vec2 w = vec2(cos(vent), sin(vent));
+      float lg = mix(3.0, 6.5, vnoise(vec3(P * 0.004, 6.0)));
+      float ph = dot(Pd, w) / lg * 6.2832 + 2.5 * vnoise(vec3(P * 0.06, 3.0));
+      float crete = sin(ph);
+      float erg = smoothstep(0.3, 0.55, vnoise(vec3(P * 0.006, 5.0)) + sol.b * 0.25 - 0.05);
+      float vis = 1.0 - smoothstep(0.2, 0.7, fwP / lg);
+      vec3 td = normalize(est * w.x + nord * w.y);
+      float pd = cos(ph) * (crete > 0.0 ? 1.0 : 0.45);   // face au vent douce, face sous le vent raide
+      n = normalize(n + td * pd * 0.9 * erg * vis * sol.b * uDetail);
+      vec3 sab = alb * mix(vec3(0.82, 0.8, 0.8), vec3(1.15, 1.05, 0.88), smoothstep(-0.6, 0.9, crete));
+      vec3 reg = alb * vec3(0.7, 0.6, 0.5) * (0.8 + 0.4 * vnoise(d * 6000.0)) * (0.9 + 0.2 * vnoise(d * 1500.0));
+      alb = mix(alb, mix(reg, sab, erg), clamp(sol.b * 1.2, 0.0, 1.0) * uDetail * mix(0.5, 1.0, vis));
+    }
+    // partout : grain fin du sol (cailloux, herbes) quand on est très près
+    float gf = vnoise(d * 20000.0); float vg = 1.0 - smoothstep(0.3, 0.8, fwd * 20000.0);
+    alb *= mix(1.0, 0.85 + 0.3 * gf, vg * uDetail);
+
     // roche des pentes, striée et rousse par endroits ; éboulis au pied
     float strate = smoothstep(0.55, 1.0, sin(h * 0.0045 + n2 * 7.0 + n3 * 2.0)) * 0.22;
     float fr = smoothstep(0.15, 0.85, n1 * 0.45 + n2 * 0.35 + n3 * 0.2) + strate;
@@ -770,11 +855,11 @@ void main() {
     float sUp = dot(L, d); vec2 t = vec2(dot(L, est), dot(L, nord)); float tl = length(t);
     if (sUp <= 0.0) ombre = 0.0;
     else if (tl > 1e-3) {
-      t /= tl; float tanE = sUp / tl, s = 1.6 / dens.y * PI, h0 = h * uK;
+      t /= tl; float tanE = sUp / tl, s = 2.5 / dens.y * PI, l0 = max(log2(s * dens.y / PI) - 1.5, 0.0), h0 = max(hLod(uv, l0), 0.0) * uK;
       for (int i = 0; i < 18; i++) {
         vec2 qq = uv + vec2(t.x * s / (2.0 * PI * cl), -t.y * s / PI);
         float hs = max(hLod(qq, max(log2(s * dens.y / PI) - 1.5, 0.0)), 0.0) * uK;
-        ombre = min(ombre, clamp(6.0 * (h0 + s * tanE + uK * 20.0 - hs) / s + 0.5, 0.0, 1.0));
+        ombre = min(ombre, clamp(6.0 * (h0 + s * tanE + uK * 45.0 - hs) / s + 0.5, 0.0, 1.0));
         s *= 1.42;
         if (ombre <= 0.0 || s > 0.12) break;
       }
@@ -911,19 +996,22 @@ function carreau(N) { // grille (N+3)² : l'anneau extérieur est une « jupe »
 }
 
 const U = {
-  tHE: { value: null }, uEU: { value: new THREE.Vector4((EU.lon0 + 180) / 360, .5 - EU.lat1 / 180, (EU.lon1 + 180) / 360, .5 - EU.lat0 / 180) }, uTexE: { value: new THREE.Vector2(EU.w, EU.h) },
+  tS: { value: null }, tHE: { value: null }, uEU: { value: new THREE.Vector4((EU.lon0 + 180) / 360, .5 - EU.lat1 / 180, (EU.lon1 + 180) / 360, .5 - EU.lat0 / 180) }, uTexE: { value: new THREE.Vector2(EU.w, EU.h) },
   tH: { value: null }, tC: { value: null }, tI: { value: null }, tPal: { value: null }, uTex: { value: new THREE.Vector2(4096, 2048) },
   uK: { value: kMetres() }, uSky: { value: 0 }, uUpC: { value: new THREE.Vector3(0, 1, 0) }, uFogL: { value: 1 }, uE: { value: new THREE.Vector3(1, 0, 0) }, uN: { value: new THREE.Vector3(0, 0, 1) }, uKs: { value: kMetres() * 2.2 }, uSun: { value: new THREE.Vector3(0, 0, 1) }, uTime: { value: 0 }, uDetail: { value: 0 },
   uPol: { value: 0 }, uClim: { value: 0 }, uGrid: { value: 0 }, uGridStep: { value: 15 }, uNight: { value: 0 }, uHaze: { value: 1 },
   uLig: { value: new THREE.Vector4() }, uLigHL: { value: 0 }, uHL: { value: new THREE.Vector4() },
   uPC: { value: new THREE.Vector3(0, 0, 1) }, uPE: { value: new THREE.Vector3(1, 0, 0) }, uPN: { value: new THREE.Vector3(0, 1, 0) }, uPA: { value: .1 }, uPatchOn: { value: 0 },
 };
-let globe, patch, nuages, atmos, dome, etoiles;
+let globe, patch, plan, nuages, atmos, dome, etoiles;
+let PLAN = false;   // vue planisphère (réglage)
 function creerGlobe() {
-  Object.assign(U.tH, { value: texH }); U.tHE.value = texHE; U.tC.value = texC; U.tI.value = texI; U.tPal.value = texPal; U.uTex.value.set(W, H);
+  Object.assign(U.tH, { value: texH }); U.tHE.value = texHE; U.tS.value = texS; U.tC.value = texC; U.tI.value = texI; U.tPal.value = texPal; U.uTex.value.set(W, H);
   const mat = new THREE.ShaderMaterial({ uniforms: U, vertexShader: VERT_GLOBE, fragmentShader: FRAG_GLOBE });
   globe = new THREE.Mesh(cubeSphere(Q.face), mat); globe.frustumCulled = false; scene.add(globe);
   const matP = new THREE.ShaderMaterial({ uniforms: U, vertexShader: VERT_GLOBE, fragmentShader: FRAG_GLOBE, defines: { PATCH: 1 } });
+  plan = new THREE.Mesh(new THREE.PlaneGeometry(6 * Math.PI, Math.PI), new THREE.ShaderMaterial({ uniforms: U, vertexShader: VERT_PLAN, fragmentShader: FRAG_GLOBE, defines: { PLAN: 1 } }));
+  plan.frustumCulled = false; plan.visible = false; scene.add(plan);
   patch = new THREE.Mesh(carreau(Q.patch), matP); patch.frustumCulled = false; patch.visible = false; patch.renderOrder = 1; scene.add(patch);
 
   // nuages : bruit qui dérive lentement, plus nombreux à l'équateur et vers 55°
@@ -1031,7 +1119,7 @@ function creerBouffees() {
     vertexShader: `attribute vec3 iPos, iOff, iInfo; uniform float uSky; uniform vec3 uCible; varying vec2 vUv; varying float vA, vSh; varying vec3 vW; uniform vec3 uSun;
       void main() {
         float dc = length(iPos - cameraPosition), dt = length(iPos - uCible);
-        vA = uSky * smoothstep(0.004, 0.02, dc) * (1.0 - smoothstep(0.22, 0.4, dt));
+        vA = uSky * smoothstep(0.012, 0.035, dc) * (1.0 - smoothstep(0.22, 0.4, dt));
         vSh = clamp(0.25 + 0.65 * iInfo.y + 0.3 * dot(iOff, uSun), 0.4, 1.1);
         float c = cos(iInfo.z), s = sin(iInfo.z); vec2 q = mat2(c, -s, s, c) * position.xy;
         vec4 mv = viewMatrix * vec4(iPos, 1.0); mv.xy += q * iInfo.x * step(0.002, vA);
@@ -1069,15 +1157,29 @@ function segments(traces, haut = .0011, pas = .25) {
   }
   return new Float32Array(out);
 }
+function segmentsPlan(traces) {
+  const out = [];
+  for (const t of traces) for (let i = 1; i < t.length; i++) {
+    const [a, b] = [t[i - 1], t[i]]; if (Math.abs(b[0] - a[0]) > 180) continue;
+    out.push(a[0] * D2R, a[1] * D2R, .0004, b[0] * D2R, b[1] * D2R, .0004);
+  }
+  return new Float32Array(out);
+}
+function poserTrait(l) { // refait la géométrie du trait pour la vue en cours
+  const g = new LineSegmentsGeometry(); g.setPositions(PLAN ? segmentsPlan(l.userData.traces) : segments(l.userData.traces, l.userData.haut));
+  l.geometry.dispose(); l.geometry = g;
+  for (const c of l.children) { c.geometry = g; c.visible = PLAN; }
+}
 function trait(nom, traces, couleur, larg, opac = 1, haut) {
-  const g = new LineSegmentsGeometry(); g.setPositions(segments(traces, haut));
+  const g = new LineSegmentsGeometry(); g.setPositions(PLAN ? segmentsPlan(traces) : segments(traces, haut));
   const m = new LineMaterial({ color: couleur, linewidth: larg, transparent: true, opacity: opac, depthWrite: false, worldUnits: false });
   m.resolution.copy(resol);
   const l = new LineSegments2(g, m); l.frustumCulled = false; l.renderOrder = 2; l.userData = { traces, haut }; scene.add(l);
+  for (const dx of [-2 * Math.PI, 2 * Math.PI]) { const c = new LineSegments2(g, m); c.position.x = dx; c.frustumCulled = false; c.renderOrder = 2; c.visible = PLAN; l.add(c); }
   if (LIGNES3D[nom]) { scene.remove(LIGNES3D[nom]); LIGNES3D[nom].geometry.dispose(); }
   LIGNES3D[nom] = l; return l;
 }
-function refaireTraits() { for (const l of Object.values(LIGNES3D)) { const g = new LineSegmentsGeometry(); g.setPositions(segments(l.userData.traces, l.userData.haut)); l.geometry.dispose(); l.geometry = g; } }
+function refaireTraits() { for (const l of Object.values(LIGNES3D)) poserTrait(l); }
 function creerTraits() {
   trait("pays", DATA.pays.flatMap(p => p.tr), 0xfff4d6, 1.15, .75);
   trait("fleuves", DATA.fleuves.filter(f => !f.fr || FLEUVES_FR.includes(f.n)).flatMap(f => f.tr), 0x5fc8ff, 1.7, .95);
@@ -1170,7 +1272,7 @@ function creerEtiquettes() {
   for (const p of DATA.pays) {
     if (p.cache || (p.aire < .05 && !EUROPE.includes(p.a3))) continue;
     const s = Math.sqrt(p.aire), max = .2 + s * .07;
-    etiq(p.n, "pays" + (s > 20 ? " grand" : ""), p.l[0], p.l[1], "pays", .02, max, 30 - Math.min(s, 25) * .6 + p.r);
+    etiq(p.n, "pays" + (s > 20 ? " grand" : ""), p.l[0], p.l[1], "pays", .02, max, 30 - Math.min(s, 25) * .6 + p.r, { a3: p.a3 });
     if (p.cap) etiq(p.cap[0], "cap", p.cap[1], p.cap[2], "cap", .02, p.pop > 8e7 ? 1.2 : p.pop > 2e7 ? .7 : p.pop > 4e6 ? .45 : .28, 40 - Math.log10(p.pop + 10));
   }
   for (const v of DATA.villes) {
@@ -1210,9 +1312,9 @@ function majEtiquettes() {
     }
     if (ok) {
       if (!e.altOk) { e.alt = Math.max(hauteur(e.lon, e.lat), 0); e.altOk = true; }
-      vTmp.copy(e.dir).multiplyScalar(1 + e.alt * K + .004);
-      vCam.copy(camera.position).sub(vTmp);
-      if (vCam.dot(e.dir) < vCam.length() * .08) ok = false;
+      if (PLAN) { vTmp.set(prochePlan(e.lon * D2R), e.lat * D2R, .001); vCam.set(0, 0, 1); }
+      else { vTmp.copy(e.dir).multiplyScalar(1 + e.alt * K + .004); vCam.copy(camera.position).sub(vTmp); }
+      if (!PLAN && vCam.dot(e.dir) < vCam.length() * .08) ok = false;
       else { vProj.copy(vTmp).project(camera); if (vProj.z > 1 || Math.abs(vProj.x) > 1.1 || Math.abs(vProj.y) > 1.1) ok = false; else { e.x = (vProj.x * .5 + .5) * w; e.y = (-vProj.y * .5 + .5) * h; cand.push(e); } }
     }
     if (!ok && e.vis) { e.el.style.display = "none"; e.vis = false; }
@@ -1229,7 +1331,9 @@ function majEtiquettes() {
     e.el.style.transform = `translate(${x0.toFixed(1)}px,${y0.toFixed(1)}px)`;
   }
 }
+function prochePlan(x) { const c = camera.position.x; return x + Math.round((c - x) / (2 * Math.PI)) * 2 * Math.PI; }
 function etiqActive(e) {
+  if (e.a3 && POV_ABS.has(e.a3)) return false;
   switch (e.calque) {
     case "fleuvesFr": return CAL.fleuves || CAL.france;
     case "massifsFr": return CAL.monts || CAL.france;
@@ -1238,7 +1342,14 @@ function etiqActive(e) {
 }
 
 // ============================================================ caméra : tourner, zoomer, s'incliner près du sol
-const DMIN = .03, DMAX = 4.2;
+const DMIN = .02, DMAX = 4.2;
+function choisirVue(v) {   // « globe » (le globe en 3D) ou « plan » (le planisphère)
+  PLAN = v === "plan"; REG.vue = v; sauverReg();
+  if (globe) { globe.visible = !PLAN; plan.visible = PLAN; atmos.visible = !PLAN; dome.visible = !PLAN; etoiles.visible = !PLAN; }
+  scene.background.set(PLAN ? 0x0b1a2c : 0x03070f);
+  if (PLAN) CAM.lat = THREE.MathUtils.clamp(CAM.lat, -70, 70);
+  refaireTraits(); placerCamera(); appliquerCalques();
+}
 const CAM = { lon: 8, lat: 28, d: 3.2, vlon: 0, vlat: 0, vol: null, bouge: true };
 const vT = new THREE.Vector3(), vUp = new THREE.Vector3(), vNord = new THREE.Vector3(), vEst = new THREE.Vector3();
 function bases(lon, lat) {
@@ -1247,6 +1358,18 @@ function bases(lon, lat) {
 }
 function placerCamera() {
   const K = kMetres(), d = CAM.d;
+  if (PLAN) {
+    const x = CAM.lon * D2R, y = CAM.lat * D2R;
+    camera.position.set(x, y, d); camera.up.set(0, 1, 0); camera.lookAt(x, y, 0);
+    camera.near = d * .05; camera.far = d * 4 + 2; camera.updateProjectionMatrix();
+    U.uSun.value.set(-.5, .55, .67).normalize(); soleil.position.set(-5, 5.5, 6.7);
+    U.uDetail.value = sstep(.5, .06, d); U.uSky.value = 0; U.uHaze.value = 0; U.uFogL.value = 1;
+    U.uKs.value = kMetres() * (2.6 - 0.9 * U.uDetail.value);
+    U.uGridStep.value = d > 1.4 ? 30 : d > .6 ? 15 : d > .2 ? 10 : 5;
+    U.uPatchOn.value = 0; patch.visible = false;
+    if (bouffees) bouffees.visible = false; if (nuages) nuages.visible = false;
+    CAM.bouge = true; return;
+  }
   bases(CAM.lon, CAM.lat);
   const tilt = 1.2 * sstep(.55, .03, d) ** 1.1;   // on penche la caméra quand on est près du sol
   const hT = Math.max(hauteur(CAM.lon, CAM.lat), 0) * K * sstep(.6, .05, d);
@@ -1383,6 +1506,9 @@ const ray = new THREE.Raycaster();
 function viser(x, y) {
   ray.setFromCamera(new THREE.Vector2(x / innerWidth * 2 - 1, -(y / innerHeight) * 2 + 1), camera);
   const o = ray.ray.origin, dir = ray.ray.direction, K = kMetres();
+  if (PLAN) { if (Math.abs(dir.z) < 1e-6) return null; const t = -o.z / dir.z; if (t < 0) return null;
+    const x = o.x + dir.x * t, y = o.y + dir.y * t; if (Math.abs(y) > Math.PI / 2) return null;
+    return { lon: ((x / D2R + 540) % 360 + 360) % 360 - 180, lat: y / D2R }; }
   let r = 1, res = null;
   for (let it = 0; it < 4; it++) {
     const b = o.dot(dir), c = o.lengthSq() - r * r, disc = b * b - c; if (disc < 0) return res;
@@ -1446,6 +1572,7 @@ function creerAnneau() {
 }
 function marqueur(lon, lat, taille) {
   if (lon == null) { anneau.visible = false; return; }
+  if (PLAN) { anneau.position.set(prochePlan(lon * D2R), lat * D2R, .002); anneau.quaternion.identity(); anneau.userData.t = taille || 0; anneau.visible = true; return; }
   const d = versDir(lon, lat); anneau.position.copy(d).multiplyScalar(1 + Math.max(hauteur(lon, lat), 0) * kMetres() + .003);
   anneau.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), d); anneau.userData.t = taille || 0; anneau.visible = true;
 }
@@ -1458,7 +1585,7 @@ function regionA(lon, lat) {
 const GROUPES = [
   ["Le monde", [["cont", "Continents", "continent"], ["oce", "Océans", "ocean"], ["mers", "Mers", "mer"], ["pays", "Pays et frontières", "pays"], ["polit", "Pays en couleurs", "palette"], ["cap", "Capitales", "capitale"], ["villes", "Grandes villes", "ville"]]],
   ["Les repères", [["equ", "Équateur", "equateur"], ["trop", "Tropiques", "tropiques"], ["pol", "Cercles polaires", "polaires"], ["gre", "Méridien de Greenwich", "greenwich"], ["grille", "Latitudes et longitudes", "grille"]]],
-  ["La nature", [["fleuves", "Fleuves", "fleuve"], ["monts", "Montagnes", "montagne"], ["deserts", "Déserts", "desert"], ["deco", "Paysages en 3D", "arbre"], ["clim", "Zones climatiques", "climat"], ["nuages", "Nuages", "nuage"], ["nuit", "Jour et nuit", "nuit"]]],
+  ["La nature", [["fleuves", "Fleuves", "fleuve"], ["monts", "Montagnes", "montagne"], ["deserts", "Déserts", "desert"], ["clim", "Zones climatiques", "climat"], ["nuages", "Nuages", "nuage"], ["nuit", "Jour et nuit", "nuit"]]],
   ["La France", [["france", "Régions, villes, outre-mer", "france"]]],
 ];
 function creerCalques() {
@@ -1516,7 +1643,7 @@ let quizPaysage = false;
 const vueMonde = () => [THREE.MathUtils.clamp(CAM.lon, -180, 180), 18, 3.3];
 const etiqNom = n => e => e.el.textContent === n;
 function surligner(traces) { LIGNES3D.surligne.userData.traces = traces; refaireUn(LIGNES3D.surligne); LIGNES3D.surligne.visible = traces.length > 0; }
-function refaireUn(l) { const g = new LineSegmentsGeometry(); g.setPositions(segments(l.userData.traces, l.userData.haut)); l.geometry.dispose(); l.geometry = g; }
+function refaireUn(l) { poserTrait(l); }
 const pays = a3 => PAYS_A3[a3];
 const vuePays = p => { const bb = p.bb, s = Math.max(bb[2] - bb[0], bb[3] - bb[1]); return [p.l[0], p.l[1], THREE.MathUtils.clamp(s * D2R * 2.4, .1, 2.6)]; };
 function pres(lon, lat, pid) { // tolérance d'environ 16 pixels d'écran autour du doigt (petits pays)
@@ -1606,7 +1733,7 @@ const QUIZ = { actif: false, scores: LS.lire("scores", {}),
     this.frontieres = q.frontieres || 0; this.regions = q.regions || 0; appliquerCalques();
     if (q.type === "choix") U.uClim.value = 0;
     calqueQuiz = () => false;
-    $("qTexte").textContent = q.texte; $("qAide").textContent = q.type === "touche" ? "Tourne le globe, puis touche le bon endroit." : "";
+    $("qTexte").textContent = q.texte; $("qAide").textContent = q.type === "touche" ? (PLAN ? "Déplace la carte, puis touche le bon endroit." : "Tourne le globe, puis touche le bon endroit.") : "";
     $("qPoints").innerHTML = Array.from({ length: 10 }, (_, k) => `<i class="${k < this.res.length ? (this.res[k] ? "ok" : "ko") : k === this.i ? "ici" : ""}"></i>`).join("");
     $("qScore").textContent = `${this.score} ★`;
     q.montrer && q.montrer(); appliquerCalques();
@@ -1735,8 +1862,47 @@ $("tReglages").onclick = () => {
   for (const b of $("qualites").children) b.onclick = () => { if (REG.qualite === b.dataset.q) return; REG.qualite = b.dataset.q; sauverReg(); location.reload(); };
   $("musiques").innerHTML = [[true, "Oui"], [false, "Non"]].map(([v, n]) => `<button class="choixq${REG.musique === v ? " on" : ""}" data-v="${v}">${n}</button>`).join(" ");
   for (const b of $("musiques").children) b.onclick = () => { REG.musique = b.dataset.v === "true"; sauverReg(); majSon(); $("tReglages").onclick(); };
+  $("vues").innerHTML = [["globe", "Globe"], ["plan", "Planisphère"]].map(([k, n]) => `<button class="choixq${(REG.vue || "globe") === k ? " on" : ""}" data-v="${k}">${n}</button>`).join(" ");
+  for (const b of $("vues").children) b.onclick = () => { son.clic(); choisirVue(b.dataset.v); $("tReglages").onclick(); };
+  $("paysTxt").textContent = REG.paysNom || "—";
+  $("changerPays").onclick = () => { son.clic(); $("reglagesV").hidden = true; ouvrirPays(() => $("tReglages").onclick()); };
   $("versionTxt").textContent = window.MONDE_VERSION || ""; $("reglagesV").hidden = false;
 };
+
+// ============================================================ pays de l'enfant : frontières vues par ce pays (Natural Earth)
+const PAYS_POV = [["fra", "France"], ["deu", "Allemagne"], ["sau", "Arabie saoudite"], ["arg", "Argentine"], ["bdg", "Bangladesh"], ["", "Belgique"],
+  ["bra", "Brésil"], ["", "Canada"], ["chn", "Chine"], ["kor", "Corée du Sud"], ["egy", "Égypte"], ["esp", "Espagne"], ["usa", "États-Unis"], ["grc", "Grèce"],
+  ["ind", "Inde"], ["idn", "Indonésie"], ["isr", "Israël"], ["ita", "Italie"], ["jpn", "Japon"], ["", "Luxembourg"], ["mar", "Maroc"], ["nep", "Népal"],
+  ["pak", "Pakistan"], ["pse", "Palestine"], ["nld", "Pays-Bas"], ["pol", "Pologne"], ["prt", "Portugal"], ["gbr", "Royaume-Uni"], ["rus", "Russie"],
+  ["swe", "Suède"], ["", "Suisse"], ["tur", "Turquie"], ["ukr", "Ukraine"], ["vnm", "Viêt Nam"], ["", "Un autre pays"]];
+const POV_ABS = new Set();
+function appliquerPov(code) {
+  for (let k = 0; k < W * H; k++) IDS[k * 4] = BASE_R[k];   // on repart de la carte de base (frontières de fait)
+  POV_ABS.clear();
+  const P = code && FRONT && FRONT.pov[code];
+  let traces;
+  if (P) {
+    const sc = 4096 / W;
+    for (const [i0, n, v] of P.rle) for (let i = i0; i < i0 + n; i++) {
+      const y = Math.floor(i / 4096), x = i % 4096; if (sc > 1 && (x % sc || y % sc)) continue;
+      IDS[((y / sc) * W + x / sc) * 4] = v;
+    }
+    const chg = new Set(P.chg.map(c => c.a3)); for (const a of P.abs) POV_ABS.add(a);
+    traces = DATA.pays.filter(p => !chg.has(p.a3) && !POV_ABS.has(p.a3)).flatMap(p => p.tr).concat(P.chg.flatMap(c => FRONT.traces[c.t]));
+  } else traces = DATA.pays.flatMap(p => p.tr);
+  texI.needsUpdate = true;
+  const l = LIGNES3D.pays; l.userData.traces = traces; poserTrait(l);
+  CAM.bouge = true;
+}
+function ouvrirPays(apres) {
+  $("listePays").innerHTML = PAYS_POV.map(([c, n], i) => `<button class="place${i === 0 ? " speciale" : ""}${REG.paysNom === n ? " speciale" : ""}" data-i="${i}">${n}</button>`).join("");
+  for (const b of $("listePays").children) b.onclick = () => {
+    const [c, n] = PAYS_POV[+b.dataset.i]; son.clic();
+    REG.pov = c; REG.paysNom = n; sauverReg(); appliquerPov(c);
+    $("paysV").hidden = true; apres && apres();
+  };
+  $("paysV").hidden = false;
+}
 
 // ============================================================ boucle
 const horloge = new THREE.Clock(); let images = 0, tPerf = 0, tLieu = 0, figee = 0;
@@ -1775,21 +1941,24 @@ addEventListener("resize", () => {
 (async () => {
   try {
     await charger();
-    progres(.82, "Je plante les arbres…"); await pause();
+    progres(.82, "Je dessine les côtes…"); await pause();
     for (const p of DATA.pays) { PAYS_ID[p.id] = p; PAYS_A3[p.a3] = p; }
     for (const m of DATA.mers) MER_ID[m.id] = m;
-    creerGlobe(); creerTraits(); creerDeco(); creerBouffees(); creerAnneau(); creerEtiquettes(); creerCalques(); creerVoyage(); majSon();
+    creerGlobe(); creerTraits(); creerBouffees(); creerAnneau(); creerEtiquettes(); creerCalques(); creerVoyage(); majSon();
     placerCamera(); appliquerCalques();
     progres(.92, "Encore un instant…"); await pause();
     // tout préparer avant de montrer (pas d'à-coup au premier zoom)
-    const vis = [patch.visible, nuages.visible, bouffees.visible]; patch.visible = true; nuages.visible = true; bouffees.visible = true; for (const m of DECO.mesh) m.visible = true;
+    const vis = [patch.visible, nuages.visible, bouffees.visible, plan.visible]; patch.visible = true; nuages.visible = true; bouffees.visible = true; plan.visible = true; for (const m of DECO.mesh) m.visible = true;
     for (const l of Object.values(LIGNES3D)) l.visible = true;
     try { await renderer.compileAsync(scene, camera); } catch (e) { renderer.compile(scene, camera); }
-    for (const t of [texH, texHE, texC, texI, texPal]) renderer.initTexture(t);
+    for (const t of [texH, texHE, texC, texI, texPal, texS]) renderer.initTexture(t);
     renderer.render(scene, camera);
-    patch.visible = vis[0]; nuages.visible = vis[1]; bouffees.visible = vis[2]; appliquerCalques(); placerCamera();
-    progres(1); $("chargement").hidden = true; $("titre").hidden = false;
-    window.__monde = { CAM, allerA, placerCamera, QUIZ, GEN, THEMES, CAL, appliquerCalques, toucherGlobe, viser, renderer, U, explorer };
+    patch.visible = vis[0]; nuages.visible = vis[1]; bouffees.visible = vis[2]; plan.visible = vis[3]; appliquerCalques(); placerCamera();
+    if (REG.vue === "plan") choisirVue("plan");
+    if (REG.pov) appliquerPov(REG.pov);
+    progres(1); $("chargement").hidden = true;
+    if (REG.pov === undefined) ouvrirPays(() => { $("titre").hidden = false; }); else $("titre").hidden = false;
+    window.__monde = { choisirVue, appliquerPov, ouvrirPays, CAM, allerA, placerCamera, QUIZ, GEN, THEMES, CAL, appliquerCalques, toucherGlobe, viser, renderer, U, explorer };
     if (PARAMS.has("explorer")) explorer();
     if (perfOn) $("perf").hidden = false;
     boucle();
@@ -1799,7 +1968,7 @@ addEventListener("resize", () => {
 })();
 </script>
 <script>
-window.MONDE_VERSION = "2026.11.06-4"; // à changer à chaque modification
+window.MONDE_VERSION = "2026.11.06-6"; // à changer à chaque modification
 </script>
 <script>
 // Application installable : gardée sur l'appareil par sw.js (marche sans réseau).
@@ -1823,7 +1992,7 @@ window.MONDE_VERSION = "2026.11.06-4"; // à changer à chaque modification
       if (!installer) { btn.classList.add("neuf"); info("Une nouvelle version est prête : appuie sur la flèche ronde !"); return; }
       info("Installation de la nouvelle version…");
       await c.put(ici, neuf);
-      for (const f of ["manifest.webmanifest", "icone-192.png", "icone-512.png", "apple-touch-icon.png", "donnees/relief.webp", "donnees/couleurs.jpg", "donnees/ids.png", "donnees/paysages.png", "donnees/monde.json", "donnees/relief_europe.webp"]) {
+      for (const f of ["manifest.webmanifest", "icone-192.png", "icone-512.png", "apple-touch-icon.png", "donnees/relief.webp", "donnees/couleurs.jpg", "donnees/ids.png", "donnees/paysages.png", "donnees/monde.json", "donnees/relief_europe.webp", "donnees/sols.png", "donnees/frontieres.json"]) {
         try { const r = await frais(f); if (r.ok) await c.put(new URL(f, ici).href, r); } catch (e) {}
       }
       const reg = await navigator.serviceWorker.getRegistration(); if (reg) await reg.update().catch(() => {});

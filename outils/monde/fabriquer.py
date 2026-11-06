@@ -8,7 +8,8 @@ Sorties :
   relief.webp   4096×2048 RGB sans perte : R,G = altitude sur 16 bits (h = valeur × 2 − 11000 m), B = part de lac (0..255)
   couleurs.jpg  4096×2048     : couleurs des paysages (sur la mer : blanc = banquise)
   ids.png       4096×2048 RGB : R = pays, G = mer / océan nommé, B = continent (1..7) ou océan (10..14)
-  paysages.png  2048×1024 L   : type de paysage (voir PAYSAGES), pour le jeu (taper, symboles 3D, quiz)
+  paysages.png  2048×1024 L   : type de paysage (voir PAYSAGES), pour le jeu (toucher, quiz)
+  sols.png      2048×1024 RGB : familles de sol (R forêt, G champs, B sable) pour les motifs fins du shader
   monde.json                  : pays, villes, fleuves, frontières, régions de France, noms des lieux
 """
 import glob, json, math, os, sys
@@ -336,6 +337,14 @@ col[bord] = col[iy[bord], ix[bord]]
 classe_b = classe.copy(); classe_b[mer & (banq > .5)] = BANQUISE
 Image.fromarray(classe_b[::2, ::2], "L").save(os.path.join(OUT, "paysages.png"), optimize=True)
 Image.fromarray(np.clip(col, 0, 255).astype(np.uint8), "RGB").save(os.path.join(OUT, "couleurs.jpg"), quality=88, subsampling=0)
+# familles de sol pour les motifs fins du jeu (R forêt, G champs, B sable), 2048×1024, bords adoucis
+POIDS = {TAIGA: (1, 0, 0), FORET: (.85, .25, 0), JUNGLE: (1, 0, 0), PRAIRIE: (.15, 1, 0), MEDIT: (.35, .6, .15), STEPPE: (0, .08, .55),
+         SAVANE: (.3, 0, .4), DESERT: (0, 0, 1), TOUNDRA: (.1, .1, .2), MONTAGNE: (0, 0, .15)}
+fam = np.zeros((H, W, 3), np.float32)
+for k, w in POIDS.items(): fam[base == k] = w
+fam[~terre] = 0
+fam = np.stack([ndimage.gaussian_filter(fam[..., c], 1.6) for c in range(3)], -1)
+Image.fromarray(np.clip(fam[::2, ::2] * 255, 0, 255).astype(np.uint8), "RGB").save(os.path.join(OUT, "sols.png"), optimize=True)
 
 # ---------- données vectorielles ----------
 print("vecteurs…")

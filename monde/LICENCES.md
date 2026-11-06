@@ -10,6 +10,7 @@ avant une vraie commercialisation, le faire relire par un juriste (surtout les p
 |---|---|---|---|---|
 | Relief et fonds marins (`donnees/relief.webp`, `relief_europe.webp`) | **ETOPO 2022**, NOAA NCEI (États-Unis), grille à 15″ ré-échantillonnée | **CC0 1.0** : « NOAA waives any potential copyright and related rights in these data worldwide through the Creative Commons Zero 1.0 Universal Public Domain Dedication » (fiche ISO du jeu de données `gov.noaa.ngdc.mgg.dem:etopo_2022`) | Oui | Aucune. Citation conseillée : *NOAA National Centers for Environmental Information, 2022 : ETOPO 2022 15 Arc-Second Global Relief Model. doi:10.25921/fd45-gt74* |
 | Frontières, côtes, lacs, fleuves, noms des pays, capitales, villes, populations, régions de France, mers, montagnes, déserts (`monde.json`, `ids.png`, contours de `couleurs.jpg`) | **Natural Earth** (naturalearthdata.com), échelles 1:10m et 1:50m | **Domaine public** : « All versions of Natural Earth raster + vector map data … are in the public domain … invites you to use them for personal, educational, and commercial purposes. No permission is needed … Crediting the authors is unnecessary. » | Oui | Aucune (mention « Made with Natural Earth » facultative) |
+| Frontières selon le pays de l'enfant (`donnees/frontieres.json`) | **Natural Earth** 1:10m, « points de vue » officiels de 30 pays | **Domaine public** (mêmes conditions) | Oui | Aucune |
 | Couleurs des paysages, banquise, zones de forêts/déserts/savanes (`couleurs.jpg`, `paysages.png`) | Calculées par nos scripts (`outils/monde/fabriquer.py`, zones dessinées à la main dans `zones.py`) | Création propre | Oui | — |
 | Code du jeu, shaders (rendu inspiré de DragonFlyer, même propriétaire), icônes SVG, emblème, sons et musique (Web Audio) | Écrits pour ce dépôt | Création propre | Oui | — |
 | Icône de l'application (`icone*.png`) | `icone.svg`, dessinée en code | Création propre | Oui | — |
@@ -28,9 +29,10 @@ Rien n'oblige à citer les sources, mais l'écran Réglages les mentionne (bonne
 
 1. **Nom « My World Explorer »** : vérifier qu'il n'est pas déjà une marque déposée dans la catégorie des logiciels/jeux éducatifs
    (bases INPI, EUIPO, USPTO, et recherche dans l'App Store et Google Play). Ce bilan ne couvre pas les marques.
-2. **Frontières disputées** : Natural Earth montre les frontières « de fait » (Cachemire, Sahara occidental, Crimée, Palestine,
-   Taïwan…). Certains pays imposent leur propre tracé pour les cartes publiées chez eux (notamment Inde, Chine, Maroc) :
-   en cas de vente dans ces pays, vérifier les règles locales ou exclure ces marchés.
+2. **Frontières disputées** : la carte de base montre les frontières « de fait ». Au premier lancement, l'appli demande où habite
+   l'enfant et applique alors le tracé officiel de ce pays (points de vue Natural Earth : Inde, Chine, Maroc, Pakistan… 30 pays ;
+   Taïwan exclu). Ces tracés sont ceux de Natural Earth, pas des textes de loi : en cas de vente dans un pays qui contrôle
+   les cartes (Inde, Chine…), faire valider par un spécialiste local.
 3. **Polices** : aujourd'hui chargées depuis les serveurs de Google (l'adresse IP de l'appareil leur est transmise).
    Pour une appli payante destinée aux enfants (RGPD, catégorie « Enfants » de l'App Store), embarquer les fichiers de police
    dans l'application (permis par l'OFL) et three.js aussi, pour ne contacter aucun serveur tiers.
