@@ -7,6 +7,7 @@ Structure :
 - `jeux/<nom>.html` — un fichier par jeu.
 - `pins/` — Le Domaine des Pins, en application installable (voir plus bas).
 - `dragonflyer/` — DragonFlyer, en application installable (voir plus bas).
+- `lueurs/` — Les Trois Lueurs, démo faite avec le moteur Luminati (voir plus bas) ; fabriquée par `outils/lumina/`.
 - `monde/` — My World Explorer, le globe terrestre, en application installable (voir plus bas) ; ses cartes sont faites par `outils/monde/`.
 - `blender/pins/` — scripts Blender qui fabriquent les modèles du Domaine des Pins (`pins/assets/*.glb`) ; méthode : `blender/pins/METHODE.md`.
 - `blender/dragonflyer/` — scripts (Blender, numpy) qui fabriquent le dragon, le héros et le relief de DragonFlyer,
@@ -177,6 +178,22 @@ installable comme le Domaine des Pins (`manifest.webmanifest`, `sw.js`, bouton �
   (demande du propriétaire) : seulement des textures (motifs de champs, forêts, dunes dessinés par le shader d'après `sols.png`).
 - Au premier lancement : « Où habites-tu ? » (France en premier) ; le pays est gardé (`monde:reglages`) et choisit le tracé
   des frontières disputées (`donnees/frontieres.json`, fait par `outils/monde/frontieres.py`). Droits : `monde/LICENCES.md`.
+
+## Exception : Les Trois Lueurs (moteur Luminati)
+
+Demande du propriétaire (novembre 2026) : une démo faite avec le moteur 2.5D **Luminati**
+(https://gitlab.com/stubborn-hug/lumina, licence MIT, three.js r186, tout est dessiné et synthétisé par le code),
+dans le style des aventures 16 bits vues de dessus (images d'inspiration fournies, jamais recopiées).
+- `lueurs/index.html` : page de lancement (règles, commandes, bouton Accueil). `lueurs/jeu/` : le jeu **compilé**
+  (Vite) — ne pas le modifier à la main : tout se refait avec `bash outils/lumina/fabriquer.sh`.
+- `outils/lumina/` : le commit du moteur utilisé (`COMMIT` dans `fabriquer.sh`), nos retouches au moteur
+  (`moteur/luminati.patch` : le style « retro » — caméra plus haute, flou presque nul, couleurs vives, gros pixels —
+  et le français ; `moteur/fr.js` : l'interface en français ; `moteur/tactile.js` : joystick et boutons pour tablette,
+  bouton Accueil), et la campagne (`make-trois-lueurs.mjs` : trois niveaux, trois styles — prés verts, gorges d'ocre
+  au climat aride, marais des brumes au crépuscule — et l'histoire des trois lueurs).
+- Le jeu lit ses niveaux (`lueurs/jeu/campaigns/`) depuis le même site : il marche sur GitHub Pages, pas dans l'artefact.
+  Les polices viennent de Google Fonts (sinon des copies locales). Pas d'autre réseau. Licence : `lueurs/jeu/LICENCE-Luminati.txt`.
+- Sauvegarde : celle du moteur (`localStorage`), « Nouvelle partie » recommence.
 
 ## Exception : sons enregistrés du Domaine des Pins
 

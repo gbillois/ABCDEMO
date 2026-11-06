@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Les Trois Lueurs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root { --nuit: #10131f; --encre: #f4ecd2; --or: #e8c66a; --or-fonce: #9a7428; --vert: #6fbf4a; --ocre: #e0813a; --brume: #6fa8dc; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--nuit); color: var(--encre); }
+  body { font-family: "Pixelify Sans", system-ui, sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+  canvas#paysage { position: fixed; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; z-index: 0; }
+  main { position: relative; z-index: 1; width: min(720px, 100% - 32px); margin: max(24px, env(safe-area-inset-top)) auto 32px; display: flex; flex-direction: column; gap: 18px; }
+  .cadre { background: rgba(12, 14, 26, 0.86); border: 3px solid var(--or); box-shadow: 0 0 0 3px #000, inset 0 0 0 2px var(--or-fonce); padding: 18px 20px; }
+  h1 { margin: 0; font-size: clamp(32px, 8vw, 56px); text-align: center; letter-spacing: 2px; color: var(--or); text-shadow: 3px 3px 0 #000; }
+  .sous-titre { text-align: center; margin: 4px 0 0; font-size: 18px; opacity: 0.85; }
+  .lueurs { display: flex; justify-content: center; gap: 22px; margin: 14px 0 4px; }
+  .lueur { width: 18px; height: 18px; image-rendering: pixelated; animation: danse 1.6s steps(4) infinite; }
+  .lueur:nth-child(2) { animation-delay: -0.5s; } .lueur:nth-child(3) { animation-delay: -1s; }
+  @keyframes danse { 50% { transform: translateY(-5px); } }
+  .boutons { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+  .bouton { display: inline-block; text-decoration: none; font: 700 22px "Pixelify Sans", system-ui, sans-serif; color: #1b1405; background: var(--or); padding: 12px 22px; border: 3px solid #000; box-shadow: 4px 4px 0 #000; cursor: pointer; }
+  .bouton:hover, .bouton:focus-visible { background: #ffe39a; outline: none; }
+  .bouton:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
+  .bouton.petit { font-size: 16px; padding: 8px 14px; background: #c9b78a; }
+  h2 { margin: 0 0 8px; font-size: 22px; color: var(--or); }
+  ul { margin: 0; padding-left: 20px; line-height: 1.5; font-size: 17px; }
+  .pays { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+  .pays div { border: 2px solid #000; padding: 10px; font-size: 15px; line-height: 1.35; }
+  .pays b { display: block; font-size: 17px; margin-bottom: 2px; }
+  .vert { background: #2f5a24; } .ocre { background: #7a3d16; } .brume { background: #2b3557; }
+  table { border-collapse: collapse; font-size: 16px; width: 100%; }
+  td { padding: 3px 6px; vertical-align: top; }
+  kbd { display: inline-block; background: #2b2f45; border: 2px solid #5b6080; padding: 0 6px; font-family: inherit; font-size: 14px; }
+  .note { font-size: 14px; opacity: 0.8; line-height: 1.4; }
+  .note a { color: var(--or); }
+  .retour { position: relative; z-index: 1; align-self: flex-start; margin: max(12px, env(safe-area-inset-top)) 16px 0; }
+</style>
+</head>
+<body>
+<canvas id="paysage" aria-hidden="true"></canvas>
+<a class="bouton petit retour" href="../index.html">◂ Accueil</a>
+<main>
+  <section class="cadre">
+    <h1>Les Trois Lueurs</h1>
+    <p class="sous-titre">Une démo d'aventure en pixels et en 3D</p>
+    <div class="lueurs" aria-hidden="true">
+      <canvas class="lueur" width="9" height="9" data-c="#9cff8a"></canvas>
+      <canvas class="lueur" width="9" height="9" data-c="#ffb35a"></canvas>
+      <canvas class="lueur" width="9" height="9" data-c="#8fd8ff"></canvas>
+    </div>
+    <div class="boutons">
+      <a class="bouton" href="jeu/game.html?campaign=trois-lueurs">Jouer ▸</a>
+      <a class="bouton petit" href="jeu/game.html?campaign=trois-lueurs&amp;new=1">Nouvelle partie</a>
+    </div>
+  </section>
+
+  <section class="cadre">
+    <h2>L'histoire</h2>
+    <p style="margin:0;font-size:17px;line-height:1.5">Cette nuit, la Grande Lanterne du Bourg des Prés s'est éteinte. Ses trois lueurs se sont envolées. Retrouve-les et rallume la Lanterne !</p>
+  </section>
+
+  <section class="cadre">
+    <h2>Trois pays, trois styles</h2>
+    <div class="pays">
+      <div class="vert"><b>Le Bourg des Prés</b>Des prés verts, un lac, et le plateau de la Lanterne.</div>
+      <div class="ocre"><b>Les Gorges d'Ocre</b>À l'est : sable rouge, falaises de grès et oasis.</div>
+      <div class="brume"><b>Le Marais des Brumes</b>Au sud : mares, pontons, brume et lucioles.</div>
+    </div>
+  </section>
+
+  <section class="cadre">
+    <h2>Les commandes</h2>
+    <table>
+      <tr><td><kbd>Z Q S D</kbd> / <kbd>←↑→↓</kbd></td><td>Marcher (<kbd>Maj</kbd> pour courir)</td></tr>
+      <tr><td><kbd>Espace</kbd></td><td>Parler, ouvrir, prendre</td></tr>
+      <tr><td><kbd>J</kbd> ou clic gauche</td><td>Coup d'épée</td></tr>
+      <tr><td><kbd>K</kbd> ou clic droit</td><td>Roulade</td></tr>
+      <tr><td><kbd>C</kbd></td><td>Potion de soin</td></tr>
+      <tr><td><kbd>B</kbd> · <kbd>N</kbd></td><td>Journal des quêtes · carte</td></tr>
+      <tr><td><kbd>H</kbd></td><td>Montrer ou cacher l'aide</td></tr>
+      <tr><td>Sur tablette</td><td>Un joystick sous le pouce gauche, les boutons à droite</td></tr>
+    </table>
+    <p class="note">Les pierres de route (les piliers au cristal bleu) te soignent quand tu les touches. La partie se garde toute seule dans le navigateur.</p>
+  </section>
+
+  <p class="note cadre">Fait avec le moteur <a href="https://gitlab.com/stubborn-hug/lumina">Luminati</a> (licence MIT, voir <a href="jeu/LICENCE-Luminati.txt">la licence</a>) et three.js. Tous les dessins et les sons sont fabriqués par le code. Le jeu demande un ordinateur ou une tablette récente (WebGL 2).</p>
+</main>
+<script>
+  // Les petites flammes du titre, dessinées pixel par pixel.
+  const FLAMME = ["....#....", "...###...", "..##o##..", "..#ooo#..", ".##ooo##.", ".#ooooo#.", ".#oo*oo#.", "..#ooo#..", "...###..."];
+  for (const c of document.querySelectorAll(".lueur")) {
+    const g = c.getContext("2d");
+    FLAMME.forEach((ligne, y) => [...ligne].forEach((ch, x) => {
+      if (ch === ".") return;
+      g.fillStyle = ch === "#" ? c.dataset.c : ch === "*" ? "#ffffff" : "#fff6d0";
+      g.fillRect(x, y, 1, 1);
+    }));
+  }
+
+  // Le décor du fond : des collines en pixels, vertes, ocre et bleues.
+  const fond = document.getElementById("paysage");
+  function dessinerFond() {
+    const L = 160, H = Math.max(90, Math.round(160 * innerHeight / Math.max(1, innerWidth)));
+    fond.width = L; fond.height = H;
+    const g = fond.getContext("2d");
+    const ciel = g.createLinearGradient(0, 0, 0, H);
+    ciel.addColorStop(0, "#1a2340"); ciel.addColorStop(0.6, "#3b4a72"); ciel.addColorStop(1, "#6b5a7a");
+    g.fillStyle = ciel; g.fillRect(0, 0, L, H);
+    let graine = 7;
+    const hasard = () => ((graine = (graine * 16807) % 2147483647) / 2147483647);
+    for (let i = 0; i < 60; i++) { g.fillStyle = hasard() > 0.5 ? "#c9d4ff" : "#8f9cc9"; g.fillRect(Math.floor(hasard() * L), Math.floor(hasard() * H * 0.5), 1, 1); }
+    const couches = [["#2b3557", 0.62, 0.11], ["#7a3d16", 0.72, 0.07], ["#2f5a24", 0.82, 0.05]];
+    for (const [couleur, base, amp] of couches) {
+      g.fillStyle = couleur;
+      for (let x = 0; x < L; x++) {
+        const y = Math.round(H * (base + amp * Math.sin(x / 13 + base * 9) + amp * 0.5 * Math.sin(x / 5.3 + base * 3)));
+        g.fillRect(x, y, 1, H - y);
+      }
+    }
+  }
+  dessinerFond();
+  addEventListener("resize", dessinerFond);
+</script>
+</body>
+</html>

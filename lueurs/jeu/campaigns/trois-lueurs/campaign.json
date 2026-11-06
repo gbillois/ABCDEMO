@@ -1,0 +1,51 @@
+{
+  "format": "luminati-campaign",
+  "version": 1,
+  "name": "Les Trois Lueurs",
+  "subtitle": "Une démo du moteur Luminati",
+  "title": {
+    "title": "LES TROIS LUEURS",
+    "subtitle": "Une démo du moteur Luminati pour Théo",
+    "credit": "Moteur Luminati 2.5D (MIT) · three.js"
+  },
+  "look": "retro",
+  "start": {
+    "level": "bourg",
+    "entrance": ""
+  },
+  "levels": [
+    {
+      "id": "bourg",
+      "at": [0, 0]
+    },
+    {
+      "id": "gorges",
+      "at": [48, 6]
+    },
+    {
+      "id": "marais",
+      "at": [0, 40]
+    }
+  ],
+  "chapters": [
+    {
+      "id": "lanterne",
+      "title": "Chapitre un",
+      "subtitle": "La Lanterne éteinte",
+      "textKeys": {
+        "title": "972E245E3B9938F61A6A293BC18A0047",
+        "subtitle": "69ED4CC7914759642C94F99AAD612B78"
+      }
+    }
+  ],
+  "story": [
+    "main.json",
+    "dialogue.story"
+  ],
+  "textKeys": {
+    "subtitle": "0AF1AA770A43BEC55FC15B4B8B4ACF9E",
+    "title.title": "73D200ADBEF31CE9DB95F1083B156E31",
+    "title.subtitle": "DFF89C1456378A41E2FE42E8621124C4",
+    "title.credit": "C4B674C24898A5BC19C729B4FE555B7C"
+  }
+}
