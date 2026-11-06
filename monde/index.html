@@ -441,7 +441,7 @@ const LS = { lire(k, d) { try { const v = localStorage.getItem("monde:" + k); re
              ecrire(k, v) { try { localStorage.setItem("monde:" + k, JSON.stringify(v)); } catch (e) {} } };
 const petitEcran = Math.min(screen.width, screen.height) < 600;
 const REG = Object.assign({ qualite: petitEcran ? "normale" : "belle", musique: true, son: true }, LS.lire("reglages", {}));
-const QUALITES = { belle: { dpr: 2, face: 176, patch: 160, tex: 1 }, normale: { dpr: 1.5, face: 128, patch: 128, tex: petitEcran ? 2 : 1 }, rapide: { dpr: 1, face: 96, patch: 96, tex: 2 } };
+const QUALITES = { belle: { dpr: 2, face: 176, patch: 224, tex: 1 }, normale: { dpr: 1.5, face: 128, patch: 128, tex: petitEcran ? 2 : 1 }, rapide: { dpr: 1, face: 96, patch: 96, tex: 2 } };
 const Q = QUALITES[new URLSearchParams(location.search).get("qualite") || REG.qualite] || QUALITES.normale;
 const CAL_DEF = { cont: 1, oce: 1, mers: 0, pays: 1, polit: 0, cap: 0, villes: 0, equ: 1, trop: 0, pol: 0, gre: 0, grille: 0,
   fleuves: 0, monts: 0, deserts: 0, deco: 1, clim: 0, nuages: 1, nuit: 0, france: 0, relief: 1 };
@@ -548,12 +548,67 @@ function pixelsExacts(img, w, h) { // sans lissage (identifiants)
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = ((y * s | 0) * img.width + (x * s | 0)) * 4, j = (y * w + x) * 4; o[j] = d[i]; o[j + 1] = d[i + 1]; o[j + 2] = d[i + 2]; o[j + 3] = 255; }
   return o;
 }
-let texH, texHE, texC, texI, texPal, texS, HAUT_EU, FRONT, BASE_R;
-const EU = { lon0: -12, lon1: 32, lat0: 35, lat1: 60, w: 2640, h: 1500 }; // relief fin de l'Europe (1 minute d'angle)
+let texH, texC, texI, texPal, texS, FRONT, BASE_R;
+// ---- fenêtre fine : 4 × 4 tuiles de 10° (600 px chacune, 1 minute d'angle) autour de l'endroit regardé
+const FEN = { T: 600, N: petitEcran ? 3 : 4, i0: -999, j0: -999, on: false, charge: false, liste: new Set() };
+FEN.S = FEN.T * FEN.N;
+function creerFenetre() {
+  const S = FEN.S;
+  FEN.h = new Int16Array(S * S); FEN.hf = new Uint16Array(S * S); FEN.c = new Uint8Array(S * S * 4);
+  FEN.th = new THREE.DataTexture(FEN.hf, S, S, THREE.RedFormat, THREE.HalfFloatType);
+  FEN.th.minFilter = THREE.LinearMipmapLinearFilter; FEN.th.magFilter = THREE.LinearFilter; FEN.th.generateMipmaps = true; FEN.th.needsUpdate = true;
+  FEN.tc = new THREE.DataTexture(FEN.c, S, S, THREE.RGBAFormat); FEN.tc.colorSpace = THREE.SRGBColorSpace;
+  FEN.tc.minFilter = THREE.LinearMipmapLinearFilter; FEN.tc.magFilter = THREE.LinearFilter; FEN.tc.generateMipmaps = true;
+  FEN.tc.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); FEN.tc.needsUpdate = true;
+}
+async function majFenetre() {   // appelée quand la caméra bouge : recharge les tuiles si on s'est éloigné du centre
+  if (FEN.charge || !FEN.liste.size || CAM.d > 1.2) return;
+  const N = FEN.N, lc = CAM.lat + (PLAN ? 0 : Math.min(CAM.d * 40, 6)), fi = (CAM.lon + 180) / 10, fj = (lc + 90) / 10;
+  const i0 = ((Math.round(fi - N / 2) % 36) + 36) % 36, j0 = THREE.MathUtils.clamp(Math.round(fj - N / 2), 0, 18 - N);
+  if (FEN.on) {   // on garde la fenêtre tant que l'endroit regardé reste près de son centre
+    let di = fi - (FEN.i0 + N / 2); di -= Math.round(di / 36) * 36;
+    if (Math.abs(di) < .9 && (Math.abs(fj - (FEN.j0 + N / 2)) < .9 || j0 === FEN.j0)) return;
+    if (i0 === FEN.i0 && j0 === FEN.j0) return;
+  }
+  FEN.charge = true;
+  const T = FEN.T, S = FEN.S, tuiles = [];
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const la = -90 + (j0 + j) * 10, lo = -180 + ((((i0 + i) % 36) + 36) % 36) * 10;
+    tuiles.push({ i, j, la, lo, ok: FEN.liste.has(la + "_" + lo) });
+  }
+  const H2 = new Int16Array(S * S), C2 = new Uint8Array(S * S * 4);
+  try {
+    await Promise.all(tuiles.map(async t => {
+      const ox = t.i * T, oy = (N - 1 - t.j) * T;
+      if (t.ok) {
+        const [r, c] = await Promise.all([image(`donnees/tuiles/r_${t.la}_${t.lo}.webp`), image(`donnees/tuiles/c_${t.la}_${t.lo}.jpg`)]);
+        const pr = pixelsExacts(r, T, T), pc = pixels(c, T, T); r.close && r.close(); c.close && c.close();
+        for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) { const k = y * T + x, o = (oy + y) * S + ox + x;
+          H2[o] = (pr[k * 4] * 256 + pr[k * 4 + 1]) * 2 - 11000; C2[o * 4] = pc[k * 4]; C2[o * 4 + 1] = pc[k * 4 + 1]; C2[o * 4 + 2] = pc[k * 4 + 2]; C2[o * 4 + 3] = pr[k * 4 + 2]; }
+      } else {   // pas de tuile (pleine mer) : on recopie la carte du monde
+        const CG = texC.image.data;
+        for (let y = 0; y < T; y++) { const lat = t.la + 10 - (y + .5) / T * 10, gy = Math.min(H - 1, Math.floor((90 - lat) / 180 * H));
+          for (let x = 0; x < T; x++) { const lon = t.lo + (x + .5) / T * 10, o = (oy + y) * S + ox + x, gx = ((Math.floor((lon + 180) / 360 * W) % W) + W) % W, g = (gy * W + gx) * 4;
+            H2[o] = hauteurMonde(lon, lat); C2[o * 4] = CG[g]; C2[o * 4 + 1] = CG[g + 1]; C2[o * 4 + 2] = CG[g + 2]; C2[o * 4 + 3] = CG[g + 3]; } }
+      }
+    }));
+    await pause();
+    for (let k = 0; k < S * S; k++) FEN.hf[k] = THREE.DataUtils.toHalfFloat(H2[k]);
+    FEN.h.set(H2); FEN.c.set(C2);
+    FEN.th.needsUpdate = true; FEN.tc.needsUpdate = true;
+    FEN.i0 = i0; FEN.j0 = j0; FEN.on = true;
+    FEN.lon0 = -180 + i0 * 10; FEN.lat1 = -90 + (j0 + N) * 10;
+    U.uFen.value.set(((((FEN.lon0 + 180) / 360) % 1) + 1) % 1, .5 - FEN.lat1 / 180, N * 10 / 360, N * 10 / 180); U.uFenOn.value = 1;
+    for (const e of ETIQ) e.altOk = false;
+    if (!PLAN) refaireTraits();
+    placerCamera();
+  } catch (e) { console.warn("tuiles", e); }
+  FEN.charge = false;
+}
 async function charger() {
   progres(.05, "Je prépare le globe…");
   const [jRel, jCol, jIds, jPay, jData, jEu, jSol, jFr] = await Promise.all([image("donnees/relief.webp"), image("donnees/couleurs.jpg"), image("donnees/ids.png"), image("donnees/paysages.png"),
-    fetch("donnees/monde.json").then(r => r.json()), image("donnees/relief_europe.webp"), image("donnees/sols.png"), fetch("donnees/frontieres.json").then(r => r.json()).catch(() => null)]).then(v => { progres(.45, "Je pose les montagnes…"); return v; });
+    fetch("donnees/monde.json").then(r => r.json()), fetch("donnees/tuiles/index.json").then(r => r.json()).catch(() => null), image("donnees/sols.png"), fetch("donnees/frontieres.json").then(r => r.json()).catch(() => null)]).then(v => { progres(.45, "Je pose les montagnes…"); return v; });
   DATA = jData; FRONT = jFr;
   { const sp = pixels(jSol, jSol.width, jSol.height); texS = new THREE.DataTexture(new Uint8Array(sp.buffer, sp.byteOffset, sp.length), jSol.width, jSol.height, THREE.RGBAFormat);
     texS.minFilter = THREE.LinearMipmapLinearFilter; texS.magFilter = THREE.LinearFilter; texS.generateMipmaps = true; texS.wrapS = THREE.RepeatWrapping; texS.needsUpdate = true; }
@@ -569,11 +624,9 @@ async function charger() {
     const k = y * W + x, hm = hsum / (s * s);
     HAUT[k] = hm; half[k] = THREE.DataUtils.toHalfFloat(hm); lac[k] = lsum / (s * s);
   }
-  { const e = pixelsExacts(jEu, EU.w, EU.h), n2 = EU.w * EU.h; HAUT_EU = new Int16Array(n2); const hf = new Uint16Array(n2);
-    for (let k = 0; k < n2; k++) { const v = (e[k * 4] * 256 + e[k * 4 + 1]) * 2 - 11000; HAUT_EU[k] = v; hf[k] = THREE.DataUtils.toHalfFloat(v); }
-    texHE = new THREE.DataTexture(hf, EU.w, EU.h, THREE.RedFormat, THREE.HalfFloatType);
-    texHE.minFilter = THREE.LinearMipmapLinearFilter; texHE.magFilter = THREE.LinearFilter; texHE.generateMipmaps = true; texHE.needsUpdate = true; }
-  for (const b of [jRel, jEu]) b.close && b.close();
+  FEN.liste = new Set(((jEu && jEu.tuiles) || []).map(([a, b]) => a + "_" + b));
+  creerFenetre();
+  jRel.close && jRel.close();
   await pause(); progres(.6, "Je peins les paysages…");
   texH = new THREE.DataTexture(half, W, H, THREE.RedFormat, THREE.HalfFloatType);
   texH.minFilter = THREE.LinearMipmapLinearFilter; texH.magFilter = THREE.LinearFilter; texH.generateMipmaps = true;
@@ -604,11 +657,12 @@ const pause = () => new Promise(r => setTimeout(r, 0));
 // lecture des cartes depuis le processeur
 function hauteur(lon, lat) {
   const g = hauteurMonde(lon, lat);
-  const qx = (lon - EU.lon0) / (EU.lon1 - EU.lon0), qy = (EU.lat1 - lat) / (EU.lat1 - EU.lat0);
-  if (!HAUT_EU || qx <= 0 || qx >= 1 || qy <= 0 || qy >= 1) return g;
-  const w = sstep(0, .035, Math.min(qx, 1 - qx, qy, 1 - qy));
-  const x = Math.min(EU.w - 1.001, Math.max(0, qx * EU.w - .5)), y = Math.min(EU.h - 1.001, Math.max(0, qy * EU.h - .5)), x0 = x | 0, y0 = y | 0, fx = x - x0, fy = y - y0, i = y0 * EU.w + x0;
-  const e = (HAUT_EU[i] * (1 - fx) + HAUT_EU[i + 1] * fx) * (1 - fy) + (HAUT_EU[i + EU.w] * (1 - fx) + HAUT_EU[i + EU.w + 1] * fx) * fy;
+  if (!FEN.on) return g;
+  const L = FEN.N * 10, dl = (((lon - FEN.lon0) % 360) + 360) % 360, qx = dl / L, qy = (FEN.lat1 - lat) / L;
+  if (qx <= 0 || qx >= 1 || qy <= 0 || qy >= 1) return g;
+  const w = sstep(0, .04, Math.min(qx, 1 - qx, qy, 1 - qy)), S = FEN.S;
+  const x = Math.min(S - 1.001, Math.max(0, qx * S - .5)), y = Math.min(S - 1.001, Math.max(0, qy * S - .5)), x0 = x | 0, y0 = y | 0, fx = x - x0, fy = y - y0, i = y0 * S + x0, A = FEN.h;
+  const e = (A[i] * (1 - fx) + A[i + 1] * fx) * (1 - fy) + (A[i + S] * (1 - fx) + A[i + S + 1] * fx) * fy;
   return g + (e - g) * w;
 }
 function hauteurMonde(lon, lat) {
@@ -638,18 +692,20 @@ float vnoise(vec3 x) { vec3 i = floor(x); vec3 f = fract(x); f = f * f * (3.0 - 
              mix(mix(hash3(i + vec3(0,0,1)), hash3(i + vec3(1,0,1)), f.x), mix(hash3(i + vec3(0,1,1)), hash3(i + vec3(1,1,1)), f.x), f.y), f.z); }
 `;
 const GLSL_RELIEF = /* glsl */`
-uniform sampler2D tHE; uniform vec4 uEU; uniform vec2 uTexE;
-float poidsEU(vec2 q) { if (q.x <= 0.0 || q.x >= 1.0 || q.y <= 0.0 || q.y >= 1.0) return 0.0; return smoothstep(0.0, 0.035, min(min(q.x, 1.0 - q.x), min(q.y, 1.0 - q.y))); }
+uniform sampler2D tFH, tFC; uniform vec4 uFen; uniform vec2 uTexF; uniform float uFenOn;
+// fenêtre fine : 4 × 4 tuiles de 10° autour de l'endroit regardé (relief et couleurs à 1 minute d'angle)
+vec2 qFen(vec2 uv) { float dq = uv.x - uFen.x; dq -= floor(dq); return vec2(dq / uFen.z, (uv.y - uFen.y) / uFen.w); }
+float poidsFen(vec2 q) { if (uFenOn < 0.5 || q.x <= 0.0 || q.x >= 1.0 || q.y <= 0.0 || q.y >= 1.0) return 0.0; return smoothstep(0.0, 0.04, min(min(q.x, 1.0 - q.x), min(q.y, 1.0 - q.y))); }
 float hGrad(vec2 uv, vec2 gx, vec2 gy) {
   float h = textureGrad(tH, uv, gx, gy).r;
-  vec2 q = (uv - uEU.xy) / (uEU.zw - uEU.xy); float w = poidsEU(q);
-  if (w > 0.0) { vec2 sc = 1.0 / (uEU.zw - uEU.xy); h = mix(h, textureGrad(tHE, q, gx * sc, gy * sc).r, w); }
+  vec2 q = qFen(uv); float w = poidsFen(q);
+  if (w > 0.0) { vec2 sc = 1.0 / uFen.zw; h = mix(h, textureGrad(tFH, q, gx * sc, gy * sc).r, w); }
   return h;
 }
 float hLod(vec2 uv, float lod) {
   float h = textureLod(tH, uv, lod).r;
-  vec2 q = (uv - uEU.xy) / (uEU.zw - uEU.xy); float w = poidsEU(q);
-  if (w > 0.0) h = mix(h, textureLod(tHE, q, lod > 0.5 ? lod + 2.4 : 0.0).r, w);
+  vec2 q = qFen(uv); float w = poidsFen(q);
+  if (w > 0.0) h = mix(h, textureLod(tFH, q, lod > 0.5 ? lod + 2.4 : 0.0).r, w);
   return h;
 }
 `;
@@ -731,10 +787,12 @@ void main() {
   gx.x -= floor(gx.x + 0.5); gy.x -= floor(gy.x + 0.5);   // raccord à 180°
   float h = hGrad(uv, gx, gy);
   vec4 a4 = textureGrad(tC, uv, gx, gy);
+  vec2 qf = qFen(uv); float wf = poidsFen(qf);
+  if (wf > 0.0) a4 = mix(a4, textureGrad(tFC, qf, gx / uFen.z, gy / uFen.w), wf);
   float lat = (0.5 - uv.y) * PI, lon = (uv.x - 0.5) * 2.0 * PI;
   vec3 est = vec3(cos(lon), 0.0, -sin(lon)), nord = vec3(-sin(lat) * sin(lon), cos(lat), -sin(lat) * cos(lon));
   // normale du relief (pente mesurée à l'échelle de ce qu'on voit)
-  vec2 dens = poidsEU((uv - uEU.xy) / (uEU.zw - uEU.xy)) > 0.5 ? uTexE / (uEU.zw - uEU.xy) : uTex;
+  vec2 dens = wf > 0.5 ? uTexF / uFen.zw : uTex;
   float fp = max(length(gx * dens), length(gy * dens));
   vec2 e = max(1.0, fp) / dens;
   float hE = max(hGrad(uv + vec2(e.x, 0.0), gx, gy), 0.0), hW = max(hGrad(uv - vec2(e.x, 0.0), gx, gy), 0.0);
@@ -841,7 +899,7 @@ void main() {
     alb = mix(alb, vec3(0.16, 0.15, 0.13) * (0.8 + 0.4 * n3), ebW * uDetail);
     alb = mix(alb, roche, rocW * uDetail * (1.0 - step(0.6, min(a4.r, a4.b))));
     // plages de sable le long des côtes (pas dans le grand nord)
-    float sable = smoothstep(40.0, 3.0, h) * (1.0 - smoothstep(0.1, 0.24, pente)) * (1.0 - smoothstep(52.0, 60.0, latA)) * smoothstep(0.2, 0.45, n2 + 0.25);
+    float sable = smoothstep(40.0, 3.0, h) * smoothstep(8.0, -10.0, hLod(uv, 2.0)) * (1.0 - smoothstep(0.1, 0.24, pente)) * (1.0 - smoothstep(52.0, 60.0, latA)) * smoothstep(0.2, 0.45, n2 + 0.25);
     alb = mix(alb, vec3(0.8, 0.72, 0.5), sable * uDetail * (1.0 - smoothstep(0.3, 0.7, a4.a)));
   } else {
     alb = mix(alb, vec3(0.30, 0.27, 0.24), smoothstep(0.22, 0.6, pente) * step(30.0, h) * 0.4 * (1.0 - step(0.6, min(alb.r, alb.b))));
@@ -996,7 +1054,7 @@ function carreau(N) { // grille (N+3)² : l'anneau extérieur est une « jupe »
 }
 
 const U = {
-  tS: { value: null }, tHE: { value: null }, uEU: { value: new THREE.Vector4((EU.lon0 + 180) / 360, .5 - EU.lat1 / 180, (EU.lon1 + 180) / 360, .5 - EU.lat0 / 180) }, uTexE: { value: new THREE.Vector2(EU.w, EU.h) },
+  tS: { value: null }, tFH: { value: null }, tFC: { value: null }, uFen: { value: new THREE.Vector4(0, 0, 1, 1) }, uTexF: { value: new THREE.Vector2(1, 1) }, uFenOn: { value: 0 },
   tH: { value: null }, tC: { value: null }, tI: { value: null }, tPal: { value: null }, uTex: { value: new THREE.Vector2(4096, 2048) },
   uK: { value: kMetres() }, uSky: { value: 0 }, uUpC: { value: new THREE.Vector3(0, 1, 0) }, uFogL: { value: 1 }, uE: { value: new THREE.Vector3(1, 0, 0) }, uN: { value: new THREE.Vector3(0, 0, 1) }, uKs: { value: kMetres() * 2.2 }, uSun: { value: new THREE.Vector3(0, 0, 1) }, uTime: { value: 0 }, uDetail: { value: 0 },
   uPol: { value: 0 }, uClim: { value: 0 }, uGrid: { value: 0 }, uGridStep: { value: 15 }, uNight: { value: 0 }, uHaze: { value: 1 },
@@ -1006,7 +1064,7 @@ const U = {
 let globe, patch, plan, nuages, atmos, dome, etoiles;
 let PLAN = false;   // vue planisphère (réglage)
 function creerGlobe() {
-  Object.assign(U.tH, { value: texH }); U.tHE.value = texHE; U.tS.value = texS; U.tC.value = texC; U.tI.value = texI; U.tPal.value = texPal; U.uTex.value.set(W, H);
+  Object.assign(U.tH, { value: texH }); U.tFH.value = FEN.th; U.tFC.value = FEN.tc; U.uTexF.value.set(FEN.S, FEN.S); U.tS.value = texS; U.tC.value = texC; U.tI.value = texI; U.tPal.value = texPal; U.uTex.value.set(W, H);
   const mat = new THREE.ShaderMaterial({ uniforms: U, vertexShader: VERT_GLOBE, fragmentShader: FRAG_GLOBE });
   globe = new THREE.Mesh(cubeSphere(Q.face), mat); globe.frustumCulled = false; scene.add(globe);
   const matP = new THREE.ShaderMaterial({ uniforms: U, vertexShader: VERT_GLOBE, fragmentShader: FRAG_GLOBE, defines: { PATCH: 1 } });
@@ -1119,7 +1177,7 @@ function creerBouffees() {
     vertexShader: `attribute vec3 iPos, iOff, iInfo; uniform float uSky; uniform vec3 uCible; varying vec2 vUv; varying float vA, vSh; varying vec3 vW; uniform vec3 uSun;
       void main() {
         float dc = length(iPos - cameraPosition), dt = length(iPos - uCible);
-        vA = uSky * smoothstep(0.012, 0.035, dc) * (1.0 - smoothstep(0.22, 0.4, dt));
+        vA = uSky * smoothstep(0.035, 0.09, dc) * (1.0 - smoothstep(0.25, 0.45, dt));
         vSh = clamp(0.25 + 0.65 * iInfo.y + 0.3 * dot(iOff, uSun), 0.4, 1.1);
         float c = cos(iInfo.z), s = sin(iInfo.z); vec2 q = mat2(c, -s, s, c) * position.xy;
         vec4 mv = viewMatrix * vec4(iPos, 1.0); mv.xy += q * iInfo.x * step(0.002, vA);
@@ -1342,7 +1400,7 @@ function etiqActive(e) {
 }
 
 // ============================================================ caméra : tourner, zoomer, s'incliner près du sol
-const DMIN = .02, DMAX = 4.2;
+const DMIN = .06, DMAX = 4.2;
 function choisirVue(v) {   // « globe » (le globe en 3D) ou « plan » (le planisphère)
   PLAN = v === "plan"; REG.vue = v; sauverReg();
   if (globe) { globe.visible = !PLAN; plan.visible = PLAN; atmos.visible = !PLAN; dome.visible = !PLAN; etoiles.visible = !PLAN; }
@@ -1371,7 +1429,7 @@ function placerCamera() {
     CAM.bouge = true; return;
   }
   bases(CAM.lon, CAM.lat);
-  const tilt = 1.2 * sstep(.55, .03, d) ** 1.1;   // on penche la caméra quand on est près du sol
+  const tilt = .95 * sstep(.6, .06, d) ** 1.1;   // on penche la caméra quand on est près du sol
   const hT = Math.max(hauteur(CAM.lon, CAM.lat), 0) * K * sstep(.6, .05, d);
   vT.copy(vUp).multiplyScalar(1 + hT);
   camera.position.copy(vT).addScaledVector(vUp, d * Math.cos(tilt)).addScaledVector(vNord, -d * Math.sin(tilt));
@@ -1922,7 +1980,7 @@ function boucle() {
   U.uTime.value = t;
   if (anneau && anneau.visible) { const s = Math.max(CAM.d, .03) * .028 * (1 + .12 * Math.sin(t * 5)); anneau.scale.setScalar(s); }
   if (CAM.bouge) { majEtiquettes(); CAM.bouge = false; }
-  if (t - tLieu > .4) { tLieu = t; lieuCourant(); }
+  if (t - tLieu > .4) { tLieu = t; lieuCourant(); majFenetre(); }
   // économie d'énergie : sans rien toucher depuis 20 s, une image sur deux
   const repos = performance.now() - derniereAction > 20000 && !CAM.vol;
   if (repos && (figee++ & 1)) return;
@@ -1951,7 +2009,7 @@ addEventListener("resize", () => {
     const vis = [patch.visible, nuages.visible, bouffees.visible, plan.visible]; patch.visible = true; nuages.visible = true; bouffees.visible = true; plan.visible = true; for (const m of DECO.mesh) m.visible = true;
     for (const l of Object.values(LIGNES3D)) l.visible = true;
     try { await renderer.compileAsync(scene, camera); } catch (e) { renderer.compile(scene, camera); }
-    for (const t of [texH, texHE, texC, texI, texPal, texS]) renderer.initTexture(t);
+    for (const t of [texH, FEN.th, FEN.tc, texC, texI, texPal, texS]) renderer.initTexture(t);
     renderer.render(scene, camera);
     patch.visible = vis[0]; nuages.visible = vis[1]; bouffees.visible = vis[2]; plan.visible = vis[3]; appliquerCalques(); placerCamera();
     if (REG.vue === "plan") choisirVue("plan");
@@ -1968,7 +2026,7 @@ addEventListener("resize", () => {
 })();
 </script>
 <script>
-window.MONDE_VERSION = "2026.11.06-6"; // à changer à chaque modification
+window.MONDE_VERSION = "2026.11.06-7"; // à changer à chaque modification
 </script>
 <script>
 // Application installable : gardée sur l'appareil par sw.js (marche sans réseau).
@@ -1992,7 +2050,7 @@ window.MONDE_VERSION = "2026.11.06-6"; // à changer à chaque modification
       if (!installer) { btn.classList.add("neuf"); info("Une nouvelle version est prête : appuie sur la flèche ronde !"); return; }
       info("Installation de la nouvelle version…");
       await c.put(ici, neuf);
-      for (const f of ["manifest.webmanifest", "icone-192.png", "icone-512.png", "apple-touch-icon.png", "donnees/relief.webp", "donnees/couleurs.jpg", "donnees/ids.png", "donnees/paysages.png", "donnees/monde.json", "donnees/relief_europe.webp", "donnees/sols.png", "donnees/frontieres.json"]) {
+      for (const f of ["manifest.webmanifest", "icone-192.png", "icone-512.png", "apple-touch-icon.png", "donnees/relief.webp", "donnees/couleurs.jpg", "donnees/ids.png", "donnees/paysages.png", "donnees/monde.json", "donnees/sols.png", "donnees/frontieres.json"]) {
         try { const r = await frais(f); if (r.ok) await c.put(new URL(f, ici).href, r); } catch (e) {}
       }
       const reg = await navigator.serviceWorker.getRegistration(); if (reg) await reg.update().catch(() => {});

@@ -5,7 +5,7 @@
 | Fichier | Contenu | Source |
 |---|---|---|
 | `relief.webp` | altitude et profondeur (16 bits, sans perte), part de lac | ETOPO 2022 (NOAA, CC0), Natural Earth (côtes, lacs) |
-| `relief_europe.webp` | relief fin de l'Europe (1′) pour zoomer sur la France | ETOPO 2022, Natural Earth 10m |
+| `tuiles/` | relief (`r_<lat>_<lon>.webp`) et couleurs (`c_…jpg`) fins, 1′ (~1,8 km), par tuiles de 10° ; le jeu charge les 4 × 4 tuiles autour de l'endroit regardé | ETOPO 2022, Natural Earth 10m (`tuiles.py`) |
 | `couleurs.jpg` | couleurs des paysages, banquise sur la mer | calculées ici (`zones.py` + relief), contours Natural Earth |
 | `ids.png` | pays, mers, continents / océans (pour toucher et surligner) | Natural Earth |
 | `paysages.png` | type de paysage (forêt, désert, taïga…) | calculé ici |
@@ -26,7 +26,9 @@ Refaire les cartes :
 pip install pyshp shapely scipy numpy pillow
 sh telecharger.sh /tmp/geo
 python3 fabriquer.py /tmp/geo/ne /tmp/geo/etopo ../../monde/donnees   # bandes b_*.nc seulement
-python3 europe.py /tmp/geo/ne /tmp/geo/etopo/eu.nc ../../monde/donnees
+# tuiles fines : ETOPO 2022 par tuiles de 10° à 1′ (t_<lat>_<lon>.nc, terres seulement), puis
+MONDE_INTER=/tmp/geo/inter.npz python3 fabriquer.py …   # garde les couleurs sans relief
+python3 tuiles.py /tmp/geo/ne /tmp/geo/tuiles_nc /tmp/geo/inter.npz ../../monde/donnees
 # frontières selon le pays : télécharger ne_10m_admin_0_countries et ne_10m_admin_0_countries_<pays> (fra, ind, chn…) dans un dossier, puis
 python3 frontieres.py <dossier> ../../monde/donnees
 ```

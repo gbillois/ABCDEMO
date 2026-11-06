@@ -1,12 +1,12 @@
 // Service worker de My World Explorer.
 // Le globe est gardé sur l'appareil et marche sans réseau. Il ne change que
 // lorsqu'on appuie sur « Mettre à jour » (flèche ronde de l'écran titre ou Réglages).
-const CACHE = "monde-v3";
+const CACHE = "monde-v4";
 const BASE = "https://cdn.jsdelivr.net/npm/three@0.170.0/";
 const FICHIERS = [
   "./", "./manifest.webmanifest", "./icone-192.png", "./icone-512.png", "./apple-touch-icon.png",
-  // les cartes fabriquées par outils/monde/fabriquer.py
-  "./donnees/relief.webp", "./donnees/couleurs.jpg", "./donnees/ids.png", "./donnees/paysages.png", "./donnees/monde.json", "./donnees/relief_europe.webp", "./donnees/sols.png", "./donnees/frontieres.json",
+  // les cartes fabriquées par outils/monde/fabriquer.py (les tuiles fines sont gardées au fur et à mesure qu'on les visite)
+  "./donnees/relief.webp", "./donnees/couleurs.jpg", "./donnees/ids.png", "./donnees/paysages.png", "./donnees/monde.json", "./donnees/sols.png", "./donnees/frontieres.json", "./donnees/tuiles/index.json",
   BASE + "build/three.module.js",
   BASE + "examples/jsm/lines/LineSegments2.js",
   BASE + "examples/jsm/lines/LineSegmentsGeometry.js",

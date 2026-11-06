@@ -292,6 +292,7 @@ lis = np.stack([ndimage.gaussian_filter(col[..., c] * terre, 2.4) for c in range
 poids = ndimage.gaussian_filter(terre.astype(np.float32), 2.4)[..., None]
 col = np.where(terre[..., None], lis / np.maximum(poids, 1e-3), 0)
 col *= (1 + fbm(61, ((200, 1), (500, .6))) * POLE * .035)[..., None]  # grain fin
+COL_BASE = col.copy()  # couleur des paysages sans le relief (gardée pour les tuiles fines, outils/monde/tuiles.py)
 # altitude : vert → brun → roche → neige
 hh = np.where(terre, hc, 0)
 t1 = np.clip((hh - 1200) / 1600, 0, 1)[..., None] * (~glace)[..., None]
@@ -337,6 +338,9 @@ col[bord] = col[iy[bord], ix[bord]]
 classe_b = classe.copy(); classe_b[mer & (banq > .5)] = BANQUISE
 Image.fromarray(classe_b[::2, ::2], "L").save(os.path.join(OUT, "paysages.png"), optimize=True)
 Image.fromarray(np.clip(col, 0, 255).astype(np.uint8), "RGB").save(os.path.join(OUT, "couleurs.jpg"), quality=88, subsampling=0)
+if os.environ.get("MONDE_INTER"):  # données intermédiaires pour tuiles.py (pas publiées)
+    np.savez_compressed(os.environ["MONDE_INTER"], base=COL_BASE.astype(np.float16), final=col.astype(np.float16), glace=glace,
+                        fville=fville.astype(np.float16), n3=n3.astype(np.float16), banq=banq.astype(np.float16))
 # familles de sol pour les motifs fins du jeu (R forêt, G champs, B sable), 2048×1024, bords adoucis
 POIDS = {TAIGA: (1, 0, 0), FORET: (.85, .25, 0), JUNGLE: (1, 0, 0), PRAIRIE: (.15, 1, 0), MEDIT: (.35, .6, .15), STEPPE: (0, .08, .55),
          SAVANE: (.3, 0, .4), DESERT: (0, 0, 1), TOUNDRA: (.1, .1, .2), MONTAGNE: (0, 0, .15)}
