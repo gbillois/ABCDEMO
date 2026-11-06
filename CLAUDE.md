@@ -171,6 +171,8 @@ installable comme le Domaine des Pins (`manifest.webmanifest`, `sw.js`, bouton �
 - Textes en français, programme de géographie du CM1/CM2 (continents, océans, repères, pays, France).
 - Détail : la carte du monde (4096 × 2048) plus, autour de l'endroit regardé, une fenêtre de 4 × 4 tuiles fines (`donnees/tuiles/`,
   1 minute d'angle, faites par `outils/monde/tuiles.py`), chargées et gardées au fur et à mesure. Zoom limité (`DMIN`) : pas de vue au ras du sol.
+  Les montagnes reçoivent en plus des crêtes et ravines dessinées par le shader (`detailH`), dans la forme et dans l'éclairage.
+  Style voulu : jeu vidéo (pas de photos aériennes), reflets du soleil discrets.
 - Deux vues dans les réglages : Globe (3D, survol au style de DragonFlyer) et Planisphère (la même carte à plat). Pas d'objets au sol
   (demande du propriétaire) : seulement des textures (motifs de champs, forêts, dunes dessinés par le shader d'après `sols.png`).
 - Au premier lancement : « Où habites-tu ? » (France en premier) ; le pays est gardé (`monde:reglages`) et choisit le tracé

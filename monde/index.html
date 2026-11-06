@@ -441,7 +441,7 @@ const LS = { lire(k, d) { try { const v = localStorage.getItem("monde:" + k); re
              ecrire(k, v) { try { localStorage.setItem("monde:" + k, JSON.stringify(v)); } catch (e) {} } };
 const petitEcran = Math.min(screen.width, screen.height) < 600;
 const REG = Object.assign({ qualite: petitEcran ? "normale" : "belle", musique: true, son: true }, LS.lire("reglages", {}));
-const QUALITES = { belle: { dpr: 2, face: 176, patch: 224, tex: 1 }, normale: { dpr: 1.5, face: 128, patch: 128, tex: petitEcran ? 2 : 1 }, rapide: { dpr: 1, face: 96, patch: 96, tex: 2 } };
+const QUALITES = { belle: { dpr: 2, face: 176, patch: 320, tex: 1 }, normale: { dpr: 1.5, face: 128, patch: 200, tex: petitEcran ? 2 : 1 }, rapide: { dpr: 1, face: 96, patch: 96, tex: 2 } };
 const Q = QUALITES[new URLSearchParams(location.search).get("qualite") || REG.qualite] || QUALITES.normale;
 const CAL_DEF = { cont: 1, oce: 1, mers: 0, pays: 1, polit: 0, cap: 0, villes: 0, equ: 1, trop: 0, pol: 0, gre: 0, grille: 0,
   fleuves: 0, monts: 0, deserts: 0, deco: 1, clim: 0, nuages: 1, nuit: 0, france: 0, relief: 1 };
@@ -690,6 +690,15 @@ float hash3(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.
 float vnoise(vec3 x) { vec3 i = floor(x); vec3 f = fract(x); f = f * f * (3.0 - 2.0 * f);
   return mix(mix(mix(hash3(i), hash3(i + vec3(1,0,0)), f.x), mix(hash3(i + vec3(0,1,0)), hash3(i + vec3(1,1,0)), f.x), f.y),
              mix(mix(hash3(i + vec3(0,0,1)), hash3(i + vec3(1,0,1)), f.x), mix(hash3(i + vec3(0,1,1)), hash3(i + vec3(1,1,1)), f.x), f.y), f.z); }
+// relief de détail des montagnes (crêtes aiguës et ravines, style jeu vidéo) : en mètres, ajouté au relief mesuré
+float crete(vec3 p) { float v = 1.0 - abs(vnoise(p) * 2.0 - 1.0); return v * v; }
+float detailH(vec3 d, float h, float hb) {   // hb : relief adouci autour ; les crêtes vont aux vraies montagnes, pas aux plateaux
+  float m = smoothstep(150.0, 900.0, abs(h - hb) * 1.6 + max(h - 3000.0, 0.0) * 0.4) * smoothstep(150.0, 600.0, h);
+  if (m <= 0.0) return 0.0;
+  vec3 p = d * 1400.0;
+  float r = crete(p) * 0.5 + crete(p * 2.17 + 3.1) * 0.3 + crete(p * 4.63 + 7.7) * 0.2;
+  return (r - 0.42) * 850.0 * m;
+}
 `;
 const GLSL_RELIEF = /* glsl */`
 uniform sampler2D tFH, tFC; uniform vec4 uFen; uniform vec2 uTexF; uniform float uFenOn;
@@ -735,7 +744,7 @@ vec3 atmo(vec3 col, vec3 wp) {
 }
 `;
 const VERT_GLOBE = /* glsl */`
-uniform sampler2D tH; uniform float uK; uniform vec3 uPC, uPE, uPN; uniform float uPA;
+uniform sampler2D tH; uniform float uK, uDetail; uniform vec3 uPC, uPE, uPN; uniform float uPA;
 varying vec3 vDir; varying vec3 vPos;
 ${GLSL_COMMUN}
 ${GLSL_RELIEF}
@@ -748,6 +757,9 @@ void main() {
   float lod = 1.5;
 #endif
   float h = hLod(dirUv(dd), lod);
+#ifdef PATCH
+  h += detailH(dd, h, hLod(dirUv(dd), 4.5)) * uDetail;
+#endif
   float r = 1.0 + max(h, 0.0) * uK;
 #ifdef PATCH
   r -= position.z * 0.006;
@@ -799,6 +811,14 @@ void main() {
   float hN = max(hGrad(uv - vec2(0.0, e.y), gx, gy), 0.0), hS = max(hGrad(uv + vec2(0.0, e.y), gx, gy), 0.0);
   float cl = max(cos(lat), 0.03);
   float sE = (hE - hW) * uKs / (4.0 * PI * e.x * cl), sN = (hN - hS) * uKs / (2.0 * PI * e.y);
+  if (uDetail > 0.01 && h > 150.0) {   // crêtes et ravines de détail (les mêmes que la forme du carreau fin)
+    float hb5 = hLod(uv, 4.5);
+    float ep = max(length(fwidth(d)) * 1.5, 0.00008);
+    vec3 dE = normalize(d + est * ep), dW = normalize(d - est * ep), dN = normalize(d + nord * ep), dS = normalize(d - nord * ep);
+    float k = uKs * uDetail * (1.0 - smoothstep(0.0004, 0.002, ep));   // effacé quand les crêtes deviendraient plus petites qu'un pixel
+    sE += (detailH(dE, h, hb5) - detailH(dW, h, hb5)) * k / (2.0 * ep);
+    sN += (detailH(dN, h, hb5) - detailH(dS, h, hb5)) * k / (2.0 * ep);
+  }
   vec3 n = normalize(d - sE * est - sN * nord);
   vec3 V = normalize(cameraPosition - vPos);
   vec3 L = uSun;
@@ -906,7 +926,7 @@ void main() {
   }
   float neige = latA < 35.0 ? 5500.0 - latA * 5.0 : max(5325.0 - (latA - 35.0) * 190.0, 1500.0);
   float neigeW = smoothstep(neige - 250.0, neige + 350.0, h + (n1 - 0.5) * 700.0 + (n3 - 0.5) * 250.0) * (1.0 - smoothstep(0.3, 0.6, pente));
-  alb = mix(alb, vec3(0.84, 0.87, 0.92), neigeW * 0.9);
+  alb = mix(alb, vec3(0.86, 0.87, 0.89), neigeW * 0.9);
   // ombres portées des montagnes (on remonte vers le soleil) et creux plus sombres (occlusion)
   float ombre = 1.0, ao = 1.0;
   if (uDetail > 0.02 && h > 0.0) {
@@ -947,17 +967,17 @@ void main() {
   vec3 q = d * 2400.0 + vec3(uTime * 0.35, uTime * 0.1, -uTime * 0.25);
   vec3 wn = vec3(vnoise(q), vnoise(q + 17.0), vnoise(q + 31.0)) - 0.5 + (vec3(vnoise(q * 2.9 + 5.0), vnoise(q * 2.9 + 9.0), vnoise(q * 2.9 + 13.0)) - 0.5) * 0.6;
   float calme = mix(0.55, 1.0, smoothstep(0.0, 30.0, prof));
-  vec3 nW = normalize(d + (wn - d * dot(wn, d)) * 0.16 * vag * calme);
+  vec3 nW = normalize(d + (wn - d * dot(wn, d)) * 0.16 * vag * calme * mix(1.0, 0.55, uDetail));
   float cosv = max(dot(nW, V), 0.0);
   float fres = 0.02 + 0.98 * pow(1.0 - cosv, 5.0);
   vec3 R = reflect(-V, nW); R = normalize(R + d * max(0.0, 0.02 - dot(R, d)));
   vec3 refl = mix(vec3(0.45, 0.62, 0.9) * 0.5, skyCol(R), uSky);
   float sd = max(dot(R, L), 0.0);
-  float spec = mix(pow(sd, 90.0) * 0.9 + pow(sd, 16.0) * 0.12, min(pow(sd, 1600.0) * 60.0 + pow(sd, 120.0) * 0.8 + pow(sd, 16.0) * 0.03, 3.0), uDetail);
+  float spec = mix(pow(sd, 90.0) * 0.3 + pow(sd, 16.0) * 0.04, min(pow(sd, 1600.0) * 6.0 + pow(sd, 120.0) * 0.1, 0.7), uDetail);
   vec3 mer = body * (0.35 + 0.9 * max(dot(d, L), 0.0)) * (0.6 + 0.4 * ombre);
   mer *= mix(1.0, mix(0.85, 1.0, smoothstep(0.3, 0.7, sd)), uDetail);
   mer += vec3(0.02, 0.09, 0.08) * pow(max(dot(-V, L), 0.0), 3.0) * (1.0 - smoothstep(0.0, 60.0, prof));
-  mer = mix(mer, refl * mix(vec3(1.0), vec3(0.55, 0.72, 1.0), uSky), fres * mix(0.6, 0.38, uSky)) + SUN_COL * spec * jour;
+  mer = mix(mer, refl * mix(vec3(1.0), vec3(0.55, 0.72, 1.0), uSky), fres * mix(0.4, 0.22, uSky)) + SUN_COL * spec * jour;
   // écume : bord de plage et rouleaux qui avancent (de près)
   float fn = vnoise(d * 6000.0 + uTime * 0.05), fn2 = vnoise(d * 1800.0 - uTime * 0.03);
   float bord = smoothstep(8.0, 0.0, prof);
@@ -1466,7 +1486,7 @@ function placerCamera() {
   if (patch) {
     const on = d < .75; patch.visible = on; U.uPatchOn.value = on ? 1 : 0;
     if (on) {
-      let A = THREE.MathUtils.clamp(d * 1.9, .025, .75); A = .025 * Math.pow(1.25, Math.round(Math.log(A / .025) / Math.log(1.25)));
+      let A = THREE.MathUtils.clamp(d * 1.6, .025, .75); A = .025 * Math.pow(1.25, Math.round(Math.log(A / .025) / Math.log(1.25)));
       const pas = 2 * A / Q.patch / D2R, plat = Math.round(CAM.lat / pas) * pas, plon = Math.round(CAM.lon / (pas / Math.max(Math.cos(plat * D2R), .1))) * (pas / Math.max(Math.cos(plat * D2R), .1));
       bases(plon, plat + (d < .3 ? Math.min(A / D2R * .55, 8) : 0)); U.uPC.value.copy(vUp); U.uPE.value.copy(vEst); U.uPN.value.copy(vNord); U.uPA.value = A;
     }
@@ -2026,7 +2046,7 @@ addEventListener("resize", () => {
 })();
 </script>
 <script>
-window.MONDE_VERSION = "2026.11.06-7"; // à changer à chaque modification
+window.MONDE_VERSION = "2026.11.06-8"; // à changer à chaque modification
 </script>
 <script>
 // Application installable : gardée sur l'appareil par sw.js (marche sans réseau).
