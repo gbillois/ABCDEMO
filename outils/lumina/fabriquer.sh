@@ -63,6 +63,8 @@ node -e '
   const f = process.argv[1];
   let h = fs.readFileSync(f, "utf8");
   if (!h.includes("tactile.js")) h = h.replace("</body>", "  <script src=\"tactile.js\" defer></script>\n</body>");
+  // pas de zoom sur téléphone et tablette (double-tape, pincement)
+  h = h.replace(/<meta name="viewport"[^>]*>/, "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover\" />");
   fs.writeFileSync(f, h);
 ' "$SORTIE/game.html"
 cp LICENSE "$SORTIE/LICENCE-Luminati.txt"
