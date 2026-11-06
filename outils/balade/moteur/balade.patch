@@ -1,0 +1,35 @@
+diff --git a/src/game/Game.js b/src/game/Game.js
+index 67d27aa..2f73631 100644
+--- a/src/game/Game.js
++++ b/src/game/Game.js
+@@ -671,6 +671,12 @@ export class Game {
+ 
+     // ---- the level: world, characters, combat, weather and ambience, HUD and maps ----
+     const { earlyCompile } = await this._buildLevel(onProgress, { t0: tw });
++    // « La Balade de Millépoques » (les jeux de Théo) : une ville de Millepoques posée sur le niveau
++    // (environment.millepoques ; src/game/balade/Balade.js)
++    if (this.level?.environment?.millepoques) {
++      const { createBalade } = await import('./balade/Balade.js');
++      this.balade = await createBalade(this);
++    }
+ 
+     // ---- UI ----
+     const ui = this.ui;
+@@ -2846,6 +2852,7 @@ export class Game {
+     }
+     const wv = (this._worldView ??= { focus: rig.focusPoint, camera: engine.camera });
+     this.world.update(dt, wv);
++    this.balade?.update(dt);
+     this.godRays.update(dt);
+     this._waterfallFx(dt);
+     this.particles.update(dt, engine.camera);
+@@ -2939,7 +2946,8 @@ export class Game {
+     c.t += dt;
+     const s = c.t * 0.045;
+     c.target.set(c.x + Math.sin(s) * c.driftX, c.y, c.z + Math.sin(s * 0.7 + 1) * c.driftZ);
+-    this.rig.yawTarget = c.yaw + Math.sin(c.t * 0.05) * 18 * DEG2RAD;
++    // (la balade de Millépoques : des dessins vus de face, la caméra ne tourne pas)
++    this.rig.yawTarget = c.yaw + (this.balade ? 0 : Math.sin(c.t * 0.05) * 18 * DEG2RAD);
+     this.rig.distanceTarget = c.distance + Math.sin(c.t * 0.07) * 3;
+     if (c.pitch !== null) this.rig.pitchTarget = c.pitch;
+   }

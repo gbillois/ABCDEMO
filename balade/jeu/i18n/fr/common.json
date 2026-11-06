@@ -1,0 +1,124 @@
+{
+  "format": "luminati-i18n",
+  "version": 3,
+  "lang": "fr",
+  "source": "common",
+  "extends": [],
+  "terms": {
+    "Signpost": "Panneau",
+    "Untitled": "Sans titre",
+    "Untitled campaign": "Aventure sans titre",
+    "Villager": "Villageois",
+    "Waystone": "Pierre de route"
+  },
+  "units": {
+    "dlg.action.music-ask": {
+      "source": "Another song, or a little quiet?",
+      "target": "Encore une chanson, ou un peu de calme ?"
+    },
+    "dlg.action.music-quiet": {
+      "source": "Some quiet",
+      "target": "Un peu de calme"
+    },
+    "dlg.action.music-toast": {
+      "source": "♪ Music",
+      "target": "♪ Musique"
+    },
+    "dlg.action.obtained": {
+      "source": "Obtained: ${item}",
+      "target": "Obtenu : ${item}"
+    },
+    "dlg.action.obtained-count": {
+      "source": "Obtained: ${item} ×${count}",
+      "target": "Obtenu : ${item} ×${count}"
+    },
+    "dlg.action.shop-ask": {
+      "source": "Would you like the ${item}?",
+      "target": "Tu veux une ${item} ?"
+    },
+    "dlg.action.shop-ask-price": {
+      "source": "Would you like the ${item}? (${price} gold)",
+      "target": "Tu veux une ${item} ? (${price} pièces d'or)"
+    },
+    "dlg.action.shop-yes": {
+      "source": "Yes, please",
+      "target": "Oui, s'il te plaît"
+    },
+    "dlg.music.fades": {
+      "source": "The music fades…",
+      "target": "La musique s'arrête…"
+    },
+    "dlg.music.keep-playing": {
+      "source": "Keep playing",
+      "target": "Continue de jouer"
+    },
+    "dlg.rest.ask": {
+      "source": "Will you rest until morning?",
+      "target": "Veux-tu dormir jusqu'au matin ?"
+    },
+    "dlg.rest.not-yet": {
+      "source": "Not yet",
+      "target": "Pas encore"
+    },
+    "dlg.rest.until-morning": {
+      "source": "Rest until morning",
+      "target": "Dormir jusqu'au matin"
+    },
+    "dlg.shop.cannot-carry-more": {
+      "source": "You cannot carry more",
+      "target": "Tu ne peux pas en porter plus"
+    },
+    "dlg.shop.just-looking": {
+      "source": "Just looking",
+      "target": "Je regarde seulement"
+    },
+    "dlg.shop.not-enough-gold": {
+      "source": "Not enough gold",
+      "target": "Pas assez d'or"
+    },
+    "dlg.shop.not-for-sale": {
+      "source": "Not for sale",
+      "target": "Pas à vendre"
+    },
+    "dlg.shopkeeper.bought": {
+      "source": "Obtained: ${name}",
+      "target": "Obtenu : ${name}"
+    },
+    "dlg.shopkeeper.nothing-more": {
+      "source": "Nothing more",
+      "target": "Rien d'autre"
+    },
+    "dlg.shopkeeper.tell-me-again": {
+      "source": "Tell me again",
+      "target": "Redis-moi"
+    },
+    "dlg.shopkeeper.ware": {
+      "source": "${name} (${gain}) — ${price} gold",
+      "target": "${name} (${gain}) — ${price} or"
+    },
+    "dlg.shopkeeper.ware-short": {
+      "source": "${name} (${gain}) — ${price} gold (not enough)",
+      "target": "${name} (${gain}) — ${price} or (pas assez)"
+    },
+    "dlg.shopkeeper.menu-first": {
+      "source": "What will it be? You carry {${gold} gold} · ATK ${atk} · DEF ${def}.",
+      "target": "Qu'est-ce qui te ferait plaisir ? Tu as {${gold} or} · ATT ${atk} · DÉF ${def}."
+    },
+    "dlg.shopkeeper.menu-again": {
+      "source": "Anything else? You carry {${gold} gold} · ATK ${atk} · DEF ${def}.",
+      "target": "Autre chose ? Tu as {${gold} or} · ATT ${atk} · DÉF ${def}."
+    },
+    "dlg.shopkeeper.foes-near": {
+      "source": "Not with foes at your heels! Lose them first, then we can talk trade.",
+      "target": "Pas avec des ennemis sur les talons ! Sème-les d'abord."
+    },
+    "dlg.shopkeeper.farewell-bought": {
+      "source": "A pleasure doing business. Mind the fire up there.",
+      "target": "Merci ! Bonne route."
+    },
+    "dlg.shopkeeper.farewell-none": {
+      "source": "Suit yourself. The cart is not going anywhere.",
+      "target": "Comme tu veux. Je ne bouge pas d'ici."
+    }
+  }
+}

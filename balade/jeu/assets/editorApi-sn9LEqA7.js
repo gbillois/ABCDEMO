@@ -1,0 +1,1 @@
+import{i as e,n as t,o as n,s as r}from"./defs-D71gLVtH.js";var i=()=>{},a=Object.freeze({registerEnemyDefs:t,registerBrain:i,registerMonsterKind:r,registerFxModule:i,registerPresets:i,monsterKind:n,monsterKit:e,brain:()=>null});export{a as EDITOR_PACK_API};

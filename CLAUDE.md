@@ -8,6 +8,7 @@ Structure :
 - `pins/` — Le Domaine des Pins, en application installable (voir plus bas).
 - `dragonflyer/` — DragonFlyer, en application installable (voir plus bas).
 - `lueurs/` — Les Trois Lueurs, démo faite avec le moteur Luminati (voir plus bas) ; fabriquée par `outils/lumina/`.
+- `balade/` — La Balade de Millépoques, une ville de Millépoques en 2,5D avec le moteur Luminati (voir plus bas) ; fabriquée par `outils/balade/`.
 - `monde/` — My World Explorer, le globe terrestre, en application installable (voir plus bas) ; ses cartes sont faites par `outils/monde/`.
 - `blender/pins/` — scripts Blender qui fabriquent les modèles du Domaine des Pins (`pins/assets/*.glb`) ; méthode : `blender/pins/METHODE.md`.
 - `blender/dragonflyer/` — scripts (Blender, numpy) qui fabriquent le dragon, le héros et le relief de DragonFlyer,
@@ -194,6 +195,18 @@ dans le style des aventures 16 bits vues de dessus (images d'inspiration fournie
 - Le jeu lit ses niveaux (`lueurs/jeu/campaigns/`) depuis le même site : il marche sur GitHub Pages, pas dans l'artefact.
   Les polices viennent de Google Fonts (sinon des copies locales). Pas d'autre réseau. Licence : `lueurs/jeu/LICENCE-Luminati.txt`.
 - Sauvegarde : celle du moteur (`localStorage`), « Nouvelle partie » recommence.
+
+## Exception : La Balade de Millépoques (dessins de Millépoques, moteur Luminati)
+
+Demande du propriétaire (novembre 2026) : se promener à pied, en 2,5D, dans un village de **Millépoques**, son jeu
+(dépôt privé `gbillois/Millepoques`, tous droits réservés, lu seulement avec son accord, jamais modifié). Exploration seule, pas d'histoire.
+- Les images (`balade/ville/`) ne sont pas redessinées : elles sont « cuites » par le code de rendu de Millépoques lui-même
+  (`outils/balade/cuisson/`, Playwright) à partir d'une sauvegarde (`outils/balade/ville-theo.json`, sans le profil scolaire de l'enfant) :
+  le sol en morceaux, les bâtiments, arbres, drapeaux, bateaux, animaux et habitants en planches, la carte. Ce sont des fichiers servis par le site.
+- `balade/jeu/` : le jeu **compilé** (Vite) — ne pas le modifier à la main : `bash outils/balade/fabriquer.sh`. Le moteur est celui des Trois Lueurs
+  (même commit, même français) plus `outils/balade/moteur/` (`Balade.js` : la ville posée en panneaux debout, sans flou ni éclairage étrange,
+  caméra fixe vers le nord ; `balade.patch` ; `tactile.js`).
+- Le jeu lit `balade/ville/` depuis le même site : il marche sur GitHub Pages, pas dans l'artefact. Pas d'autre réseau. Musique du moteur (synthétisée).
 
 ## Exception : sons enregistrés du Domaine des Pins
 
