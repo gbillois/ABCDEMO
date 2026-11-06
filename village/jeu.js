@@ -505,7 +505,7 @@ let entreeEnCours = false;
 async function entrer(porte) {
   if (entreeEnCours || dedans) return;
   entreeEnCours = true;
-  try { await entrerVraiment(porte); } finally { entreeEnCours = false; }
+  try { await entrerVraiment(porte); } catch (e) { console.error(e); fondu(false); } finally { entreeEnCours = false; }
 }
 async function entrerVraiment(porte) {
   const B = porte.b, I = V.interieurs[B.type] || { nom: B.nom, info: '', entree: {}, sortie: {} };
