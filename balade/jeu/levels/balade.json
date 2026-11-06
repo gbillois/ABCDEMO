@@ -9,7 +9,7 @@
   "depth": 96,
   "waterLevel": -2,
   "water": {"flow":[0,0.45],"reflect":0.2,"neutral":0.2},
-  "environment": {"timeOfDay":12.5,"clock":false,"weather":"clear","border":"none","outerScenery":false,"godRays":false,"dust":false,"music":true,"camera":{"distance":18,"pitch":50,"bounds":{"minX":4,"maxX":76,"minZ":4,"maxZ":94}},"highGround":null,"minimap":false,"combat":false,"backdrop":"#b2c2d6","title":{"title":"La Balade de Millépoques","subtitle":"Le village de Théo, à la Renaissance","prompt":"Touche ou appuie sur une touche","credit":"Dessins de Millépoques · moteur Luminati · three.js"},"millepoques":{"ville":"../ville/ville.json","joueur":0,"passants":18,"vitesse":0.55,"zoomMin":8,"zoomMax":30}},
+  "environment": {"timeOfDay":12.5,"clock":false,"weather":"clear","border":"none","outerScenery":false,"godRays":false,"dust":false,"music":true,"camera":{"distance":22,"pitch":50,"bounds":{"minX":4,"maxX":76,"minZ":4,"maxZ":94}},"highGround":null,"minimap":false,"combat":false,"backdrop":"#b2c2d6","title":{"title":"La Balade de Millépoques","subtitle":"Le village de Théo, à la Renaissance","prompt":"Touche ou appuie sur une touche","credit":"Dessins de Millépoques · moteur Luminati · three.js"},"millepoques":{"ville":"../ville/ville.json","joueur":0,"passants":18,"vitesse":0.55,"zoomMin":8,"zoomMax":30}},
   "spawn": {"x":35.5,"z":30.5,"facing":"down"},
   "legend": {
     "g": {"top":"grass","side":"cliff","lip":"grass_side","walkable":true},

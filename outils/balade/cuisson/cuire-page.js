@@ -17,6 +17,7 @@ import { drawFlagHD, drawBoatHD } from '/mp/js/render/art/hd/units.js';
 import { drawAnimalHD, drawBerryBushHD } from '/mp/js/render/art/hd/prehistory.js';
 import { drawBeastHD } from '/mp/js/render/art/hd/garrison.js';
 import { drawUnitHD } from '/mp/js/render/art/hd/people.js';
+import { millieOutfit } from '/mp/js/render/art/hd/millie.js';
 import { drawVehicleHD } from '/mp/js/render/art/hd/vehicles.js';
 import { drawCityDecor } from '/mp/js/render/city.js';
 import { coverBoat } from '/mp/js/render/bridges.js';
@@ -104,13 +105,17 @@ function detourer(c) {
   return { c: o, dx: x0, dy: y0 };
 }
 /** Dessine un objet seul, dans une boîte du monde (pixels de Millepoques), à SS fois la taille. */
-function seul(boite, dessin) {
+// (masque : sans les fanions — drawBannerHD remplit leur toile de la couleur d'équipe ou de rouge — pour le volume)
+const FANIONS = new Set(['#3e6db5', '#c8432f']);
+function seul(boite, dessin, masque = false) {
   const [bx, by, bw, bh] = boite;
   const c = document.createElement('canvas'); c.width = Math.ceil(bw * SS); c.height = Math.ceil(bh * SS);
   const ctx = c.getContext('2d');
+  if (masque) { const f = ctx.fill.bind(ctx); ctx.fill = (...a) => { if (!FANIONS.has(String(ctx.fillStyle).toLowerCase())) f(...a); }; }
   ctx.setTransform(SS, 0, 0, SS, -bx * SS, -by * SS);
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
   dessin(ctx);
+  if (masque) return { c, x: bx, y: by };
   const d = detourer(c);
   if (!d) return null;
   return { c: d.c, x: bx + d.dx / SS, y: by + d.dy / SS };
@@ -125,6 +130,7 @@ function image(cle, fabrique) {
   if (cle) parCle.set(cle, i);
   return i;
 }
+const POUR_VOLUME = []; // bâtiments : de quoi redessiner leur masque
 const OBJETS = []; // { i: image, x, y: ancre (pixels Millepoques ; y = ligne de profondeur), s: échelle, k: sorte }
 const SORTES = { 0: 'arbre', 1: 'rocher', 2: 'batiment', 3: 'drapeau', 5: 'bateau', 6: 'buisson', 7: 'animal', 9: 'bete', 10: 'bateau', 11: 'decor' };
 r.ss = SS; r.bss = Math.max(2, SS); r.bakeSs = SS;
@@ -160,6 +166,7 @@ for (const it of vus.values()) {
     const im = seul(boite, dessin);
     if (!im) continue;
     const i = image(null, () => ({ c: im.c, ox: im.x - ax, oy: im.y - it.y, sw: im.c.width / SS, sh: im.c.height / SS }));
+    if (k === 2) POUR_VOLUME.push({ o: OBJETS.length, i: IMAGES.length - 1, boite, dessin, ax, ay: it.y });
     const extra = k === 2 ? { type: o.type, nom: (g.defOf?.(o.type) || g.data.buildings[o.type])?.name || o.type, bx: o.x - X0, by: o.y - Y0, bw: o.w, bh: o.h } : {};
     OBJETS.push({ i, x: ax, y: it.y, ax, ay: it.y, s: 1, k: SORTES[k] || 'objet', ...extra });
   }
@@ -167,13 +174,105 @@ for (const it of vus.values()) {
 log('objets', OBJETS.length, 'images', IMAGES.length);
 
 // ------------------------------------------------------------------------------------------------
+// Le volume des bâtiments : la silhouette (sans les mâts, cordes et fanions, plus fins que 2 × OUV pixels),
+// au-dessus de la ligne du sol, en polygone. Le jeu l'étire vers l'arrière sur la profondeur du bâtiment.
+// ------------------------------------------------------------------------------------------------
+const OUV = 10; // rayon de l'ouverture (pixels de l'image, à SS fois)
+function silhouette(c, ox, oy) { // c : le masque ; (ox, oy) : son coin haut gauche, en pixels de Millepoques depuis l'ancre
+  const W = c.width, H = c.height, d = c.getContext('2d').getImageData(0, 0, W, H).data;
+  const sol = Math.min(H, Math.round(-oy * SS) + 1); // la ligne du sol (ancre) dans l'image
+  let m = new Uint8Array(W * H);
+  for (let y = 0; y < sol; y++) for (let x = 0; x < W; x++) m[y * W + x] = d[(y * W + x) * 4 + 3] > 128 ? 1 : 0;
+  // ouverture : érosion puis dilatation (carrés, en deux passes)
+  const passe = (src, garder, horizontal) => {
+    const o = new Uint8Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let v = garder ? 1 : 0;
+      for (let k = -OUV; k <= OUV; k++) {
+        const xx = horizontal ? x + k : x, yy = horizontal ? y : y + k;
+        const s = xx < 0 || yy < 0 || xx >= W || yy >= H ? 0 : src[yy * W + xx];
+        if (garder ? !s : s) { v = garder ? 0 : 1; break; }
+      }
+      o[y * W + x] = v;
+    }
+    return o;
+  };
+  m = passe(passe(m, true, true), true, false); // érosion
+  m = passe(passe(m, false, true), false, false); // dilatation
+  for (let x = 0; x < W; x++) for (let y = sol; y < H; y++) m[y * W + x] = 0;
+  // morceaux (4-voisins) : le plus grand, et ceux d'au moins 15 % de sa taille
+  const lab = new Int32Array(W * H), tailles = [0];
+  for (let i = 0; i < W * H; i++) {
+    if (!m[i] || lab[i]) continue;
+    const n = tailles.length, pile = [i]; lab[i] = n; let t = 0;
+    while (pile.length) {
+      const j = pile.pop(); t++;
+      const x = j % W, y = (j / W) | 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+        const k = yy * W + xx; if (m[k] && !lab[k]) { lab[k] = n; pile.push(k); }
+      }
+    }
+    tailles.push(t);
+  }
+  const grand = Math.max(0, ...tailles);
+  const polys = [];
+  for (let n = 1; n < tailles.length; n++) {
+    if (tailles[n] < 0.15 * grand || tailles[n] < 300) continue;
+    // trous bouchés : tout ce que le dehors n'atteint pas est dedans
+    const dehors = new Uint8Array((W + 2) * (H + 2)), pile = [0]; dehors[0] = 1;
+    const dedansP = (x, y) => x >= 0 && y >= 0 && x < W && y < H && lab[y * W + x] === n;
+    while (pile.length) {
+      const j = pile.pop(), x = (j % (W + 2)) - 1, y = ((j / (W + 2)) | 0) - 1;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const xx = x + dx, yy = y + dy; if (xx < -1 || yy < -1 || xx > W || yy > H) continue;
+        const k = (yy + 1) * (W + 2) + xx + 1; if (!dehors[k] && !dedansP(xx, yy)) { dehors[k] = 1; pile.push(k); }
+      }
+    }
+    const dans = (x, y) => x >= 0 && y >= 0 && x < W && y < H && !dehors[(y + 1) * (W + 2) + x + 1];
+    // bords orientés (le dedans à droite, sens des aiguilles d'une montre à l'écran), enchaînés en boucle
+    const suite = new Map();
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (!dans(x, y)) continue;
+      if (!dans(x, y - 1)) suite.set(`${x},${y}`, [x + 1, y]);
+      if (!dans(x + 1, y)) suite.set(`${x + 1},${y}`, [x + 1, y + 1]);
+      if (!dans(x, y + 1)) suite.set(`${x + 1},${y + 1}`, [x, y + 1]);
+      if (!dans(x - 1, y)) suite.set(`${x},${y + 1}`, [x, y]);
+    }
+    if (!suite.size) continue;
+    const [k0] = suite.keys();
+    let pts = [], k = k0, garde = 0;
+    do { const [x, y] = k.split(',').map(Number); pts.push([x, y]); const nx = suite.get(k); suite.delete(k); if (!nx) break; k = `${nx[0]},${nx[1]}`; } while (k !== k0 && ++garde < 200000);
+    // simplification (Ramer-Douglas-Peucker), 1,5 pixel
+    const rdp = (P, e) => {
+      if (P.length < 3) return P;
+      const [ax, ay] = P[0], [bx, by] = P[P.length - 1], L = Math.hypot(bx - ax, by - ay) || 1;
+      let im2 = 0, dm = 0;
+      for (let i = 1; i < P.length - 1; i++) { const dd = Math.abs((bx - ax) * (ay - P[i][1]) - (ax - P[i][0]) * (by - ay)) / L; if (dd > dm) { dm = dd; im2 = i; } }
+      return dm > e ? [...rdp(P.slice(0, im2 + 1), e).slice(0, -1), ...rdp(P.slice(im2), e)] : [P[0], P[P.length - 1]];
+    };
+    const mid = Math.floor(pts.length / 2);
+    pts = [...rdp(pts.slice(0, mid + 1), 1.5).slice(0, -1), ...rdp([...pts.slice(mid), pts[0]], 1.5).slice(0, -1)];
+    if (pts.length >= 3) polys.push(pts.map(([x, y]) => [+(ox + x / SS).toFixed(2), +(oy + y / SS).toFixed(2)]));
+  }
+  return polys;
+}
+const VOLUMES = new Map(); // image -> polygones (pixels de Millepoques, depuis l'ancre)
+for (const b of POUR_VOLUME) {
+  if (VOLUMES.has(b.i)) continue;
+  const m = seul(b.boite, b.dessin, true);
+  VOLUMES.set(b.i, silhouette(m.c, m.x - b.ax, m.y - b.ay));
+}
+log('volumes', VOLUMES.size, 'points', [...VOLUMES.values()].flat().reduce((a, p) => a + p.length, 0));
+
+// ------------------------------------------------------------------------------------------------
 // 3. Les habitants qui marchent (le joueur et les passants)
 // ------------------------------------------------------------------------------------------------
 const PAS = 4.3 * 4; // longueur d'un cycle de marche (people.js : STRIDE × 4)
 const NB_IMAGES = 8;
 const VUES = { face: [0, 1, 1], dos: [0, -1, 1], droite: [1, 0, 1], gauche: [-1, 0, -1] };
-function habitant(id, job) {
-  const u = { id, job, x: 0, y: 0, moving: true, speed: 42, walkT: 0, game: g, visible: true };
+function habitant(id, job, extra = {}) {
+  const u = { id, job, x: 0, y: 0, moving: true, speed: 42, walkT: 0, game: g, visible: true, ...extra };
   const vues = {};
   for (const [nom, [mx, my, dir]] of Object.entries(VUES)) {
     vues[nom] = [];
@@ -192,7 +291,11 @@ function habitant(id, job) {
   return vues;
 }
 const IDS = (q.get('habitants') || '7,12,23,31,44,58,63').split(',').map(Number);
-const HABITANTS = IDS.map((id) => ({ id, vues: habitant(id, 'carrier') }));
+// la première, l'héroïne : Millie, la guide de Millepoques, dans sa tenue de l'époque (art/hd/millie.js)
+const HABITANTS = [
+  { id: 900001, nom: 'Millie', vues: habitant(900001, 'millie', { outfit: millieOutfit(g.era.id) }) },
+  ...IDS.map((id) => ({ id, vues: habitant(id, 'carrier') })),
+];
 log('habitants', HABITANTS.length);
 
 // ------------------------------------------------------------------------------------------------
@@ -271,7 +374,7 @@ window.CUIT = {
     sol: { taille: CH, px: TILE, morceaux },
     carte: 'carte.webp',
     planches: planches.map((p, n) => ({ f: `objets-${n}.webp`, w: P, h: P })),
-    images: IMAGES.map((im, i) => ({ r: RECTS[i], ox: +im.ox.toFixed(2), oy: +im.oy.toFixed(2), sw: +im.sw.toFixed(2), sh: +im.sh.toFixed(2) })),
+    images: IMAGES.map((im, i) => ({ r: RECTS[i], ox: +im.ox.toFixed(2), oy: +im.oy.toFixed(2), sw: +im.sw.toFixed(2), sh: +im.sh.toFixed(2), ...(VOLUMES.get(i)?.length ? { vol: VOLUMES.get(i) } : {}) })),
     objets: OBJETS.map((o) => ({ ...o, x: +((o.x / TILE) - X0).toFixed(3), y: +((o.y / TILE) - Y0).toFixed(3), ax: +((o.ax / TILE) - X0).toFixed(3), ay: +((o.ay / TILE) - Y0).toFixed(3), s: +o.s.toFixed(3) })),
     habitants: HABITANTS,
     cases: lignes,

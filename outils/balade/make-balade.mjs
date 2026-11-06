@@ -66,7 +66,7 @@ L.environment = {
   minimap: false,
   combat: false,
   backdrop: '#b2c2d6',
-  camera: { distance: 18, pitch: 50, bounds: { minX: 4, maxX: W - 4, minZ: 4, maxZ: D - 2 } },
+  camera: { distance: 22, pitch: 50, bounds: { minX: 4, maxX: W - 4, minZ: 4, maxZ: D - 2 } },
   title: {
     title: 'La Balade de Millépoques',
     subtitle: 'Le village de Théo, à la Renaissance',
