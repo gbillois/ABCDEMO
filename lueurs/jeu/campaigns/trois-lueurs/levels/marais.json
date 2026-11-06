@@ -9,7 +9,7 @@
   "depth": 36,
   "waterLevel": 0.4,
   "water": {"flow":[0,0.45],"reflect":0.2,"neutral":0.2},
-  "environment": {"timeOfDay":19,"clock":false,"weather":"clear","border":"forest","outerScenery":true,"godRays":true,"dust":true,"music":true,"camera":{"distance":26,"pitch":50},"highGround":null,"fogScale":1.4,"forest":{"areas":[{"minX":-20,"maxX":70,"minZ":-10,"maxZ":60,"kinds":{"pine":3,"oak":1}}]},"foliage":{"seed":31,"flowerAreas":[{"minX":0,"maxX":44,"minZ":0,"maxZ":36,"palette":[3,3,2]}],"shrubAreas":[{"minX":0,"maxX":44,"minZ":0,"maxZ":36,"chance":0.1}]}},
+  "environment": {"timeOfDay":19,"clock":false,"weather":"clear","border":"forest","outerScenery":true,"godRays":true,"dust":true,"music":true,"camera":null,"highGround":null,"fogScale":1.4,"forest":{"areas":[{"minX":-20,"maxX":70,"minZ":-10,"maxZ":60,"kinds":{"pine":3,"oak":1}}]},"foliage":{"seed":31,"flowerAreas":[{"minX":0,"maxX":44,"minZ":0,"maxZ":36,"palette":[3,3,2]}],"shrubAreas":[{"minX":0,"maxX":44,"minZ":0,"maxZ":36,"chance":0.1}]}},
   "spawn": {"x":32,"z":4,"facing":"down"},
   "legend": {
     "g": {"top":"grass","side":"cliff","lip":"grass_side","walkable":true},

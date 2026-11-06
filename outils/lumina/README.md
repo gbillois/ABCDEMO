@@ -12,7 +12,7 @@ compile avec Vite et copie le résultat dans `lueurs/jeu/` (sans l'éditeur ni l
 | Fichier | Rôle |
 | --- | --- |
 | `make-trois-lueurs.mjs` | La campagne : 3 niveaux (Bourg des Prés, Gorges d'Ocre, Marais des Brumes) et l'histoire. Copié dans `tools/` du moteur. |
-| `moteur/luminati.patch` | Retouches du moteur : style `retro` (campagne `look: "retro"`, `?look=retro`), langue `fr` par défaut. |
+| `moteur/luminati.patch` | Retouches du moteur : langue `fr` par défaut, et un style `retro` en option (`?look=retro`) ; le jeu garde le style normal du moteur. |
 | `moteur/fr.js` | Les textes de l'interface en français (copié dans `src/engine/i18n/`). |
 | `moteur/fr-common.mjs` | Les textes communs du moteur en français (`public/i18n/fr/common.json`). |
 | `moteur/tactile.js` | Joystick et boutons sur écran tactile, bouton « Accueil » sur l'écran titre. |

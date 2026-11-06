@@ -111,7 +111,6 @@ function bourg() {
   L.environment = {
     ...L.environment,
     timeOfDay: 10,
-    camera: { distance: 26, pitch: 50 },
     title: { title: 'LES TROIS LUEURS', subtitle: 'Une démo du moteur Luminati', prompt: 'Appuie sur une touche', credit: 'Moteur Luminati (MIT) · three.js' },
     foliage: {
       seed: 77,
@@ -268,7 +267,7 @@ function gorges() {
   L.subtitle = 'Le pays du sable rouge';
   L.author = 'Les jeux de Théo';
   L.description = 'Un canyon de grès et de sable rouge, une oasis, et la lueur d\'Ocre tout en haut des falaises.';
-  L.environment = { ...L.environment, timeOfDay: 13, climate: 'arid', camera: { distance: 26, pitch: 50 } };
+  L.environment = { ...L.environment, timeOfDay: 13, climate: 'arid' };
   fill(L, 0, 0, W, D, 'T');
   fill(L, 2, 2, W - 2, D - 2, 'a');
   const R = { j0: 12, j1: 16 }; // la route (z monde 18–22)
@@ -354,7 +353,7 @@ function marais() {
   L.author = 'Les jeux de Théo';
   L.description = 'Un marais au crépuscule : des mares, des pontons, des cyprès, et la lueur des Brumes sur l\'îlot.';
   L.environment = {
-    ...L.environment, timeOfDay: 19.0, clock: false, fogScale: 1.4, camera: { distance: 26, pitch: 50 },
+    ...L.environment, timeOfDay: 19.0, clock: false, fogScale: 1.4,
     forest: { areas: [{ minX: -20, maxX: 70, minZ: -10, maxZ: 60, kinds: { pine: 3, oak: 1 } }] },
     foliage: { seed: 31, flowerAreas: [{ minX: 0, maxX: W, minZ: 0, maxZ: D, palette: [3, 3, 2] }], shrubAreas: [{ minX: 0, maxX: W, minZ: 0, maxZ: D, chance: 0.1 }] },
   };
@@ -430,7 +429,6 @@ const campaignRaw = {
   version: 1,
   name: 'Les Trois Lueurs',
   subtitle: 'Une démo du moteur Luminati',
-  look: 'retro',
   title: { title: 'LES TROIS LUEURS', subtitle: 'Une démo du moteur Luminati pour Théo', credit: 'Moteur Luminati 2.5D (MIT) · three.js' },
   start: { level: 'bourg', entrance: '' },
   levels: [

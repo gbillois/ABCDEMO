@@ -187,8 +187,8 @@ dans le style des aventures 16 bits vues de dessus (images d'inspiration fournie
 - `lueurs/index.html` : page de lancement (règles, commandes, bouton Accueil). `lueurs/jeu/` : le jeu **compilé**
   (Vite) — ne pas le modifier à la main : tout se refait avec `bash outils/lumina/fabriquer.sh`.
 - `outils/lumina/` : le commit du moteur utilisé (`COMMIT` dans `fabriquer.sh`), nos retouches au moteur
-  (`moteur/luminati.patch` : le style « retro » — caméra plus haute, flou presque nul, couleurs vives, gros pixels —
-  et le français ; `moteur/fr.js` : l'interface en français ; `moteur/tactile.js` : joystick et boutons pour tablette,
+  (`moteur/luminati.patch` : le français, et un style « retro » — gros pixels, couleurs vives — que le jeu n'utilise pas :
+  à la demande du propriétaire, le jeu garde le style « diorama » normal du moteur et sa caméra ; `?look=retro` pour l'essayer ; `moteur/fr.js` : l'interface en français ; `moteur/tactile.js` : joystick et boutons pour tablette,
   bouton Accueil), et la campagne (`make-trois-lueurs.mjs` : trois niveaux, trois styles — prés verts, gorges d'ocre
   au climat aride, marais des brumes au crépuscule — et l'histoire des trois lueurs).
 - Le jeu lit ses niveaux (`lueurs/jeu/campaigns/`) depuis le même site : il marche sur GitHub Pages, pas dans l'artefact.

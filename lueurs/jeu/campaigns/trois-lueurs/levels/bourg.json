@@ -9,7 +9,7 @@
   "depth": 40,
   "waterLevel": 0.4,
   "water": {"flow":[0,0.45],"reflect":0.2,"neutral":0.2},
-  "environment": {"timeOfDay":10,"clock":true,"weather":"clear","border":"forest","outerScenery":true,"godRays":true,"dust":true,"music":true,"camera":{"distance":26,"pitch":50},"highGround":null,"title":{"title":"LES TROIS LUEURS","subtitle":"Une démo du moteur Luminati","prompt":"Appuie sur une touche","credit":"Moteur Luminati (MIT) · three.js"},"foliage":{"seed":77,"flowerAreas":[{"minX":17,"maxX":29,"minZ":27,"maxZ":37,"palette":[0,1,1,2,3]}],"shrubAreas":[{"minX":2,"maxX":46,"minZ":12,"maxZ":38,"chance":0.08}]}},
+  "environment": {"timeOfDay":10,"clock":true,"weather":"clear","border":"forest","outerScenery":true,"godRays":true,"dust":true,"music":true,"camera":null,"highGround":null,"title":{"title":"LES TROIS LUEURS","subtitle":"Une démo du moteur Luminati","prompt":"Appuie sur une touche","credit":"Moteur Luminati (MIT) · three.js"},"foliage":{"seed":77,"flowerAreas":[{"minX":17,"maxX":29,"minZ":27,"maxZ":37,"palette":[0,1,1,2,3]}],"shrubAreas":[{"minX":2,"maxX":46,"minZ":12,"maxZ":38,"chance":0.08}]}},
   "spawn": {"x":24.5,"z":23.4,"facing":"up"},
   "legend": {
     "g": {"top":"grass","side":"cliff","lip":"grass_side","walkable":true},

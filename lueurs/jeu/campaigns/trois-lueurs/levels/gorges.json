@@ -9,7 +9,7 @@
   "depth": 34,
   "waterLevel": 0.4,
   "water": {"flow":[0,0.45],"reflect":0.2,"neutral":0.2},
-  "environment": {"timeOfDay":13,"clock":true,"weather":"clear","border":"forest","outerScenery":true,"godRays":true,"dust":true,"music":true,"camera":{"distance":26,"pitch":50},"highGround":null,"climate":"arid"},
+  "environment": {"timeOfDay":13,"clock":true,"weather":"clear","border":"forest","outerScenery":true,"godRays":true,"dust":true,"music":true,"camera":null,"highGround":null,"climate":"arid"},
   "spawn": {"x":4,"z":14,"facing":"right"},
   "legend": {
     "g": {"top":"grass","side":"cliff","lip":"grass_side","walkable":true},
