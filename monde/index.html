@@ -893,7 +893,7 @@ function cubeSphere(N) {
     }
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
       const k = base + j * (N + 1) + i;
-      if (s > 0) idx.push(k, k + 1, k + N + 1, k + 1, k + N + 2, k + N + 1); else idx.push(k, k + N + 1, k + 1, k + 1, k + N + 1, k + N + 2);
+      idx.push(k, k + 1, k + N + 1, k + 1, k + N + 2, k + N + 1);   // même sens pour les 6 faces (p[a] = u·s retourne déjà la face)
     }
   }
   const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
@@ -1799,7 +1799,7 @@ addEventListener("resize", () => {
 })();
 </script>
 <script>
-window.MONDE_VERSION = "2026.11.06-3"; // à changer à chaque modification
+window.MONDE_VERSION = "2026.11.06-4"; // à changer à chaque modification
 </script>
 <script>
 // Application installable : gardée sur l'appareil par sw.js (marche sans réseau).
