@@ -1007,7 +1007,7 @@ void main() {
   float hl = 0.0;
   if (uHL.x > 0.0 && abs(ids.r - uHL.x) < 0.5) hl = 1.0;
   if (uHL.y > 0.0 && abs(ids.b - uHL.y) < 0.5) hl = 1.0;
-  if (uHL.z > 0.0 && abs(ids.g - uHL.z) < 0.5 && eau > 0.5) hl = 1.0;
+  if (uHL.z > 0.0 && (abs(ids.g - uHL.z) < 0.5 || (uHL.w > 0.0 && abs(ids.g - uHL.w) < 0.5)) && eau > 0.5) hl = 1.0;
   vec3 hlc = mix(vec3(1.0, 0.8, 0.3), vec3(0.25, 0.85, 1.0), eau);
   col = mix(col, col * 0.55 + hlc * (0.32 + 0.3 * lum), hl * (0.55 + 0.15 * sin(uTime * 4.0)));
   // ----- lignes (équateur, tropiques, cercles polaires, Greenwich, grille) : nettes à tous les zooms
@@ -1349,7 +1349,7 @@ function creerEtiquettes() {
   for (const m of DATA.mers) { m.n = m.n.replace(/^Golfe /, "golfe "); if (m.k === "ocean" || m.r > 4) continue; etiq(m.n, "mer", m.l[0], m.l[1], "mers", .03, m.r <= 1 ? 1.6 : m.r <= 2 ? 1 : m.r <= 3 ? .55 : .3, 20 + m.r); }
   for (const p of DATA.pays) {
     if (p.cache || (p.aire < .05 && !EUROPE.includes(p.a3))) continue;
-    const s = Math.sqrt(p.aire), max = .2 + s * .07;
+    const s = Math.sqrt(p.aire), max = Math.min(.2 + s * .07, 1.15);
     etiq(p.n, "pays" + (s > 20 ? " grand" : ""), p.l[0], p.l[1], "pays", .02, max, 30 - Math.min(s, 25) * .6 + p.r, { a3: p.a3 });
     if (p.cap) etiq(p.cap[0], "cap", p.cap[1], p.cap[2], "cap", .02, p.pop > 8e7 ? 1.2 : p.pop > 2e7 ? .7 : p.pop > 4e6 ? .45 : .28, 40 - Math.log10(p.pop + 10));
   }
@@ -1599,6 +1599,16 @@ function viser(x, y) {
 
 // ============================================================ fiche d'un lieu touché
 const PAYS_ID = {}, PAYS_A3 = {}, MER_ID = {};
+// les océans (polygones « ocean » de Natural Earth) ; les mers fermées ne font pas partie d'un océan pour le quiz
+const OCE_EN = { "Arctic Ocean": 10, "North Atlantic Ocean": 11, "South Atlantic Ocean": 11, "North Pacific Ocean": 12, "South Pacific Ocean": 12, "INDIAN OCEAN": 13, "SOUTHERN OCEAN": 14 };
+const MERS_FERMEES = /M[ée]diterran|Adriatique|Tyrrh[ée]nienne|Ionienne|[ÉE]g[ée]e|Bal[ée]ares|Golfe du Lion|mer Noire|Baltique|Botnie|Finlande|Caspienne|mer Rouge|golfe Persique|baie d'Hudson|mer Blanche/i;
+const idsOcean = o => DATA.mers.filter(m => OCE_EN[m.en] === o).map(m => m.id);
+function surlignerOcean(o) { const L = idsOcean(o); U.uHL.value.set(0, 0, L[0] || 0, L[1] || 0); }
+function dansOcean(lon, lat, o) {   // le point est-il dans cet océan (ou dans une mer ouverte qui en fait partie) ?
+  const [, sid, code] = idsA(lon, lat), m = MER_ID[sid];
+  if (code !== o) return false;
+  return !m || m.k === "ocean" || !MERS_FERMEES.test(m.n);
+}
 const fmtPop = p => p >= 1e9 ? (p / 1e9).toFixed(1).replace(".", ",") + " milliard" + (p >= 2e9 ? "s" : "") : p >= 1e6 ? Math.round(p / 1e6) + " millions" : p >= 1e3 ? Math.round(p / 1e3) + " mille" : String(p);
 const fmtM = m => Math.round(m).toLocaleString("fr-FR") + " m";
 function zoneClim(lat) { const z = Math.abs(lat); return z < 23.44 ? "zone chaude" : z < 66.56 ? "zone tempérée" : "zone froide"; }
@@ -1616,11 +1626,12 @@ function toucherGlobe(x, y) {
     const m = MER_ID[sid];
     titre = m && m.k !== "ocean" ? m.n : NOMS_OCE[code] || "L'océan";
     titre = titre[0].toUpperCase() + titre.slice(1);
-    if (m && m.k !== "ocean" && NOMS_OCE[code]) L.push(["ocean", "Dans l'", NOMS_OCE[code].replace(/^océan /, "océan ")]);
+    if (m && m.k !== "ocean" && NOMS_OCE[code] && !MERS_FERMEES.test(m.n)) L.push(["ocean", "Dans l'", NOMS_OCE[code]]);
+    else if (m && MERS_FERMEES.test(m.n)) L.push(["mer", "C'est une ", "mer presque fermée"]);
     else L.push(["ocean", "C'est un ", "océan"]);
     if (h < 0) L.push(["regle", "Profondeur : ", "environ " + fmtM(-h)]);
     if (cl === 13) { L.push(["polaires", "Ici : ", "la banquise"]); desc = PAYSAGES[13][2]; }
-    U.uHL.value.set(0, 0, sid || 0, 0); if (!sid || (m && m.k === "ocean")) U.uHL.value.set(0, code, 0, 0);
+    if (m && m.k === "ocean") surlignerOcean(OCE_EN[m.en] || code); else U.uHL.value.set(0, 0, sid || 0, 0);
   } else if (pays) {
     titre = pays.n; const cont = idsA(p.lon, p.lat)[2];
     L.push(["continent", "Continent : ", NOMS_CONT[cont] || NOMS_CONT[pays.c] || "—"]);
@@ -1736,9 +1747,9 @@ const GEN = {
   contChoix() { const c = alea([1, 2, 3, 4, 5, 6, 7]); const e = ETIQ_CONT.find(x => x[0] === c);
     return { texte: "Quel est ce continent ?", type: "choix", vue: [e[1], e[2] * .7, c === 7 ? 2.6 : 3], montrer: () => U.uHL.value.set(0, c, 0, 0), bonne: NOMS_CONT[c], choix: choixDe(NOMS_CONT[c], Object.values(NOMS_CONT)) }; },
   oceTouche() { const o = alea([10, 11, 12, 13, 14, 11, 12, 13]); return { texte: `Touche l'${NOMS_OCE[o]}`, type: "touche", vue: vueMonde(),
-    verif: p => idsA(p.lon, p.lat)[2] === o, rep: NOMS_OCE[o], reveler: () => { U.uHL.value.set(0, o, 0, 0); const e = ETIQ_OCE.find(x => x[0] === o); allerA(e[1], e[2], 3); } }; },
+    verif: p => dansOcean(p.lon, p.lat, o), rep: NOMS_OCE[o], reveler: () => { surlignerOcean(o); const e = ETIQ_OCE.find(x => x[0] === o); allerA(e[1], e[2], 3); } }; },
   oceChoix() { const o = alea([10, 11, 12, 13, 14]); const e = ETIQ_OCE.find(x => x[0] === o);
-    return { texte: "Quel est cet océan ?", type: "choix", vue: [e[1], e[2] * .8, 3], montrer: () => U.uHL.value.set(0, o, 0, 0), bonne: NOMS_OCE[o], choix: choixDe(NOMS_OCE[o], Object.values(NOMS_OCE)) }; },
+    return { texte: "Quel est cet océan ?", type: "choix", vue: [e[1], e[2] * .8, 3], montrer: () => surlignerOcean(o), bonne: NOMS_OCE[o], choix: choixDe(NOMS_OCE[o], Object.values(NOMS_OCE)) }; },
   ligneChoix() { const i = Math.floor(Math.random() * LIGNES.length), L = LIGNES[i];
     return { texte: "Comment s'appelle cette ligne qui brille ?", type: "choix", vue: [L.lon === 0 ? 0 : CAM.lon, L.lat != null ? L.lat * .8 : 20, 3], montrer: () => { U.uLigHL.value = i + 1; }, bonne: L.n, choix: choixDe(L.n, LIGNES.map(l => l.n)) }; },
   ligneTouche() { const L = alea([LIGNES[0], LIGNES[0], LIGNES[1], LIGNES[2], LIGNES[5]]), i = LIGNES.indexOf(L);
@@ -2046,7 +2057,7 @@ addEventListener("resize", () => {
 })();
 </script>
 <script>
-window.MONDE_VERSION = "2026.11.06-8"; // à changer à chaque modification
+window.MONDE_VERSION = "2026.11.07-1"; // à changer à chaque modification
 </script>
 <script>
 // Application installable : gardée sur l'appareil par sw.js (marche sans réseau).
