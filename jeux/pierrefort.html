@@ -68,7 +68,7 @@ h1{font-family:Cinzel,serif;font-weight:700;font-size:clamp(34px,9vw,68px);margi
   <button id="go">Jouer</button>
   <div id="barBox"><div id="bar"></div></div>
   <div id="load">Je prépare les outils du bâtisseur…</div>
-  <div id="ver" style="margin-top:8px;font-size:12px;opacity:.6">Version 8</div>
+  <div id="ver" style="margin-top:8px;font-size:12px;opacity:.6">Version 9</div>
   <div class="ctr" id="ctrl"></div>
 </div>
 <div id="win" class="ov" style="display:none">
@@ -338,7 +338,7 @@ const PRESET={
  day:{top:0x3f72b8,hor:0xe6cfa8,bot:0x5a5244,sun:new V3(-.62,.36,.68).normalize(),sunCol:0xffc98a,light:0xffdcb0,li:2.6,hs:0xc8daf5,hg:0x6b5a40,hi:1.05,fog:0xd8c4a2,exp:1.0,torch:1.0,win:0,night:0,cloud:0xfff0dc,glow:.3},
  night:{top:0x040814,hor:0x18223a,bot:0x050608,sun:new V3(.5,.5,.7).normalize(),sunCol:0x9aaad0,light:0x9fb6ff,li:.55,hs:0x4a5a8a,hg:0x101010,hi:.3,fog:0x121a2b,exp:1.3,torch:2.4,win:.9,night:1,cloud:0x2c3550,glow:.9}};
 let cur=PRESET.day,isNight=false,clouds=[],cloudMat;
-function applyPreset(p){cur=p;skyU.top.value.set(p.top);skyU.horizon.value.set(p.hor);skyU.bottom.value.set(p.bot);skyU.sunDir.value.copy(p.sun);skyU.sunCol.value.set(p.sunCol);skyU.night.value=p.night;
+function applyPreset(p){cur=p;skyU.top.value.set(p.top);skyU.horizon.value.set(p.hor);skyU.bottom.value.set(p.bot);skyU.sunDir.value.copy(p.sun);skyU.sunCol.value.set(p.sunCol);skyU.night.value=p.night;if(window.PERSO_RIM)window.PERSO_RIM.value=.06+.3*(1-p.night);
  sun.color.set(p.light);sun.intensity=p.li;hemi.color.set(p.hs);hemi.groundColor.set(p.hg);hemi.userData.base=p.hi;scene.fog.color.set(p.fog);renderer.toneMappingExposure=p.exp;
  if(M.window)M.window.emissiveIntensity=p.win;if(cloudMat)cloudMat.color.set(p.cloud);if(glowMat)glowMat.opacity=p.glow;updateEnv();}
 
@@ -664,13 +664,24 @@ function lin(hex){return new PC(hex).convertSRGBToLinear();}
 function texSkin(){const S=256,c=pcnv(S),g=c.getContext('2d'),id=g.createImageData(S,S),d=id.data;
  for(let y=0;y<S;y++)for(let x=0;x<S;x++){const i=(y*S+x)*4;const n=fbm(x/S*8,y/S*8,8,8,3),p=Math.random()<.04?-14:0;const l=232+(n-.5)*26+(Math.random()-.5)*6+p;d[i]=l;d[i+1]=l-2;d[i+2]=l-4;d[i+3]=255;}
  g.putImageData(id,0,0);return ptex(c);}
-function texWeave(){const S=128,c=pcnv(S),g=c.getContext('2d'),id=g.createImageData(S,S),d=id.data;
- for(let y=0;y<S;y++)for(let x=0;x<S;x++){const i=(y*S+x)*4;const a=Math.sin(x/S*Math.PI*64),b=Math.sin(y/S*Math.PI*64);const w=((Math.floor(x/4)+Math.floor(y/4))%2)?a:b;
-  const l=215+w*12+(fbm(x/S*4,y/S*4,4,4,2)-.5)*30+(Math.random()-.5)*10;d[i]=d[i+1]=d[i+2]=l;d[i+3]=255;}
- g.putImageData(id,0,0);return ptex(c,true,14);}
+function texWeave(){const S=256,c=pcnv(S),g=c.getContext('2d'),id=g.createImageData(S,S),d=id.data;
+ const slubX=[],slubY=[];for(let k=0;k<S;k++){slubX.push((Math.random()-.5)*14*(Math.random()<.12?1:.25));slubY.push((Math.random()-.5)*14*(Math.random()<.12?1:.25));}
+ for(let y=0;y<S;y++)for(let x=0;x<S;x++){const i=(y*S+x)*4;
+  const tw=((x+y)>>1)%4<2;                                   // sergé : diagonales
+  const tx=Math.sin(x/S*Math.PI*128),ty=Math.sin(y/S*Math.PI*128);
+  const th=tw?(.5+.5*tx)*1+slubY[y]:(.5+.5*ty)*1+slubX[x];   // fil du dessus et ses irrégularités
+  const dye=(fbm(x/S*5,y/S*5,5,5,4)-.5)*34;                  // teinture inégale
+  const wear=Math.max(0,fbm(x/S*9+7,y/S*9,9,9,3)-.62)*90;    // zones usées, plus claires
+  const l=204+th*13+dye+wear+(Math.random()-.5)*6;d[i]=d[i+1]=d[i+2]=Math.max(0,Math.min(255,l));d[i+3]=255;}
+ g.putImageData(id,0,0);return ptex(c,true,12);}
 function texLeather(){const S=256,c=pcnv(S),g=c.getContext('2d'),id=g.createImageData(S,S),d=id.data;
- for(let y=0;y<S;y++)for(let x=0;x<S;x++){const i=(y*S+x)*4;const n=fbm(x/S*6,y/S*6,6,6,4),cr=Math.abs(vnoise(x/S*22,y/S*22,22)-.5)<.03?-35:0;const l=200+(n-.5)*70+cr+(Math.random()-.5)*10;d[i]=d[i+1]=d[i+2]=l;d[i+3]=255;}
- g.putImageData(id,0,0);return ptex(c,true,3);}
+ for(let y=0;y<S;y++)for(let x=0;x<S;x++){const i=(y*S+x)*4;const n=fbm(x/S*6,y/S*6,6,6,4),cr=Math.abs(vnoise(x/S*22,y/S*22,22)-.5)<.03?-35:0;
+  const pore=vnoise(x/S*90,y/S*90,90)>.82?-18:0,patina=(fbm(x/S*3+4,y/S*3,3,3,3)-.5)*50;
+  const l=200+(n-.5)*60+cr+pore+patina+(Math.random()-.5)*10;d[i]=d[i+1]=d[i+2]=Math.max(0,Math.min(255,l));d[i+3]=255;}
+ g.putImageData(id,0,0);
+ g.strokeStyle='rgba(255,255,255,.35)';for(let k=0;k<40;k++){g.lineWidth=prnd(.5,1.4);g.beginPath();const x=Math.random()*S,y=Math.random()*S;g.moveTo(x,y);g.quadraticCurveTo(x+prnd(-8,8),y+prnd(-8,8),x+prnd(-18,18),y+prnd(-18,18));g.stroke();}
+ for(const yy of [10,S-12]){g.fillStyle='rgba(30,30,30,.55)';for(let x=0;x<S;x+=9){g.fillRect(x,yy,5,2);}g.fillStyle='rgba(255,255,255,.25)';for(let x=0;x<S;x+=9)g.fillRect(x,yy-1,5,1);}
+ return ptex(c,true,3);}
 function texMetal(){const S=128,c=pcnv(S),g=c.getContext('2d'),id=g.createImageData(S,S),d=id.data;
  for(let y=0;y<S;y++)for(let x=0;x<S;x++){const i=(y*S+x)*4;const l=215+(vnoise(x/S*2,y/S*90,2,90)-.5)*40+(Math.random()-.5)*8;d[i]=d[i+1]=d[i+2]=l;d[i+3]=255;}
  for(let k=0;k<30;k++){g.putImageData(id,0,0);}
@@ -709,19 +720,26 @@ function texEye(iris){const W=256,H=128,c=pcnv(W,H),g=c.getContext('2d'),id=g.cr
  g.putImageData(id,0,0);const t=ptex(c);t.wrapT=THREE.ClampToEdgeWrapping;return t;}
 
 /* ---------- Matières (créées une fois) ---------- */
+// contre-jour : un liseré doux de lumière sur les bords des personnages (réglé par le jour et la nuit)
+window.PERSO_RIM=window.PERSO_RIM||{value:.32};
+function addRim(m,k){m.onBeforeCompile=sh=>{sh.uniforms.rimK=window.PERSO_RIM;
+  sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nuniform float rimK;')
+   .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n{float fr=1.0-clamp(dot(normalize(vViewPosition),normal),0.0,1.0);totalEmissiveRadiance+=diffuseColor.rgb*vec3(1.0,0.93,0.8)*pow(fr,2.6)*rimK*'+k.toFixed(2)+';}');};
+ m.customProgramCacheKey=()=>'rim'+k;return m;}
 let MT=null;const eyeMats={};
 function mats(){if(MT)return MT;
  const sk=texSkin(),wv=texWeave(),le=texLeather(),me=texMetal(),ch=texChain(),ha=texHair();
  MT={
   skin:new THREE.MeshStandardMaterial({skinning:true,map:sk,vertexColors:true,roughness:.62,metalness:0}),
   hair:new THREE.MeshStandardMaterial({skinning:true,map:ha,vertexColors:true,roughness:.66,metalness:0,side:THREE.DoubleSide}),
-  cloth:new THREE.MeshStandardMaterial({skinning:true,map:wv,bumpMap:wv,bumpScale:.004,vertexColors:true,roughness:.92,side:THREE.DoubleSide}),
-  leather:new THREE.MeshStandardMaterial({skinning:true,map:le,bumpMap:le,bumpScale:.02,vertexColors:true,roughness:.55}),
+  cloth:new THREE.MeshStandardMaterial({skinning:true,map:wv,bumpMap:wv,bumpScale:.006,vertexColors:true,roughness:.92,side:THREE.DoubleSide}),
+  leather:new THREE.MeshStandardMaterial({skinning:true,map:le,bumpMap:le,bumpScale:.02,vertexColors:true,roughness:.55,side:THREE.DoubleSide}),
   metal:new THREE.MeshStandardMaterial({skinning:true,map:me,vertexColors:true,roughness:.3,metalness:.75}),
   chain:new THREE.MeshStandardMaterial({skinning:true,map:ch,bumpMap:ch,bumpScale:.03,vertexColors:true,roughness:.4,metalness:.7,side:THREE.DoubleSide}),
   wood:new THREE.MeshStandardMaterial({skinning:true,map:le,vertexColors:true,roughness:.75}),
   strand:new THREE.MeshStandardMaterial({skinning:true,map:texStrand(),alphaTest:.42,vertexColors:true,roughness:.5,side:THREE.DoubleSide})};
  {const tt=texTrim();MT.trim=new THREE.MeshStandardMaterial({skinning:true,map:tt,bumpMap:tt,bumpScale:.0015,vertexColors:true,roughness:.62,metalness:.05,side:THREE.DoubleSide});}
+ for(const [k,v] of [['skin',1],['cloth',1.2],['leather',.9],['hair',1.1],['strand',1.1],['trim',1],['chain',.6]])addRim(MT[k],v);
  MT.skin.emissive=new PC(0x3a1408);MT.skin.emissiveIntensity=.22;
  return MT;}
 function eyeMat(iris){if(!eyeMats[iris])eyeMats[iris]=new THREE.MeshStandardMaterial({skinning:true,map:texEye(iris),roughness:.07,metalness:0});return eyeMats[iris];}
@@ -789,7 +807,7 @@ const {PV,PC,psm,gauss,paint,limb,capsule,ellip,ribbon,BI,BP,lin}=P;
 const HC=new PV(0,1.685,.012); // centre de la tête (posture de repos)
 
 // forme du visage : déplacement vers l'avant pour un point (x,y) du devant de la tête
-function faceDz(x,y,f){const ax=Math.abs(x);let dz=0;
+function faceDz(x,y,f){const ax=Math.abs(x);let dz=0;if(y<0)y/=(f.low||1); // bas du visage plus court (enfants)
  dz-=.0085*gauss(ax,y,.031,.013,.015,.0095);                 // orbites
  dz+=.0075*f.brow*gauss(ax,y,.03,.031,.024,.0075);            // arcade sourcilière
  // nez : arête étroite, bout arrondi, ailes, dessous creusé
@@ -831,7 +849,7 @@ function frontZ(x,y,f){ // devant de la tête à (x,y) : on cherche le point de 
 // ----- L'ŒIL -----
 function makeEye(rig,side,f,o){const M=P.mats();const sx=side==='L'?1:-1;
  const ex=.031*sx,ey=.0125,fem=o.sex==='f';
- const c=new PV(ex+HC.x,ey+HC.y,HC.z+frontZ(ex,ey,f)-.0045);const R=fem?.0125:.0118;
+ const c=new PV(ex+HC.x,ey+HC.y,HC.z+frontZ(ex,ey,f)-.0045);const R=(fem?.0125:.0118)*(o.enf?1.1:1);
  const eye=new THREE.SphereGeometry(R,28,18);eye.rotateX(Math.PI/2);eye.rotateY(sx*.06);eye.translate(c.x,c.y,c.z);
  rig.add('eye',eye,BI.head);
  // paupière du haut (bouge pour cligner) et du bas
@@ -855,7 +873,8 @@ function makeHead(rig,o){const f=o.face;
  for(let i=0;i<p.count;i++){headPoint(p.getX(i),p.getY(i),p.getZ(i),f,v);p.setXYZ(i,v.x+HC.x,v.y+HC.y,v.z+HC.z);}
  g.computeVertexNormals();
  const skin=lin(o.skin),lip=lin(o.lip),blush=lin('#c4686a');
- paint(g,skin,(x,y,z,c)=>{x-=HC.x;y-=HC.y;z-=HC.z;if(z<0)return;
+ const L=f.low||1;
+ paint(g,skin,(x,y,z,c)=>{x-=HC.x;y-=HC.y;z-=HC.z;if(z<0)return;if(y<0)y/=L;
   const lw=Math.max(gauss(x,y,0,-.0548,.0135,.0028),gauss(x,y,0,-.0655,.0118,.0038));c.lerp(lip,Math.min(1,lw*1.35));
   c.lerp(blush,(o.sex==='f'?.34:.22)*gauss(Math.abs(x),y,.045,-.018,.016,.014));if(o.sex==='f')c.lerp(lin('#a86a70'),.16*gauss(Math.abs(x),y,.031,.021,.014,.004));
     const nos=gauss(Math.abs(x),y,.0072,-.0406,.0026,.0012);c.multiplyScalar(1-nos*.6);
@@ -863,16 +882,16 @@ function makeHead(rig,o){const f=o.face;
   c.lerp(lin('#b86a62'),.18*gauss(x,y,0,-.028,.009,.009));c.lerp(lin('#7a5a6a'),.1*gauss(Math.abs(x),y,.031,-.006,.012,.005));
   if(o.sex!=='f'&&!o.beard){const bs=psm((-.035-y)/.02)*psm((Math.abs(x)<.024&&y>-.075&&y<-.045)?0:1);c.lerp(lin('#6a6a72'),.12*bs);}});
  // la bouche s'ouvre : le bas du visage suit la mâchoire
- const jy=-.0605;
+ const jy=-.0605*L;
  rig.add('skin',g,(x,y,z)=>{const ly=y-HC.y,lz=z-HC.z;const w=psm((jy-ly)/.012)*psm((lz+.03)/.05)*(1-psm((ly+.125)/-.02));return [BI.head,BI.jaw,w];});
  // la fente des lèvres : un fil sombre bien net
- {const pts=[];for(let k=0;k<=14;k++){const t=k/14*2-1,x=t*.0185,y=-.0605+Math.abs(t)*Math.abs(t)*.0012;pts.push(new PV(x+HC.x,y+HC.y,HC.z+frontZ(x,y,f)+.0002-Math.abs(t)*.002));}
+ {const pts=[];for(let k=0;k<=14;k++){const t=k/14*2-1,x=t*.0185*Math.sqrt(L),y=(-.0605+Math.abs(t)*Math.abs(t)*.0012)*L;pts.push(new PV(x+HC.x,y+HC.y,HC.z+frontZ(x,y,f)+.0002-Math.abs(t)*.002));}
   const ml=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),28,.0007,5,false);paint(ml,lin('#4a1e1c'));rig.add('skin',ml,BI.head);}
  // intérieur de la bouche et dents
- const mz=frontZ(0,-.06,f);
- const cav=P.ellip(new PV(HC.x,HC.y-.062,HC.z+mz-.022),.019,.012,.018,14,10);paint(cav,lin('#3a1414'));rig.add('skin',cav,BI.head);
+ const mz=frontZ(0,-.06*L,f);
+ const cav=P.ellip(new PV(HC.x,HC.y-.062*L,HC.z+mz-.022),.019,.012,.018,14,10);paint(cav,lin('#3a1414'));rig.add('skin',cav,BI.head);
  const teeth=new THREE.BoxGeometry(.03,.006,.006,6,1,1);{const tp=teeth.attributes.position;for(let i=0;i<tp.count;i++){const x=tp.getX(i);tp.setZ(i,tp.getZ(i)-x*x*9);}}
- teeth.translate(HC.x,HC.y-.0585,HC.z+mz-.008);paint(teeth,lin('#eee6d4'));rig.add('skin',teeth,BI.head);
+ teeth.translate(HC.x,HC.y-.0585*L,HC.z+mz-.008);paint(teeth,lin('#eee6d4'));rig.add('skin',teeth,BI.head);
  // oreilles
  for(const sx of [1,-1]){const e=new THREE.SphereGeometry(1,18,14);const ep=e.attributes.position;
   for(let i=0;i<ep.count;i++){let x=ep.getX(i),y=ep.getY(i),z=ep.getZ(i);const out=x>0;x*=.0065;y*=.031*(y>0?1:.85);z*=.019;if(out){const r=Math.hypot(y/.031,z/.019);x-=.004*Math.max(0,1-r*1.4);}ep.setXYZ(i,x,y,z);}
@@ -1160,17 +1179,46 @@ function makeEquip(rig,o){const e=o.equip||{};const HC=P.HC;const mh=k=>P.METAUX
   {const ch=new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new PV(.115,1.45,.11),new PV(0,1.415,.13),new PV(-.115,1.45,.11)]),20,.0035,5,false);metal(rig,ch,P.METAUX.Or,BI.chest);}}
 }
 
+// ----- LE SAC D'AVENTURIER (le héros) : toile, rabat de cuir, couverture roulée, gourde, bretelles -----
+function makeSac(rig,o){const fem=o.sex==='f',prof=fem?PROF_F:PROF_M,bw=o.build||1;
+ const zf=y=>profR(prof,y)*bw*.6656+.008,zb=y=>-profR(prof,y)*bw*.64-.008;
+ const toile=lin('#6b6142'),cuir=lin('#5a3620'),cuirF=lin('#3e2414'),laiton=P.METAUX.Bronze;
+ const boxy=(cx,cy,cz,sx,sy,sz,e)=>{const g=new THREE.SphereGeometry(1,22,16);const p=g.attributes.position;
+  for(let i=0;i<p.count;i++){const f=v=>Math.sign(v)*Math.pow(Math.abs(v),e);p.setXYZ(i,f(p.getX(i))*sx+cx,f(p.getY(i))*sy+cy,f(p.getZ(i))*sz+cz);}g.computeVertexNormals();return g;};
+ const zc=zb(1.27)-.07;
+ const body=boxy(0,1.25,zc,.125,.14,.068,.55);paint(body,toile,(x,y,z,c)=>{c.multiplyScalar(.8+.3*vnoise(x*40,y*40+z*30,0));if(y<1.13)c.multiplyScalar(.75);});rig.add('cloth',body,BI.chest);
+ const pocket=boxy(0,1.2,zc-.062,.085,.06,.022,.5);paint(pocket,toile.clone().multiplyScalar(.85));rig.add('cloth',pocket,BI.chest);
+ const flap=boxy(0,1.355,zc-.004,.13,.055,.074,.5);paint(flap,cuir,(x,y,z,c)=>{if(y<1.315)c.multiplyScalar(.7);});rig.add('leather',flap,BI.chest);
+ for(const sx of [1,-1]){const st=new THREE.BoxGeometry(.022,.15,.006);st.translate(sx*.05,1.3,zc-.076);paint(st,cuirF);rig.add('leather',st,BI.chest);
+  const bq=new THREE.TorusGeometry(.011,.0025,4,12);bq.scale(1,1.2,1);bq.translate(sx*.05,1.255,zc-.08);metal(rig,bq,laiton,BI.chest);
+  const side=boxy(sx*.135,1.2,zc,.022,.05,.04,.6);paint(side,cuir);rig.add('leather',side,BI.chest);}
+ // couverture roulée, à rayures, attachée sur le dessus
+ const roll=new THREE.CylinderGeometry(.042,.042,.3,20,1);roll.rotateZ(Math.PI/2);roll.translate(0,1.44,zc+.005);
+ paint(roll,lin('#c9b48a'),(x,y,z,c)=>{const b=Math.abs(x)%.06;if(b<.012)c.copy(lin('#8a2a22'));c.multiplyScalar(.85+.2*vnoise(x*60,y*80+z*80,0));});rig.add('cloth',roll,BI.chest);
+ for(const sx of [1,-1]){const t=new THREE.TorusGeometry(.045,.005,5,20);t.rotateY(Math.PI/2);t.translate(sx*.1,1.44,zc+.005);paint(t,cuirF);rig.add('leather',t,BI.chest);}
+ // gourde
+ const gd=ellip(new PV(-.15,1.13,zc+.01),.032,.042,.03,12,10);paint(gd,lin('#a8844e'));rig.add('wood',gd,BI.chest);
+ const gn=limb(new PV(-.15,1.17,zc+.01),new PV(-.15,1.2,zc+.01),[[0,.012],[1,.009]],8);paint(gn,lin('#7a5a32'));rig.add('wood',gn,BI.chest);
+ // bretelles : du haut du sac, par-dessus l'épaule, devant la poitrine, sous le bras, jusqu'au bas du sac
+ const C0=new PV(0,1.36,0);
+ for(const sx of [1,-1]){const ctl=[new PV(sx*.07,1.39,zb(1.39)-.02),new PV(sx*.09,1.5,zb(1.5)*.75),new PV(sx*.095,1.54,0),new PV(sx*.1,1.49,zf(1.49)),
+   new PV(sx*.11,1.36,zf(1.36)+.002),new PV(sx*.15,1.24,zf(1.24)*.55),new PV(sx*.17,1.19,0),new PV(sx*.13,1.15,zb(1.15)),new PV(sx*.09,1.14,zc+.03)];
+  const cu=new THREE.CatmullRomCurve3(ctl),pts=cu.getPoints(40),nr=pts.map(p=>p.clone().sub(C0).normalize());
+  const rb=P.ribbon(pts.map((p,i)=>p.clone().addScaledVector(nr[i],.004)),nr,.032,.03,cuirF,cuir);rig.add('leather',rb,BI.chest);
+  const bk=new THREE.BoxGeometry(.03,.024,.006);bk.translate(sx*.108,1.4,zf(1.4)+.008);metal(rig,bk,laiton,BI.chest);}
+}
+
 /* ---------- ASSEMBLAGE ---------- */
 P.DEF={sex:'m',skin:'#d6a487',lip:'#a85f5a',hair:'#4a3020',style:'courte',beard:false,eyes:'#4a6fa5',tunic:'#6b4a2e',pants:'#4a4038',boots:'#4a2e1c',
  face:{w:1,jaw:1,brow:1,browT:1,nose:1,lips:1,chin:1},equip:{}};
-P.FACE_FEM={w:.94,jaw:1.2,brow:.45,browT:.62,nose:.78,lips:1.25,chin:.75};
+P.FACE_FEM={w:.94,jaw:1.2,brow:.45,browT:.62,nose:.78,lips:1.25,chin:.75,low:.94};
 P.makeCharacter=function(o,only){o=Object.assign({},P.DEF,o);o.face=Object.assign({},P.DEF.face,o.sex==='f'?P.FACE_FEM:{},o.face||{});if(o.sex==='f'&&o.lip===P.DEF.lip)o.lip='#c0606c';o.equip=o.equip||{};
  const rig=new P.Rig();const has=k=>!only||only.indexOf(k)>=0;
  const ct=o.equip.casque&&o.equip.casque.t;o.gauntlets=!!(o.equip.armure&&o.equip.armure.t==='complete');
  if(only&&only.length===1&&only[0]==='oeil'){P.makeEye(rig,'L',o.face,o);}
  else{if(has('tete'))P.makeHead(rig,o);
   if(has('cheveux')){if(!ct||ct==='aucun'||ct==='couronne'){P.makeHair(rig,o);P.makeStrands(rig,o);}if(ct!=='heaume')P.makeBeard(rig,o);}
-  if(has('corps'))makeBody(rig,o);if(has('equip'))makeEquip(rig,o);}
+  if(has('corps'))makeBody(rig,o);if(has('equip')){makeEquip(rig,o);if(o.sac)makeSac(rig,o);}}
  const bones=P.BONES.map(b=>b.slice());
  const lp=P.lidPivot('L',o),rp=P.lidPivot('R',o);bones[P.BI.lidL][2]=[lp.x,lp.y,lp.z];bones[P.BI.lidR][2]=[rp.x,rp.y,rp.z];
  const g=P.buildRig(rig,k=>k==='eye'?P.eyeMat(o.eyes):P.mats()[k],bones);g.userData.o=o;g.userData.st={ph:Math.random()*6,t:Math.random()*10,blink:2+Math.random()*3,look:0,lookT:0,talk:0,lk:0};return g;};
@@ -1296,8 +1344,8 @@ let tenue=loadLook();
 const FACE_F=PERSO.FACE_FEM;
 let grandOK=false;try{grandOK=localStorage.getItem('pierrefort:grand')==='1';}catch(e){}
 let grand=grandOK;
-const FACE_ENF={w:1.05,jaw:.72,brow:.35,nose:.68,lips:1,chin:.65},FACE_ENF_F={w:1.02,jaw:.82,brow:.3,nose:.6,lips:1.15,chin:.6,browT:.62};
-function lookToO(l){return {sex:l.sex,skin:l.skin,hair:l.hair,style:l.style,beard:grand&&l.beard&&l.sex!=='f',eyes:l.eyes,lip:l.sex==='f'?'#b8606a':'#a85f5a',
+const FACE_ENF={w:1.06,jaw:.7,brow:.3,nose:.62,lips:.95,chin:.6,low:.8},FACE_ENF_F={w:1.03,jaw:.8,brow:.3,nose:.56,lips:1.1,chin:.55,browT:.62,low:.8};
+function lookToO(l){return {sac:true,enf:!grand,sex:l.sex,skin:l.skin,hair:l.hair,style:l.style,beard:grand&&l.beard&&l.sex!=='f',eyes:l.eyes,lip:l.sex==='f'?'#b8606a':'#a85f5a',
  tunic:PERSO.TISSUS[l.tunic]||l.tunic,pants:'#3a342e',boots:PERSO.CUIRS[l.boots]||'#4a2e1c',face:grand?(l.sex==='f'?FACE_F:{}):(l.sex==='f'?FACE_ENF_F:FACE_ENF),equip:l.equip};}
 function disposeChar(c){c.traverse(o=>{if(o.isMesh)o.geometry.dispose();});}
 function rebuildPlayer(){let p=null;if(player){p=player.position.clone();scene.remove(player);disposeChar(player);}
@@ -1316,8 +1364,8 @@ const NPC_DEF=[
  {name:'La reine Blanche',o:{sex:'f',style:'longue',hair:'#d8b860',tunic:'#23458a',face:FACE_F,equip:{casque:{t:'couronne',m:'Argent'}}},p:[1.75,.4,-17.65],r:-.35,inside:true,say:['Le roi aime beaucoup les visiteurs.','As-tu vu les chevaux à l’écurie ?']},
  {name:'Jehan',o:{tunic:'#8a3a20',hair:'#2a1a10',beard:true,skin:'#c89070'},route:[[-12,0,-1],[9,0,-1],[9,0,14],[-3,0,21],[-14,0,13]],mode:'walk',speed:1.3,wait:[1,4],say:['Belle journée au château !','Je vais voir le forgeron.']},
  {name:'Isabeau',o:{sex:'f',style:'longue',hair:'#6a3a1a',tunic:'#9a1e22',face:FACE_F,skin:'#e8c0a0'},route:[[5,0,10],[16,0,-3],[17,0,16],[4,0,21]],mode:'walk',speed:1.15,wait:[2,5],say:['Je vais au marché acheter du pain.']},
- {name:'Petit Louis',o:{tunic:'#23458a',hair:'#c9a050',face:{w:1.05,nose:.7,chin:.7}},scale:.62,route:[[-12.5,0,3.5],[-3.5,0,3.5],[-3.5,0,12.5],[-12.5,0,12.5]],mode:'run',speed:2.6,wait:[0,0],say:['Tu ne m’attraperas pas !','Hi hi hi !']},
- {name:'Petite Jeanne',o:{sex:'f',style:'queue',hair:'#8a4a20',tunic:'#c9a22a',face:{w:1,nose:.65,chin:.7,lips:1.1,brow:.5}},scale:.6,route:[[-3.5,0,12.5],[-12.5,0,12.5],[-12.5,0,3.5],[-3.5,0,3.5]],mode:'run',speed:2.45,wait:[0,0],say:['On joue à chat !']}];
+ {name:'Petit Louis',o:{enf:true,tunic:'#23458a',hair:'#c9a050',face:{w:1.06,jaw:.7,nose:.62,chin:.6,low:.8}},scale:.62,route:[[-12.5,0,3.5],[-3.5,0,3.5],[-3.5,0,12.5],[-12.5,0,12.5]],mode:'run',speed:2.6,wait:[0,0],say:['Tu ne m’attraperas pas !','Hi hi hi !']},
+ {name:'Petite Jeanne',o:{enf:true,sex:'f',style:'queue',hair:'#8a4a20',tunic:'#c9a22a',face:{w:1.03,jaw:.8,low:.8,nose:.56,chin:.55,lips:1.1,brow:.5}},scale:.6,route:[[-3.5,0,12.5],[-12.5,0,12.5],[-12.5,0,3.5],[-3.5,0,3.5]],mode:'run',speed:2.45,wait:[0,0],say:['On joue à chat !']}];
 const HORSE_DEF=[{name:'Tonnerre',robe:'bai',socks:{fl:1,hr:1,blaze:1},z:15.8},{name:'Brume',robe:'gris',socks:null,z:18.95},{name:'Noisette',robe:'alezan',socks:{hl:1,hr:1,blaze:1},z:22.1}];
 
 async function setupPeople(step){
