@@ -68,7 +68,7 @@ h1{font-family:Cinzel,serif;font-weight:700;font-size:clamp(34px,9vw,68px);margi
   <button id="go">Jouer</button>
   <div id="barBox"><div id="bar"></div></div>
   <div id="load">Je prépare les outils du bâtisseur…</div>
-  <div id="ver" style="margin-top:8px;font-size:12px;opacity:.6">Version 6</div>
+  <div id="ver" style="margin-top:8px;font-size:12px;opacity:.6">Version 7</div>
   <div class="ctr" id="ctrl"></div>
 </div>
 <div id="win" class="ov" style="display:none">
@@ -680,12 +680,25 @@ function texChain(){const S=64,c=pcnv(S),g=c.getContext('2d');g.fillStyle='#2020
  for(let r=0;r<5;r++)for(let k=-1;k<5;k++){const x=k*16+(r%2)*8,y=r*16-4;for(const ox of [0,-S,S]){g.strokeStyle='#d8d8d8';g.lineWidth=3.2;g.beginPath();g.ellipse(x+ox+8,y+8,6,7.5,0,0,7);g.stroke();g.strokeStyle='#777';g.lineWidth=1;g.beginPath();g.ellipse(x+ox+8,y+8.6,6,7.5,0,0,Math.PI);g.stroke();}}
  return ptex(c,true,14);}
 function texHair(){const S=256,c=pcnv(S),g=c.getContext('2d');g.fillStyle='#8a8a8a';g.fillRect(0,0,S,S);
- for(let i=0;i<1800;i++){const x=Math.random()*S,l=prnd(.3,1)*S,y=Math.random()*S,v=prnd(80,255);g.strokeStyle=`rgba(${v},${v},${v},${prnd(.25,.7)})`;g.lineWidth=prnd(.5,1.6);g.beginPath();g.moveTo(x,y);g.bezierCurveTo(x+prnd(-3,3),y+l*.3,x+prnd(-4,4),y+l*.6,x+prnd(-3,3),y+l);g.stroke();
+ for(let i=0;i<1800;i++){const x=Math.random()*S,l=prnd(.3,1)*S,y=Math.random()*S,v=prnd(105,235);g.strokeStyle=`rgba(${v},${v},${v},${prnd(.2,.5)})`;g.lineWidth=prnd(.5,1.6);g.beginPath();g.moveTo(x,y);g.bezierCurveTo(x+prnd(-3,3),y+l*.3,x+prnd(-4,4),y+l*.6,x+prnd(-3,3),y+l);g.stroke();
   if(y+l>S){g.beginPath();g.moveTo(x,y-S);g.lineTo(x,y+l-S);g.stroke();}}
  return ptex(c,true);}
 function texStrand(){const W=128,H=256,c=pcnv(W,H),g=c.getContext('2d');g.clearRect(0,0,W,H);
- for(let i=0;i<46;i++){const x=prnd(4,W-4),v=prnd(140,255),w=prnd(1.2,3.2);g.strokeStyle=`rgba(${v},${v},${v},${prnd(.75,1)})`;g.lineWidth=w;g.beginPath();g.moveTo(x,0);g.bezierCurveTo(x+prnd(-5,5),H*.35,x+prnd(-6,6),H*.7,x+prnd(-4,4)*1.5,H*prnd(.82,1));g.stroke();}
+ g.fillStyle='rgba(150,150,150,1)';g.beginPath();g.moveTo(W*.18,0);g.lineTo(W*.82,0);g.quadraticCurveTo(W*.7,H*.6,W*.52,H*.97);g.lineTo(W*.48,H*.97);g.quadraticCurveTo(W*.3,H*.6,W*.18,0);g.fill();
+ for(let i=0;i<120;i++){const e=Math.random(),x=W*(.08+.84*e),v=prnd(110,255),w=prnd(1.2,3.4),end=Math.abs(e-.5)<.3?prnd(.75,1):prnd(.35,.8);g.strokeStyle=`rgba(${v},${v},${v},${prnd(.8,1)})`;g.lineWidth=w;g.beginPath();g.moveTo(x,0);g.bezierCurveTo(x+prnd(-5,5),H*.35,x+(W/2-x)*.25*end,H*.7*end,x+(W/2-x)*.45*end,H*end);g.stroke();}
  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.wrapS=THREE.RepeatWrapping;return t;}
+// galon brodé : bordures, chaîne de losanges et points (gris : la couleur vient du galon)
+function texTrim(){const W=256,H=64,c=pcnv(W,H),g=c.getContext('2d');g.fillStyle='rgb(150,150,150)';g.fillRect(0,0,W,H);
+ for(let y=0;y<H;y+=2){g.fillStyle=`rgba(255,255,255,${.04+.04*Math.random()})`;g.fillRect(0,y,W,1);}
+ const line=(y,col,w)=>{g.fillStyle=col;g.fillRect(0,y,W,w);};
+ line(2,'rgb(40,40,40)',3);line(6,'rgb(250,250,250)',3);line(H-9,'rgb(250,250,250)',3);line(H-5,'rgb(40,40,40)',3);
+ const n=4,dw=W/n,cy=H/2,dh=17;
+ for(let k=0;k<=n;k++){const x=k*dw;
+  g.lineJoin='round';
+  for(const [col,lw] of [['rgb(45,45,45)',8],['rgb(255,255,255)',4]]){g.strokeStyle=col;g.lineWidth=lw;g.beginPath();g.moveTo(x-dw/2,cy);g.lineTo(x,cy-dh);g.lineTo(x+dw/2,cy);g.lineTo(x,cy+dh);g.closePath();g.stroke();}
+  g.fillStyle='rgb(45,45,45)';g.beginPath();g.arc(x,cy,6,0,7);g.fill();g.fillStyle='rgb(240,240,240)';g.beginPath();g.arc(x,cy,3.5,0,7);g.fill();
+  for(const sy of [-1,1]){g.fillStyle='rgb(235,235,235)';g.beginPath();g.arc(x+dw/2,cy+sy*12,2.6,0,7);g.fill();}}
+ const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.wrapS=THREE.RepeatWrapping;t.wrapT=THREE.ClampToEdgeWrapping;t.anisotropy=4;return t;}
 function texEye(iris){const W=256,H=128,c=pcnv(W,H),g=c.getContext('2d'),id=g.createImageData(W,H),d=id.data;const ic=new PC(iris);
  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=(y*W+x)*4;const th=y/H*Math.PI,u=x/W;let r,gg,b;
   if(th<.15){r=gg=b=8;}
@@ -708,6 +721,7 @@ function mats(){if(MT)return MT;
   chain:new THREE.MeshStandardMaterial({skinning:true,map:ch,bumpMap:ch,bumpScale:.03,vertexColors:true,roughness:.4,metalness:.7,side:THREE.DoubleSide}),
   wood:new THREE.MeshStandardMaterial({skinning:true,map:le,vertexColors:true,roughness:.75}),
   strand:new THREE.MeshStandardMaterial({skinning:true,map:texStrand(),alphaTest:.42,vertexColors:true,roughness:.5,side:THREE.DoubleSide})};
+ {const tt=texTrim();MT.trim=new THREE.MeshStandardMaterial({skinning:true,map:tt,bumpMap:tt,bumpScale:.0015,vertexColors:true,roughness:.62,metalness:.05,side:THREE.DoubleSide});}
  MT.skin.emissive=new PC(0x3a1408);MT.skin.emissiveIntensity=.22;
  return MT;}
 function eyeMat(iris){if(!eyeMats[iris])eyeMats[iris]=new THREE.MeshStandardMaterial({skinning:true,map:texEye(iris),roughness:.07,metalness:0});return eyeMats[iris];}
@@ -778,27 +792,32 @@ const HC=new PV(0,1.685,.012); // centre de la tête (posture de repos)
 function faceDz(x,y,f){const ax=Math.abs(x);let dz=0;
  dz-=.0085*gauss(ax,y,.031,.013,.015,.0095);                 // orbites
  dz+=.0075*f.brow*gauss(ax,y,.03,.031,.024,.0075);            // arcade sourcilière
- // nez : arête puis bout puis dessous
- let pr=0,sx=.008;
- if(y<.026&&y>=-.027){const k=(.026-y)/.053;pr=.0025+Math.pow(k,1.9)*.0165*f.nose;sx=.0068+k*.0072;}
- else if(y<-.027&&y>-.04){const k=(y+.04)/.013;pr=(.0025+.0165*f.nose)*Math.pow(k,.55);sx=.014;}
- dz+=pr*Math.exp(-x*x/(2*sx*sx));
- dz+=.0065*gauss(ax,y,.0135,-.033,.0055,.0055)*f.nose;          // ailes du nez
- dz+=.005*gauss(ax,y,.046,-.004,.015,.013);                  // pommettes
+ // nez : arête étroite, bout arrondi, ailes, dessous creusé
+ {const n=f.nose;let pr=0,sx=.0048;
+  if(y<.02&&y>=-.03){const k=(.02-y)/.05;pr=.0022+Math.pow(k,1.55)*.0135*n;sx=.0042+k*.0026;}
+  else if(y<-.03&&y>-.041){const k=(y+.041)/.011;pr=(.0022+.0135*n)*Math.pow(k,.7);sx=.0068;}
+  dz+=pr*Math.exp(-x*x/(2*sx*sx));
+  dz+=.0042*n*gauss(x,y,0,-.0285,.0058,.0052);                   // bout du nez
+  dz+=.0062*n*gauss(ax,y,.0118,-.0345,.0042,.0046);              // ailes du nez
+  dz-=.0016*gauss(ax,y,.0066,-.0398,.0022,.0014);}               // narines
+ dz+=.0016*gauss(ax,y,.0085,.012,.004,.012);                     // côtés de l'arête
+ dz+=.0072*gauss(ax,y,.044,-.006,.014,.012);                 // pommettes
  dz-=.0025*gauss(ax,y,.026,-.045,.004,.012);                  // plis du nez à la bouche
- dz-=.003*gauss(ax,y,.042,-.04,.016,.016);                     // joues creuses
+ dz-=.002*gauss(ax,y,.045,-.045,.013,.014);                     // joues creuses
  dz+=.0022*gauss(x,y,0,-.046,.0035,.0045);                     // philtrum
- dz+=.0068*f.lips*gauss(x,y,0,-.0545,.0175,.0042);             // lèvre du haut
- dz+=.0074*f.lips*gauss(x,y,0,-.0665,.0155,.0045);             // lèvre du bas
- dz-=.0042*gauss(x,y,0,-.0605,.021,.0012);                      // fente de la bouche
- dz-=.0028*gauss(ax,y,.022,-.0605,.004,.004);                  // coins de la bouche
+ dz+=.006*f.lips*gauss(x,y,0,-.0548,.0145,.0034)*(1-.25*gauss(x,y,0,-.0525,.004,.002)); // lèvre du haut (arc de Cupidon)
+ dz+=.0012*gauss(x,y,0,-.0512,.012,.0009);                     // ourlet de la lèvre
+ dz+=.0072*f.lips*gauss(x,y,0,-.0658,.0125,.0042);             // lèvre du bas
+ dz-=.0042*gauss(x,y,0,-.0605,.0155,.0012);                     // fente de la bouche
+ dz-=.0026*gauss(ax,y,.0195,-.0605,.0035,.0035);               // coins de la bouche
  dz-=.0028*gauss(x,y,0,-.078,.02,.0042);                        // creux sous la lèvre
  dz+=.0085*f.chin*gauss(x,y,0,-.093,.019,.012);                // menton
+ dz+=.012*psm((-y-.03)/.05)*Math.exp(-x*x/(2*.03*.03))*(1-psm((-y-.1)/.012)); // le bas du visage avance (mâchoire, menton)
  return dz;}
 function headPoint(nx,ny,nz,f,out){ // nx,ny,nz : direction sur la sphère unité
- let x=nx*.077*f.w,y=ny*.108,z=(nz>0?Math.pow(nz,.72):nz)*.092;
+ let x=nx*.077*f.w,y=ny*.108,z=(nz>0?Math.pow(nz,.8):nz)*.092;
  if(y>.05)y=.05+(y-.05)*.9;
- if(y<-.01){const t=psm((-y-.01)/.088);x*=1-.27*t*f.jaw;if(z<0)z*=1-.5*t;else z*=1-.03*t;}
+ if(y<-.01){const t=psm((-y-.01)/.088);x*=1-(.06*psm((-y-.01)/.05)+.21*psm((-y-.058)/.042))*f.jaw;if(z<0)z*=1-.5*t;else z*=1-.03*t;}
  if(z<0&&y>-.02)z*=1.07;
  if(y<-.075){const t=psm((-y-.075)/.03);y=-.075+(y+.075)*(1-.25*t);}
  if(nz>0){const w=psm(nz*2.2);z+=faceDz(x,y,f)*w;x+=(.003*gauss(Math.abs(x),y,.045,-.004,.014,.012))*Math.sign(x)*w;}
@@ -817,10 +836,10 @@ function makeEye(rig,side,f,o){const M=P.mats();const sx=side==='L'?1:-1;
  rig.add('eye',eye,BI.head);
  // paupière du haut (bouge pour cligner) et du bas
  const lidB=BI[side==='L'?'lidL':'lidR'];
- const up=new THREE.SphereGeometry(R*1.07,26,10,0,Math.PI*2,0,1.25);
- paint(up,lin(o.skin),(x,y,z,col)=>{const th=Math.acos(Math.max(-1,Math.min(1,y/(R*1.07))));if(th>1.18)col.multiplyScalar(.1);else if(th>1.05)col.multiplyScalar(.82);});
+ const up=new THREE.SphereGeometry(R*1.07,26,10,0,Math.PI*2,0,1.14);
+ paint(up,lin(o.skin),(x,y,z,col)=>{const th=Math.acos(Math.max(-1,Math.min(1,y/(R*1.07))));if(th>1.08)col.multiplyScalar(.12);else if(th>.95)col.multiplyScalar(.8);});
  up.rotateX(-.02);up.translate(c.x,c.y,c.z);rig.add('skin',up,lidB);
- {const RR=R*1.07,te=1.24,pts=[],nr=[];for(let k=0;k<=10;k++){const ph=-1.15+k/10*2.3;const q=new PV(RR*Math.sin(te)*Math.sin(ph),RR*Math.cos(te),RR*Math.sin(te)*Math.cos(ph));q.applyAxisAngle(new PV(1,0,0),-.02);pts.push(q.add(c));nr.push(new PV(0,1,.4).normalize());}
+ {const RR=R*1.07,te=1.13,pts=[],nr=[];for(let k=0;k<=10;k++){const ph=-1.15+k/10*2.3;const q=new PV(RR*Math.sin(te)*Math.sin(ph),RR*Math.cos(te),RR*Math.sin(te)*Math.cos(ph));q.applyAxisAngle(new PV(1,0,0),-.02);pts.push(q.add(c));nr.push(new PV(0,1,.4).normalize());}
   for(let k=0;k<pts.length;k++){}const base=pts.map(q=>q.clone()),tip=pts.map((q,k)=>q.clone().add(new PV(0,.0028,.0022)));
   const lash=ribbon(base,nr,.0001,.0001,lin('#140c08'),lin('#140c08'));const pp=lash.attributes.position;
   for(let k=0;k<pts.length;k++){pp.setXYZ(k*2,base[k].x,base[k].y,base[k].z);pp.setXYZ(k*2+1,tip[k].x,tip[k].y,tip[k].z);}lash.computeVertexNormals();rig.add('strand',lash,lidB);}
@@ -837,7 +856,7 @@ function makeHead(rig,o){const f=o.face;
  g.computeVertexNormals();
  const skin=lin(o.skin),lip=lin(o.lip),blush=lin('#c4686a');
  paint(g,skin,(x,y,z,c)=>{x-=HC.x;y-=HC.y;z-=HC.z;if(z<0)return;
-  const lw=Math.max(gauss(x,y,0,-.0545,.0155,.0036),gauss(x,y,0,-.0665,.0135,.0042));c.lerp(lip,Math.min(1,lw*1.25));
+  const lw=Math.max(gauss(x,y,0,-.0548,.0135,.0028),gauss(x,y,0,-.0655,.0118,.0038));c.lerp(lip,Math.min(1,lw*1.35));
   c.lerp(blush,.22*gauss(Math.abs(x),y,.045,-.018,.016,.014));
     const nos=gauss(Math.abs(x),y,.0072,-.0406,.0026,.0012);c.multiplyScalar(1-nos*.6);
   c.multiplyScalar(1-.18*gauss(Math.abs(x),y,.031,.004,.016,.006));
@@ -847,7 +866,7 @@ function makeHead(rig,o){const f=o.face;
  const jy=-.0605;
  rig.add('skin',g,(x,y,z)=>{const ly=y-HC.y,lz=z-HC.z;const w=psm((jy-ly)/.012)*psm((lz+.03)/.05)*(1-psm((ly+.125)/-.02));return [BI.head,BI.jaw,w];});
  // la fente des lèvres : un fil sombre bien net
- {const pts=[];for(let k=0;k<=14;k++){const t=k/14*2-1,x=t*.0215,y=-.0605+Math.abs(t)*Math.abs(t)*.0012;pts.push(new PV(x+HC.x,y+HC.y,HC.z+frontZ(x,y,f)+.0002-Math.abs(t)*.002));}
+ {const pts=[];for(let k=0;k<=14;k++){const t=k/14*2-1,x=t*.0185,y=-.0605+Math.abs(t)*Math.abs(t)*.0012;pts.push(new PV(x+HC.x,y+HC.y,HC.z+frontZ(x,y,f)+.0002-Math.abs(t)*.002));}
   const ml=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),28,.0007,5,false);paint(ml,lin('#4a1e1c'));rig.add('skin',ml,BI.head);}
  // intérieur de la bouche et dents
  const mz=frontZ(0,-.06,f);
@@ -861,7 +880,7 @@ function makeHead(rig,o){const f=o.face;
   paint(e,skin,(x,y,z,c)=>{const r=Math.hypot(y/.031,z/.019);if(r<.55)c.multiplyScalar(.78);c.lerp(lin('#d08a80'),.15);});
   const fx=sx*(.074*f.w*.98)+HC.x;e.translate(fx+sx*.004,HC.y-.004,HC.z-.012);rig.add('skin',e,BI.head);}
  // cou
- const neck=limb(new PV(0,1.47,-.01),new PV(0,1.64,.0),[[0,.066],[.5,.057],[1,.053]],22);paint(neck,skin);
+ const neck=limb(new PV(0,1.47,-.01),new PV(0,1.64,.0),[[0,.07],[.5,.061],[1,.057]],22);paint(neck,skin);
  rig.add('skin',neck,(x,y,z)=>[BI.neck,BI.head,psm((y-1.56)/.06)]);
  // yeux
  makeEye(rig,'L',f,o);makeEye(rig,'R',f,o);
@@ -883,9 +902,12 @@ function hairLine(x,y,z,style){const a=Math.atan2(x,z),aa=Math.abs(a);
  let h;if(aa<1.0)h=.046-aa*.008;else if(aa<1.75)h=.038-(aa-1)*.02;else h=.023-(aa-1.75)*(style==='courte'?.075:.09);
  if(aa>1.2&&aa<1.75&&y<.03)h=Math.max(h,.03);return h;}
 function makeHair(rig,o){const f=o.face,st=o.style;if(st==='chauve')return;const hc=lin(o.hair);
- const lump=(nx,ny,nz)=>(vnoise(nx*9+3,ny*9+nz*7,0)-.5)*.004;
- const g=shellFrom(f,(x,y,z)=>{const h=hairLine(x,y,z,st);return psm((y-h+.002)/.009);},(x,y,z,m)=>{const top=psm((y+.02)/.1);return .004+.008*top*(st==='longue'?1.2:1);},lump);
- paint(g,hc,(x,y,z,c)=>{c.multiplyScalar(.82+.36*vnoise(x*300,z*300+y*80,0));});
+ // mèches sculptées : des sillons qui descendent du sommet du crâne
+ const ridge=(a,ny)=>Math.pow(Math.abs(Math.sin(a*9+vnoise(ny*3+5,a*1.7,0)*3.2)),.55);
+ const lump=(nx,ny,nz)=>(ridge(Math.atan2(nx,nz+.25),ny)-.55)*.0055*psm((.96-ny)/.25);
+ const g=shellFrom(f,(x,y,z)=>{const h=hairLine(x,y,z,st);return psm((y-h+.002)/.009);},(x,y,z,m)=>{const top=psm((y+.02)/.1);return .006+.011*top*(st==='longue'?1.2:1);},lump);
+ paint(g,hc,(x,y,z,c)=>{const lx=x-HC.x,ly=y-HC.y,lz=z-HC.z,l=Math.hypot(lx,ly,lz);const r=ridge(Math.atan2(lx/l,lz/l+.25),ly/l);
+  c.multiplyScalar((.62+.5*r)*(.9+.2*vnoise(lx*200,ly*60,0)));});
  rig.add('hair',g,BI.head);
  if(st==='longue'||st==='queue'){
   if(st==='longue'){}
@@ -898,9 +920,9 @@ function makeHair(rig,o){const f=o.face,st=o.style;if(st==='chauve')return;const
 // ----- LES MÈCHES : des centaines de rubans qui suivent le crâne -----
 function shellR(dir,f,out){const r=dir.clone().normalize();headPoint(r.x,r.y,r.z,{w:f.w,jaw:f.jaw,brow:0,nose:0,lips:0,chin:f.chin,browT:1},out);return out.length();}
 function makeStrands(rig,o){const f=o.face,st=o.style;if(st==='chauve')return;const hc=lin(o.hair);const long=st==='longue';
- const crown=new PV(.008,.1,-.035),tmp=new PV(),list=[];const N=long?560:(st==='queue'?420:380);let made=0,tries=0;
+ const crown=new PV(.008,.1,-.035),tmp=new PV(),list=[];const N=long?260:(st==='queue'?120:110);let made=0,tries=0;
  while(made<N&&tries<N*12){tries++;const u=Math.random()*2-1,a=Math.random()*Math.PI*2,r=Math.sqrt(1-u*u);const dir=new PV(r*Math.cos(a),u,r*Math.sin(a));
-  headPoint(dir.x,dir.y,dir.z,{w:f.w,jaw:f.jaw,brow:0,nose:0,lips:0,chin:f.chin,browT:1},tmp);const h=hairLine(tmp.x,tmp.y,tmp.z,st);if(tmp.y<h+.003)continue;
+  headPoint(dir.x,dir.y,dir.z,{w:f.w,jaw:f.jaw,brow:0,nose:0,lips:0,chin:f.chin,browT:1},tmp);const h=hairLine(tmp.x,tmp.y,tmp.z,st);if(tmp.y<h+.003)continue;if(!long&&tmp.y>h+.03&&Math.random()<.85)continue;
   const back=tmp.z<0,side=Math.abs(tmp.x)>.05;
   let L=long?(tmp.z>.03?.11+Math.random()*.05:.24+Math.random()*.12):(st==='queue'?.06+Math.random()*.03:.035+Math.random()*.035);
   if(st==='queue'&&back)L=.05;
@@ -915,7 +937,7 @@ function makeStrands(rig,o){const f=o.face,st=o.style;if(st==='chauve')return;co
    if(p.z>-.01&&p.y<.05&&Math.abs(p.x)<.082){if(long||p.y<.035)p.x=Math.sign(p.x||1)*.082;}
    if(p.y<-.08&&Math.abs(p.x)<.1&&p.z>-.05)p.z=-.05;
    pts.push(p.clone());nrm.push(p.clone().normalize());}
-  const v=.8+Math.random()*.35;const g=ribbon(pts.map(q=>q.clone().add(P.HC)),nrm,long?.016:.013,long?.008:.006,hc.clone().multiplyScalar(.55*v),hc.clone().multiplyScalar(1.05*v));
+  const v=.8+Math.random()*.35;const g=ribbon(pts.map(q=>q.clone().add(P.HC)),nrm,long?.032:.028,long?.012:.01,hc.clone().multiplyScalar(.6*v),hc.clone().multiplyScalar(1.12*v));
   const na=g.attributes.position.count,nn=new Float32Array(na*3);for(let i=0;i<pts.length;i++){const q=nrm[i];nn.set([q.x,q.y,q.z,q.x,q.y,q.z],i*6);}g.setAttribute('normal',new THREE.BufferAttribute(nn,3));
   list.push(g);made++;}
  for(const g of list)rig.add('strand',g,(x,y,z)=>y>1.56?[BI.head,BI.head,0]:[BI.head,BI.chest,psm((1.56-y)/.12)*.7]);
@@ -943,6 +965,9 @@ function wrinkle(g,A,B,tc,amp){const p=g.attributes.position,ax=new PV().subVect
  for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);const t=Math.max(0,Math.min(1,v.clone().sub(A).dot(ax)/L2));const w=Math.exp(-Math.pow((t-tc)/.12,2));if(w<.02)continue;
   q.copy(A).addScaledVector(ax,t);const r=v.clone().sub(q);const a=Math.atan2(r.x,r.z);const k=1+amp*w*(Math.sin(t*90+a*2)*.6+Math.sin(t*47-a*3)*.4)/Math.max(.02,r.length())*.04/.04;v.copy(q).add(r.multiplyScalar(1+amp*w*Math.sin(t*95+a*2)/Math.max(.03,r.length())));p.setXYZ(i,v.x,v.y,v.z);}
  g.computeVertexNormals();}
+function uvScale(g,su,sv){const u=g.attributes.uv;for(let i=0;i<u.count;i++)u.setXY(i,u.getX(i)*su,u.getY(i)*(sv||1));return g;}
+// largeur du torse à une hauteur (profil), pour poser des détails sur le devant
+function profR(prof,y){for(let i=1;i<prof.length;i++)if(y<=prof[i][0]){const a=prof[i-1],b=prof[i],t=(y-a[0])/(b[0]-a[0]);return a[1]+(b[1]-a[1])*t;}return prof[prof.length-1][1];}
 // la jupe suit les jambes : plus on descend, plus elle suit la cuisse du même côté
 function wSkirt(maxW){return (x,y,z)=>{const k=psm((.98-y)/.32)*maxW*Math.min(1,Math.abs(x)/.08+.4);return [BI.root,x>=0?BI.thighL:BI.thighR,k];};}
 function folds(c,x,y,z,k){c.multiplyScalar(1-(k||.16)*Math.max(0,vnoise(x*38+y*9,z*38+y*24,0)-.35));}
@@ -959,10 +984,10 @@ function torsoGeo(prof,o,inflate,y0,y1){const fem=o.sex==='f';const pts=[];for(c
   if(y<1.06){const a=Math.atan2(x,z),k=1+.014*Math.sin(a*16)*psm((1.06-y)/.08);x*=k;z*=k;}
   p.setXYZ(i,x,y,z);}
  g.computeVertexNormals();return g;}
-const PROF_M=[[.86,.16],[.9,.165],[.98,.168],[1.06,.158],[1.16,.168],[1.26,.188],[1.35,.196],[1.42,.188],[1.47,.165],[1.51,.115],[1.535,.068]];
-const PROF_F=[[.86,.165],[.9,.17],[.98,.162],[1.06,.135],[1.14,.138],[1.22,.158],[1.3,.165],[1.38,.162],[1.45,.15],[1.5,.105],[1.525,.062]];
+const PROF_M=[[.86,.16],[.9,.165],[.98,.168],[1.06,.158],[1.16,.168],[1.26,.188],[1.35,.196],[1.42,.19],[1.47,.172],[1.5,.145],[1.53,.104],[1.556,.074]];
+const PROF_F=[[.86,.165],[.9,.17],[.98,.162],[1.06,.135],[1.14,.138],[1.22,.158],[1.3,.165],[1.38,.162],[1.45,.152],[1.48,.13],[1.51,.098],[1.54,.066]];
 
-function skirtGeo(rTop,yTop,rBot,yBot,fold){const n=10,pts=[];for(let k=0;k<=n;k++){const t=k/n;pts.push(new V2(rTop+(rBot-rTop)*Math.pow(t,1.25),yTop+(yBot-yTop)*t));}
+function skirtGeo(rTop,yTop,rBot,yBot,fold,t0,t1,off){t0=t0||0;t1=t1===undefined?1:t1;off=off||0;const n=t1-t0<.5?3:10,pts=[];for(let k=0;k<=n;k++){const t=t0+(t1-t0)*k/n;pts.push(new V2((rTop+(rBot-rTop)*Math.pow(t,1.25))*(1+off),yTop+(yBot-yTop)*t));}
  pts.reverse();const g=new THREE.LatheGeometry(pts,56);const p=g.attributes.position;
  for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i);const t=(yTop-y)/(yTop-yBot),a=Math.atan2(x,z);const r=Math.hypot(x,z)*(1+fold*t*Math.sin(a*11+Math.sin(a*3)*2));
   p.setXYZ(i,Math.sin(a)*r,y,Math.cos(a)*r*(.72+.2*t));}
@@ -974,7 +999,7 @@ function makeHand(rig,side,col,mat,scale){scale=scale||1;const sx=side==='L'?1:-
  const pc=W.clone().addScaledVector(down,.05*scale);
  const palm=ellip(pc,.018*scale,.05*scale,.042*scale,18,14);paint(palm,col);rig.add(mat,palm,bone);
  const fz=[.025,.0085,-.0075,-.0225],fl=[.072,.081,.076,.061];
- for(let k=0;k<4;k++){let p=new PV(W.x-sx*.002,W.y-.094*scale,W.z+fz[k]*scale);const L=fl[k]*scale,segs=[.45,.3,.25],rad=[.0098,.0088,.0078],ang=[.18,.5,.85];
+ for(let k=0;k<4;k++){let p=new PV(W.x-sx*.002,W.y-.094*scale,W.z+fz[k]*scale);const L=fl[k]*scale,segs=[.45,.3,.25],rad=[.0098,.0088,.0078],ang=[.3,.75,1.05];
   for(let j=0;j<3;j++){const a=ang[j]+(k===3?.1:0);const d=new PV(-sx*Math.sin(a)*.9,-Math.cos(a),Math.sin(a)*.35).normalize();const q=p.clone().addScaledVector(d,L*segs[j]);
    const c=capsule(p,q,rad[j]*scale,9);paint(c,col);rig.add(mat,c,bone);p=q;}}
  let tp=new PV(W.x-sx*.014*scale,W.y-.028*scale,W.z+.03*scale);const td=[new PV(-sx*.35,-.55,.76).normalize(),new PV(-sx*.55,-.65,.52).normalize()],tl=[.04,.032],tr=[.0118,.0102];
@@ -984,21 +1009,33 @@ function makeHand(rig,side,col,mat,scale){scale=scale||1;const sx=side==='L'?1:-
 // ----- LE CORPS HABILLÉ -----
 function makeBody(rig,o){const fem=o.sex==='f';const skin=lin(o.skin),tun=lin(o.tunic),pan=lin(o.pants),boot=lin(o.boots),belt=lin(o.beltc||'#3a2414');const bw=o.build||1;
  const prof=fem?PROF_F:PROF_M;
- const t=torsoGeo(prof,o,1,.86,1.54);paint(t,tun,(x,y,z,c)=>folds(c,x,y,z));rig.add('cloth',t,wTorso);
- const col=new THREE.TorusGeometry(.068,.012,8,26);col.rotateX(Math.PI/2);col.scale(1,1,.85);col.translate(0,1.515,0);paint(col,tun.clone().multiplyScalar(.8));rig.add('cloth',col,BI.chest);
+ const t=torsoGeo(prof,o,1,.86,1.56);paint(t,tun,(x,y,z,c)=>folds(c,x,y,z));rig.add('cloth',t,wTorso);
+ const col=new THREE.TorusGeometry(fem?.064:.072,.011,8,26);col.rotateX(Math.PI/2);col.scale(1,1,.85);col.translate(0,fem?1.535:1.55,0);const royal=o.equip&&o.equip.casque&&o.equip.casque.t==='couronne';const trc=lin(o.trim||(royal?'#d8a838':'#d9c79a'));
+ uvScale(col,4,1);paint(col,trc);rig.add('trim',col,BI.chest);
+ // encolure fendue et lacée
+ {const zf=y=>profR(prof,y)*bw*.6656+.0012,sl=[],sn=[];for(let k=0;k<=6;k++){const y=1.535-k*.018;sl.push(new PV(0,y,zf(y)+.0008));sn.push(new PV(0,.2,1).normalize());}
+  const slit=P.ribbon(sl,sn,.016,.004,tun.clone().multiplyScalar(.18),tun.clone().multiplyScalar(.3));rig.add('cloth',slit,wTorso);
+  const lp=[];for(let k=0;k<=8;k++){const y=1.525-k*.0115;lp.push(new PV((k%2?1:-1)*.011*(1-k/12),y,zf(y)+.0035));}
+  const lace=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lp,false,'catmullrom',.1),40,.0019,5,false);paint(lace,lin('#d8c8a0'));rig.add('leather',lace,wTorso);}
  const dress=fem||o.robe;
  const sk=skirtGeo(.168*bw,.99,dress?.36:.27,dress?.05:.57,dress?.06:.045);paint(sk,tun,(x,y,z,c)=>{folds(c,x,y,z,.22);if(y<(dress?.08:.6))c.multiplyScalar(.85);});rig.add('cloth',sk,wSkirt(dress?.42:.75));
+ {const hem=skirtGeo(.168*bw,.99,dress?.36:.27,dress?.05:.57,dress?.06:.045,dress?.9:.8,1,.012);uvScale(hem,dress?19:14,1);paint(hem,trc);rig.add('trim',hem,wSkirt(dress?.42:.75));}
  if(o.apron){const ap=skirtGeo(.172,1.3,.2,.45,0);const pp=ap.attributes.position,idx=ap.index.array,keep=[];for(let k=0;k<idx.length;k+=3){let ok=true;for(let j=0;j<3;j++)if(pp.getZ(idx[k+j])<.07)ok=false;if(ok)keep.push(idx[k],idx[k+1],idx[k+2]);}
   ap.setIndex(keep);ap.scale(1.05,1,1.12);paint(ap,lin('#5a3a22'));rig.add('leather',ap,(x,y,z)=>y>1.0?wTorso(x,y,z):[BI.root,BI.root,0]);}
  const by=fem?1.06:.99;
  const bt=new THREE.TorusGeometry(.172*bw*(fem?.86:1),.014,8,40);bt.rotateX(Math.PI/2);bt.scale(1,1,.68);bt.translate(0,by,0);paint(bt,belt);rig.add('leather',bt,BI.root);
  const bk=new THREE.BoxGeometry(.04,.034,.012);bk.translate(0,by,fem?.1:.118);paint(bk,lin('#c9a24a'));rig.add('metal',bk,BI.root);
+ {const rr=.172*bw*(fem?.86:1)+.004;for(let k=0;k<16;k++){const a=k/16*Math.PI*2+.2;if(Math.cos(a)>.9)continue;const rv=ellip(new PV(Math.sin(a)*rr,by,Math.cos(a)*rr*.68),.0045,.0045,.0045,6,4);paint(rv,lin('#c9a24a'));rig.add('metal',rv,BI.root);}
+  const tip=new THREE.BoxGeometry(.024,.11,.006);tip.translate(.034,by-.058,(fem?.1:.118)+.002);paint(tip,belt.clone().multiplyScalar(1.15));rig.add('leather',tip,BI.root);
+  const tk=new THREE.BoxGeometry(.026,.012,.008);tk.translate(.034,by-.11,(fem?.1:.118)+.003);paint(tk,lin('#c9a24a'));rig.add('metal',tk,BI.root);}
  if(!fem){const pu=ellip(new PV(.13,.92,.07),.035,.045,.02,10,8);paint(pu,lin('#6a4a2a'));rig.add('leather',pu,BI.root);}
  for(const s of ['L','R']){const S=pos('arm'+s),E=pos('fore'+s),Wr=pos('hand'+s),sx=s==='L'?1:-1,dw=new PV().subVectors(Wr,E).normalize();
   const S2=new PV(S.x-sx*.045,S.y+.03,S.z);const L1=S2.distanceTo(E);
   const ua=limb(S2,E,[[0,.03],[.06,.058],[.18,.06],[.45,.052],[.8,.046],[1,.044]],22);wrinkle(ua,S2,E,.82,.006);paint(ua,tun,(x,y,z,c)=>folds(c,x,y,z));
   rig.add('cloth',ua,(x,y,z)=>{const t=tAlong(x,y,z,S2,E);return t<.2?[BI.chest,BI['arm'+s],psm(t/.2)]:[BI['arm'+s],BI['fore'+s],psm((t-.88)/.12)*.5];});
   const el=ellip(E,.045,.045,.045,14,10);paint(el,tun);rig.add('cloth',el,BI['fore'+s]);
+  const dl=ellip(new PV(S.x-sx*.03,S.y-.012,S.z),.056,.05,.062,18,12);paint(dl,tun,(x,y,z,c)=>folds(c,x,y,z));rig.add('cloth',dl,(x,y,z)=>[BI.chest,BI['arm'+s],psm((sx*(x-S.x)+.04)/.08)*.8]);
+  {const cf=limb(Wr.clone().addScaledVector(dw,-.075),Wr.clone().addScaledVector(dw,-.028),[[0,.0365],[.5,.037],[1,.0355]],18);uvScale(cf,2,1);paint(cf,trc);rig.add('trim',cf,BI['fore'+s]);}
   const fa=limb(E,Wr.clone().addScaledVector(dw,-.005),[[0,.044],[.4,.041],[.85,.033],[1,.032]],18);wrinkle(fa,E,Wr,.12,.005);paint(fa,tun,(x,y,z,c)=>folds(c,x,y,z));rig.add('cloth',fa,(x,y,z)=>{const t=tAlong(x,y,z,E,Wr);return [BI['fore'+s],BI['arm'+s],(1-psm(t/.12))*.5];});
   const wr=limb(Wr.clone().addScaledVector(dw,-.03),Wr.clone().addScaledVector(dw,.015),[[0,.026],[1,.024]],14);paint(wr,skin);rig.add('skin',wr,BI['hand'+s]);
   if(!o.gauntlets)makeHand(rig,s,skin,'skin');
@@ -1010,6 +1047,8 @@ function makeBody(rig,o){const fem=o.sex==='f';const skin=lin(o.skin),tun=lin(o.
   const bA=new PV(A.x,A.y-.02,A.z),bT=new PV(A.x,A.y+.27,A.z+.005);
   const bo=limb(bA,bT,[[0,.05],[.5,.049],[.92,.05],[1,.054]],20);paint(bo,boot,(x,y,z,c)=>{c.multiplyScalar(.85+.3*vnoise(x*60,y*40+z*60,0));});rig.add('leather',bo,BI['shin'+s]);
   const cuff=new THREE.TorusGeometry(.052,.008,6,22);cuff.rotateX(Math.PI/2);cuff.translate(bT.x,bT.y,bT.z);paint(cuff,boot.clone().multiplyScalar(.8));rig.add('leather',cuff,BI['shin'+s]);
+  for(const h of [.1,.2]){const st=new THREE.TorusGeometry(.0515,.0055,5,22);st.rotateX(Math.PI/2);st.translate(A.x,A.y+h,A.z+.003);paint(st,boot.clone().multiplyScalar(.6));rig.add('leather',st,BI['shin'+s]);
+   const bq=new THREE.BoxGeometry(.006,.016,.018);bq.translate(A.x+sx*.054,A.y+h,A.z+.003);paint(bq,lin('#b9a060'));rig.add('metal',bq,BI['shin'+s]);}
   const ft=ellip(new PV(A.x,A.y-.038,A.z+.062),.047,.04,.122,18,12);{const fp=ft.attributes.position;for(let i=0;i<fp.count;i++){const y=fp.getY(i);if(y<A.y-.06)fp.setY(i,A.y-.06-(A.y-.06-y)*.3);}ft.computeVertexNormals();}
   paint(ft,boot,(x,y,z,c)=>{if(y<A.y-.068)c.multiplyScalar(.45);});rig.add('leather',ft,BI['foot'+s]);}
 }
