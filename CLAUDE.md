@@ -218,9 +218,11 @@ maisons, croiser les habitants, entrer dans les bâtiments pour voir comment on 
   (`outils/village/cuisson/`, Playwright) à partir d'une sauvegarde sans le profil de l'enfant (`outils/village/ville.json`, partie
   Renaissance du 24 octobre 2026). Le serveur de cuisson espionne en mémoire les fonctions de toits de Millépoques (bas des toits =
   hauteur des murs), sans toucher au dépôt.
-- `village/index.html` + `village/jeu.js` : le jeu (three.js 0.170 du CDN). Les bâtiments sont des volumes taillés dans la
-  silhouette de leur dessin, la façade de Millépoques projetée dessus ; arbres, animaux, drapeaux et habitants sont des images
-  debout ; dedans, les murs sont dessinés par les fonctions de Millépoques et les ouvriers font leurs gestes du jeu (images de
+- `village/index.html` + `village/jeu.js` (+ `relief.js`, `gens.js`) : le jeu (three.js 0.170 du CDN). Le sol suit le relief de la carte
+  de Millépoques (montagnes, lits des rivières, eau animée) ; les ponts sont en 3D. Les bâtiments sont des volumes taillés dans la
+  silhouette de leur dessin, la façade de Millépoques projetée dessus (toits de dos et pignons : couvertures et murs dessinés par
+  ses fonctions) ; arbres, animaux et drapeaux sont des images debout ; Millie et les habitants sont en 3D (visage dessiné par
+  Millépoques, tenue et chapeau du jeu, marche animée) ; soleil et ombres portées ; dedans, les murs sont dessinés par les fonctions de Millépoques et les ouvriers font leurs gestes du jeu (images de
   `donnees/travail/`), avec le nom, l'explication (`info`) et la recette du bâtiment tirés des données de Millépoques.
 - Le jeu lit `donnees/` depuis le même site : il marche sur GitHub Pages, pas dans l'artefact. Pas d'autre réseau. Sons synthétisés.
 - Refaire : `node outils/village/cuisson/cuire.mjs <dépôt Millepoques> outils/village/ville.json village/donnees` (voir `outils/village/README.md`).

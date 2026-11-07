@@ -9,7 +9,8 @@ import { createRequire } from 'node:module';
 import { serveur } from './serveur.mjs';
 const { chromium } = createRequire(import.meta.url)('playwright');
 
-const [mp, ville, sortie, x0 = 88, y0 = 62, w = 80, h = 128] = process.argv.slice(2);
+const [mp, ville, sortie, x0 = 88, y0 = 62, w = 80, h = 128] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+const voir = process.argv.find((a) => a.startsWith('--voir='))?.slice(7) || '';
 if (!mp || !ville || !sortie) { console.error('usage : cuire.mjs <dépôt Millepoques> <ville.json> <sortie> [x0 y0 w h]'); process.exit(1); }
 const ici = path.dirname(new URL(import.meta.url).pathname);
 const { srv, port } = await serveur({ millepoques: path.resolve(mp), ici, ville: path.resolve(ville) });
@@ -17,7 +18,7 @@ const nav = await chromium.launch();
 const page = await nav.newPage({ viewport: { width: 800, height: 600 } });
 page.on('console', (m) => { const t = m.text(); if (t.startsWith('[cuisson]') || m.type() === 'error') console.log(t); });
 page.on('pageerror', (e) => console.log('[erreur]', e.message));
-await page.goto(`http://127.0.0.1:${port}/cuisson/cuire.html?x0=${x0}&y0=${y0}&w=${w}&h=${h}`);
+await page.goto(`http://127.0.0.1:${port}/cuisson/cuire.html?x0=${x0}&y0=${y0}&w=${w}&h=${h}&voir=${voir}`);
 await page.waitForFunction(() => window.CUIT || window.ECHEC, null, { timeout: 900000, polling: 500 });
 const echec = await page.evaluate(() => window.ECHEC);
 if (echec) { console.error('échec :', echec); process.exit(1); }

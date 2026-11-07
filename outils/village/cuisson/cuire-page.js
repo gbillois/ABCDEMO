@@ -30,12 +30,14 @@ import { buildingArt } from '/mp/js/render/art/registry.js';
 import { sprite, blit } from '/mp/js/render/sprites.js';
 import { drawGood } from '/mp/js/render/art/icons.js';
 import { P, poly, prng, light, shade, vGrad, hGrad, softShadow, strokeOut } from '/mp/js/render/art/hd/common.js';
-import { ashlar, brick, halfTimber, paving, croisee, wallLamp, tbeam, chimney, WOOD, TUF } from '/mp/js/render/art/hd/tuffeau.js';
+import { ashlar, brick, halfTimber, paving, croisee, wallLamp, tbeam, chimney, hipRoof, WOOD, TUF } from '/mp/js/render/art/hd/tuffeau.js';
+import { HD } from '/mp/js/render/art/hd/buildings.js';
+const TOITS_TEX = new Set(['ardoise', 'rslate', 'slate', 'red', 'ochre', 'thatch', 'shingle', 'blue', 'moss']);
 
 const q = new URLSearchParams(location.search);
 const X0 = +q.get('x0'), Y0 = +q.get('y0'), NW = +q.get('w'), NH = +q.get('h'); // fenêtre du sol (cases)
-const SS = 2; // pixels par pixel de Millepoques pour les images debout
-const CH = 16, PXSOL = 32; // cases par morceau de sol, pixels par case
+const SS = 3; // pixels par pixel de Millepoques pour les images debout
+const CH = 16, PXSOL = 40; // cases par morceau de sol, pixels par case (la finesse du jeu)
 const log = (...a) => console.log('[cuisson]', ...a);
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 window.addEventListener('error', (e) => { window.ECHEC = String(e.message); });
@@ -90,7 +92,9 @@ for (let cy = 0; cy < Math.ceil(NH / CH); cy++) {
   for (let cx = 0; cx < Math.ceil(NW / CH); cx++) {
     const tx = X0 + cx * CH, ty = Y0 + cy * CH;
     const cw = Math.min(CH, X0 + NW - tx), chh = Math.min(CH, Y0 + NH - ty);
+    globalThis.__sansPonts = true; // les ponts sont en 3D
     await dessinerVue((tx + cw / 2) * TILE, (ty + chh / 2) * TILE, cw * PXSOL, chh * PXSOL, PXSOL / TILE);
+    globalThis.__sansPonts = false;
     const nom = `sol/${cx}-${cy}.webp`;
     SORTIES.push({ nom, url: enImage(canvas, 'image/webp', 0.88) });
     morceaux.push({ x: cx * CH, y: cy * CH, w: cw, h: chh, f: nom });
@@ -157,7 +161,7 @@ function image(c, ox, oy, cle = null, ss = SS) {
 // ------------------------------------------------------------------------------------------------
 // 2. Les bâtiments en volume : profil de la silhouette (ouverture : sans mâts, cordes, cheminées)
 // ------------------------------------------------------------------------------------------------
-const OUV = 10; // rayon de l'ouverture (pixels de l'image, à SS fois)
+const OUV = 5 * SS; // rayon de l'ouverture (5 pixels de Millepoques)
 /** Masque plein de la silhouette au-dessus du sol (ligne `sol` de l'image), ouvert et sans trous. */
 function silhouettePleine(c, sol) {
   const W = c.width, H = c.height, d = c.getContext('2d').getImageData(0, 0, W, H).data;
@@ -215,7 +219,11 @@ function toitDe(nom, a) {
   else return null;
   if (![x0, x1, y].every(Number.isFinite)) return null;
   const A = P(x0, y), B = P(x1, y);
-  return [Math.min(A[0], B[0]), Math.max(A[0], B[0]), Math.max(A[1], B[1])];
+  // la matière du toit : l'ardoise des toits de tuffeau, sinon le style des toits de buildings.js (après l'époque)
+  let style = 'ardoise';
+  if (nom === 'roofHD') style = HD.lookRoof(a[2]); else if (nom === 'coneHD') style = HD.lookRoof(a[5]);
+  else if (nom.startsWith('thatch')) style = 'thatch'; else if (nom === 'shingleRoof') style = 'shingle'; else if (nom === 'tileRoof' || nom === 'hallRoof') style = 'red';
+  return [Math.min(A[0], B[0]), Math.max(A[0], B[0]), Math.max(A[1], B[1]), style];
 }
 /**
  * Le volume : les colonnes hautes (au moins 40 % de la plus haute) forment des corps de bâtiment. Pour chacun : la
@@ -249,31 +257,39 @@ function profil({ m, W }, sol, toits = []) {
     let hw = sol - toit;
     if (toit - yTop < 0.12 * hmax) hw = hmax; // toit plat (ou sans toit)
     // mieux : le bas du toit que Millepoques a dessiné au-dessus de ce corps (celui qui le couvre le plus)
-    let best = null, bl = 0.3 * (b - a);
-    for (const [t0, t1, ty] of toits) { const l = Math.min(b, t1) - Math.max(a, t0); if (l > bl && ty < sol - 4 * SS) { bl = l; best = ty; } }
+    let best = null, bl = 0.3 * (b - a), style = null;
+    for (const [t0, t1, ty, st] of toits) { const l = Math.min(b, t1) - Math.max(a, t0); if (l > bl && ty < sol - 4 * SS) { bl = l; best = ty; style = st; } }
     if (best !== null) hw = sol - best;
     hw = clamp(hw, 0.2 * hmax, hmax);
     const h = [];
     for (let x = a; x <= b; x += 2 * SS) h.push(haut[x]);
     if ((b - a) % (2 * SS)) h.push(haut[b]);
-    return { a, b, hw, h, haut, toit: best !== null };
+    return { a, b, hw, h, haut, toit: best !== null, style };
   });
 }
 /**
  * Range l'image d'un bâtiment en trois : la façade (ce que montre le volume : pleine, ses trous bouchés par les
  * couleurs voisines), ce qui dépasse au-dessus du toit (posé sur le faîtage) et ce qui est à côté (posé devant).
  */
-function decouper(img, ix, iy, sol, corps) { // img : l'image du bâtiment ; (ix, iy) : son coin dans le masque
+function decouper(img, ix, iy, sol, corps, cheminees = []) { // img : l'image du bâtiment ; (ix, iy) : son coin dans le masque
   const W = img.width, H = img.height, src = img.getContext('2d').getImageData(0, 0, W, H);
   const dans = new Uint8Array(W * H), dessus = new Uint8Array(W * H);
   let fx0 = 1e9, fx1 = -1, fy0 = 1e9;
+  // les cheminées (blocs 3D) : leurs pixels vont dans la façade
+  for (const [c0, c1, ct] of cheminees) {
+    for (let mx = Math.floor(c0); mx <= Math.ceil(c1); mx++) {
+      const x = mx - ix; if (x < 0 || x >= W) continue;
+      for (let my = Math.floor(ct); my < sol; my++) { const y = my - iy; if (y >= 0 && y < H) dans[y * W + x] = 1; }
+      fx0 = Math.min(fx0, x); fx1 = Math.max(fx1, x); fy0 = Math.min(fy0, Math.floor(ct) - iy);
+    }
+  }
   for (const c of corps) {
     for (let mx = c.a; mx <= c.b; mx++) {
       const x = mx - ix; if (x < 0 || x >= W) continue;
-      const top = sol - c.haut[mx] - 3; // 1,5 pixel de plus : le trait du contour
+      const top = Math.floor(sol - c.haut[mx] - 1.5 * SS); // 1,5 pixel de plus : le trait du contour
       for (let y = 0; y < H; y++) {
         const my = y + iy; if (my >= sol + 2) continue;
-        if (my >= top) dans[y * W + x] = 1; else dessus[y * W + x] = 1;
+        if (my >= top) dans[y * W + x] = 1; else if (!dans[y * W + x]) dessus[y * W + x] = 1;
       }
       fx0 = Math.min(fx0, x); fx1 = Math.max(fx1, x); fy0 = Math.min(fy0, top - iy);
     }
@@ -364,20 +380,40 @@ for (const it of vus.values()) {
     const cle = empreinte(plein) + `:${o.w}x${o.h}`;
     let mi = modeleParEmpreinte.get(cle);
     if (mi === undefined) {
-      const toits = [];
-      globalThis.__toit = (nom, a) => { const t = toitDe(nom, a); if (t) toits.push(t); };
+      const toits = [], cheminees = [];
+      globalThis.__toit = (nom, a) => {
+        if (nom === 'chimney') { // (ctx, x, base, w, h) : le bloc, sa corniche et sa mitre (5 pixels au-dessus)
+          const m = a[0].getTransform(), [x, base, cw, ch] = [a[1], a[2], a[3], a[4]];
+          if ([x, base, cw, ch].every(Number.isFinite)) cheminees.push([m.a * (x - 2) + m.e, m.a * (x + cw + 2) + m.e, m.d * (base - ch - 5) + m.f, m.d * base + m.f]);
+          return;
+        }
+        const t = toitDe(nom, a); if (t) toits.push(t);
+      };
       const masque = dansBoite(boite, (ctx) => dessinFixe(ctx, o), true);
       globalThis.__toit = null;
       const sol = Math.round((ay - boite[1]) * SS);
-      const corps = profil(silhouettePleine(masque, sol), sol, toits);
+      const plein2 = silhouettePleine(masque, sol);
+      const corps = profil(plein2, sol, toits);
+      if (q.get('voir') === o.type) { // débogage : le dessin, le masque, la silhouette
+        const v = toile(plein2.W, plein2.H), vx = v.getContext('2d'), id = vx.createImageData(plein2.W, plein2.H);
+        for (let i = 0; i < plein2.m.length; i++) { id.data[i * 4] = plein2.m[i] * 255; id.data[i * 4 + 3] = 255; }
+        vx.putImageData(id, 0, 0);
+        SORTIES.push({ nom: 'voir-plein.png', url: plein.toDataURL() }, { nom: 'voir-masque.png', url: masque.toDataURL() }, { nom: 'voir-silhouette.png', url: v.toDataURL() });
+        log('voir', JSON.stringify(corps.map((c) => [c.a, c.b, c.hw])), JSON.stringify(cheminees), JSON.stringify(toits));
+      }
       const d = detourer(plein);
-      const parts = d ? decouper(d.c, d.dx, d.dy, sol, corps) : {};
+      // une cheminée compte si elle dépasse d'un corps (pas celles cachées dans un mur)
+      const chem = cheminees.filter(([c0, c1, ct]) => corps.some((c) => (c0 + c1) / 2 > c.a && (c0 + c1) / 2 < c.b && ct < sol - c.haut[Math.round((c0 + c1) / 2)] - SS));
+      const parts = d ? decouper(d.c, d.dx, d.dy, sol, corps, chem) : {};
       const enMP = (px) => +(px / SS).toFixed(2);
       const ox = (px) => enMP(px) + boite[0] - ax; // abscisse dans l'image du masque -> par rapport à l'ancre
       const oy = (py) => enMP(py) + boite[1] - ay;
+      { const n = {}; for (const t of toits) if (t[3]) n[t[3]] = (n[t[3]] || 0) + (t[1] - t[0]); const maj = Object.keys(n).sort((x, y) => n[y] - n[x])[0];
+        for (const c of corps) if (!c.style && maj) c.style = maj; }
       const mod = {
-        corps: corps.map((c) => ({ a: ox(c.a), b: ox(c.b), hw: enMP(c.hw), h: c.h.map(enMP), ...(c.toit ? {} : { devine: 1 }) })),
+        corps: corps.map((c) => ({ a: ox(c.a), b: ox(c.b), hw: enMP(c.hw), h: c.h.map(enMP), ...(c.toit ? {} : { devine: 1 }), ...(c.style && TOITS_TEX.has(c.style) ? { toit: c.style } : {}) })),
       };
+      if (chem.length) mod.cheminees = chem.map(([c0, c1, ct]) => [ox(c0), ox(c1), +(-oy(ct)).toFixed(2)]); // gauche, droite, hauteur du haut
       if (parts.facade) mod.facade = image(parts.facade.c, ox(d.dx + parts.facade.dx), oy(d.dy + parts.facade.dy), parts.facade.c);
       if (parts.dessus) mod.dessus = image(parts.dessus.c, ox(d.dx + parts.dessus.dx), oy(d.dy + parts.dessus.dy), parts.dessus.c);
       if (parts.cotes) mod.cotes = image(parts.cotes.c, ox(d.dx + parts.cotes.dx), oy(d.dy + parts.cotes.dy), parts.cotes.c);
@@ -405,32 +441,59 @@ for (const it of vus.values()) {
 log('objets', OBJETS.length, 'bâtiments', BATIMENTS.length, 'modèles', MODELES.length, 'images', IMAGES.length);
 
 // ------------------------------------------------------------------------------------------------
-// 4. Les habitants qui marchent
+// 4. Les habitants, pour les personnages en 3D : leur apparence (tenue, couleurs, chapeau) telle que Millepoques la
+//    tire (faces.js lookOf), et leur tête dessinée par Millepoques, de face et de dos, sans chapeau, en grand.
 // ------------------------------------------------------------------------------------------------
-const PAS = 4.3 * 4; // longueur d'un cycle de marche (people.js : STRIDE × 4)
-const NB_IMAGES = 8;
-const VUES = { face: [0, 1, 1], dos: [0, -1, 1], droite: [1, 0, 1], gauche: [-1, 0, -1] };
-const SS_GENS = 3; // les habitants, vus de près : plus fins
-const unite = (u, boite = [-40, -70, 80, 90]) => { const im = seul(boite, (ctx) => drawUnitHD(ctx, u, 3.3, null), SS_GENS); return image(im.c, im.x, im.y, im.c, SS_GENS); };
-function habitant(id, job, extra = {}) {
-  const u = { id, job, x: 0, y: 0, moving: true, speed: 42, walkT: 0, game: g, visible: true, ...extra };
-  const vues = {};
-  for (const [nom, [mx, my, dir]] of Object.entries(VUES)) {
-    vues[nom] = [];
-    for (let f = 0; f < NB_IMAGES; f++) {
-      Object.assign(u, { moving: true, mdx: mx, mdy: my, dir, _fdir: dir, _turnT: undefined, _view: my ? (my > 0 ? 'front' : 'back') : 'side' });
-      u._gd = (f / NB_IMAGES) * PAS; u._gx = 0; u._gy = 0; u._gw = 0; u.walkT = 0;
-      vues[nom].push(unite(u));
-    }
-  }
-  Object.assign(u, { moving: false, idleT: 2, mdx: 0, mdy: 1, dir: 1, _fdir: 1, _view: 'front' });
-  vues.debout = [unite(u)];
-  return vues;
+const SS_TETE = 10;
+function tete(u, vue) {
+  let vu = null;
+  globalThis.__tete = (ctx, j, L, view, hx, hy) => { const m = ctx.getTransform(); vu = { j, L, view, x: m.a * hx + m.c * hy + m.e, y: m.b * hx + m.d * hy + m.f, k: m.a }; };
+  globalThis.__sansChapeau = true;
+  const boite = [-24, -50, 48, 60];
+  if (vue === 'face') Object.assign(u, { moving: false, idleT: 2, mdx: 0, mdy: 1, dir: 1, _fdir: 1, _view: 'front', _gd: 0 });
+  else Object.assign(u, { moving: true, mdx: 0, mdy: -1, dir: 1, _fdir: 1, _view: 'back', _gd: 0, _gx: 0, _gy: 0, _gw: 0, walkT: 0 });
+  const c = dansBoite(boite, (ctx) => drawUnitHD(ctx, u, 1.0, null), false, SS_TETE);
+  globalThis.__tete = null; globalThis.__sansChapeau = false;
+  if (!vu) return null;
+  // on garde le dessus de la tête jusque sous le menton (6,5 pixels sous le centre ; les nattes de Millie sont coupées là)
+  const coupe = Math.round(vu.y + 6.5 * SS_TETE);
+  const h = toile(c.width, coupe); h.getContext('2d').drawImage(c, 0, 0);
+  const d = detourer(h); if (!d) return null;
+  // une case de la planche des têtes : le centre de la tête au centre de la case
+  const n = TETES.length, cc = toile(CASE_TETE, CASE_TETE);
+  cc.getContext('2d').drawImage(h, CASE_TETE / 2 - vu.x, CASE_TETE / 2 - vu.y);
+  TETES.push(cc);
+  // (gauche, droite, haut, bas) : l'étendue de la tête dessinée autour de son centre, en pixels de Millepoques
+  const e = [(vu.x - d.dx) / SS_TETE, (d.dx + d.c.width - vu.x) / SS_TETE, (vu.y - d.dy) / SS_TETE, (d.dy + d.c.height - vu.y) / SS_TETE].map((v) => +v.toFixed(2));
+  return { n, e, L: vu.L, j: vu.j };
+}
+const TETES = [], CASE_TETE = 200; // 20 pixels de Millepoques par case
+const garder = (o, cles) => Object.fromEntries(cles.filter((k) => o[k] !== undefined && o[k] !== null && typeof o[k] !== 'function').map((k) => [k, o[k]]));
+function villageois(id, job, extra = {}) {
+  const u = { id, job, x: 0, y: 0, moving: false, game: g, visible: true, ...extra };
+  const f = tete(u, 'face'), b = tete({ ...u }, 'dos');
+  if (!f) return null;
+  const L = f.L, j = f.j || {};
+  return {
+    id, metier: job,
+    tete: { face: f.n, dos: b?.n ?? f.n, e: f.e, de: b?.e ?? f.e },
+    look: { ...garder(L, ['fem', 'old', 'skin', 'hairC', 'hairD', 'style', 'beard', 'build', 'hs', 'ws', 'tunic', 'legs', 'pants', 'pants2', 'pat', 'patC', 'hat', 'hatC', 'apronF', 'trim', 'ribbon', 'hose', 'sleeves']),
+      ren: L.ren ? garder(L.ren, Object.keys(L.ren)) : null },
+    tenue: garder(j, ['tunic', 'pants', 'apron', 'vest', 'robe', 'cape', 'boot', 'sleeves', 'tool', 'hat', 'hatC', 'plain', 'work', 'notable', 'dress', 'skirt', 'fem', 'braids']),
+  };
 }
 const METIERS = ['carrier', 'baker', 'farmer', 'printer', 'student', 'weaver', 'carter', 'peddler', 'papermaker', 'builder', 'teacher', 'shipwright', 'cartographer', 'slater'];
-const HABITANTS = [{ id: 900001, nom: 'Millie', vues: habitant(900001, 'millie', { outfit: millieOutfit(g.era.id) }) }];
-METIERS.forEach((job, n) => HABITANTS.push({ id: 101 + n * 37, metier: job, vues: habitant(101 + n * 37, job) }));
+const HABITANTS = [villageois(900001, 'millie', { outfit: millieOutfit(g.era.id) })];
+METIERS.forEach((job, n) => { for (const k of [0, 1]) HABITANTS.push(villageois(101 + n * 37 + k * 1009, job)); });
+for (let k = HABITANTS.length - 1; k >= 0; k--) if (!HABITANTS[k]) HABITANTS.splice(k, 1);
+log('exemple', JSON.stringify(HABITANTS[1]).slice(0, 900));
 log('habitants', HABITANTS.length);
+{ // la planche des têtes
+  const nc = 8, pl = toile(nc * CASE_TETE, Math.ceil(TETES.length / nc) * CASE_TETE), x = pl.getContext('2d');
+  TETES.forEach((c, k) => x.drawImage(c, (k % nc) * CASE_TETE, Math.floor(k / nc) * CASE_TETE));
+  SORTIES.push({ nom: 'tetes.webp', url: enImage(pl, 'image/webp', 0.92) });
+  var PLANCHE_TETES = { f: 'tetes.webp', nc, case: CASE_TETE, px: SS_TETE, w: pl.width, h: pl.height };
+}
 
 // ------------------------------------------------------------------------------------------------
 // 5. Dedans : les pièces qui bougent quand on travaille (une sorte de bâtiment = un dessin)
@@ -517,6 +580,28 @@ matiere('bois', MUR_W, MUR_H, (ctx, W, H) => {
 });
 matiere('pierre', MUR_W, MUR_H, (ctx, W, H) => { ashlar(ctx, rect(-4, -4, W + 4, H + 4), 3, { course: 7, stroke: false, pal: { l: '#d6cdbd', b: '#bfb3a0', d: '#a3967f', joint: 'rgba(90,78,60,0.6)' } }); fenetres(ctx, W); plinthe(ctx, W, H); });
 matiere('sol-pave', 128, 128, (ctx, W, H) => paving(ctx, rect(0, 0, W, H), 4, '#cdbf9f'));
+// Les toits vus de côté et de dos : la couverture dessinée par Millepoques sur une grande surface (sans bords)
+matiere('toit-ardoise', 96, 96, (ctx, W, H) => hipRoof(ctx, -60, W + 60, H + 30, -40, 0, { seed: 5, over: 0, finials: 0 }));
+for (const st of ['rslate', 'slate', 'red', 'ochre', 'thatch', 'shingle', 'blue', 'moss']) matiere(`toit-${st}`, 96, 96, (ctx, W, H) => HD.roofHD(ctx, [[-40, H + 20], [W + 40, H + 20], [W + 40, -20], [-40, -20]], st, 14, 0, 7));
+// Les ponts en 3D : la pierre et le bois aux couleurs des ponts de Millepoques (render/bridges.js, COL)
+const PIERRE_PONT = {
+  roman: { l: '#ebe0c3', b: '#d4c3a0', d: '#b09f7c', joint: 'rgba(133,122,96,0.75)', deck: '#b8a988' },
+  medieval: { l: '#d6ccb5', b: '#bdb29a', d: '#978c75', joint: 'rgba(122,112,92,0.75)', deck: '#a89e88' },
+  renaissance: { l: '#f5efdd', b: '#e6dcc4', d: '#c4b89c', joint: 'rgba(136,125,100,0.7)', deck: '#b1a589' },
+};
+for (const [nom, pal] of Object.entries(PIERRE_PONT)) {
+  matiere(`pont-${nom}`, 128, 64, (ctx, W, H) => ashlar(ctx, rect(-4, -4, W + 4, H + 4), 13, { course: 6, stroke: false, pal, ao: false }));
+  matiere(`pont-${nom}-dalles`, 64, 64, (ctx, W, H) => paving(ctx, rect(0, 0, W, H), 9, pal.deck));
+}
+matiere('pont-bois', 64, 64, (ctx, W, H) => {
+  const rr = prng(17);
+  for (let x = 0; x < W; x += 8) {
+    const c = rr() < 0.5 ? '#b98a52' : '#cfa268';
+    ctx.fillStyle = hGrad(ctx, x, x + 8, [light(c, 0.12), c, shade(c, 0.18)]); ctx.fillRect(x, 0, 8, H);
+    ctx.fillStyle = '#6a4322'; ctx.fillRect(x, 0, 1, H);
+    for (let k = 0; k < 2; k++) { ctx.fillStyle = 'rgba(90,52,24,0.5)'; ctx.beginPath(); ctx.ellipse(x + 2 + rr() * 4, rr() * H, 0.8, 1.4, 0, 0, 7); ctx.fill(); }
+  }
+});
 matiere('sol-bois', 128, 128, (ctx, W, H) => {
   const rr = prng(5);
   for (let y = 0; y < H; y += 8) {
@@ -583,6 +668,12 @@ for (const [, , , cases] of WS.roads || []) {
 const hq = g.hq;
 const depart = hq ? { x: (hq.x + hq.w / 2) * TILE, y: (hq.y + hq.h + 1.5) * TILE } : { x: (X0 + NW / 2) * TILE, y: (Y0 + NH / 2) * TILE };
 
+// Le relief de Millepoques (altitude aux coins des cases, 0 à 1) et la nature de chaque case, pour toute la carte
+const b64 = (u8) => { let t = ''; for (let i = 0; i < u8.length; i += 0x8000) t += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(t); };
+const alt = new Uint16Array(w.elev.length); for (let i = 0; i < alt.length; i++) alt[i] = Math.round(Math.max(0, Math.min(1, w.elev[i])) * 65535);
+const RELIEF = { w: w.W + 1, h: w.H + 1, alt: b64(new Uint8Array(alt.buffer)), nature: b64(new Uint8Array(w.terrain)), pont: b64(new Uint8Array(w.bridge)) };
+const PONTS = [...(w.bridges?.values() || [])].map((br) => ({ look: br.look || br.kind, kind: br.kind, dir: br.dir, a: [br.a.x - X0, br.a.y - Y0], b: [br.b.x - X0, br.b.y - Y0] }));
+log('ponts', PONTS.length, JSON.stringify(PONTS.slice(0, 3)));
 const loc = (px, ref) => +((px / TILE) - ref).toFixed(3); // pixels de Millepoques -> cases de la fenêtre
 window.CUIT = {
   json: {
@@ -595,7 +686,7 @@ window.CUIT = {
     modeles: MODELES,
     batiments: BATIMENTS.map((b) => ({ ...b, x: loc(b.x, X0), y: loc(b.y, Y0) })),
     habitants: HABITANTS, interieurs: INTERIEURS, marchandises: MARCHANDISES, matieres: MATIERES,
-    cases: lignes, routes,
+    cases: lignes, routes, relief: RELIEF, ponts: PONTS, tetes: PLANCHE_TETES,
     depart: { x: loc(depart.x, X0), y: loc(depart.y, Y0) },
   },
   sorties: SORTIES.map((s) => s.nom),
