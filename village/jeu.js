@@ -126,6 +126,18 @@ function materiauSol(map) {
   return m;
 }
 
+// Un volume tout près de la caméra s'efface (tramé), au lieu de couper l'image en gros morceau
+function effacerPres(m) {
+  const avant = m.onBeforeCompile;
+  m.onBeforeCompile = (s, r) => {
+    avant?.call(m, s, r);
+    s.fragmentShader = s.fragmentShader.replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
+      { float dc = length(vViewPosition); float tr = fract(dot(floor(gl_FragCoord.xy), vec2(0.5, 0.25)) + 0.125);
+        if (dc < 2.6 && tr > (dc - 1.0) / 1.6) discard; }`);
+  };
+  return m;
+}
+
 // ------------------------------------------------------------------------------------------------
 // Les données de la cuisson
 // ------------------------------------------------------------------------------------------------
@@ -211,7 +223,7 @@ function batiments(lotsVol, lotsPlat, lotsToit, lotsMur) {
         };
         const quad = (P, U) => { tri([P[0], P[1], P[2]], [U[0], U[1], U[2]]); tri([P[0], P[2], P[3]], [U[0], U[2], U[3]]); };
         // un pan de toit vu de côté ou de dos : la couverture de Millépoques, répétée (pas la façade étirée)
-        const lt = c.toit ? lotsToit(c.toit) : null;
+        const lt = lotsToit(c.toit || 'rslate');
         const pan = (P) => {
           a.set(...P[1]).sub(v3.set(...P[0])); b2.set(...P[2]).sub(v3.set(...P[0]));
           n.crossVectors(a, b2); if (n.lengthSq() < 1e-12) return false; n.normalize();
@@ -236,9 +248,11 @@ function batiments(lotsVol, lotsPlat, lotsToit, lotsMur) {
           for (let s = 0; s < 6; s++) {
             const P = [avant.P[s], apres.P[s], apres.P[s + 1], avant.P[s + 1]];
             // pente de derrière, ou pente de devant tournée sur le côté (croupe) : la couverture
-            if (lt && (s === 3 || s === 2) && (avant.t > c.hw + 1 || apres.t > c.hw + 1)) {
+            if (s === 3 || s === 2) {
               a.set(...P[1]).sub(v3.set(...P[0])); b2.set(...P[3]).sub(v3.set(...P[0])); n.crossVectors(a, b2).normalize();
-              if (s === 3 || Math.abs(n.x) > 0.55) { if (pan(P)) continue; }
+              const toit = avant.t > c.hw + 1 || apres.t > c.hw + 1;
+              // pente de derrière, croupe tournée sur le côté, ou dessus plat (vu d'en haut) : la couverture
+              if ((toit && (s === 3 || Math.abs(n.x) > 0.55)) || (!toit && Math.abs(n.y) > 0.85)) { if (pan(P)) continue; }
             }
             quad(P, [avant.U[s], apres.U[s], apres.U[s + 1], avant.U[s + 1]]);
           }
@@ -384,19 +398,19 @@ async function construire(progres) {
   batiments(vol, plat, (st) => { if (!toits.has(st)) toits.set(st, new Lot()); return toits.get(st); }, (m) => { if (!murs.has(m)) murs.set(m, new Lot()); return murs.get(m); });
   for (const [m, l] of murs) {
     const t = await texture(V.matieres[m].f, { repeter: true });
-    const mesh = new THREE.Mesh(l.geometrie(), new THREE.MeshLambertMaterial({ map: t, side: THREE.DoubleSide, vertexColors: true, color: new THREE.Color(1.05, 1.05, 1.05) }));
+    const mesh = new THREE.Mesh(l.geometrie(), effacerPres(new THREE.MeshLambertMaterial({ map: t, side: THREE.DoubleSide, vertexColors: true, color: new THREE.Color(1.05, 1.05, 1.05) })));
     mesh.castShadow = true; mesh.receiveShadow = true; dehors.add(mesh);
   }
   for (const [st, l] of toits) {
     const t = await texture(`dedans-toit-${st}.webp`, { repeter: true }); t.wrapS = t.wrapT = THREE.MirroredRepeatWrapping;
-    const m = new THREE.Mesh(l.geometrie(), new THREE.MeshLambertMaterial({ map: t, side: THREE.DoubleSide, vertexColors: true, color: new THREE.Color(1.05, 1.05, 1.05) }));
+    const m = new THREE.Mesh(l.geometrie(), effacerPres(new THREE.MeshLambertMaterial({ map: t, side: THREE.DoubleSide, vertexColors: true, color: new THREE.Color(1.05, 1.05, 1.05) })));
     m.castShadow = true; m.receiveShadow = true; dehors.add(m);
   }
   const aretes = [];
   vol.forEach((l, p) => {
     if (!l.pos.length) return;
     const geo = l.geometrie();
-    const m = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ map: PL[p], side: THREE.DoubleSide, alphaTest: 0.5, vertexColors: true, color: new THREE.Color(1.1, 1.1, 1.1) }));
+    const m = new THREE.Mesh(geo, effacerPres(new THREE.MeshLambertMaterial({ map: PL[p], side: THREE.DoubleSide, alphaTest: 0.5, vertexColors: true, color: new THREE.Color(1.1, 1.1, 1.1) })));
     m.castShadow = true; m.receiveShadow = true; dehors.add(m);
     aretes.push(new THREE.EdgesGeometry(geo, 38));
   });
@@ -404,7 +418,7 @@ async function construire(progres) {
   for (const g of aretes) dehors.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: TRAIT, transparent: true, opacity: 0.55 })));
   plat.forEach((l, p) => {
     if (!l.pos.length) return;
-    const m = new THREE.Mesh(l.geometrie(), new THREE.MeshLambertMaterial({ map: PL[p], side: THREE.DoubleSide, alphaTest: 0.5, vertexColors: true }));
+    const m = new THREE.Mesh(l.geometrie(), effacerPres(new THREE.MeshLambertMaterial({ map: PL[p], side: THREE.DoubleSide, alphaTest: 0.5, vertexColors: true })));
     m.castShadow = true; m.receiveShadow = true; dehors.add(m);
   });
   // les images debout, posées sur le relief
