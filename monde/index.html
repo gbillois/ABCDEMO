@@ -1648,7 +1648,7 @@ function toucherGlobe(x, y) {
   L.push(["hemi", "", hemis(p.lon, p.lat)]);
   $("fTitre").textContent = titre;
   $("fListe").innerHTML = L.map(([i, a, b]) => `<li>${ic(i)}<span>${a}<b>${b}</b></span></li>`).join("");
-  $("fDesc").textContent = desc; $("fiche").hidden = false;
+  $("fDesc").textContent = ""; $("fDesc").hidden = true; $("fiche").hidden = false;   // pas de petites phrases : seulement des faits
   marqueur(p.lon, p.lat);
 }
 function fermerFiche() { $("fiche").hidden = true; U.uHL.value.set(0, 0, 0, 0); marqueur(null); }
@@ -2057,7 +2057,7 @@ addEventListener("resize", () => {
 })();
 </script>
 <script>
-window.MONDE_VERSION = "2026.11.07-1"; // à changer à chaque modification
+window.MONDE_VERSION = "2026.11.07-2"; // à changer à chaque modification
 </script>
 <script>
 // Application installable : gardée sur l'appareil par sw.js (marche sans réseau).
