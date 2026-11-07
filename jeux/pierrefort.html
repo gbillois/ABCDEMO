@@ -68,7 +68,7 @@ h1{font-family:Cinzel,serif;font-weight:700;font-size:clamp(34px,9vw,68px);margi
   <button id="go">Jouer</button>
   <div id="barBox"><div id="bar"></div></div>
   <div id="load">Je prépare les outils du bâtisseur…</div>
-  <div id="ver" style="margin-top:8px;font-size:12px;opacity:.6">Version 9</div>
+  <div id="ver" style="margin-top:8px;font-size:12px;opacity:.6">Version 10</div>
   <div class="ctr" id="ctrl"></div>
 </div>
 <div id="win" class="ov" style="display:none">
@@ -1025,17 +1025,44 @@ function skirtGeo(rTop,yTop,rBot,yBot,fold,t0,t1,off){t0=t0||0;t1=t1===undefined
  g.computeVertexNormals();return g;}
 
 // ----- LA MAIN : paume, quatre doigts en trois phalanges, pouce -----
-function makeHand(rig,side,col,mat,scale){scale=scale||1;const sx=side==='L'?1:-1,W=pos('hand'+side),E=pos('fore'+side);
- const down=new PV().subVectors(W,E).normalize(),bone=BI['hand'+side];
- const pc=W.clone().addScaledVector(down,.05*scale);
- const palm=ellip(pc,.018*scale,.05*scale,.042*scale,18,14);paint(palm,col);rig.add(mat,palm,bone);
- const fz=[.021,.007,-.007,-.0205],fl=[.07,.078,.073,.058],CU=[[.12,.32,.42],[.16,.4,.5],[.22,.5,.6],[.3,.62,.72]];
- for(let k=0;k<4;k++){let p=new PV(W.x-sx*.002,W.y-.094*scale,W.z+fz[k]*scale);const L=fl[k]*scale,segs=[.45,.3,.25],rad=[.0102,.0092,.0082],ang=CU[k];
-  for(let j=0;j<3;j++){const a=ang[j];const d=new PV(-sx*Math.sin(a)*.9,-Math.cos(a),Math.sin(a)*.35-fz[k]*1.2).normalize();const q=p.clone().addScaledVector(d,L*segs[j]);
-   const c=capsule(p,q,rad[j]*scale,9);paint(c,col);rig.add(mat,c,bone);p=q;}}
- let tp=new PV(W.x-sx*.014*scale,W.y-.028*scale,W.z+.03*scale);const td=[new PV(-sx*.35,-.55,.76).normalize(),new PV(-sx*.55,-.65,.52).normalize()],tl=[.04,.032],tr=[.0118,.0102];
- for(let j=0;j<2;j++){const q=tp.clone().addScaledVector(td[j],tl[j]*scale);const c=capsule(tp,q,tr[j]*scale,9);paint(c,col);rig.add(mat,c,bone);tp=q;}
- const th=ellip(new PV(W.x-sx*.008*scale,W.y-.04*scale,W.z+.026*scale),.015*scale,.024*scale,.016*scale,12,10);paint(th,col);rig.add(mat,th,bone);}
+function makeHand(rig,side,col,mat,scale){scale=scale||1;const S=scale,sx=side==='L'?1:-1,W=pos('hand'+side),E=pos('fore'+side);
+ const D=new PV().subVectors(W,E).normalize(),bone=BI['hand'+side];      // D : vers le bout des doigts
+ const Z=new PV(0,0,1),N=new PV(sx,0,0),IN=new PV(-sx,0,0);            // Z : côté du pouce, N : dos de la main
+ const skinMat=mat==='skin',nailC=col.clone().lerp(lin('#f0c4bc'),.3).multiplyScalar(1.04);
+ // paume : un bloc arrondi, plus large aux jointures, bombé sur le dos, plat dessous
+ const pc=W.clone().addScaledVector(D,.047*S);
+ {const g=new THREE.SphereGeometry(1,24,18),p=g.attributes.position,q=new PV(),f=v=>Math.sign(v)*Math.pow(Math.abs(v),.62);
+  for(let i=0;i<p.count;i++){const a=f(p.getY(i)),w=f(p.getZ(i)),t=f(p.getX(i));const al=-a;     // al = 1 vers les jointures
+   const wid=(.031+.011*psm((al+1)/2))*S,th=(t>0?.0175:.0135)*S*(1-.25*psm((al-.6)/.4));
+   q.copy(pc).addScaledVector(D,(al<0?al*.058:al*.05)*S).addScaledVector(Z,w*wid).addScaledVector(N,t*th);
+   if(t<0)q.addScaledVector(N,.004*S*(1-w*w)*(1-al*al));                                             // creux de la paume
+   if(t>0&&al>.75)q.addScaledVector(N,.0025*S*Math.pow(Math.cos(w*Math.PI*1.9),2));                  // bosses des jointures
+   p.setXYZ(i,q.x,q.y,q.z);}
+  g.computeVertexNormals();paint(g,col,(x,y,z,c)=>{if(skinMat&&(x-pc.x)*sx<-.008*S)c.lerp(lin('#e0a090'),.18);});rig.add(mat,g,bone);}
+ // un doigt : un seul tube continu, plus large que profond, qui s'affine, articulations marquées, bout arrondi, ongle
+ function finger(base,dirs,L,segs,rb,flat){const pts=[base.clone().addScaledVector(dirs[0],-.016*S),base.clone()];let p=base.clone();
+  for(let j=0;j<dirs.length;j++){p=p.clone().addScaledVector(dirs[j],L*segs[j]);pts.push(p);}
+  const cu=new THREE.CatmullRomCurve3(pts,false,'centripetal'),TS=28,RS=10,g=new THREE.TubeGeometry(cu,TS,1,RS,false),gp=g.attributes.position;
+  const tot=cu.getLength(),u0=.016*S/tot,v=new PV(),c=new PV(),T=new PV(),n1=new PV(),bb=new PV();
+  const knots=[];{let acc=.016*S;for(let j=0;j<segs.length-1;j++){acc+=L*segs[j];knots.push(acc/tot);}}
+  const rad=t=>{const u=Math.max(0,(t-u0)/(1-u0));let r=rb*S*(1-.3*u);for(const k of knots)r*=1+.085*Math.exp(-Math.pow((t-k)/.035,2));
+   if(u>.86)r*=Math.sqrt(Math.max(0,1-Math.pow((u-.86)/.14,2)));return r;};
+  for(let i=0;i<=TS;i++){const t=i/TS;cu.getPointAt(t,c);cu.getTangentAt(t,T);n1.copy(N).addScaledVector(T,-N.dot(T)).normalize();const r=rad(t);
+   for(let j=0;j<=RS;j++){const k=i*(RS+1)+j;v.fromBufferAttribute(gp,k).sub(c).normalize();const a=v.dot(n1);bb.copy(v).addScaledVector(n1,-a);
+    v.copy(c).addScaledVector(n1,a*r*flat).addScaledVector(bb,r);gp.setXYZ(k,v.x,v.y,v.z);}}
+  g.computeVertexNormals();paint(g,col,(x,y,z,cc)=>{if(skinMat)cc.lerp(lin('#d89080'),.12);});rig.add(mat,g,bone);
+  if(skinMat){const t=.885,np=cu.getPointAt(t),nt=cu.getTangentAt(t),nn=N.clone().addScaledVector(nt,-N.dot(nt)).normalize(),nw=new PV().crossVectors(nt,nn);
+   const nl=new THREE.SphereGeometry(1,12,8);nl.scale(rb*S*.56,.0068*S,.0011*S);nl.applyMatrix4(new THREE.Matrix4().makeBasis(nw,nt,nn));
+   const r=rad(t);nl.translate(np.x+nn.x*r*flat*.93,np.y+nn.y*r*flat*.93,np.z+nn.z*r*flat*.93);paint(nl,nailC);rig.add(mat,nl,bone);}}
+ const dirOf=(a,zz)=>D.clone().multiplyScalar(Math.cos(a)).addScaledVector(IN,Math.sin(a)).addScaledVector(Z,zz).normalize();
+ const fz=[.022,.0075,-.007,-.021],fl=[.072,.08,.075,.06],rb=[.0094,.0099,.0094,.0083],CU=[[.22,.5,.5],[.28,.6,.55],[.36,.7,.6],[.44,.8,.62]];
+ for(let k=0;k<4;k++){const base=W.clone().addScaledVector(D,(.092-(k===3?.006:0)-(k===0?.002:0))*S).addScaledVector(Z,fz[k]*S).addScaledVector(N,.002*S);
+  finger(base,CU[k].map(a=>dirOf(a,-fz[k]*.9)),fl[k]*S,[.44,.31,.25],rb[k],.84);}
+ // pouce : part du bas de la paume, vers l'avant, puis se replie un peu
+ {const base=W.clone().addScaledVector(D,.03*S).addScaledVector(Z,.024*S).addScaledVector(IN,.006*S);
+  const ds=[D.clone().multiplyScalar(.82).addScaledVector(Z,.5).addScaledVector(IN,.28).normalize(),D.clone().multiplyScalar(.88).addScaledVector(Z,.22).addScaledVector(IN,.42).normalize(),D.clone().multiplyScalar(.8).addScaledVector(Z,.05).addScaledVector(IN,.6).normalize()];
+  finger(base,ds,.072*S,[.42,.33,.25],.0122,.86);}
+ const th=ellip(W.clone().addScaledVector(D,.04*S).addScaledVector(Z,.022*S).addScaledVector(IN,.006*S),.012*S,.026*S,.016*S,14,10);paint(th,col);rig.add(mat,th,bone);}
 
 // ----- LE CORPS HABILLÉ -----
 function makeBody(rig,o){const fem=o.sex==='f';const skin=lin(o.skin),tun=lin(o.tunic),pan=lin(o.pants),boot=lin(o.boots),belt=lin(o.beltc||'#3a2414');const bw=o.build||1;
@@ -1067,7 +1094,7 @@ function makeBody(rig,o){const fem=o.sex==='f';const skin=lin(o.skin),tun=lin(o.
   const el=ellip(E,.045,.045,.045,14,10);paint(el,tun);rig.add('cloth',el,BI['fore'+s]);
   {const cf=limb(Wr.clone().addScaledVector(dw,-.075),Wr.clone().addScaledVector(dw,-.028),[[0,.0365],[.5,.037],[1,.0355]],18);uvScale(cf,2,1);paint(cf,trc);rig.add('trim',cf,BI['fore'+s]);}
   const fa=limb(E,Wr.clone().addScaledVector(dw,-.005),[[0,.044],[.4,.041],[.85,.033],[1,.032]],18);wrinkle(fa,E,Wr,.12,.005);paint(fa,tun,(x,y,z,c)=>folds(c,x,y,z));rig.add('cloth',fa,(x,y,z)=>{const t=tAlong(x,y,z,E,Wr);return [BI['fore'+s],BI['arm'+s],(1-psm(t/.12))*.5];});
-  const wr=limb(Wr.clone().addScaledVector(dw,-.03),Wr.clone().addScaledVector(dw,.015),[[0,.026],[1,.024]],14);paint(wr,skin);rig.add('skin',wr,BI['hand'+s]);
+  const wr=limb(Wr.clone().addScaledVector(dw,-.03),Wr.clone().addScaledVector(dw,.03),[[0,.026],[.6,.024],[1,.02]],14);{const wp=wr.attributes.position;for(let i=0;i<wp.count;i++)wp.setX(i,Wr.x+(wp.getX(i)-Wr.x)*.78);wr.computeVertexNormals();}paint(wr,skin);rig.add('skin',wr,BI['hand'+s]);
   if(!o.gauntlets)makeHand(rig,s,skin,'skin');
   const H=pos('thigh'+s),K=pos('shin'+s),A=pos('foot'+s);
   const hip=ellip(new PV(H.x,H.y-.02,H.z),.09,.08,.085,16,12);paint(hip,pan);rig.add('cloth',hip,BI.root);
