@@ -1,0 +1,129 @@
+{
+  "format": "luminati-story",
+  "version": 1,
+  "items": {
+    "lueur-pres": {
+      "name": "Lueur des Prés",
+      "text": "Une petite flamme verte qui sent l'herbe coupée.",
+      "key": true,
+      "textKeys": {
+        "text": "3861FEC255B3493DEAB560D06CCF1997"
+      }
+    },
+    "lueur-ocre": {
+      "name": "Lueur d'Ocre",
+      "text": "Une flamme orange, chaude comme le sable à midi.",
+      "key": true,
+      "textKeys": {
+        "text": "99C6B66D1E8DDA9E6DE5ED451B088834"
+      }
+    },
+    "lueur-brumes": {
+      "name": "Lueur des Brumes",
+      "text": "Une flamme bleue et fraîche, qui danse comme une luciole.",
+      "key": true,
+      "textKeys": {
+        "text": "5CFE9422A2C5640F37F87887F8654C3E"
+      }
+    },
+    "galette-au-miel": {
+      "name": "Galette au miel",
+      "text": "Une galette de Lison, toute dorée.",
+      "textKeys": {
+        "text": "14659E14C6BF9D8A1D0C894C19C94C17"
+      }
+    }
+  },
+  "quests": {
+    "lueurs": {
+      "title": "Les Trois Lueurs",
+      "text": "La Grande Lanterne du bourg s'est éteinte. Ses trois lueurs se sont envolées aux quatre vents.",
+      "stages": [
+        {
+          "id": "demande",
+          "text": "Mamie Brindille m'a demandé de retrouver les trois lueurs : une sur le plateau, une dans les Gorges d'Ocre à l'est, une dans le Marais des Brumes au sud."
+        },
+        {
+          "id": "reunies",
+          "text": "J'ai les trois lueurs ! Il faut les porter à la Grande Lanterne, sur le plateau."
+        },
+        {
+          "id": "fin",
+          "text": "La Grande Lanterne brille de nouveau sur le Bourg des Prés."
+        }
+      ],
+      "goals": [
+        {
+          "text": "La lueur des Prés (sur le plateau)",
+          "done": "item:lueur-pres or lanterne-allumee"
+        },
+        {
+          "text": "La lueur d'Ocre (dans les gorges, à l'est)",
+          "done": "item:lueur-ocre or lanterne-allumee"
+        },
+        {
+          "text": "La lueur des Brumes (dans le marais, au sud)",
+          "done": "item:lueur-brumes or lanterne-allumee"
+        }
+      ],
+      "textKeys": {
+        "text": "4E4847E1DCC0340D52327BFD8BBE4C87",
+        "stages": {
+          "demande": "1903445ABA1B839A5CD36B2B2215D95C",
+          "reunies": "AF63AF3E85C7BC8E6A769BAD3C18FF0C",
+          "fin": "2998B64090E5586D613F13680AF77EF2"
+        },
+        "goals": [
+          "8CD9568D3065190094E563F4C46D8F8E",
+          "0CCEED228F7E05FB2287E08385A8E3C6",
+          "7C207060D7FAFC3E52ED5326992DF864"
+        ]
+      }
+    }
+  },
+  "actors": {
+    "brindille": {
+      "name": "Mamie Brindille",
+      "preset": "elder",
+      "portraitColor": "#c9a45c",
+      "talk": "brindille"
+    },
+    "sadia": {
+      "name": "Sadia",
+      "preset": "hunter",
+      "portraitColor": "#e2a85c",
+      "talk": "sadia"
+    },
+    "ambroise": {
+      "name": "Ambroise",
+      "preset": "farmer",
+      "portraitColor": "#7fa08a",
+      "talk": "ambroise"
+    }
+  },
+  "events": [
+    {
+      "id": "trois-reunies",
+      "on": "change",
+      "if": "item:lueur-pres and item:lueur-ocre and item:lueur-brumes",
+      "once": true,
+      "run": [
+        "quest lueurs stage reunies",
+        "banner Les trois lueurs ! | Retourne à la Grande Lanterne #line:82990F5E7508985314237060CD462EFE"
+      ]
+    }
+  ],
+  "starts": {
+    "trois-lueurs": {
+      "level": "bourg",
+      "items": {
+        "lueur-pres": 1,
+        "lueur-ocre": 1,
+        "lueur-brumes": 1
+      },
+      "quests": {
+        "lueurs": "reunies"
+      }
+    }
+  }
+}

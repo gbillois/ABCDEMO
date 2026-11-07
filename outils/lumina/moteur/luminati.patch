@@ -1,0 +1,176 @@
+diff --git a/src/engine/i18n/I18n.js b/src/engine/i18n/I18n.js
+index f307771..c338778 100644
+--- a/src/engine/i18n/I18n.js
++++ b/src/engine/i18n/I18n.js
+@@ -16,14 +16,17 @@
+  * is (the dialogue's gold markup).
+  */
+ 
++import { FR } from './fr.js';
++
+ /** The languages: code → the BCP 47 tag `<html lang>` takes and the language's own name. */
+ export const LANGS = Object.freeze({
++  fr: Object.freeze({ tag: 'fr', name: 'Français' }),
+   en: Object.freeze({ tag: 'en', name: 'English' }),
+   ja: Object.freeze({ tag: 'ja', name: '日本語' }),
+   zh: Object.freeze({ tag: 'zh-Hans', name: '简体中文' }),
+ });
+ /** The language codes, in the title screen's order. */
+-export const LANG_CODES = Object.freeze(['en', 'ja', 'zh']);
++export const LANG_CODES = Object.freeze(['fr', 'en', 'ja', 'zh']);
+ /** localStorage key of the saved choice. */
+ export const LANG_KEY = 'luminati.lang';
+ 
+@@ -37,7 +40,7 @@ const hasOwn = (o, k) => o != null && Object.prototype.hasOwnProperty.call(o, k)
+ export function normalizeLang(v) {
+   if (typeof v !== 'string') return null;
+   const p = v.trim().toLowerCase().split(/[-_]/)[0];
+-  return p === 'en' || p === 'ja' || p === 'zh' ? p : null;
++  return p === 'en' || p === 'fr' || p === 'ja' || p === 'zh' ? p : null;
+ }
+ 
+ /**
+@@ -54,7 +57,8 @@ export function resolveLang({ search, storage } = {}) {
+   let st = storage;
+   if (st === undefined) { try { st = typeof localStorage !== 'undefined' ? localStorage : null; } catch { st = null; } }
+   try { const saved = normalizeLang(st?.getItem(LANG_KEY)); if (saved) return saved; } catch { /* storage off */ }
+-  return 'en';
++  // (les jeux de Théo : le français d'abord)
++  return 'fr';
+ }
+ 
+ let current = /** @type {'en'|'ja'|'zh'} */ ('en');
+@@ -100,7 +104,7 @@ const TABLES = new Map();
+ export function registerStrings(ns, table) {
+   const byLang = new Map();
+   for (const l of LANG_CODES) {
+-    const src = table?.[l];
++    const src = table?.[l] ?? (l === 'fr' ? FR[ns] : undefined);
+     if (!src) continue;
+     const m = new Map();
+     for (const k of Object.keys(src)) m.set(k, src[k]);
+diff --git a/src/game/CinematicLook.js b/src/game/CinematicLook.js
+index fff3679..dd55be2 100644
+--- a/src/game/CinematicLook.js
++++ b/src/game/CinematicLook.js
+@@ -20,7 +20,7 @@
+  * @import { LevelEnvironment } from '../engine/level/types.d.ts'
+  */
+ 
+-/** @typedef {'diorama'|'cinematic'} PostLook */
++/** @typedef {'diorama'|'cinematic'|'retro'} PostLook */
+ 
+ /**
+  * The look a page's query asks for: `look=cinematic`, the diorama for any other value of `look`
+@@ -31,7 +31,8 @@
+  */
+ export function postLookFrom(params) {
+   if (!params.has('look')) return null;
+-  return params.get('look') === 'cinematic' ? 'cinematic' : 'diorama';
++  const v = params.get('look');
++  return v === 'cinematic' || v === 'retro' ? v : 'diorama';
+ }
+ 
+ /**
+@@ -115,6 +116,37 @@ function levelLookOf(env) {
+   };
+ }
+ 
++/**
++ * The retro look (added for « Les Trois Lueurs »): the diorama turned toward the 16-bit consoles —
++ * a nearly flat depth of field (only a hint of blur at the very top and bottom of the frame), a soft
++ * bloom, bright saturated colours with little teal in the shade, no grain, no vignette to speak of,
++ * no chromatic aberration; and a coarser drawing buffer shown with `image-rendering: pixelated`
++ * (`RETRO_PIXEL_RATIO`, Game), so the whole frame reads as big crisp pixels.
++ */
++export const RETRO_LOOK = Object.freeze({
++  dof: { focusRange: 14, maxBlur: 3, nearScale: 0.5, farScale: 0.4, tiltShift: 0.12, tiltCenter: 0.5, tiltWidth: 0.6, bokehBoost: 1.0 },
++  bloom: { strength: 0.32, radius: 0.45, threshold: 1.15, warmth: 0.15 },
++  grade: {
++    exposure: 1.06, contrast: 1.1, saturation: 1.3, temperature: 0.02,
++    vignette: 0.18, grain: 0, chromaticAberration: 0,
++    shadowsTint: [-0.01, 0.02, 0.06], highlightsTint: [0.04, 0.03, -0.01],
++  },
++});
++
++/** The drawing buffer's pixels per CSS pixel on the retro look (the frame is drawn coarse, then scaled up crisp). */
++export const RETRO_PIXEL_RATIO = 0.5;
++
++/**
++ * Write the retro look into PostFX's settings (on top of the diorama values already there).
++ * @param {PostFX['settings']} S
++ */
++export function applyRetroLook(S) {
++  for (const group of /** @type {const} */ (['dof', 'bloom', 'grade'])) {
++    const dst = S[group];
++    for (const [k, v] of Object.entries(RETRO_LOOK[group])) dst[k] = Array.isArray(v) ? [...v] : v;
++  }
++}
++
+ /** What `applyLevelLook` wrote last into a page's settings (`applyStateLook` compares with it). */
+ const APPLIED = new WeakMap();
+ 
+diff --git a/src/game/Game.js b/src/game/Game.js
+index 28a373d..67d27aa 100644
+--- a/src/game/Game.js
++++ b/src/game/Game.js
+@@ -25,7 +25,7 @@ import { cameraFraming, isInterior, skyOf, soundtrackOf } from './LevelLook.js';
+ import { applyClimate, seasonReady } from './Climate.js';
+ import { createCameraVistas } from './CameraVistas.js';
+ import { needsFestival, loadFestival } from './siege/festival.js';
+-import { applyCinematicLook, applyLevelLook, applyStateLook } from './CinematicLook.js';
++import { applyCinematicLook, applyLevelLook, applyStateLook, applyRetroLook, RETRO_PIXEL_RATIO } from './CinematicLook.js';
+ import { SHIPPED_LEVELS } from './levels.js';
+ // (the CombatSystem is imported dynamically in init, on combat levels only: peaceful levels never
+ // download or parse the combat code)
+@@ -128,7 +128,7 @@ export function speakerTitle(npc) {
+ }
+ 
+ /** The title screen's language row (PIXEL_UI.md §8.1): each language in its own script. */
+-const LANGUAGE_LABELS = Object.freeze({ en: 'EN', ja: '日本語', zh: '中文' });
++const LANGUAGE_LABELS = Object.freeze({ fr: 'FR', en: 'EN', ja: '日本語', zh: '中文' });
+ 
+ const INTERACT_RANGE = 1.6;
+ /** An interactable's `lookSpan` (a door's leaf) counts when the player faces it within 60°. */
+@@ -325,7 +325,7 @@ export class Game {
+      * this page plays with it.
+      * @type {import('./CinematicLook.js').PostLook}
+      */
+-    this.look = look === 'cinematic' ? 'cinematic' : 'diorama';
++    this.look = look === 'cinematic' || look === 'retro' ? look : 'diorama';
+     /**
+      * The campaign being played, or null (a single level: exits and entrances are ignored).
+      * @type {CampaignRuntime|null}
+@@ -601,7 +601,10 @@ export class Game {
+     this.loadStats = {};
+     // three's fog chunks read the fog start from a uniform (set per level by _applyLevel)
+     installFogStart();
+-    const engine = new Engine({ container: this.container, maxPixelRatio: 1.25 });
++    const retro = this.look === 'retro';
++    const engine = new Engine({ container: this.container, maxPixelRatio: retro ? RETRO_PIXEL_RATIO : 1.25 });
++    // the retro look: the coarse drawing buffer is scaled up crisp, as big pixels
++    if (retro) engine.renderer.domElement.style.imageRendering = 'pixelated';
+     this.engine = engine;
+     const { scene, camera, renderer } = engine;
+ 
+@@ -1534,6 +1537,7 @@ export class Game {
+     // lifted, slightly teal shadows (ARCHITECTURE §1.5), saturation compensating the lower contrast
+     Object.assign(S.grade, { exposure: 1.03, contrast: 1.04, saturation: 1.3, temperature: 0.04, vignette: 0.55, grain: 0.03, shadowsTint: [-0.04, 0.05, 0.15] });
+     if (this.look === 'cinematic') applyCinematicLook(S);
++    if (this.look === 'retro') applyRetroLook(S);
+   }
+ 
+   // ---------------------------------------------------------------------------------------------
+diff --git a/src/game/campaign/CampaignFormat.js b/src/game/campaign/CampaignFormat.js
+index dd522f6..ade75ed 100644
+--- a/src/game/campaign/CampaignFormat.js
++++ b/src/game/campaign/CampaignFormat.js
+@@ -51,7 +51,7 @@ const RESERVED = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/;
+  */
+ 
+ /** The page's post looks a campaign may choose (`look`; src/game/CinematicLook.js `PostLook`). */
+-export const CAMPAIGN_LOOKS = /** @type {const} */ (['cinematic', 'diorama']);
++export const CAMPAIGN_LOOKS = /** @type {const} */ (['cinematic', 'diorama', 'retro']);
+ /**
+  * The player's kits (`player.kit`): `traveler` — the default, today's traveler and sword —,
+  * `swordmaster` (docs/contracts/DRAGON_CAMPAIGN.md §6.8: the player package's kit) and `bellwarden`

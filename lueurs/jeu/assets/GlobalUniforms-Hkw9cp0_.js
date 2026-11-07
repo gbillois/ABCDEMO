@@ -1,0 +1,1 @@
+import{Do as e,Eo as t,Zr as n}from"./LevelStorage-C_bJYT5y.js";var r={uTime:{value:0},uNight:{value:0},uWind:{value:new t(1,.35)},uWindStrength:{value:1},uCameraYaw:{value:0},uCameraPosition:{value:new e},uSunDirection:{value:new e(.4,.8,.45).normalize()},uSunColor:{value:new n(1,.9,.75)},uFogColor:{value:new n(.6,.65,.75)},uFogStart:{value:new Float32Array(2)}};export{r as t};

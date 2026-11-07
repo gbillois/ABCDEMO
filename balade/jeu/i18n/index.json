@@ -1,0 +1,11 @@
+{
+  "format": "luminati-i18n-index",
+  "version": 1,
+  "languages": {
+    "fr": {
+      "tables": [
+        "common"
+      ]
+    }
+  }
+}

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>La Balade de Millépoques</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800&display=swap" rel="stylesheet">
+<style>
+  :root { --bois: #6b4423; --bois-fonce: #3a2410; --or: #f2c14e; --or-clair: #ffe39a; --creme: #fff8e6; --encre: #3a2410; --vert: #7ebd3a; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: #b2c2d6; color: var(--encre); }
+  body { font-family: Nunito, system-ui, sans-serif; font-weight: 600; min-height: 100vh; }
+  .fond { position: fixed; inset: 0; background: #7ebd3a url("ville/carte.webp") center / cover no-repeat; z-index: 0; }
+  .fond::after { content: ""; position: absolute; inset: 0; background: rgba(40, 28, 14, 0.35); }
+  main { position: relative; z-index: 1; width: min(720px, 100% - 32px); margin: max(20px, env(safe-area-inset-top)) auto 32px; display: flex; flex-direction: column; gap: 16px; }
+  .retour { position: relative; z-index: 1; display: inline-block; margin: max(12px, env(safe-area-inset-top)) 0 0 max(16px, env(safe-area-inset-left)); }
+  .panneau { background: var(--creme); border: 4px solid var(--bois-fonce); border-radius: 18px; box-shadow: 0 6px 0 var(--bois-fonce), inset 0 0 0 3px var(--or); padding: 18px 20px; }
+  .titre { background: linear-gradient(#8a5a2e, var(--bois)); color: var(--creme); text-align: center; }
+  h1 { margin: 0; font: 400 clamp(34px, 8vw, 58px)/1.05 "Lilita One", system-ui, sans-serif; color: var(--or); letter-spacing: 1px;
+    text-shadow: 0 3px 0 var(--bois-fonce), 0 0 0 var(--bois-fonce); -webkit-text-stroke: 2px var(--bois-fonce); paint-order: stroke fill; }
+  .sous-titre { margin: 8px 0 14px; font-size: 18px; font-weight: 800; }
+  .boutons { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+  .bouton { display: inline-block; text-decoration: none; font: 400 26px "Lilita One", system-ui, sans-serif; color: var(--encre);
+    background: linear-gradient(var(--or-clair), var(--or)); padding: 12px 34px; border: 4px solid var(--bois-fonce); border-radius: 16px;
+    box-shadow: 0 5px 0 var(--bois-fonce); cursor: pointer; }
+  .bouton:hover, .bouton:focus-visible { filter: brightness(1.06); outline: none; }
+  .bouton:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--bois-fonce); }
+  .bouton.petit { font-size: 17px; padding: 8px 16px; border-width: 3px; border-radius: 12px; box-shadow: 0 3px 0 var(--bois-fonce); background: var(--creme); }
+  h2 { margin: 0 0 8px; font: 400 24px "Lilita One", system-ui, sans-serif; color: var(--bois); }
+  p { margin: 0; font-size: 17px; line-height: 1.5; }
+  table { border-collapse: collapse; font-size: 16px; width: 100%; }
+  td { padding: 4px 6px; vertical-align: top; }
+  kbd { display: inline-block; background: #fff; border: 2px solid var(--bois); border-bottom-width: 4px; border-radius: 6px; padding: 0 6px; font: 800 14px Nunito, sans-serif; }
+  .note { font-size: 14px; opacity: 0.85; line-height: 1.45; }
+  .note a { color: var(--bois); }
+</style>
+</head>
+<body>
+<div class="fond" aria-hidden="true"></div>
+<a class="bouton petit retour" href="../index.html">◂ Accueil</a>
+<main>
+  <section class="panneau titre">
+    <h1>La Balade de Millépoques</h1>
+    <p class="sous-titre">Le village de Théo, à la Renaissance, en 2,5D</p>
+    <div class="boutons">
+      <a class="bouton" href="jeu/game.html?level=balade">Jouer ▸</a>
+    </div>
+  </section>
+
+  <section class="panneau">
+    <h2>Promène-toi !</h2>
+    <p>Voici le vrai village de Théo dans Millépoques : l'hôtel de ville, la cathédrale, les maisons, les moulins, la rivière et ses bateaux. Cette fois, tu y marches à pied avec Millie, au milieu des habitants. Passe devant un bâtiment pour lire son nom. Pas de quête : tu explores.</p>
+  </section>
+
+  <section class="panneau">
+    <h2>Les commandes</h2>
+    <table>
+      <tr><td><kbd>Z Q S D</kbd> ou <kbd>← ↑ → ↓</kbd></td><td>Marcher (<kbd>Maj</kbd> pour courir)</td></tr>
+      <tr><td>Molette, <kbd>W</kbd> / <kbd>X</kbd></td><td>Zoomer, dézoomer</td></tr>
+      <tr><td><kbd>N</kbd></td><td>La carte du village</td></tr>
+      <tr><td><kbd>M</kbd> · <kbd>H</kbd></td><td>Musique · aide</td></tr>
+      <tr><td>Sur tablette et téléphone</td><td>Pose le pouce n'importe où : un joystick apparaît (tout au bord, tu cours). Deux doigts pour zoomer, et les boutons à droite.</td></tr>
+    </table>
+  </section>
+
+  <p class="note panneau">Les dessins viennent de Millépoques ; ils sont posés debout en 3D avec le moteur <a href="https://gitlab.com/stubborn-hug/lumina">Luminati</a> (licence MIT, voir <a href="jeu/LICENCE-Luminati.txt">la licence</a>) et three.js. Il faut un ordinateur, une tablette ou un téléphone récents (WebGL 2).</p>
+</main>
+</body>
+</html>
