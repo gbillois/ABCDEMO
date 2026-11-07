@@ -64,21 +64,22 @@ h1{font-family:Cinzel,serif;font-weight:700;font-size:clamp(34px,9vw,68px);margi
   <div id="birds"><div class="bird" style="top:9%;--s:0.55;animation-delay:0s;animation-duration:22s"><div class="bob" style="animation-delay:0.0s"><svg viewBox="0 0 40 20"><path fill="none" stroke="#1b1a22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M2 7 Q11 0 20 10 Q29 0 38 7"><animate attributeName="d" dur="0.7s" repeatCount="indefinite" values="M2 7 Q11 0 20 10 Q29 0 38 7;M3 13 Q11 15 20 10 Q29 15 37 13;M2 7 Q11 0 20 10 Q29 0 38 7"/></path><ellipse cx="20" cy="10.5" rx="2.6" ry="1.6" fill="#1b1a22"/></svg></div></div><div class="bird" style="top:13%;--s:0.42;animation-delay:-6s;animation-duration:26s"><div class="bob" style="animation-delay:-2.0s"><svg viewBox="0 0 40 20"><path fill="none" stroke="#1b1a22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M2 7 Q11 0 20 10 Q29 0 38 7"><animate attributeName="d" dur="0.63s" repeatCount="indefinite" values="M2 7 Q11 0 20 10 Q29 0 38 7;M3 13 Q11 15 20 10 Q29 15 37 13;M2 7 Q11 0 20 10 Q29 0 38 7"/></path><ellipse cx="20" cy="10.5" rx="2.6" ry="1.6" fill="#1b1a22"/></svg></div></div><div class="bird" style="top:6%;--s:0.48;animation-delay:-11s;animation-duration:24s"><div class="bob" style="animation-delay:-3.7s"><svg viewBox="0 0 40 20"><path fill="none" stroke="#1b1a22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M2 7 Q11 0 20 10 Q29 0 38 7"><animate attributeName="d" dur="0.66s" repeatCount="indefinite" values="M2 7 Q11 0 20 10 Q29 0 38 7;M3 13 Q11 15 20 10 Q29 15 37 13;M2 7 Q11 0 20 10 Q29 0 38 7"/></path><ellipse cx="20" cy="10.5" rx="2.6" ry="1.6" fill="#1b1a22"/></svg></div></div><div class="bird" style="top:22%;--s:0.34;animation-delay:-3s;animation-duration:30s"><div class="bob" style="animation-delay:-1.0s"><svg viewBox="0 0 40 20"><path fill="none" stroke="#1b1a22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M2 7 Q11 0 20 10 Q29 0 38 7"><animate attributeName="d" dur="0.59s" repeatCount="indefinite" values="M2 7 Q11 0 20 10 Q29 0 38 7;M3 13 Q11 15 20 10 Q29 15 37 13;M2 7 Q11 0 20 10 Q29 0 38 7"/></path><ellipse cx="20" cy="10.5" rx="2.6" ry="1.6" fill="#1b1a22"/></svg></div></div><div class="bird" style="top:18%;--s:0.3;animation-delay:-16s;animation-duration:34s"><div class="bob" style="animation-delay:-5.3s"><svg viewBox="0 0 40 20"><path fill="none" stroke="#1b1a22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M2 7 Q11 0 20 10 Q29 0 38 7"><animate attributeName="d" dur="0.57s" repeatCount="indefinite" values="M2 7 Q11 0 20 10 Q29 0 38 7;M3 13 Q11 15 20 10 Q29 15 37 13;M2 7 Q11 0 20 10 Q29 0 38 7"/></path><ellipse cx="20" cy="10.5" rx="2.6" ry="1.6" fill="#1b1a22"/></svg></div></div></div>
   <h1>Pierrefort</h1>
   <div class="tag">La quête des blasons d'or</div>
-  <p class="sub">Promène-toi dans le château, monte sur les remparts, entre dans le donjon… et trouve les <b>6 blasons d'or</b> cachés !</p>
+  <p class="sub">Tu n'es encore qu'un enfant… Avec Lumi la petite fée, trouve les <b>6 blasons d'or</b> cachés dans le château pour devenir un grand chevalier !</p>
   <button id="go">Jouer</button>
   <div id="barBox"><div id="bar"></div></div>
   <div id="load">Je prépare les outils du bâtisseur…</div>
-  <div id="ver" style="margin-top:8px;font-size:12px;opacity:.6">Version 5</div>
+  <div id="ver" style="margin-top:8px;font-size:12px;opacity:.6">Version 6</div>
   <div class="ctr" id="ctrl"></div>
 </div>
 <div id="win" class="ov" style="display:none">
   <h1>Bravo, chevalier !</h1>
-  <p class="sub">Tu as trouvé les 6 blasons d'or du château. Le roi te nomme Gardien de Pierrefort !</p>
+  <p class="sub">Tu as trouvé les 6 blasons d'or et tu es devenu un grand chevalier ! Le roi te nomme Gardien de Pierrefort.</p>
   <button id="cont" class="btn">Continuer la balade</button><button class="btn" style="margin-top:14px" onclick="location.reload()">Rejouer</button>
 </div>
 <div id="hud"><div class="pill" id="score">🛡️ 0 / 6</div><div style="display:flex;gap:8px"><div class="pill" id="persoB">⚔ Chevalier</div><div class="pill" id="vueB">👁</div><div class="pill" id="daynight">🌙</div><div class="pill" id="pauseB">❚❚</div></div></div>
-<div id="pause" class="ov" style="display:none"><h1>Pause</h1><button class="btn" id="resume">Reprendre</button><button class="btn" id="mute" style="margin-top:14px">Son : oui</button><button class="btn" id="musB" style="margin-top:14px">Musique : oui</button><button class="btn" id="replay" style="margin-top:14px">Rejouer</button><a class="btn" href="../index.html" style="margin-top:14px;text-decoration:none">Accueil des jeux</a></div>
+<div id="pause" class="ov" style="display:none"><h1>Pause</h1><button class="btn" id="resume">Reprendre</button><button class="btn" id="mute" style="margin-top:14px">Son : oui</button><button class="btn" id="musB" style="margin-top:14px">Musique : oui</button><button class="btn" id="styleB" style="margin-top:14px">Style : moderne</button><button class="btn" id="replay" style="margin-top:14px">Rejouer</button><a class="btn" href="../index.html" style="margin-top:14px;text-decoration:none">Accueil des jeux</a></div>
 <a id="home" href="../index.html" style="position:fixed;top:calc(12px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left));z-index:21;color:#f8e6b8;text-decoration:none;font-family:Cinzel,serif;font-size:15px;background:rgba(15,10,5,.55);border:1px solid rgba(244,214,138,.5);border-radius:20px;padding:7px 14px">‹ Accueil</a>
+<div id="flash" style="position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:30;transition:opacity .9s"></div>
 <div id="zone"></div>
 <div id="bulle"></div>
 <div id="atelier"><div class="atHead"><span>L’Atelier du chevalier</span><button id="atClose">Fini ✓</button></div>
@@ -942,6 +943,8 @@ function wrinkle(g,A,B,tc,amp){const p=g.attributes.position,ax=new PV().subVect
  for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);const t=Math.max(0,Math.min(1,v.clone().sub(A).dot(ax)/L2));const w=Math.exp(-Math.pow((t-tc)/.12,2));if(w<.02)continue;
   q.copy(A).addScaledVector(ax,t);const r=v.clone().sub(q);const a=Math.atan2(r.x,r.z);const k=1+amp*w*(Math.sin(t*90+a*2)*.6+Math.sin(t*47-a*3)*.4)/Math.max(.02,r.length())*.04/.04;v.copy(q).add(r.multiplyScalar(1+amp*w*Math.sin(t*95+a*2)/Math.max(.03,r.length())));p.setXYZ(i,v.x,v.y,v.z);}
  g.computeVertexNormals();}
+// la jupe suit les jambes : plus on descend, plus elle suit la cuisse du même côté
+function wSkirt(maxW){return (x,y,z)=>{const k=psm((.98-y)/.32)*maxW*Math.min(1,Math.abs(x)/.08+.4);return [BI.root,x>=0?BI.thighL:BI.thighR,k];};}
 function folds(c,x,y,z,k){c.multiplyScalar(1-(k||.16)*Math.max(0,vnoise(x*38+y*9,z*38+y*24,0)-.35));}
 
 // poids du torse : bassin → dos → poitrine → cou
@@ -984,7 +987,7 @@ function makeBody(rig,o){const fem=o.sex==='f';const skin=lin(o.skin),tun=lin(o.
  const t=torsoGeo(prof,o,1,.86,1.54);paint(t,tun,(x,y,z,c)=>folds(c,x,y,z));rig.add('cloth',t,wTorso);
  const col=new THREE.TorusGeometry(.068,.012,8,26);col.rotateX(Math.PI/2);col.scale(1,1,.85);col.translate(0,1.515,0);paint(col,tun.clone().multiplyScalar(.8));rig.add('cloth',col,BI.chest);
  const dress=fem||o.robe;
- const sk=skirtGeo(.168*bw,.99,dress?.34:.25,dress?.05:.57,dress?.06:.045);paint(sk,tun,(x,y,z,c)=>{folds(c,x,y,z,.22);if(y<(dress?.08:.6))c.multiplyScalar(.85);});rig.add('cloth',sk,BI.root);
+ const sk=skirtGeo(.168*bw,.99,dress?.36:.27,dress?.05:.57,dress?.06:.045);paint(sk,tun,(x,y,z,c)=>{folds(c,x,y,z,.22);if(y<(dress?.08:.6))c.multiplyScalar(.85);});rig.add('cloth',sk,wSkirt(dress?.42:.75));
  if(o.apron){const ap=skirtGeo(.172,1.3,.2,.45,0);const pp=ap.attributes.position,idx=ap.index.array,keep=[];for(let k=0;k<idx.length;k+=3){let ok=true;for(let j=0;j<3;j++)if(pp.getZ(idx[k+j])<.07)ok=false;if(ok)keep.push(idx[k],idx[k+1],idx[k+2]);}
   ap.setIndex(keep);ap.scale(1.05,1,1.12);paint(ap,lin('#5a3a22'));rig.add('leather',ap,(x,y,z)=>y>1.0?wTorso(x,y,z):[BI.root,BI.root,0]);}
  const by=fem?1.06:.99;
@@ -1036,7 +1039,7 @@ function makeEquip(rig,o){const e=o.equip||{};const HC=P.HC;const mh=k=>P.METAUX
  if(a.t==='gambison'){const g=torsoGeo(prof,o,1.07,.86,1.47);paint(g,lin(P.TISSUS[a.m]||'#c9b48a'),(x,y,z,cc)=>{if((y*100)%4<.6)cc.multiplyScalar(.7);});rig.add('cloth',g,wTorso);}
  if(a.t==='mailles'||a.t==='complete'||a.t==='cuirasse'){
   if(a.t!=='cuirasse'){const g=torsoGeo(prof,o,1.045,.86,1.47);paint(g,chainCol);rig.add('chain',g,wTorso);
-   const sk=skirtGeo(.18,.98,.255,.62,.02);paint(sk,chainCol);rig.add('chain',sk,BI.root);
+   const sk=skirtGeo(.18,.98,.255,.62,.02);paint(sk,chainCol);rig.add('chain',sk,wSkirt(.75));
    for(const s of ['L','R']){const S=pos('arm'+s),E=pos('fore'+s);const sl=limb(S,E.clone().lerp(S,.15),[[0,.064],[1,.052]],18);paint(sl,chainCol);rig.add('chain',sl,BI['arm'+s]);}}
   if(a.t!=='mailles'){const g=torsoGeo(prof,o,1.11,.97,1.5);const p=g.attributes.position;for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i);if(z>0)p.setZ(i,z+.012*Math.max(0,1-Math.abs(x)/.06));}g.computeVertexNormals();
    metal(rig,g,am,wTorso,(x,y,z,cc)=>{if(Math.abs(y-1.0)<.012||Math.abs(y-1.44)<.01)cc.multiplyScalar(.6);});
@@ -1214,11 +1217,14 @@ function loadLook(){const d=JSON.parse(JSON.stringify(LOOK_DEF));try{const s=loc
 function saveLook(){try{localStorage.setItem(LOOK_KEY,JSON.stringify(tenue));}catch(e){}}
 let tenue=loadLook();
 const FACE_F={w:.95,jaw:1.15,brow:.6,nose:.85,lips:1.2,chin:.8};
-function lookToO(l){return {sex:l.sex,skin:l.skin,hair:l.hair,style:l.style,beard:l.beard&&l.sex!=='f',eyes:l.eyes,lip:l.sex==='f'?'#b8606a':'#a85f5a',
- tunic:PERSO.TISSUS[l.tunic]||l.tunic,pants:'#3a342e',boots:PERSO.CUIRS[l.boots]||'#4a2e1c',face:l.sex==='f'?FACE_F:{},equip:l.equip};}
+let grandOK=false;try{grandOK=localStorage.getItem('pierrefort:grand')==='1';}catch(e){}
+let grand=grandOK;
+const FACE_ENF={w:1.05,jaw:.72,brow:.35,nose:.68,lips:1,chin:.65};
+function lookToO(l){return {sex:l.sex,skin:l.skin,hair:l.hair,style:l.style,beard:grand&&l.beard&&l.sex!=='f',eyes:l.eyes,lip:l.sex==='f'?'#b8606a':'#a85f5a',
+ tunic:PERSO.TISSUS[l.tunic]||l.tunic,pants:'#3a342e',boots:PERSO.CUIRS[l.boots]||'#4a2e1c',face:grand?(l.sex==='f'?FACE_F:{}):FACE_ENF,equip:l.equip};}
 function disposeChar(c){c.traverse(o=>{if(o.isMesh)o.geometry.dispose();});}
 function rebuildPlayer(){let p=null;if(player){p=player.position.clone();scene.remove(player);disposeChar(player);}
- player=PERSO.makeCharacter(lookToO(tenue));player.traverse(o=>{if(o.isMesh)o.frustumCulled=false;});scene.add(player);if(p)player.position.copy(p);player.rotation.y=playerFace;}
+ player=PERSO.makeCharacter(lookToO(tenue));player.traverse(o=>{if(o.isMesh)o.frustumCulled=false;});if(!grand){player.scale.setScalar(.66);player.userData.bones.head.scale.setScalar(1.3);}scene.add(player);if(p)player.position.copy(p);player.rotation.y=playerFace;}
 
 const NPC_DEF=[
  {name:'Garde Bertrand',o:{beard:true,hair:'#2a1c12',tunic:'#9a1e22',equip:{casque:{t:'bassinet',m:'Acier'},armure:{t:'mailles',m:'Fer'},arme:{t:'lance',m:'Acier',c:'Rouge'},bouclier:{t:'ecu',m:'Fer',c:'Rouge'}}},p:[-3.9,0,24.3],r:Math.PI,say:['Halte ! Bienvenue à Pierrefort, voyageur.','Le roi est dans la grande salle du donjon.']},
@@ -1238,7 +1244,7 @@ const NPC_DEF=[
 const HORSE_DEF=[{name:'Tonnerre',robe:'bai',socks:{fl:1,hr:1,blaze:1},z:15.8},{name:'Brume',robe:'gris',socks:null,z:18.95},{name:'Noisette',robe:'alezan',socks:{hl:1,hr:1,blaze:1},z:22.1}];
 
 async function setupPeople(step){
- rebuildPlayer();player.position.set(px,0,pz);
+ rebuildPlayer();player.position.set(px,0,pz);lumi=makeLumi();scene.add(lumi);lumi.position.set(px+.5,1.5,pz);
  let k=0;for(const d of NPC_DEF){const o=Object.assign({},d.o);if(o.face&&o.face!==FACE_F)o.face=Object.assign({},o.face);
   const g=PERSO.makeCharacter(o);const s=d.scale||1;g.scale.setScalar(s);
   const n={d,g,name:d.name,mode:d.mode||'idle',speed:d.speed||0,wi:0,wait:0,face:d.r||0,say:0,y:(d.p?d.p[1]:d.route[0][1]),inside:!!d.inside,anim:0};
@@ -1277,6 +1283,38 @@ function updatePeople(dt){frameN++;const cx=camera.position.x,cz=camera.position
   if(_hv.z<1){bulle.style.display='block';const bw=bulle.offsetWidth||200;bulle.style.left=Math.max(bw/2+8,Math.min(innerWidth-bw/2-8,(_hv.x*.5+.5)*innerWidth))+'px';bulle.style.top=Math.max(bulle.offsetHeight+60,(-_hv.y*.5+.5)*innerHeight)+'px';}else bulle.style.display='none';}
  else{talkNpc=null;bulle.style.display='none';}}
 
+function grandir(){const fl=document.getElementById('flash');fl.style.opacity=1;growChime();
+ setTimeout(()=>{grandOK=true;grand=true;try{localStorage.setItem('pierrefort:grand','1');}catch(e){}rebuildPlayer();fl.style.opacity=0;toast('Tu as grandi ! Te voilà un grand chevalier !',3.5);},1100);
+ setTimeout(()=>{document.getElementById('win').style.display='flex';if(document.exitPointerLock)document.exitPointerLock();},4200);}
+function growChime(){if(!actx||muted)return;const t=actx.currentTime;[62,66,69,74,78,81,86].forEach((m,i)=>{const o=actx.createOscillator(),g=actx.createGain();o.type='triangle';o.frequency.value=440*Math.pow(2,(m-69)/12);
+ const s=t+i*.11;g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(.13,s+.02);g.gain.exponentialRampToValueAtTime(.001,s+1.6);o.connect(g).connect(actx.destination);o.start(s);o.stop(s+1.7);});}
+
+/* ---------- Lumi, la petite fée ---------- */
+let lumi=null;const lumiT=new THREE.Vector3();
+function makeLumi(){const g=new THREE.Group();
+ const core=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex([[0,'#ffffff'],[.25,'#e8fbff'],[.6,'rgba(150,220,255,.5)'],[1,'rgba(120,200,255,0)']]),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));core.scale.setScalar(.32);g.add(core);
+ const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex([[0,'rgba(170,230,255,.45)'],[1,'rgba(120,200,255,0)']]),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));halo.scale.setScalar(1.1);g.add(halo);
+ const wc=cnv(64),wg=wc.getContext('2d'),gr=wg.createRadialGradient(32,32,2,32,32,30);gr.addColorStop(0,'rgba(230,250,255,.9)');gr.addColorStop(1,'rgba(160,220,255,0)');wg.fillStyle=gr;wg.beginPath();wg.ellipse(32,32,30,14,0,0,7);wg.fill();
+ const wm=new THREE.SpriteMaterial({map:tex(wc),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+ const w1=new THREE.Sprite(wm),w2=new THREE.Sprite(wm);w1.scale.set(.22,.1,1);w2.scale.set(.22,.1,1);w1.position.set(-.1,.04,0);w2.position.set(.1,.04,0);g.add(w1,w2);
+ g.userData={core,halo,w1,w2,told:{}};return g;}
+function updateLumi(dt){if(!lumi||!player)return;const u=lumi.userData;
+ let best=null,bd=14;for(const o of shieldObjs){if(o.taken)continue;const d=Math.hypot(o.grp.position.x-px,o.grp.position.z-pz);if(d<bd&&Math.abs(o.grp.position.y-feet)<4){bd=d;best=o;}}
+ const h=grand?1.95:1.4;
+ if(best){lumiT.set(px+(best.grp.position.x-px)*.55,Math.max(feet+h,best.grp.position.y+.6),pz+(best.grp.position.z-pz)*.55);
+  if(!u.told[best.i]){u.told[best.i]=1;toast('Lumi : Je sens un blason d’or tout près ! Suis-moi !',3);fairyChime();}}
+ else lumiT.set(px+Math.cos(playerFace)*.55-Math.sin(playerFace)*.25,feet+h+Math.sin(T*2.3)*.12,pz-Math.sin(playerFace)*.55-Math.cos(playerFace)*.25);
+ lumi.position.lerp(lumiT,Math.min(1,dt*(best?1.6:3)));lumi.position.y+=Math.sin(T*3.1)*.004;
+ const f=Math.abs(Math.sin(T*28));u.w1.scale.x=.08+.16*f;u.w2.scale.x=.08+.16*f;const pul=1+.15*Math.sin(T*6)+(best?.25:0);u.core.scale.setScalar(.3*pul);u.halo.scale.setScalar((isNight?1.6:1.1)*pul);}
+function fairyChime(){if(!actx||muted)return;const t=actx.currentTime;[88,93,96].forEach((m,i)=>{const o=actx.createOscillator(),g=actx.createGain();o.type='sine';o.frequency.value=440*Math.pow(2,(m-69)/12);const s=t+i*.07;g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(.07,s+.01);g.gain.exponentialRampToValueAtTime(.001,s+.5);o.connect(g).connect(actx.destination);o.start(s);o.stop(s+.55);});}
+
+/* ---------- style « Rétro 64 » ---------- */
+let retro=false;
+function setRetro(on){retro=on;renderer.setPixelRatio(on?.42:Math.min(devicePixelRatio,isTouch?1.6:2));renderer.setSize(innerWidth,innerHeight);
+ cvs.style.imageRendering=on?'pixelated':'';cvs.style.filter=on?'saturate(1.45) contrast(1.08)':'';
+ renderer.shadowMap.enabled=!on;scene.traverse(o=>{if(o.material&&o.material.isMaterial)o.material.needsUpdate=true;});scene.fog.density=on?.0062:.0034;}
+document.getElementById('styleB').onclick=e=>{setRetro(!retro);e.currentTarget.textContent=retro?'Style : rétro 64':'Style : moderne';};
+
 /* ---------- caméra derrière le chevalier ---------- */
 function rayDist(ox,oy,oz,dx,dy,dz,maxD){let best=maxD;
  for(const b of colliders){if(b.y1-b.y0>30)continue;let t0=0,t1=best,ok=true;
@@ -1309,6 +1347,7 @@ const ARME={'Aucune':'aucune','Épée':'epee','Hache':'hache','Lance':'lance'};
 const met=Object.keys(PERSO.METAUX),tis=Object.keys(PERSO.TISSUS),cui=Object.keys(PERSO.CUIRS);
 function kv(map,v){for(const k in map)if(map[k]===v)return k;return Object.keys(map)[0];}
 const ROWS={look:[
+ ['Âge',['Enfant','Grand'],()=>grand?'Grand':'Enfant',v=>{if(v==='Grand'&&!grandOK){toast('Lumi : Trouve les 6 blasons d’or pour grandir !',2.6);return;}grand=v==='Grand';}],
  ['Personnage',['Garçon','Fille'],()=>tenue.sex==='f'?'Fille':'Garçon',v=>{tenue.sex=v==='Fille'?'f':'m';}],
  ['Peau',Object.keys(PEAUX),()=>kv(PEAUX,tenue.skin),v=>{tenue.skin=PEAUX[v];}],
  ['Cheveux',Object.keys(CHEVEUX),()=>kv(CHEVEUX,tenue.hair),v=>{tenue.hair=CHEVEUX[v];}],
@@ -1389,7 +1428,7 @@ function zoneOf(){if(px>-7.5&&px<7.5&&pz>-19.5&&pz<-4.5&&feet<7)return 'La grand
  const m=Math.max(Math.abs(px),Math.abs(pz));if(Math.abs(px)<3&&pz>34&&pz<45)return 'Le pont-levis';if(Math.abs(px)<2.6&&pz>26&&pz<=34)return 'La porte fortifiée';
  if(m<28.6){if(px>19&&pz>1&&pz<13)return 'La forge';if(Math.hypot(px+8,pz-8)<4)return 'Le puits';if(px<-19&&pz>13)return "L'écurie";if(px>11&&px<17&&pz>-11&&pz<-6)return 'Le marché';return 'La cour du château';}
  if(m<37.5)return 'Au pied des remparts';return 'La forêt des pins';}
-scoreEl.onclick=()=>{const n=shieldObjs.find(s=>!s.taken);toast(n?'Indice : '+SHIELDS[n.i].hint:'Tu as tout trouvé !',5);};
+scoreEl.onclick=()=>{const n=shieldObjs.find(s=>!s.taken);toast(n?'Lumi : '+SHIELDS[n.i].hint:'Lumi : Tu as tout trouvé, bravo !',5);fairyChime();};
 document.getElementById('daynight').onclick=e=>{isNight=!isNight;applyPreset(isNight?PRESET.night:PRESET.day);e.currentTarget.textContent=isNight?'☀️':'🌙';};
 
 /* ---------- Audio ---------- */
@@ -1411,22 +1450,22 @@ function update(dt){
  if((keys.Space||jumpReq)&&onGround){vy=6;onGround=false;feet+=.02;}jumpReq=false;
  const g=groundAt(px,pz,feet);
  if(onGround&&vy<=0&&feet-g<.45){feet=g;}else{vy-=18*dt;feet+=vy*dt;if(feet<=g){feet=g;vy=0;onGround=true;}else onGround=false;}
- const eye=feet+1.62;camY+=(eye-camY)*Math.min(1,dt*14);if(Math.abs(eye-camY)>2.5)camY=eye;
+ const eye=feet+(grand?1.62:1.12);camY+=(eye-camY)*Math.min(1,dt*14);if(Math.abs(eye-camY)>2.5)camY=eye;
  const moving=(Math.abs(vx)+Math.abs(vz))>.2&&onGround;if(moving)bobT+=dt*sp*1.9;
  if(player){const mv=Math.hypot(vx,vz);if(mv>.3)playerFace=angLerp(playerFace,Math.atan2(vx,vz),Math.min(1,dt*10));
   player.position.set(px,feet,pz);player.rotation.y=playerFace;
   PERSO.animate(player,!onGround?'idle':(mv>.3?(sp>5?'run':'walk'):'idle'),dt,sp/1.5);}
- updateCamera(dt);updatePeople(dt);
+ updateCamera(dt);updatePeople(dt);updateLumi(dt);
  // shields
  for(const o of shieldObjs){if(o.taken)continue;o.grp.rotation.y+=dt*1.6;o.grp.position.y=o.y+Math.sin(T*2+o.i)*.1;
   const dx=o.grp.position.x-px,dz=o.grp.position.z-pz,dy=o.grp.position.y-(feet+1);if(dx*dx+dz*dz+dy*dy<2.6){o.taken=true;scene.remove(o.grp);found++;chime();scoreEl.textContent=`🛡️ ${found} / 6`;
-   toast(found<6?`Blason d'or trouvé ! ${found} / 6`:'Le dernier blason !',2.8);if(found===6)setTimeout(()=>{document.getElementById('win').style.display='flex';if(document.exitPointerLock)document.exitPointerLock();},1600);}}
+   toast(found<6?`Blason d'or trouvé ! ${found} / 6`:'Le dernier blason !',2.8);if(found===6)setTimeout(grandir,1200);}}
  zoneT-=dt;if(zoneT<0){zoneT=.4;const z=zoneOf();if(z!==zoneName){zoneName=z;zoneEl.textContent=z;zoneEl.style.opacity=1;clearTimeout(zoneEl._t);zoneEl._t=setTimeout(()=>zoneEl.style.opacity=0,2600);}}
  const inside=(px>-7.6&&px<7.6&&pz>-19.6&&pz<-4.4&&feet<7)?1:0;insideF+=(inside-insideF)*Math.min(1,dt*2.5);}
 
 let perfT=0,perfN=0,perfLvl=0;
 function frame(){requestAnimationFrame(frame);const raw=clock.getDelta(),dt=Math.min(.05,raw);T+=dt;
- if(started&&!paused){perfT+=raw;perfN++;if(perfT>3){const fps=perfN/perfT;perfT=0;perfN=0;if(fps<28&&perfLvl<3){perfLvl++;if(perfLvl===1)renderer.setPixelRatio(Math.min(devicePixelRatio,1.2));if(perfLvl===2)renderer.setPixelRatio(1);if(perfLvl===3){renderer.shadowMap.enabled=false;scene.traverse(o=>{if(o.material&&o.material.isMaterial)o.material.needsUpdate=true;});}renderer.setSize(innerWidth,innerHeight);}}}
+ if(started&&!paused){perfT+=raw;perfN++;if(perfT>3){const fps=perfN/perfT;perfT=0;perfN=0;if(fps<28&&perfLvl<3&&!retro){perfLvl++;if(perfLvl===1)renderer.setPixelRatio(Math.min(devicePixelRatio,1.2));if(perfLvl===2)renderer.setPixelRatio(1);if(perfLvl===3){renderer.shadowMap.enabled=false;scene.traverse(o=>{if(o.material&&o.material.isMaterial)o.material.needsUpdate=true;});}renderer.setSize(innerWidth,innerHeight);}}}
  if(started&&!paused)update(dt);else{const a=T*.05;camera.position.set(Math.sin(a)*78,24+Math.sin(T*.13)*4,Math.cos(a)*78+6);camera.lookAt(0,7,-4);}
  sky.position.copy(camera.position);
  const tx=Math.round(camera.position.x/2)*2,tz=Math.round(camera.position.z/2)*2;sun.target.position.set(tx,0,tz);sun.position.set(tx,0,tz).addScaledVector(cur.sun,160);
@@ -1449,7 +1488,7 @@ build().then(n=>{applyPreset(PRESET.day);try{renderer.compile(scene,camera);}cat
 GAME.start=startGame;
 function startGame(){if(started)return;started=true;document.getElementById('home').style.display='none';document.getElementById('start').style.display='none';document.getElementById('hud').style.display='flex';
  if(isTouch)jbtn.style.display='flex';
- if(!actx)initAudio();startMusic();clock.getDelta();yaw=0;pitch=0.02;camY=1.62;toast(isTouch?'Pouce gauche pour marcher, glisse à droite pour regarder':'Clique dans le jeu pour diriger le regard à la souris',4);
+ if(!actx)initAudio();startMusic();clock.getDelta();yaw=0;pitch=0.02;camY=1.62;toast(grand?'Lumi : Te revoilà, grand chevalier !':'Lumi : Bonjour petit chevalier ! Trouvons les 6 blasons d’or pour que tu grandisses !',5);
  setTimeout(()=>document.getElementById('tip').textContent='',5000);
  if(!isTouch){try{const r=cvs.requestPointerLock&&cvs.requestPointerLock();if(r&&r.catch)r.catch(()=>{});}catch(e){}}}
 document.getElementById('cont').onclick=()=>{document.getElementById('win').style.display='none';};
