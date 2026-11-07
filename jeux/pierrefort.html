@@ -68,7 +68,7 @@ h1{font-family:Cinzel,serif;font-weight:700;font-size:clamp(34px,9vw,68px);margi
   <button id="go">Jouer</button>
   <div id="barBox"><div id="bar"></div></div>
   <div id="load">Je prépare les outils du bâtisseur…</div>
-  <div id="ver" style="margin-top:8px;font-size:12px;opacity:.6">Version 7</div>
+  <div id="ver" style="margin-top:8px;font-size:12px;opacity:.6">Version 8</div>
   <div class="ctr" id="ctrl"></div>
 </div>
 <div id="win" class="ov" style="display:none">
@@ -77,7 +77,7 @@ h1{font-family:Cinzel,serif;font-weight:700;font-size:clamp(34px,9vw,68px);margi
   <button id="cont" class="btn">Continuer la balade</button><button class="btn" style="margin-top:14px" onclick="location.reload()">Rejouer</button>
 </div>
 <div id="hud"><div class="pill" id="score">🛡️ 0 / 6</div><div style="display:flex;gap:8px"><div class="pill" id="persoB">⚔ Chevalier</div><div class="pill" id="vueB">👁</div><div class="pill" id="daynight">🌙</div><div class="pill" id="pauseB">❚❚</div></div></div>
-<div id="pause" class="ov" style="display:none"><h1>Pause</h1><button class="btn" id="resume">Reprendre</button><button class="btn" id="mute" style="margin-top:14px">Son : oui</button><button class="btn" id="musB" style="margin-top:14px">Musique : oui</button><button class="btn" id="styleB" style="margin-top:14px">Style : moderne</button><button class="btn" id="replay" style="margin-top:14px">Rejouer</button><a class="btn" href="../index.html" style="margin-top:14px;text-decoration:none">Accueil des jeux</a></div>
+<div id="pause" class="ov" style="display:none"><h1>Pause</h1><button class="btn" id="resume">Reprendre</button><button class="btn" id="mute" style="margin-top:14px">Son : oui</button><button class="btn" id="musB" style="margin-top:14px">Musique : oui</button><button class="btn" id="replay" style="margin-top:14px">Rejouer</button><a class="btn" href="../index.html" style="margin-top:14px;text-decoration:none">Accueil des jeux</a></div>
 <a id="home" href="../index.html" style="position:fixed;top:calc(12px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left));z-index:21;color:#f8e6b8;text-decoration:none;font-family:Cinzel,serif;font-size:15px;background:rgba(15,10,5,.55);border:1px solid rgba(244,214,138,.5);border-radius:20px;padding:7px 14px">‹ Accueil</a>
 <div id="flash" style="position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:30;transition:opacity .9s"></div>
 <div id="zone"></div>
@@ -760,7 +760,7 @@ function mergeSkin(list){let nv=0,ni=0;for(const it of list){const g=it.geo;nv+=
  const pos=new Float32Array(nv*3),nor=new Float32Array(nv*3),uv=new Float32Array(nv*2),col=new Float32Array(nv*3),si=new Uint16Array(nv*4),sw=new Float32Array(nv*4),idx=new Uint32Array(ni);let vo=0,io=0;
  for(const it of list){const g=it.geo,p=g.attributes.position,c=p.count;if(!g.attributes.normal)g.computeVertexNormals();
   pos.set(p.array,vo*3);nor.set(g.attributes.normal.array,vo*3);if(g.attributes.uv)uv.set(g.attributes.uv.array,vo*2);if(g.attributes.color)col.set(g.attributes.color.array,vo*3);else col.fill(1,vo*3,(vo+c)*3);
-  for(let k=0;k<c;k++){const o=(vo+k)*4;if(typeof it.bone==='number'){si[o]=it.bone;sw[o]=1;}else{const r=it.bone(p.getX(k),p.getY(k),p.getZ(k));si[o]=r[0];si[o+1]=r[1];sw[o]=1-r[2];sw[o+1]=r[2];}}
+  for(let k=0;k<c;k++){const o=(vo+k)*4;if(typeof it.bone==='number'){si[o]=it.bone;sw[o]=1;}else{const r=it.bone(p.getX(k),p.getY(k),p.getZ(k));si[o]=r[0];si[o+1]=r[1];sw[o]=1-r[2];sw[o+1]=r[2];if(r.length>3){si[o+2]=r[3];sw[o+2]=r[4];sw[o]-=r[4];}}}
   if(g.index){const a=g.index.array;for(let k=0;k<a.length;k++)idx[io+k]=a[k]+vo;io+=a.length;}else{for(let k=0;k<c;k++)idx[io+k]=vo+k;io+=c;}vo+=c;}
  const m=new THREE.BufferGeometry();m.setAttribute('position',new THREE.BufferAttribute(pos,3));m.setAttribute('normal',new THREE.BufferAttribute(nor,3));m.setAttribute('uv',new THREE.BufferAttribute(uv,2));
  m.setAttribute('color',new THREE.BufferAttribute(col,3));m.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(si,4));m.setAttribute('skinWeight',new THREE.Float32BufferAttribute(sw,4));
@@ -830,8 +830,8 @@ function frontZ(x,y,f){ // devant de la tête à (x,y) : on cherche le point de 
 
 // ----- L'ŒIL -----
 function makeEye(rig,side,f,o){const M=P.mats();const sx=side==='L'?1:-1;
- const ex=.031*sx,ey=.0125;
- const c=new PV(ex+HC.x,ey+HC.y,HC.z+frontZ(ex,ey,f)-.0045);const R=.0118;
+ const ex=.031*sx,ey=.0125,fem=o.sex==='f';
+ const c=new PV(ex+HC.x,ey+HC.y,HC.z+frontZ(ex,ey,f)-.0045);const R=fem?.0125:.0118;
  const eye=new THREE.SphereGeometry(R,28,18);eye.rotateX(Math.PI/2);eye.rotateY(sx*.06);eye.translate(c.x,c.y,c.z);
  rig.add('eye',eye,BI.head);
  // paupière du haut (bouge pour cligner) et du bas
@@ -840,7 +840,7 @@ function makeEye(rig,side,f,o){const M=P.mats();const sx=side==='L'?1:-1;
  paint(up,lin(o.skin),(x,y,z,col)=>{const th=Math.acos(Math.max(-1,Math.min(1,y/(R*1.07))));if(th>1.08)col.multiplyScalar(.12);else if(th>.95)col.multiplyScalar(.8);});
  up.rotateX(-.02);up.translate(c.x,c.y,c.z);rig.add('skin',up,lidB);
  {const RR=R*1.07,te=1.13,pts=[],nr=[];for(let k=0;k<=10;k++){const ph=-1.15+k/10*2.3;const q=new PV(RR*Math.sin(te)*Math.sin(ph),RR*Math.cos(te),RR*Math.sin(te)*Math.cos(ph));q.applyAxisAngle(new PV(1,0,0),-.02);pts.push(q.add(c));nr.push(new PV(0,1,.4).normalize());}
-  for(let k=0;k<pts.length;k++){}const base=pts.map(q=>q.clone()),tip=pts.map((q,k)=>q.clone().add(new PV(0,.0028,.0022)));
+  for(let k=0;k<pts.length;k++){}const base=pts.map(q=>q.clone()),tip=pts.map((q,k)=>q.clone().add(fem?new PV(sx*.0007*Math.max(0,k-6),.004,.0032):new PV(0,.0028,.0022)));
   const lash=ribbon(base,nr,.0001,.0001,lin('#140c08'),lin('#140c08'));const pp=lash.attributes.position;
   for(let k=0;k<pts.length;k++){pp.setXYZ(k*2,base[k].x,base[k].y,base[k].z);pp.setXYZ(k*2+1,tip[k].x,tip[k].y,tip[k].z);}lash.computeVertexNormals();rig.add('strand',lash,lidB);}
  const lo=new THREE.SphereGeometry(R*1.05,26,8,0,Math.PI*2,Math.PI-.9,.9);
@@ -857,7 +857,7 @@ function makeHead(rig,o){const f=o.face;
  const skin=lin(o.skin),lip=lin(o.lip),blush=lin('#c4686a');
  paint(g,skin,(x,y,z,c)=>{x-=HC.x;y-=HC.y;z-=HC.z;if(z<0)return;
   const lw=Math.max(gauss(x,y,0,-.0548,.0135,.0028),gauss(x,y,0,-.0655,.0118,.0038));c.lerp(lip,Math.min(1,lw*1.35));
-  c.lerp(blush,.22*gauss(Math.abs(x),y,.045,-.018,.016,.014));
+  c.lerp(blush,(o.sex==='f'?.34:.22)*gauss(Math.abs(x),y,.045,-.018,.016,.014));if(o.sex==='f')c.lerp(lin('#a86a70'),.16*gauss(Math.abs(x),y,.031,.021,.014,.004));
     const nos=gauss(Math.abs(x),y,.0072,-.0406,.0026,.0012);c.multiplyScalar(1-nos*.6);
   c.multiplyScalar(1-.18*gauss(Math.abs(x),y,.031,.004,.016,.006));
   c.lerp(lin('#b86a62'),.18*gauss(x,y,0,-.028,.009,.009));c.lerp(lin('#7a5a6a'),.1*gauss(Math.abs(x),y,.031,-.006,.012,.005));
@@ -886,7 +886,7 @@ function makeHead(rig,o){const f=o.face;
  makeEye(rig,'L',f,o);makeEye(rig,'R',f,o);
  // sourcils
  const hc=lin(o.hair);
- for(const sx of [1,-1]){const pts=[];for(let k=0;k<=8;k++){const t=k/8,x=sx*(.013+t*.04),y=.0305+Math.sin(t*Math.PI*.85)*.0055*f.brow-t*.002;pts.push(new PV(x+HC.x,y+HC.y,HC.z+frontZ(x,y,f)+.0035));}
+ for(const sx of [1,-1]){const pts=[];for(let k=0;k<=8;k++){const t=k/8,x=sx*(.013+t*.04),y=o.sex==='f'?.0335+Math.sin(t*Math.PI*.8)*.0085-t*.003:.0305+Math.sin(t*Math.PI*.85)*.0055*f.brow-t*.002;pts.push(new PV(x+HC.x,y+HC.y,HC.z+frontZ(x,y,f)+.0035));}
   const tg=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),16,.0024*f.browT,6,false);
   {const tp=tg.attributes.position;}paint(tg,hc);rig.add('hair',tg,BI.head);}
 }
@@ -910,7 +910,18 @@ function makeHair(rig,o){const f=o.face,st=o.style;if(st==='chauve')return;const
   c.multiplyScalar((.62+.5*r)*(.9+.2*vnoise(lx*200,ly*60,0)));});
  rig.add('hair',g,BI.head);
  if(st==='longue'||st==='queue'){
-  if(st==='longue'){}
+  if(st==='longue'){const NA=36,NV=18,q=new PV(),pos=[],idx=[];
+   const at=(u,v,out)=>{const a=u*2.02;const side=Math.abs(a)>1.6;const L=side?.17:.3;
+    const y=.035-v*L;const R=.096+.022*psm(v/.3)+.03*v*v+(Math.pow(Math.abs(Math.sin(a*9+v*1.5)),.6)-.5)*.007;
+    out.set(Math.sin(a)*R*(f.w*.86+.14),y,-Math.cos(a)*R*(.95+.18*psm(v/.5)));
+    if(out.z>-.02&&Math.abs(out.x)<.085)out.x=Math.sign(out.x||1)*.085; // dégage le visage
+    return out;};
+   for(let j=0;j<=NV;j++)for(let i=0;i<=NA;i++){at(i/NA*2-1,j/NV,q);pos.push(q.x+HC.x,q.y+HC.y,q.z+HC.z);if(i<NA&&j<NV){const k=j*(NA+1)+i;idx.push(k,k+1,k+NA+1,k+1,k+NA+2,k+NA+1);}}
+   const cg=new THREE.BufferGeometry();cg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+   const uv=[];for(let j=0;j<=NV;j++)for(let i=0;i<=NA;i++)uv.push(i/NA*4,j/NV*3);cg.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+   cg.setIndex(idx);cg.computeVertexNormals();
+   paint(cg,hc,(x,y,z,c)=>{const a=Math.atan2(x-HC.x,-(z-HC.z));const r=Math.pow(Math.abs(Math.sin(a*9+(HC.y-y)*5)),.6);c.multiplyScalar((.6+.5*r)*(1-.25*psm((HC.y-.15-y)/.15)));});
+   rig.add('hair',cg,(x,y,z)=>y>1.56?[BI.head,BI.head,0]:[BI.head,BI.chest,psm((1.56-y)/.1)*.75]);}
   else{const pts=[new PV(0,HC.y+.02,HC.z-.1),new PV(0,HC.y-.03,HC.z-.125),new PV(0,HC.y-.12,HC.z-.13),new PV(0,HC.y-.2,HC.z-.115)];
    const tg=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),20,.018,10,false);const tp=tg.attributes.position;
    for(let i=0;i<tp.count;i++){const y=tp.getY(i);const k=psm((HC.y-y)/.22);const cx=0,cz=HC.z-.125;tp.setX(i,cx+(tp.getX(i)-cx)*(1-.6*k));tp.setZ(i,cz+(tp.getZ(i)-cz)*(1-.6*k));}
@@ -920,7 +931,7 @@ function makeHair(rig,o){const f=o.face,st=o.style;if(st==='chauve')return;const
 // ----- LES MÈCHES : des centaines de rubans qui suivent le crâne -----
 function shellR(dir,f,out){const r=dir.clone().normalize();headPoint(r.x,r.y,r.z,{w:f.w,jaw:f.jaw,brow:0,nose:0,lips:0,chin:f.chin,browT:1},out);return out.length();}
 function makeStrands(rig,o){const f=o.face,st=o.style;if(st==='chauve')return;const hc=lin(o.hair);const long=st==='longue';
- const crown=new PV(.008,.1,-.035),tmp=new PV(),list=[];const N=long?260:(st==='queue'?120:110);let made=0,tries=0;
+ const crown=new PV(.008,.1,-.035),tmp=new PV(),list=[];const N=long?140:(st==='queue'?120:110);let made=0,tries=0;
  while(made<N&&tries<N*12){tries++;const u=Math.random()*2-1,a=Math.random()*Math.PI*2,r=Math.sqrt(1-u*u);const dir=new PV(r*Math.cos(a),u,r*Math.sin(a));
   headPoint(dir.x,dir.y,dir.z,{w:f.w,jaw:f.jaw,brow:0,nose:0,lips:0,chin:f.chin,browT:1},tmp);const h=hairLine(tmp.x,tmp.y,tmp.z,st);if(tmp.y<h+.003)continue;if(!long&&tmp.y>h+.03&&Math.random()<.85)continue;
   const back=tmp.z<0,side=Math.abs(tmp.x)>.05;
@@ -937,7 +948,7 @@ function makeStrands(rig,o){const f=o.face,st=o.style;if(st==='chauve')return;co
    if(p.z>-.01&&p.y<.05&&Math.abs(p.x)<.082){if(long||p.y<.035)p.x=Math.sign(p.x||1)*.082;}
    if(p.y<-.08&&Math.abs(p.x)<.1&&p.z>-.05)p.z=-.05;
    pts.push(p.clone());nrm.push(p.clone().normalize());}
-  const v=.8+Math.random()*.35;const g=ribbon(pts.map(q=>q.clone().add(P.HC)),nrm,long?.032:.028,long?.012:.01,hc.clone().multiplyScalar(.6*v),hc.clone().multiplyScalar(1.12*v));
+  const v=.8+Math.random()*.35;const g=ribbon(pts.map(q=>q.clone().add(P.HC)),nrm,long?.032:.028,long?.012:.01,hc.clone().multiplyScalar(.82*v),hc.clone().multiplyScalar(1.1*v));
   const na=g.attributes.position.count,nn=new Float32Array(na*3);for(let i=0;i<pts.length;i++){const q=nrm[i];nn.set([q.x,q.y,q.z,q.x,q.y,q.z],i*6);}g.setAttribute('normal',new THREE.BufferAttribute(nn,3));
   list.push(g);made++;}
  for(const g of list)rig.add('strand',g,(x,y,z)=>y>1.56?[BI.head,BI.head,0]:[BI.head,BI.chest,psm((1.56-y)/.12)*.7]);
@@ -969,23 +980,24 @@ function uvScale(g,su,sv){const u=g.attributes.uv;for(let i=0;i<u.count;i++)u.se
 // largeur du torse à une hauteur (profil), pour poser des détails sur le devant
 function profR(prof,y){for(let i=1;i<prof.length;i++)if(y<=prof[i][0]){const a=prof[i-1],b=prof[i],t=(y-a[0])/(b[0]-a[0]);return a[1]+(b[1]-a[1])*t;}return prof[prof.length-1][1];}
 // la jupe suit les jambes : plus on descend, plus elle suit la cuisse du même côté
-function wSkirt(maxW){return (x,y,z)=>{const k=psm((.98-y)/.32)*maxW*Math.min(1,Math.abs(x)/.08+.4);return [BI.root,x>=0?BI.thighL:BI.thighR,k];};}
+function wSkirt(maxW){return (x,y,z)=>{const k=psm((.98-y)/.3)*maxW,sL=psm((x/.11+1)/2);return [BI.root,BI.thighL,k*sL,BI.thighR,k*(1-sL)];};}
 function folds(c,x,y,z,k){c.multiplyScalar(1-(k||.16)*Math.max(0,vnoise(x*38+y*9,z*38+y*24,0)-.35));}
 
 // poids du torse : bassin → dos → poitrine → cou
 function wTorso(x,y,z){if(y<1.0)return [BI.root,BI.spine,0];if(y<1.14)return [BI.root,BI.spine,psm((y-1.0)/.14)];if(y<1.32)return [BI.spine,BI.chest,psm((y-1.14)/.18)];if(y<1.48)return [BI.chest,BI.chest,0];return [BI.chest,BI.neck,psm((y-1.48)/.06)*.6];}
 
-function torsoGeo(prof,o,inflate,y0,y1){const fem=o.sex==='f';const pts=[];for(const [y,r] of prof)if(y>=y0-1e-6&&y<=y1+1e-6)pts.push(new V2(r*inflate*(o.build||1),y));
+function torsoGeo(prof,o,inflate,y0,y1){const fem=o.sex==='f';const pts=[];const ny=Math.max(2,Math.round((y1-y0)/.014));for(let k=0;k<=ny;k++){const y=y0+(y1-y0)*k/ny;pts.push(new V2(profR(prof,y)*inflate*(o.build||1),y));}
  const g=new THREE.LatheGeometry(pts,44);const p=g.attributes.position;
  for(let i=0;i<p.count;i++){let x=p.getX(i),y=p.getY(i),z=p.getZ(i);z*=.64*(z>0?1.04:1);
   if(z>0&&y>1.18&&y<1.4)z*=1+.06*Math.sin((y-1.18)/.22*Math.PI);
   if(fem&&z>0){const b=gauss(Math.abs(x),y,.075,1.29,.045,.045);z+=.045*b*inflate;}
   if(z<0&&y>1.25&&y<1.44)z*=1+.04*gauss(Math.abs(x),y,.08,1.36,.05,.05);
   if(y<1.06){const a=Math.atan2(x,z),k=1+.014*Math.sin(a*16)*psm((1.06-y)/.08);x*=k;z*=k;}
+  {const sd=x*x/(x*x+z*z+1e-9),e=Math.exp(-Math.pow((y-1.435)/.042,2));x*=1+(fem?.2:.15)*e*Math.pow(sd,1.5);} // épaules
   p.setXYZ(i,x,y,z);}
  g.computeVertexNormals();return g;}
 const PROF_M=[[.86,.16],[.9,.165],[.98,.168],[1.06,.158],[1.16,.168],[1.26,.188],[1.35,.196],[1.42,.19],[1.47,.172],[1.5,.145],[1.53,.104],[1.556,.074]];
-const PROF_F=[[.86,.165],[.9,.17],[.98,.162],[1.06,.135],[1.14,.138],[1.22,.158],[1.3,.165],[1.38,.162],[1.45,.152],[1.48,.13],[1.51,.098],[1.54,.066]];
+const PROF_F=[[.86,.165],[.9,.17],[.98,.162],[1.06,.135],[1.14,.138],[1.22,.158],[1.3,.165],[1.38,.162],[1.45,.152],[1.48,.13],[1.51,.108],[1.535,.084],[1.556,.066]];
 
 function skirtGeo(rTop,yTop,rBot,yBot,fold,t0,t1,off){t0=t0||0;t1=t1===undefined?1:t1;off=off||0;const n=t1-t0<.5?3:10,pts=[];for(let k=0;k<=n;k++){const t=t0+(t1-t0)*k/n;pts.push(new V2((rTop+(rBot-rTop)*Math.pow(t,1.25))*(1+off),yTop+(yBot-yTop)*t));}
  pts.reverse();const g=new THREE.LatheGeometry(pts,56);const p=g.attributes.position;
@@ -998,9 +1010,9 @@ function makeHand(rig,side,col,mat,scale){scale=scale||1;const sx=side==='L'?1:-
  const down=new PV().subVectors(W,E).normalize(),bone=BI['hand'+side];
  const pc=W.clone().addScaledVector(down,.05*scale);
  const palm=ellip(pc,.018*scale,.05*scale,.042*scale,18,14);paint(palm,col);rig.add(mat,palm,bone);
- const fz=[.025,.0085,-.0075,-.0225],fl=[.072,.081,.076,.061];
- for(let k=0;k<4;k++){let p=new PV(W.x-sx*.002,W.y-.094*scale,W.z+fz[k]*scale);const L=fl[k]*scale,segs=[.45,.3,.25],rad=[.0098,.0088,.0078],ang=[.3,.75,1.05];
-  for(let j=0;j<3;j++){const a=ang[j]+(k===3?.1:0);const d=new PV(-sx*Math.sin(a)*.9,-Math.cos(a),Math.sin(a)*.35).normalize();const q=p.clone().addScaledVector(d,L*segs[j]);
+ const fz=[.021,.007,-.007,-.0205],fl=[.07,.078,.073,.058],CU=[[.12,.32,.42],[.16,.4,.5],[.22,.5,.6],[.3,.62,.72]];
+ for(let k=0;k<4;k++){let p=new PV(W.x-sx*.002,W.y-.094*scale,W.z+fz[k]*scale);const L=fl[k]*scale,segs=[.45,.3,.25],rad=[.0102,.0092,.0082],ang=CU[k];
+  for(let j=0;j<3;j++){const a=ang[j];const d=new PV(-sx*Math.sin(a)*.9,-Math.cos(a),Math.sin(a)*.35-fz[k]*1.2).normalize();const q=p.clone().addScaledVector(d,L*segs[j]);
    const c=capsule(p,q,rad[j]*scale,9);paint(c,col);rig.add(mat,c,bone);p=q;}}
  let tp=new PV(W.x-sx*.014*scale,W.y-.028*scale,W.z+.03*scale);const td=[new PV(-sx*.35,-.55,.76).normalize(),new PV(-sx*.55,-.65,.52).normalize()],tl=[.04,.032],tr=[.0118,.0102];
  for(let j=0;j<2;j++){const q=tp.clone().addScaledVector(td[j],tl[j]*scale);const c=capsule(tp,q,tr[j]*scale,9);paint(c,col);rig.add(mat,c,bone);tp=q;}
@@ -1010,7 +1022,7 @@ function makeHand(rig,side,col,mat,scale){scale=scale||1;const sx=side==='L'?1:-
 function makeBody(rig,o){const fem=o.sex==='f';const skin=lin(o.skin),tun=lin(o.tunic),pan=lin(o.pants),boot=lin(o.boots),belt=lin(o.beltc||'#3a2414');const bw=o.build||1;
  const prof=fem?PROF_F:PROF_M;
  const t=torsoGeo(prof,o,1,.86,1.56);paint(t,tun,(x,y,z,c)=>folds(c,x,y,z));rig.add('cloth',t,wTorso);
- const col=new THREE.TorusGeometry(fem?.064:.072,.011,8,26);col.rotateX(Math.PI/2);col.scale(1,1,.85);col.translate(0,fem?1.535:1.55,0);const royal=o.equip&&o.equip.casque&&o.equip.casque.t==='couronne';const trc=lin(o.trim||(royal?'#d8a838':'#d9c79a'));
+ const col=new THREE.TorusGeometry(fem?.068:.072,.011,8,26);col.rotateX(Math.PI/2);col.scale(1,1,.85);col.translate(0,1.55,0);const royal=o.equip&&o.equip.casque&&o.equip.casque.t==='couronne';const trc=lin(o.trim||(royal?'#d8a838':'#d9c79a'));
  uvScale(col,4,1);paint(col,trc);rig.add('trim',col,BI.chest);
  // encolure fendue et lacée
  {const zf=y=>profR(prof,y)*bw*.6656+.0012,sl=[],sn=[];for(let k=0;k<=6;k++){const y=1.535-k*.018;sl.push(new PV(0,y,zf(y)+.0008));sn.push(new PV(0,.2,1).normalize());}
@@ -1018,9 +1030,9 @@ function makeBody(rig,o){const fem=o.sex==='f';const skin=lin(o.skin),tun=lin(o.
   const lp=[];for(let k=0;k<=8;k++){const y=1.525-k*.0115;lp.push(new PV((k%2?1:-1)*.011*(1-k/12),y,zf(y)+.0035));}
   const lace=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lp,false,'catmullrom',.1),40,.0019,5,false);paint(lace,lin('#d8c8a0'));rig.add('leather',lace,wTorso);}
  const dress=fem||o.robe;
- const sk=skirtGeo(.168*bw,.99,dress?.36:.27,dress?.05:.57,dress?.06:.045);paint(sk,tun,(x,y,z,c)=>{folds(c,x,y,z,.22);if(y<(dress?.08:.6))c.multiplyScalar(.85);});rig.add('cloth',sk,wSkirt(dress?.42:.75));
- {const hem=skirtGeo(.168*bw,.99,dress?.36:.27,dress?.05:.57,dress?.06:.045,dress?.9:.8,1,.012);uvScale(hem,dress?19:14,1);paint(hem,trc);rig.add('trim',hem,wSkirt(dress?.42:.75));}
- if(o.apron){const ap=skirtGeo(.172,1.3,.2,.45,0);const pp=ap.attributes.position,idx=ap.index.array,keep=[];for(let k=0;k<idx.length;k+=3){let ok=true;for(let j=0;j<3;j++)if(pp.getZ(idx[k+j])<.07)ok=false;if(ok)keep.push(idx[k],idx[k+1],idx[k+2]);}
+ const sk=skirtGeo(.168*bw,.99,dress?.37:.29,dress?.05:.57,dress?.06:.045);paint(sk,tun,(x,y,z,c)=>{folds(c,x,y,z,.22);if(y<(dress?.08:.6))c.multiplyScalar(.85);});rig.add('cloth',sk,wSkirt(dress?.6:.95));
+ {const hem=skirtGeo(.168*bw,.99,dress?.37:.29,dress?.05:.57,dress?.06:.045,dress?.9:.8,1,.012);uvScale(hem,dress?19:14,1);paint(hem,trc);rig.add('trim',hem,wSkirt(dress?.6:.95));}
+ if(o.apron){const ap=skirtGeo(.172,1.3,.3,.45,0);const pp=ap.attributes.position,idx=ap.index.array,keep=[];for(let k=0;k<idx.length;k+=3){let ok=true;for(let j=0;j<3;j++)if(pp.getZ(idx[k+j])<.07)ok=false;if(ok)keep.push(idx[k],idx[k+1],idx[k+2]);}
   ap.setIndex(keep);ap.scale(1.05,1,1.12);paint(ap,lin('#5a3a22'));rig.add('leather',ap,(x,y,z)=>y>1.0?wTorso(x,y,z):[BI.root,BI.root,0]);}
  const by=fem?1.06:.99;
  const bt=new THREE.TorusGeometry(.172*bw*(fem?.86:1),.014,8,40);bt.rotateX(Math.PI/2);bt.scale(1,1,.68);bt.translate(0,by,0);paint(bt,belt);rig.add('leather',bt,BI.root);
@@ -1034,7 +1046,6 @@ function makeBody(rig,o){const fem=o.sex==='f';const skin=lin(o.skin),tun=lin(o.
   const ua=limb(S2,E,[[0,.03],[.06,.058],[.18,.06],[.45,.052],[.8,.046],[1,.044]],22);wrinkle(ua,S2,E,.82,.006);paint(ua,tun,(x,y,z,c)=>folds(c,x,y,z));
   rig.add('cloth',ua,(x,y,z)=>{const t=tAlong(x,y,z,S2,E);return t<.2?[BI.chest,BI['arm'+s],psm(t/.2)]:[BI['arm'+s],BI['fore'+s],psm((t-.88)/.12)*.5];});
   const el=ellip(E,.045,.045,.045,14,10);paint(el,tun);rig.add('cloth',el,BI['fore'+s]);
-  const dl=ellip(new PV(S.x-sx*.03,S.y-.012,S.z),.056,.05,.062,18,12);paint(dl,tun,(x,y,z,c)=>folds(c,x,y,z));rig.add('cloth',dl,(x,y,z)=>[BI.chest,BI['arm'+s],psm((sx*(x-S.x)+.04)/.08)*.8]);
   {const cf=limb(Wr.clone().addScaledVector(dw,-.075),Wr.clone().addScaledVector(dw,-.028),[[0,.0365],[.5,.037],[1,.0355]],18);uvScale(cf,2,1);paint(cf,trc);rig.add('trim',cf,BI['fore'+s]);}
   const fa=limb(E,Wr.clone().addScaledVector(dw,-.005),[[0,.044],[.4,.041],[.85,.033],[1,.032]],18);wrinkle(fa,E,Wr,.12,.005);paint(fa,tun,(x,y,z,c)=>folds(c,x,y,z));rig.add('cloth',fa,(x,y,z)=>{const t=tAlong(x,y,z,E,Wr);return [BI['fore'+s],BI['arm'+s],(1-psm(t/.12))*.5];});
   const wr=limb(Wr.clone().addScaledVector(dw,-.03),Wr.clone().addScaledVector(dw,.015),[[0,.026],[1,.024]],14);paint(wr,skin);rig.add('skin',wr,BI['hand'+s]);
@@ -1078,7 +1089,7 @@ function makeEquip(rig,o){const e=o.equip||{};const HC=P.HC;const mh=k=>P.METAUX
  if(a.t==='gambison'){const g=torsoGeo(prof,o,1.07,.86,1.47);paint(g,lin(P.TISSUS[a.m]||'#c9b48a'),(x,y,z,cc)=>{if((y*100)%4<.6)cc.multiplyScalar(.7);});rig.add('cloth',g,wTorso);}
  if(a.t==='mailles'||a.t==='complete'||a.t==='cuirasse'){
   if(a.t!=='cuirasse'){const g=torsoGeo(prof,o,1.045,.86,1.47);paint(g,chainCol);rig.add('chain',g,wTorso);
-   const sk=skirtGeo(.18,.98,.255,.62,.02);paint(sk,chainCol);rig.add('chain',sk,wSkirt(.75));
+   const sk=skirtGeo(.186,.98,.315,.59,.03);paint(sk,chainCol);rig.add('chain',sk,wSkirt(.95));
    for(const s of ['L','R']){const S=pos('arm'+s),E=pos('fore'+s);const sl=limb(S,E.clone().lerp(S,.15),[[0,.064],[1,.052]],18);paint(sl,chainCol);rig.add('chain',sl,BI['arm'+s]);}}
   if(a.t!=='mailles'){const g=torsoGeo(prof,o,1.11,.97,1.5);const p=g.attributes.position;for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i);if(z>0)p.setZ(i,z+.012*Math.max(0,1-Math.abs(x)/.06));}g.computeVertexNormals();
    metal(rig,g,am,wTorso,(x,y,z,cc)=>{if(Math.abs(y-1.0)<.012||Math.abs(y-1.44)<.01)cc.multiplyScalar(.6);});
@@ -1117,16 +1128,43 @@ function makeEquip(rig,o){const e=o.equip||{};const HC=P.HC;const mh=k=>P.METAUX
  else if(w.t==='lance'){const a0=new PV(H0.x,.06,H0.z),bq=new PV(H0.x,2.15,H0.z);const sh=capsule(a0,bq,.018,8);paint(sh,lin('#6a4a2a'));rig.add('wood',sh,BI.prop);
   const tip=new THREE.ConeGeometry(.032,.24,4);tip.translate(H0.x,2.27,H0.z);metal(rig,tip,wm,BI.prop);
   const fl=new THREE.PlaneGeometry(.28,.18,6,3);fl.translate(H0.x-.14,1.98,H0.z);paint(fl,lin(P.TISSUS[w.c]||'#9a1e22'));rig.add('cloth',fl,BI.prop);}
- const cp=e.cape||{};if(cp.t==='cape'){const g=new THREE.PlaneGeometry(.56,1.12,10,16);const p=g.attributes.position;
-  for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i);const t=(.56-y)/1.12;p.setXYZ(i,x*(1+t*.5),1.47-t*1.12,-.13-t*t*.22-x*x*.9+.02*Math.sin(x*22+t*3));}
-  g.computeVertexNormals();paint(g,lin(P.TISSUS[cp.c]||'#9a1e22'),(x,y,z,cc)=>folds(cc,x,y,z,.25));rig.add('cloth',g,(x,y,z)=>[BI.chest,BI.root,psm((1.2-y)/.3)*.8]);
-  for(const sx of [1,-1]){const cl=new THREE.SphereGeometry(.022,10,8);cl.translate(sx*.13,1.45,.06);metal(rig,cl,P.METAUX.Or,BI.chest);}}
+ const cp=e.cape||{};if(cp.t==='cape'){
+  // une vraie cape : elle se pose sur les épaules, tombe dans le dos en plis, s'ouvre devant
+  const royal=c.t==='couronne',L=royal?1.22:1.0,col=lin(P.TISSUS[cp.c]||'#9a1e22'),NA=40,NV=26;
+  const capeP=(u,v,out)=>{const am=2.05-.4*psm(v/.5);const a=u*am;               // angle autour du corps (0 = dans le dos)
+   const top=psm(v/.16);const y=1.555-v*L;
+   let R=.085+.14*top+.115*v;const plis=.012*Math.sin(a*7.5+1.3)*psm((v-.08)/.3)*(1+v);R+=plis;
+   const zs=.62+.25*top;out.set(Math.sin(a)*R*1.08,y,-Math.cos(a)*R*zs-.012);
+   if(out.z>0)out.z*=.55; // devant : la cape reste plaquée sur les épaules
+   return out;};
+  const pos=new Float32Array((NA+1)*(NV+1)*3),uv=new Float32Array((NA+1)*(NV+1)*2),idx=[],q=new PV();
+  for(let j=0;j<=NV;j++)for(let i=0;i<=NA;i++){const k=j*(NA+1)+i;capeP(i/NA*2-1,j/NV,q);pos.set([q.x,q.y,q.z],k*3);uv.set([i/NA*6,j/NV*6],k*2);
+   if(i<NA&&j<NV)idx.push(k,k+NA+1,k+1,k+1,k+NA+1,k+NA+2);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('uv',new THREE.BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();
+  paint(g,col,(x,y,z,cc)=>{folds(cc,x,y,z,.2);const ang=Math.atan2(x,-z);cc.multiplyScalar(.82+.18*Math.cos(ang*7.5+1.3));});
+  const wC=(x,y,z)=>{const k=psm((1.38-y)/.5)*.85;return [BI.chest,BI.root,k];};
+  rig.add('cloth',g,wC);
+  // galon brodé tout en bas
+  {const hp=new Float32Array((NA+1)*2*3),hu=new Float32Array((NA+1)*2*2),hi=[];
+   for(let i=0;i<=NA;i++){const u=i/NA*2-1;for(let r=0;r<2;r++){capeP(u,r?1:1-.05/L,q);const s=1.006;q.x*=s;q.z*=s;hp.set([q.x,q.y,q.z],(i*2+r)*3);hu.set([i/NA*16,r],(i*2+r)*2);}
+    if(i<NA){const k=i*2;hi.push(k,k+1,k+2,k+1,k+3,k+2);}}
+   const h=new THREE.BufferGeometry();h.setAttribute('position',new THREE.BufferAttribute(hp,3));h.setAttribute('uv',new THREE.BufferAttribute(hu,2));h.setIndex(hi);h.computeVertexNormals();
+   paint(h,lin(royal?'#d8a838':'#d9c79a'));rig.add('trim',h,wC);}
+  // col : fourrure blanche à mouchetures pour le roi, roulé de tissu sinon
+  {const fur=new THREE.TorusGeometry(.15,royal?.035:.022,10,40,Math.PI*1.55);fur.rotateX(Math.PI/2);fur.rotateY(Math.PI*.5-Math.PI*.775+Math.PI);fur.scale(1.05,1,.72);fur.translate(0,1.505,-.01);
+   const fp=fur.attributes.position;for(let i=0;i<fp.count;i++){const x=fp.getX(i),y=fp.getY(i),z=fp.getZ(i);fp.setY(i,y-.035*psm((Math.abs(x)-.08)/.08));}fur.computeVertexNormals();
+   if(royal){paint(fur,lin('#f2eee6'),(x,y,z,cc)=>{const n=vnoise(x*70+3,z*70+y*30,0);if(n>.8)cc.setRGB(.02,.02,.02);else cc.multiplyScalar(.85+.2*vnoise(x*400,y*400+z*300,0));});rig.add('hair',fur,BI.chest);}
+   else{paint(fur,col.clone().multiplyScalar(.8));rig.add('cloth',fur,BI.chest);}}
+  for(const sx of [1,-1]){const cl=new THREE.CylinderGeometry(.024,.024,.008,16);cl.rotateX(Math.PI/2);cl.translate(sx*.115,1.45,.105);metal(rig,cl,P.METAUX.Or,BI.chest);
+   const gm=new THREE.SphereGeometry(.009,10,8);gm.translate(sx*.115,1.45,.111);metal(rig,gm,'#9a1e22',BI.chest);}
+  {const ch=new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new PV(.115,1.45,.11),new PV(0,1.415,.13),new PV(-.115,1.45,.11)]),20,.0035,5,false);metal(rig,ch,P.METAUX.Or,BI.chest);}}
 }
 
 /* ---------- ASSEMBLAGE ---------- */
 P.DEF={sex:'m',skin:'#d6a487',lip:'#a85f5a',hair:'#4a3020',style:'courte',beard:false,eyes:'#4a6fa5',tunic:'#6b4a2e',pants:'#4a4038',boots:'#4a2e1c',
  face:{w:1,jaw:1,brow:1,browT:1,nose:1,lips:1,chin:1},equip:{}};
-P.makeCharacter=function(o,only){o=Object.assign({},P.DEF,o);o.face=Object.assign({},P.DEF.face,o.face||{});o.equip=o.equip||{};
+P.FACE_FEM={w:.94,jaw:1.2,brow:.45,browT:.62,nose:.78,lips:1.25,chin:.75};
+P.makeCharacter=function(o,only){o=Object.assign({},P.DEF,o);o.face=Object.assign({},P.DEF.face,o.sex==='f'?P.FACE_FEM:{},o.face||{});if(o.sex==='f'&&o.lip===P.DEF.lip)o.lip='#c0606c';o.equip=o.equip||{};
  const rig=new P.Rig();const has=k=>!only||only.indexOf(k)>=0;
  const ct=o.equip.casque&&o.equip.casque.t;o.gauntlets=!!(o.equip.armure&&o.equip.armure.t==='complete');
  if(only&&only.length===1&&only[0]==='oeil'){P.makeEye(rig,'L',o.face,o);}
@@ -1255,12 +1293,12 @@ const LOOK_DEF={sex:'m',skin:'#d6a487',hair:'#3a2416',style:'courte',beard:false
 function loadLook(){const d=JSON.parse(JSON.stringify(LOOK_DEF));try{const s=localStorage.getItem(LOOK_KEY);if(s){const v=JSON.parse(s);Object.assign(d,v);d.equip=Object.assign(JSON.parse(JSON.stringify(LOOK_DEF.equip)),v.equip||{});}}catch(e){}return d;}
 function saveLook(){try{localStorage.setItem(LOOK_KEY,JSON.stringify(tenue));}catch(e){}}
 let tenue=loadLook();
-const FACE_F={w:.95,jaw:1.15,brow:.6,nose:.85,lips:1.2,chin:.8};
+const FACE_F=PERSO.FACE_FEM;
 let grandOK=false;try{grandOK=localStorage.getItem('pierrefort:grand')==='1';}catch(e){}
 let grand=grandOK;
-const FACE_ENF={w:1.05,jaw:.72,brow:.35,nose:.68,lips:1,chin:.65};
+const FACE_ENF={w:1.05,jaw:.72,brow:.35,nose:.68,lips:1,chin:.65},FACE_ENF_F={w:1.02,jaw:.82,brow:.3,nose:.6,lips:1.15,chin:.6,browT:.62};
 function lookToO(l){return {sex:l.sex,skin:l.skin,hair:l.hair,style:l.style,beard:grand&&l.beard&&l.sex!=='f',eyes:l.eyes,lip:l.sex==='f'?'#b8606a':'#a85f5a',
- tunic:PERSO.TISSUS[l.tunic]||l.tunic,pants:'#3a342e',boots:PERSO.CUIRS[l.boots]||'#4a2e1c',face:grand?(l.sex==='f'?FACE_F:{}):FACE_ENF,equip:l.equip};}
+ tunic:PERSO.TISSUS[l.tunic]||l.tunic,pants:'#3a342e',boots:PERSO.CUIRS[l.boots]||'#4a2e1c',face:grand?(l.sex==='f'?FACE_F:{}):(l.sex==='f'?FACE_ENF_F:FACE_ENF),equip:l.equip};}
 function disposeChar(c){c.traverse(o=>{if(o.isMesh)o.geometry.dispose();});}
 function rebuildPlayer(){let p=null;if(player){p=player.position.clone();scene.remove(player);disposeChar(player);}
  player=PERSO.makeCharacter(lookToO(tenue));player.traverse(o=>{if(o.isMesh)o.frustumCulled=false;});if(!grand){player.scale.setScalar(.66);player.userData.bones.head.scale.setScalar(1.3);}scene.add(player);if(p)player.position.copy(p);player.rotation.y=playerFace;}
@@ -1347,12 +1385,7 @@ function updateLumi(dt){if(!lumi||!player)return;const u=lumi.userData;
  const f=Math.abs(Math.sin(T*28));u.w1.scale.x=.08+.16*f;u.w2.scale.x=.08+.16*f;const pul=1+.15*Math.sin(T*6)+(best?.25:0);u.core.scale.setScalar(.3*pul);u.halo.scale.setScalar((isNight?1.6:1.1)*pul);}
 function fairyChime(){if(!actx||muted)return;const t=actx.currentTime;[88,93,96].forEach((m,i)=>{const o=actx.createOscillator(),g=actx.createGain();o.type='sine';o.frequency.value=440*Math.pow(2,(m-69)/12);const s=t+i*.07;g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(.07,s+.01);g.gain.exponentialRampToValueAtTime(.001,s+.5);o.connect(g).connect(actx.destination);o.start(s);o.stop(s+.55);});}
 
-/* ---------- style « Rétro 64 » ---------- */
-let retro=false;
-function setRetro(on){retro=on;renderer.setPixelRatio(on?.42:Math.min(devicePixelRatio,isTouch?1.6:2));renderer.setSize(innerWidth,innerHeight);
- cvs.style.imageRendering=on?'pixelated':'';cvs.style.filter=on?'saturate(1.45) contrast(1.08)':'';
- renderer.shadowMap.enabled=!on;scene.traverse(o=>{if(o.material&&o.material.isMaterial)o.material.needsUpdate=true;});scene.fog.density=on?.0062:.0034;}
-document.getElementById('styleB').onclick=e=>{setRetro(!retro);e.currentTarget.textContent=retro?'Style : rétro 64':'Style : moderne';};
+let retro=false; // le style « rétro 64 » a été retiré à la demande du propriétaire : toujours le style moderne
 
 /* ---------- caméra derrière le chevalier ---------- */
 function rayDist(ox,oy,oz,dx,dy,dz,maxD){let best=maxD;
